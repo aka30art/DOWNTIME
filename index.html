@@ -118,6 +118,17 @@ main{padding:24px;max-width:1700px;width:100%;margin:auto}
  #entriesBody .entrychevron{display:block!important}
  #entriesBody tr:not(.entrycompact) td.empty{display:block!important;grid-column:auto!important}
 }
+/* ENTRY LIST RESTRUCTURE: headerless compact tiles across viewport sizes */
+.entrylistwrap{overflow:visible!important}
+.entrylisttable{min-width:0!important;width:100%!important;table-layout:fixed}
+#entriesBody{display:block;width:100%}
+#entriesBody tr.entrycompact{display:block;width:100%;margin:0 0 7px;border:0}
+#entriesBody tr.entrycompact td{display:block;width:100%;padding:0!important;border:0!important}
+#entriesBody .entrytile{width:100%;display:flex;box-sizing:border-box;min-width:0}
+#entriesBody .entrymain{flex:1;min-width:0}
+#entriesBody .entrymain b{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+#entriesBody .entrymain small{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:600px){.entrylisttable,#entriesBody,#entriesBody tr.entrycompact,#entriesBody tr.entrycompact td{min-width:0!important;width:100%!important}}
 </style></head>
 <body>
 <div class="shell">
@@ -145,7 +156,7 @@ main{padding:24px;max-width:1700px;width:100%;margin:auto}
 <div class="field"><label>Plant stop</label><input id="plantStop" type="time" value="17:00"></div>
 <div class="field"><label>Break excluded</label><input value="75 minutes" disabled></div>
 </div>
-<div class="tablewrap"><table><thead><tr><th>#</th><th>Part / area of plant</th><th>Reason for downtime</th><th>Downtime (HH:MM)</th><th>Actions</th></tr></thead><tbody id="entriesBody"></tbody></table></div>
+<div class="tablewrap entrylistwrap"><table class="entrylisttable"><tbody id="entriesBody"></tbody></table></div>
 <button class="add" id="addEntry">＋ ADD DOWNTIME ENTRY</button>
 </div>
 <div class="panel"><h2>Daily downtime records</h2><div class="muted" id="dayFootnote">Changes are saved automatically on this device.</div></div>
@@ -226,10 +237,9 @@ $('saveSettings').onclick=()=>{state.areas=$('areasInput').value.split('\n').map
 function reportData(){let w=week(),days=w.days.map((d,i)=>({name:DAYS[i],...d,calc:calc(d)})),net=days.reduce((a,d)=>a+d.calc.net,0),down=days.reduce((a,d)=>a+d.calc.down,0);return {week:key(),created:new Date().toISOString(),days,totalNet:net,totalDown:down,totalPct:net?down/net*100:0}}
 function exportPDF(){let data=reportData();$('printTitle').textContent='WEEKLY PLANT DOWNTIME REPORT · '+prettyDate(key())+' – '+prettyDate(iso(plus(weekStart,5)));window.print();return data}
 $('exportBtn').onclick=()=>{let data=reportData();$('printTitle').textContent='WEEKLY PLANT DOWNTIME REPORT · '+prettyDate(key())+' – '+prettyDate(iso(plus(weekStart,5)));window.print();};
-window.addEventListener('afterprint',()=>{let data=reportData();state.archive.unshift({week:data.week,created:data.created,totalDown:data.totalDown,totalNet:data.totalNet,totalPct:data.totalPct,days:data.days});delete state.weeks[key()];persist();render();});
 $('cancelReset').onclick=()=>$('resetModal').classList.remove('show');
 function renderArchive(){let a=state.archive||[];$('reportsList').innerHTML=a.length?a.map((r,i)=>'<div class="reportitem"><div><b>Week of '+prettyDate(r.week)+'</b><div class="muted">'+fmt(r.totalDown)+' downtime · '+r.totalPct.toFixed(1)+'%</div></div><span class="pill">Archived</span></div>').join(''):'No exported reports yet.'}
-window.addEventListener('afterprint',()=>{});
+
 render();
 })();
 </script></body></html>
