@@ -76,7 +76,7 @@ const plus=(d,n)=>{let x=new Date(d);x.setDate(x.getDate()+n);return x};
 const parseWeek=k=>new Date(k+'T12:00:00');
 let weekStart=mondayOf(today),selected=0,entryDraft={area:'',reason:''},editing=-1;
 let state=load();
-function load(){try{return JSON.parse(localStorage.getItem(STORE))||{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop'],reasons:['Material blockage','Mechanical fault','Belt issue','Electrical fault'],archive:[]}}catch{return {weeks:{},areas:[],reasons:[],archive:[]}}}
+function load(){try{return JSON.parse(localStorage.getItem(STORE))||{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360'],reasons:['Material blockage','Mechanical fault','Belt issue','Electrical fault'],archive:[]}}catch{return {weeks:{},areas:[],reasons:[],archive:[]}}}
 function persist(){localStorage.setItem(STORE,JSON.stringify(state))}
 function key(){return iso(weekStart)}
 function blankDay(d){return {date:iso(d),start:'06:30',stop:'17:00',entries:[]}}
