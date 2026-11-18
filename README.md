@@ -10,15 +10,15 @@ A dependency-free weekly downtime recording app designed for GitHub Pages.
 - Daily and correctly weighted weekly downtime/running percentages.
 - Edit/delete entries and browser-local persistence.
 - Weekly report print layout for saving as PDF.
-- Export/reset confirmation and an archive index stored in the same browser.
+- Direct browser print-to-PDF export (choose Save as PDF in the print/share sheet). The export preserves the active week; automatic reset/archive is intentionally disabled because browsers cannot confirm that a PDF was actually saved.
 
 ## Deploy with GitHub Pages
 1. Open **Settings → Pages** in this repository.
-2. Under **Build and deployment**, select **Deploy from a branch**.
-3. Select branch **main**, folder **/ (root)**, then Save.
-4. Wait for the Pages deployment, then open the published URL.
+2. Under **Build and deployment → Source**, select **GitHub Actions**.
+3. Push to `main` or manually run **Deploy Plant Downtime Tracker** from the Actions tab.
+4. Wait for the workflow's **Deploy** job to succeed, then open https://aka30art.github.io/DOWNTIME/.
 
 ## Data and export behaviour
 This first version stores active weeks and the report archive in the browser's local storage. Use the same browser/device for continuity. It does not sync data between devices or users. PDF export uses the browser print dialog; select **Save as PDF**. The archive stores report summary metadata, not the PDF file itself. Keep downloaded PDFs separately.
 
-The week is only reset after the user confirms **Export & Reset**. The browser's print/save dialog is opened first; browser print APIs cannot verify that the user completed a PDF download. For strict download-confirmed reset, a server-backed export/download flow is required.
+PDF export opens the browser's print dialog. The app does not automatically reset or archive a week because the browser cannot tell whether a user saved the PDF or cancelled printing. Reset/archive needs a separate explicit action or server-backed download flow.
