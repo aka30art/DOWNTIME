@@ -105,6 +105,19 @@ main{padding:24px;max-width:1700px;width:100%;margin:auto}
 /* Compact downtime entry tiles + detail view */ 
 .entrycompact td{padding:5px!important;border-bottom:0!important}.entrytile{width:100%;display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px;background:linear-gradient(145deg,#162b39,#0b1a25);border:1px solid #304b5d;border-radius:10px;min-width:0}.entrynumber{color:#8ea6b6;font-size:10px;font-weight:800;flex-shrink:0}.entrymain{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}.entrymain b{color:#ffd000;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.entrymain small{color:#a9bdca;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.entryduration{font-weight:900;font-size:14px;color:#54a8ff;white-space:nowrap}.entrychevron{color:#829baa;font-size:20px}.entrytile:active{border-color:var(--yellow);transform:scale(.99)}.detailsmodal{max-width:440px}.detailtop{display:flex;align-items:center;justify-content:space-between}.detailtop small{font-weight:900;letter-spacing:1px;color:var(--muted)}.detailtop button{padding:6px 10px}.detailsmodal h2{margin:14px 0 18px;color:var(--yellow);font-size:22px}.detailbox{background:#091822;border:1px solid #31495a;border-radius:10px;padding:13px;margin:9px 0}.detailbox label{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.7px}.detailbox p{margin:5px 0 0;font-size:15px}.detailbox strong{display:block;color:#4aa3ff;font-size:24px;margin-top:5px}.detailsmodal .modalfoot button{flex:1}
 @media(max-width:600px){.entrycompact td{padding:4px 0!important}.entrytile{padding:10px 9px;gap:8px;border-radius:9px}.entrymain b{font-size:12px}.entrymain small{font-size:10px}.entryduration{font-size:13px}.detailsmodal{width:100%}}
+/* FIX: override legacy mobile table rules for compact clickable entry tiles */
+@media(max-width:600px){
+ .tablewrap:has(#entriesBody) table thead{display:none!important}
+ #entriesBody tr.entrycompact{display:block!important;grid-template:none!important;gap:0!important;padding:0!important;margin:0 0 6px!important;border:0!important}
+ #entriesBody tr.entrycompact td{display:block!important;grid-column:auto!important;grid-row:auto!important;padding:0!important;margin:0!important;border:0!important}
+ #entriesBody tr.entrycompact td:before{content:none!important;display:none!important}
+ #entriesBody .entrytile{display:flex!important;align-items:center!important;width:100%!important;min-height:54px!important;box-sizing:border-box!important}
+ #entriesBody .entrynumber{display:inline-flex!important;width:auto!important}
+ #entriesBody .entrymain{display:flex!important;flex:1!important;min-width:0!important}
+ #entriesBody .entryduration{display:block!important;width:auto!important}
+ #entriesBody .entrychevron{display:block!important}
+ #entriesBody tr:not(.entrycompact) td.empty{display:block!important;grid-column:auto!important}
+}
 </style></head>
 <body>
 <div class="shell">
