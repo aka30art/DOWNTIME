@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1721"><title>Plant Downtime Tracker</title>
+<style>
+:root{--bg:#0b1721;--panel:#132431;--panel2:#1a303f;--line:#355060;--text:#f4f7f9;--muted:#9db0bc;--yellow:#ffc400;--green:#28c76f;--red:#ff725e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:9px;padding:10px 13px;font-weight:650}button:hover{filter:brightness(1.16)}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--yellow);border-color:var(--yellow);color:#111820}.danger{border-color:#80463d;color:#ff9b8e}.quiet{background:transparent}.shell{display:grid;grid-template-columns:230px 1fr;min-height:100vh}.side{background:#09131b;border-right:1px solid #253b49;padding:24px 16px;display:flex;flex-direction:column;gap:9px}.brand{font-size:22px;line-height:1.05;font-weight:900;letter-spacing:-.7px;margin:4px 5px 27px}.brand b{color:var(--yellow)}.nav{width:100%;text-align:left;background:transparent;border-color:transparent}.nav.active{background:var(--yellow);color:#101820}.sidefoot{margin-top:auto;color:var(--muted);font-size:12px;padding:10px}
+main{padding:25px;max-width:1600px;width:100%;margin:auto}.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}.top h1{font-size:25px;margin:0}.muted{color:var(--muted)}.weekbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.weeklabel{font-weight:750;padding:9px 14px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.days{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:15px 0 18px}.day{padding:13px 8px;text-align:center}.day.selected{background:var(--yellow);color:#101820;border-color:var(--yellow)}.day small{display:block;font-weight:550;opacity:.8}.layout{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(280px,.8fr);gap:14px}.panel{background:linear-gradient(145deg,var(--panel),#10202c);border:1px solid var(--line);border-radius:14px;padding:17px;margin-bottom:14px;min-width:0}.panel h2{font-size:18px;margin:0 0 15px}.panel h2:before{content:"";display:inline-block;width:8px;height:21px;background:var(--yellow);transform:skew(-25deg);margin-right:12px;vertical-align:-4px}
+.fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.field label{font-size:11px;color:var(--muted);font-weight:750;display:block;margin:0 0 5px;text-transform:uppercase;letter-spacing:.5px}.field input,.field select,.field textarea,.input{width:100%;background:#0c1a24;border:1px solid var(--line);border-radius:8px;color:var(--text);padding:10px;min-width:0}.field textarea{min-height:78px;resize:vertical}
+.tablewrap{overflow-x:auto;margin-top:15px}table{width:100%;border-collapse:collapse;min-width:650px}th{background:#203645;color:#dbe5eb;font-size:11px;text-transform:uppercase;text-align:left;padding:11px 9px}td{padding:9px;border-bottom:1px solid #29404d}td input,td select{width:100%;min-width:70px;background:#0b1923;color:var(--text);border:1px solid var(--line);padding:8px;border-radius:7px}td .rowactions{display:flex;gap:5px}.add{width:100%;margin-top:12px;border:2px dashed #a78712;color:var(--yellow);background:transparent}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat{padding:13px;background:#0d1c26;border:1px solid var(--line);border-radius:10px}.stat small{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;font-weight:750}.stat strong{display:block;font-size:25px;margin-top:5px}.stat.highlight{border-color:#a78712;background:#3a3219}.wide{grid-column:1/-1}.weekly table{min-width:700px}.weekly tr.current td{background:#413718}.weekly .totalgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pill{font-size:11px;background:#263d4a;padding:4px 7px;border-radius:20px;color:#dbe5eb}
+.view{display:none}.view.active{display:block}.modalback{position:fixed;inset:0;background:#000a;display:none;place-items:center;padding:18px;z-index:5}.modalback.show{display:grid}.modal{background:#142735;border:1px solid var(--line);border-radius:15px;padding:22px;max-width:480px;width:100%;box-shadow:0 20px 80px #0008}.modal h2{margin-top:0}.modal p{color:var(--muted)}.modalfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}.presetrow{display:flex;flex-wrap:wrap;gap:7px}.presetrow button.chosen{border-color:var(--yellow);color:var(--yellow)}.empty{text-align:center;color:var(--muted);padding:24px}.reportitem{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding:12px 0}
+@media(max-width:950px){.shell{grid-template-columns:1fr}.side{padding:12px;position:static;display:flex;flex-direction:row;align-items:center;flex-wrap:wrap}.brand{margin:0 auto 0 4px;font-size:17px}.sidefoot{display:none}.nav{width:auto}.layout{grid-template-columns:1fr}.fields{grid-template-columns:repeat(2,1fr)}main{padding:15px}.days{grid-template-columns:repeat(3,1fr)}}@media(max-width:520px){.fields{grid-template-columns:1fr 1fr}.top h1{font-size:20px}.day{font-size:13px}.stats .stat strong{font-size:21px}.side{gap:4px}.nav{padding:8px;font-size:12px}.brand{width:100%;margin-bottom:5px}}
+@media print{body{background:#fff;color:#111}.side,.top button,.days,.no-print,.nav,.add{display:none!important}main{padding:0;max-width:none}.panel{background:#fff;color:#111;border:1px solid #999;break-inside:avoid}.panel h2,.muted,.field label,.stat small{color:#333}table{min-width:0}th{background:#ddd;color:#111}td{color:#111}.stat{background:#f5f5f5;border:1px solid #aaa}.stat strong{color:#111}input,select{border:0!important;color:#111!important;background:#fff!important;padding:0!important}#printTitle{display:block!important}}
+</style></head>
+<body>
+<div class="shell">
+<aside class="side"><div class="brand"><b>///</b> PLANT<br>DOWNTIME<br>TRACKER</div>
+<button class="nav active" data-view="weekly">▦ &nbsp; Weekly Sheet</button>
+<button class="nav" data-view="reports">▤ &nbsp; PDF Reports</button>
+<button class="nav" data-view="settings">⚙ &nbsp; Settings</button>
+<div class="sidefoot">75-minute daily break excluded from calculations.</div></aside>
+<main>
+<div class="top"><div><h1>Plant Downtime Tracker</h1><div class="muted" id="subtitle">Weekly recording sheet · Monday–Saturday</div></div>
+<div class="weekbar"><button id="prevWeek" aria-label="Previous week">‹</button><div class="weeklabel" id="weekLabel"></div><button id="nextWeek" aria-label="Next week">›</button><button class="primary" id="exportBtn">⇩ Export PDF &amp; Reset</button></div></div>
+<section id="weekly" class="view active">
+<div class="days" id="dayTabs"></div>
+<div class="layout">
+<div>
+<div class="panel"><h2 id="dayHeading">MONDAY</h2>
+<div class="fields">
+<div class="field"><label>Date implemented</label><input id="dayDate" type="date"></div>
+<div class="field"><label>Plant start</label><input id="plantStart" type="time" value="06:30"></div>
+<div class="field"><label>Plant stop</label><input id="plantStop" type="time" value="17:00"></div>
+<div class="field"><label>Break excluded</label><input value="75 minutes" disabled></div>
+</div>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>Part / area of plant</th><th>Reason for downtime</th><th>Downtime (HH:MM)</th><th>Actions</th></tr></thead><tbody id="entriesBody"></tbody></table></div>
+<button class="add" id="addEntry">＋ ADD DOWNTIME ENTRY</button>
+</div>
+<div class="panel"><h2>Daily downtime records</h2><div class="muted" id="dayFootnote">Changes are saved automatically on this device.</div></div>
+</div>
+<aside>
+<div class="panel"><h2>Daily summary</h2><div class="stats">
+<div class="stat"><small>Scheduled plant time</small><strong id="scheduled">—</strong></div>
+<div class="stat"><small>Break excluded</small><strong>01h 15m</strong></div>
+<div class="stat"><small>Net available time</small><strong id="net">—</strong></div>
+<div class="stat highlight"><small>Total downtime</small><strong id="downtime">00h 00m</strong></div>
+<div class="stat"><small>Actual running time</small><strong id="running">—</strong></div>
+<div class="stat"><small>Downtime %</small><strong id="downPct">0.0%</strong></div>
+<div class="stat"><small>Running %</small><strong id="runPct">0.0%</strong></div>
+</div></div>
+</aside>
+<div class="panel weekly wide"><h2>Weekly summary · Monday–Saturday</h2><div class="tablewrap"><table><thead><tr><th>Day</th><th>Date implemented</th><th>Plant start</th><th>Plant stop</th><th>Downtime</th><th>Downtime %</th><th>Running %</th></tr></thead><tbody id="weekBody"></tbody></table></div></div>
+<div class="panel weekly"><h2>Weekly total</h2><div class="stats"><div class="stat highlight"><small>Overall downtime</small><strong id="weekDown">00h 00m</strong></div><div class="stat"><small>Overall downtime %</small><strong id="weekPct">0.0%</strong></div><div class="stat"><small>Net available time</small><strong id="weekNet">00h 00m</strong></div><div class="stat"><small>Overall running %</small><strong id="weekRunPct">0.0%</strong></div></div></div>
+</div></section>
+<section id="reports" class="view"><div class="panel"><h2>PDF Reports Archive</h2><div id="reportsList" class="empty">No exported reports yet.</div></div></section>
+<section id="settings" class="view"><div class="panel"><h2>Plant areas</h2><p class="muted">Add the preset area buttons used when recording downtime. Separate entries with a new line.</p><div class="field"><label>Plant area presets</label><textarea id="areasInput" placeholder="Conveyor 04&#10;Screen Deck&#10;Trommel&#10;Air Supply"></textarea></div><h2 style="margin-top:22px">Standard downtime reasons</h2><p class="muted">Add common reasons. Anything else can be entered manually.</p><div class="field"><label>Reason presets</label><textarea id="reasonsInput" placeholder="Material blockage&#10;Mechanical fault&#10;Belt issue&#10;Electrical fault"></textarea></div><button class="primary" id="saveSettings" style="margin-top:12px">SAVE PRESETS</button><span id="settingsSaved" class="muted"></span></div></section>
+<div id="printTitle" style="display:none;font-size:22px;font-weight:800;margin-bottom:12px">WEEKLY PLANT DOWNTIME REPORT</div>
+</main></div>
+<div class="modalback" id="entryModal"><div class="modal"><h2>Add downtime entry</h2>
+<div class="field"><label>Part / area of plant</label><div class="presetrow" id="areaButtons"></div><input class="input" id="areaManual" placeholder="Or enter area manually" style="margin-top:8px"></div>
+<div class="field" style="margin-top:15px"><label>Reason for downtime</label><div class="presetrow" id="reasonButtons"></div><input class="input" id="reasonManual" placeholder="Or enter reason manually" style="margin-top:8px"></div>
+<div class="fields" style="margin-top:15px"><div class="field"><label>Hours</label><input id="durationHours" type="number" min="0" max="999" value="0"></div><div class="field"><label>Minutes</label><input id="durationMinutes" type="number" min="0" max="59" value="0"></div></div>
+<div class="modalfoot"><button id="cancelEntry">CANCEL</button><button class="primary" id="saveEntry">SAVE ENTRY</button></div></div></div>
+<div class="modalback" id="resetModal"><div class="modal"><h2>Export and reset this week?</h2><p>This will generate the weekly PDF, save a report record in this browser, and clear the active weekly sheet for the next week. Make sure you download and retain the PDF.</p><div class="modalfoot"><button id="cancelReset">CANCEL</button><button class="primary" id="confirmReset">EXPORT &amp; RESET</button></div></div></div>
+<script>
+(()=>{
+const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],BREAK=75,STORE='plantDowntime.v1';
+const $=id=>document.getElementById(id);
+const today=new Date();const mondayOf=d=>{let x=new Date(d.getFullYear(),d.getMonth(),d.getDate());let n=(x.getDay()+6)%7;x.setDate(x.getDate()-n);return x};
+const iso=d=>{let x=new Date(d);return [x.getFullYear(),String(x.getMonth()+1).padStart(2,'0'),String(x.getDate()).padStart(2,'0')].join('-')};
+const plus=(d,n)=>{let x=new Date(d);x.setDate(x.getDate()+n);return x};
+const parseWeek=k=>new Date(k+'T12:00:00');
+let weekStart=mondayOf(today),selected=0,entryDraft={area:'',reason:''},editing=-1;
+let state=load();
+function load(){try{return JSON.parse(localStorage.getItem(STORE))||{weeks:{},areas:['Conveyor 04','Screen Deck','Trommel','Air Supply'],reasons:['Material blockage','Mechanical fault','Belt issue','Electrical fault'],archive:[]}}catch{return {weeks:{},areas:[],reasons:[],archive:[]}}}
+function persist(){localStorage.setItem(STORE,JSON.stringify(state))}
+function key(){return iso(weekStart)}
+function blankDay(d){return {date:iso(d),start:'06:30',stop:'17:00',entries:[]}}
+function week(){if(!state.weeks[key()])state.weeks[key()]={days:DAYS.map((_,i)=>blankDay(plus(weekStart,i)))};return state.weeks[key()]}
+function day(){return week().days[selected]}
+function mins(t){if(!t||!/^\d{2}:\d{2}$/.test(t))return null;let [h,m]=t.split(':').map(Number);if(h>23||m>59)return null;return h*60+m}
+function durationMinutes(e){return Math.max(0,(Number(e.hours)||0)*60+(Number(e.minutes)||0))}
+function calc(d){let s=mins(d.start),e=mins(d.stop);let scheduled=s===null||e===null?0:e-s+(e<=s?1440:0);let net=Math.max(0,scheduled-BREAK);let down=d.entries.reduce((a,x)=>a+durationMinutes(x),0);let run=Math.max(0,net-down);return {scheduled,net,down,run,downPct:net?down/net*100:0,runPct:net?run/net*100:0,over:down>net}}
+function fmt(n){n=Math.max(0,Math.round(n));return String(Math.floor(n/60)).padStart(2,'0')+'h '+String(n%60).padStart(2,'0')+'m'}
+function pct(n){return n.toFixed(1)+'%'}
+function prettyDate(v){if(!v)return '—';let [y,m,d]=v.split('-');return d+'/'+m+'/'+y}
+function weekLabel(){let a=weekStart,b=plus(a,5);let f=x=>x.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});$('weekLabel').textContent=f(a)+' – '+f(b)}
+function safe(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(){weekLabel();$('dayTabs').innerHTML=DAYS.map((n,i)=>{let d=week().days[i],c=calc(d);return '<button class="day '+(i===selected?'selected':'')+'" data-day="'+i+'">'+n.slice(0,3).toUpperCase()+'<small>'+prettyDate(d.date)+'</small><small>'+fmt(c.down)+'</small></button>'}).join('');
+document.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.day);render()});
+let d=day(),c=calc(d);$('dayHeading').textContent=DAYS[selected].toUpperCase()+' · '+prettyDate(d.date);$('dayDate').value=d.date;$('plantStart').value=d.start;$('plantStop').value=d.stop;
+$('entriesBody').innerHTML=d.entries.length?d.entries.map((e,i)=>'<tr><td>'+(i+1).toString().padStart(2,'0')+'</td><td>'+safe(e.area)+'</td><td>'+safe(e.reason)+'</td><td>'+String(e.hours||0).padStart(2,'0')+':'+String(e.minutes||0).padStart(2,'0')+'</td><td><div class="rowactions"><button data-edit="'+i+'" aria-label="Edit entry">✎</button><button class="danger" data-delete="'+i+'" aria-label="Delete entry">×</button></div></td></tr>').join(''):'<tr><td colspan="5" class="empty">No downtime entries recorded for this day.</td></tr>';
+document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEntry(Number(b.dataset.edit)));document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{if(confirm('Delete this downtime entry?')){d.entries.splice(Number(b.dataset.delete),1);persist();render()}});
+$('scheduled').textContent=fmt(c.scheduled);$('net').textContent=fmt(c.net);$('downtime').textContent=fmt(c.down);$('running').textContent=fmt(c.run);$('downPct').textContent=pct(c.downPct);$('runPct').textContent=pct(c.runPct);$('dayFootnote').textContent=c.over?'Warning: recorded downtime exceeds net available plant time. Check the entries.':'Changes are saved automatically on this device.';
+let totals=week().days.map(calc),totalNet=totals.reduce((a,x)=>a+x.net,0),totalDown=totals.reduce((a,x)=>a+x.down,0),totalRun=Math.max(0,totalNet-totalDown);
+$('weekBody').innerHTML=week().days.map((x,i)=>{let z=totals[i];return '<tr class="'+(i===selected?'current':'')+'"><td>'+DAYS[i]+'</td><td>'+prettyDate(x.date)+'</td><td>'+(x.start||'—')+'</td><td>'+(x.stop||'—')+'</td><td>'+fmt(z.down)+'</td><td>'+pct(z.downPct)+'</td><td>'+pct(z.runPct)+'</td></tr>'}).join('');
+$('weekDown').textContent=fmt(totalDown);$('weekNet').textContent=fmt(totalNet);$('weekPct').textContent=pct(totalNet?totalDown/totalNet*100:0);$('weekRunPct').textContent=pct(totalNet?totalRun/totalNet*100:0);
+}
+function openEntry(i=-1){editing=i;entryDraft={area:i>=0?day().entries[i].area:'',reason:i>=0?day().entries[i].reason:''};let e=i>=0?day().entries[i]:{hours:0,minutes:0};$('areaManual').value=entryDraft.area;$('reasonManual').value=entryDraft.reason;$('durationHours').value=e.hours||0;$('durationMinutes').value=e.minutes||0;renderPresets();$('entryModal').classList.add('show')}
+function renderPresets(){[['areaButtons',state.areas,'area'],['reasonButtons',state.reasons,'reason']].forEach(([id,items,type])=>{$(id).innerHTML=(items||[]).map(v=>'<button type="button" class="'+(entryDraft[type]===v?'chosen':'')+'" data-preset="'+safe(v)+'">'+safe(v)+'</button>').join('')||'<span class="muted">No presets configured yet.</span>';$(id).querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{entryDraft[type]=b.dataset.preset;$(type==='area'?'areaManual':'reasonManual').value=b.dataset.preset;renderPresets()})})}
+function closeEntry(){$('entryModal').classList.remove('show')}
+$('addEntry').onclick=()=>openEntry();$('cancelEntry').onclick=closeEntry;
+$('saveEntry').onclick=()=>{let area=$('areaManual').value.trim(),reason=$('reasonManual').value.trim(),h=Number($('durationHours').value),m=Number($('durationMinutes').value);if(!area||!reason){alert('Enter or select both a plant area and a downtime reason.');return}if(!Number.isInteger(h)||!Number.isInteger(m)||h<0||m<0||m>59||h>999){alert('Enter a valid duration in hours and minutes.');return}let item={area,reason,hours:h,minutes:m};let entries=day().entries;if(editing<0)entries.push(item);else entries[editing]=item;persist();closeEntry();render()};
+$('dayDate').onchange=e=>{day().date=e.target.value;persist();render()};$('plantStart').onchange=e=>{day().start=e.target.value;persist();render()};$('plantStop').onchange=e=>{day().stop=e.target.value;persist();render()};
+$('prevWeek').onclick=()=>{weekStart=plus(weekStart,-7);selected=0;render()};$('nextWeek').onclick=()=>{weekStart=plus(weekStart,7);selected=0;render()};
+document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===b.dataset.view));$('subtitle').textContent=b.dataset.view==='weekly'?'Weekly recording sheet · Monday–Saturday':b.dataset.view==='reports'?'Previously exported weekly reports':'Configure preset plant areas and downtime reasons';if(b.dataset.view==='reports')renderArchive();if(b.dataset.view==='settings'){ $('areasInput').value=state.areas.join('\n');$('reasonsInput').value=state.reasons.join('\n')}})
+$('saveSettings').onclick=()=>{state.areas=$('areasInput').value.split('\n').map(x=>x.trim()).filter(Boolean);state.reasons=$('reasonsInput').value.split('\n').map(x=>x.trim()).filter(Boolean);persist();$('settingsSaved').textContent=' Saved.';setTimeout(()=>$('settingsSaved').textContent='',2200)};
+function reportData(){let w=week(),days=w.days.map((d,i)=>({name:DAYS[i],...d,calc:calc(d)})),net=days.reduce((a,d)=>a+d.calc.net,0),down=days.reduce((a,d)=>a+d.calc.down,0);return {week:key(),created:new Date().toISOString(),days,totalNet:net,totalDown:down,totalPct:net?down/net*100:0}}
+function exportPDF(){let data=reportData();$('printTitle').textContent='WEEKLY PLANT DOWNTIME REPORT · '+prettyDate(key())+' – '+prettyDate(iso(plus(weekStart,5)));window.print();return data}
+$('exportBtn').onclick=()=>$('resetModal').classList.add('show');$('cancelReset').onclick=()=>$('resetModal').classList.remove('show');
+$('confirmReset').onclick=()=>{let data=reportData();let name='Plant-Downtime-'+data.week+'.pdf';let before=state.archive.length;try{window.print();state.archive.unshift({week:data.week,created:data.created,totalDown:data.totalDown,totalNet:data.totalNet,totalPct:data.totalPct,days:data.days});delete state.weeks[key()];persist();}catch(err){alert('Could not complete the export/reset. Your weekly data has been kept.');return}$('resetModal').classList.remove('show');alert('The print dialog has opened. Choose “Save as PDF” to download the report. The week has been archived and reset in this browser.');render()};
+function renderArchive(){let a=state.archive||[];$('reportsList').innerHTML=a.length?a.map((r,i)=>'<div class="reportitem"><div><b>Week of '+prettyDate(r.week)+'</b><div class="muted">'+fmt(r.totalDown)+' downtime · '+r.totalPct.toFixed(1)+'%</div></div><span class="pill">Archived</span></div>').join(''):'No exported reports yet.'}
+window.addEventListener('afterprint',()=>{});
+render();
+})();
+</script></body></html>
