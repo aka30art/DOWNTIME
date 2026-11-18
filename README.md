@@ -19,6 +19,6 @@ A dependency-free weekly downtime recording app designed for GitHub Pages.
 4. Wait for the workflow's **Deploy** job to succeed, then open https://aka30art.github.io/DOWNTIME/.
 
 ## Data and export behaviour
-This first version stores active weeks and the report archive in the browser's local storage. Use the same browser/device for continuity. It does not sync data between devices or users. PDF export uses the browser print dialog; select **Save as PDF**. The archive stores report summary metadata, not the PDF file itself. Keep downloaded PDFs separately.
+This first version stores active weeks and the report archive in the browser's local storage. Use the same browser/device for continuity. It does not sync data between devices or users. PDF export uses the browser print dialog; select **Save as PDF**. 
 
 PDF export opens the browser's print dialog. The app does not automatically reset or archive a week because the browser cannot tell whether a user saved the PDF or cancelled printing. Reset/archive needs a separate explicit action or server-backed download flow.
