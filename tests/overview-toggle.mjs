@@ -38,7 +38,23 @@ try {
     assert.equal(await page.locator('#plantLabel').textContent(), 'PLANT ON', 'read-only view should show initial sample status');
     await page.close();
   }
-  console.log('PASS: JAN and MICK can toggle Plant Overview ON/OFF; all other roles remain read-only.');
+  // Overview navigation controls should exit back to the tracker homepage and toggle the page fullscreen state.
+  {
+    const page = await open('JAN');
+    const exitLink = page.locator('#exitOverview');
+    assert.equal(await exitLink.isVisible(), true, 'Exit Overview control should be visible');
+    assert.equal(await exitLink.getAttribute('href'), 'index.html', 'Exit Overview should return to homepage');
+    const fullscreen = page.locator('#overviewFullscreen');
+    assert.equal(await fullscreen.isVisible(), true, 'Fullscreen control should be visible');
+    await fullscreen.click();
+    assert.equal(await page.locator('body').evaluate(el => el.classList.contains('overview-fullscreen')), true, 'fullscreen mode should activate');
+    assert.equal(await fullscreen.textContent(), '⛶ EXIT FULL SCREEN');
+    await fullscreen.click();
+    assert.equal(await page.locator('body').evaluate(el => el.classList.contains('overview-fullscreen')), false, 'fullscreen mode should exit');
+    assert.equal(await fullscreen.textContent(), '⛶ FULL SCREEN');
+    await page.close();
+  }
+  console.log('PASS: JAN and MICK toggling, read-only role restrictions, Overview exit link, and fullscreen controls.');
 } finally {
   await browser.close();
   await new Promise(resolveClose => server.close(resolveClose));
