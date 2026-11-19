@@ -175,10 +175,10 @@ try {
   await cloud.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
     status: 200,
     contentType: 'application/javascript',
-    body: `window.supabase = { createClient: () => ({
+    body: `window.__cloudPayload = { weeks: {}, areas: [], reasons: [], archive: [] }; window.__cloudRefreshReads = 0; window.supabase = { createClient: () => ({
       auth: { signInAnonymously: async () => ({ error: null }) },
       from: () => ({
-        select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }),
+        select: () => ({ eq: () => ({ maybeSingle: async () => { window.__cloudRefreshReads++; return { data: { payload: window.__cloudPayload, updated_at: '2026-11-19T12:00:00.000Z' }, error: null }; } }) }),
         upsert: async () => ({ error: null })
       }),
       channel: () => ({ on: () => ({ subscribe: callback => { if (callback) callback('SUBSCRIBED'); return this; } }) })
@@ -188,6 +188,13 @@ try {
   await enterTeamPin(cloud);
   await assignOperator(cloud, '1234');
   assert.match(await cloud.locator('#dayHeading').textContent(), /OPERATOR: Mick/, 'cloud-enabled session should still complete operator login');
+  assert.equal(await cloud.locator('#manualRefreshBtn').count(), 1, 'cloud-connected standard roles should see manual Refresh');
+  assert.match(await cloud.locator('#lastSync').textContent(), /Last successful refresh ·/, 'initial cloud load should record last successful refresh time');
+  const cloudReadsBeforeManual = await cloud.evaluate(() => window.__cloudRefreshReads);
+  await cloud.locator('#manualRefreshBtn').click();
+  await cloud.waitForFunction(before => window.__cloudRefreshReads > before, cloudReadsBeforeManual, { timeout: 5000 });
+  assert.equal(await cloud.locator('#manualRefreshBtn').isDisabled(), false, 'standard Refresh should re-enable after completion');
+  assert.match(await cloud.locator('#manualRefreshBtn').textContent(), /REFRESH DATA/, 'standard Refresh should return to its idle label');
 
   // 3. A cloud authentication rejection must never re-cover or re-lock the tracker.
   const cloudFailure = await newPage();
@@ -302,7 +309,12 @@ try {
   assert.equal(await spectator.locator('.shell').isVisible(), false, 'operator workspace must remain hidden in Spectator mode');
   assert.match(await spectator.locator('#spectatorView').textContent(), /Supervisor Test/, 'Spectator view should display operator records');
   assert.match(await spectator.locator('#spectatorView').textContent(), /Spectator test reason/, 'Spectator view should display downtime records');
-  assert.equal(await spectator.locator('#spectatorView button, #spectatorView input, #spectatorView select').count(), 0, 'Spectator view must contain no editing controls');
+  assert.equal(await spectator.locator('#spectatorView button:not(#spectatorManualRefresh), #spectatorView input, #spectatorView select').count(), 0, 'Spectator view must contain no editing controls besides its read-only Refresh button');
+  assert.equal(await spectator.locator('#spectatorManualRefresh').count(), 1, 'Spectator must have a manual Refresh control');
+  const spectatorCallsBeforeManual = await spectator.evaluate(() => window.__spectatorCalls.invocations);
+  await spectator.locator('#spectatorManualRefresh').click();
+  await spectator.waitForFunction(before => window.__spectatorCalls.invocations > before, spectatorCallsBeforeManual, { timeout: 5000 });
+  await spectator.waitForFunction(() => { const b=document.querySelector('#spectatorManualRefresh'); return b && !b.disabled && b.textContent.includes('REFRESH DATA'); }, { timeout: 5000 });
   const spectatorSecurity = await spectator.evaluate(() => ({
     authCalls: window.__spectatorCalls.auth,
     secureAuthCalls: window.__spectatorCalls.secureAuth,
