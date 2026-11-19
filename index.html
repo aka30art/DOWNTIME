@@ -315,7 +315,7 @@ const SB_URL='https://ygwfipksbbprqynvbklk.supabase.co',SB_KEY='sb_publishable_P
 const sb=window.supabase.createClient(SB_URL,SB_KEY);
 let cloudReady=false,cloudBusy=false,cloudWrite=Promise.resolve();
 function cloudStatus(msg){const el=$('cloudStatus');if(el)el.textContent=msg}
-function populateOperatorGate(){let idx=Number($('operatorDay').value)||0;const d=week().days[idx];$('operatorAssigned').textContent='Current assignment: '+(d.operator||'Not assigned');$('operatorGatePin').value='';$('operatorMsg').textContent='';}
+function populateOperatorGate(){if(!$('operatorDay').dataset.initialized){const todayIndex=(today.getDay()+6)%7;$('operatorDay').value=String(todayIndex<6?todayIndex:0);$('operatorDay').dataset.initialized='1'}let idx=Number($('operatorDay').value)||0;const d=week().days[idx];$('operatorAssigned').textContent='Current assignment for '+DAYS[idx]+': '+(d.operator||'Not assigned');$('operatorGatePin').value='';$('operatorMsg').textContent='';}
 $('operatorDay').onchange=populateOperatorGate;
 $('operatorContinue').onclick=()=>{let idx=Number($('operatorDay').value)||0,pin=$('operatorGatePin').value,op=pin==='2666'?'Jan':pin==='1234'?'Mick':'';if(!op){$('operatorMsg').textContent='Incorrect operator PIN.';$('operatorGatePin').value='';return}selected=idx;week().days[idx].operator=op;persist();render();$('operatorGate').style.display='none';};
 $('operatorGatePin').addEventListener('keydown',e=>{if(e.key==='Enter')$('operatorContinue').click()});
