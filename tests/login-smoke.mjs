@@ -173,8 +173,9 @@ try {
   await jan.locator('.nav[data-view=settings]').click();
   const appUserRow=jan.locator('#operatorRosterList > div').filter({hasText:'Test Operator'});
   assert.equal(await appUserRow.count(), 1, 'test app user should still be present before removal');
+  const appUserCountBeforeRemoval = await jan.locator('#operatorRosterList > div').count();
   await appUserRow.locator('button.danger').click();
-  assert.equal(await jan.locator('#operatorRosterList > div').count(), 3, 'app-user removal should reduce user list only');
+  assert.equal(await jan.locator('#operatorRosterList > div').count(), appUserCountBeforeRemoval - 1, 'app-user removal should reduce user list only');
   await jan.locator('.nav[data-view=staff]').click();
   assert.equal(await jan.locator('#staffRosterList > div').filter({hasText:'Test Operator'}).count(), 1, 'removing app user must preserve independent STAFF membership');
   const dowieStaffRow=jan.locator('#staffRosterList > div').filter({hasText:'Dowie'});
