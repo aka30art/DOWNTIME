@@ -42,7 +42,7 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
  function applyOperatorProfiles(payload){
    const profiles=payload?.operatorProfiles||{};
    document.querySelectorAll('[data-opprofile]').forEach(card=>{
-     const name=card.dataset.opprofile,profile=profiles[name]||{};
+     const name=card.dataset.opprofile,key=name.charAt(0)+name.slice(1).toLowerCase(),profile=profiles[key]||profiles[name]||{};
      const station=card.querySelector('.station');
      if(station&&profile.station)station.textContent=profile.station;
      const photoBox=card.querySelector('.photo');
