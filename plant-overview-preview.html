@@ -9,24 +9,18 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
 @media(max-width:1050px){.metrics{grid-template-columns:repeat(4,1fr)}.status{grid-column:1/-1}.opgrid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:680px){main{padding:12px}.top{align-items:flex-start;flex-direction:column}.right{width:100%;justify-content:space-between}.metrics{grid-template-columns:repeat(2,1fr);gap:8px}.status{grid-column:1/-1}.plantstate{font-size:26px}.panel{padding:12px}.metric{font-size:22px}.opgrid{grid-template-columns:repeat(2,1fr);gap:8px}.photo{height:125px}.bottom{grid-template-columns:1fr}.note{text-align:left}}
 .topcontrol{display:inline-block;text-decoration:none;color:var(--text);border:1px solid var(--border);border-radius:9px;padding:8px 11px;background:#142b3b;font:inherit;font-weight:850;cursor:pointer}.topcontrol:hover{border-color:var(--yellow);color:var(--yellow)}body.overview-fullscreen{position:fixed;inset:0;overflow:auto;width:100%;height:100%;z-index:40;background:var(--bg)}@media(max-width:680px){.right{flex-wrap:wrap;gap:7px}.topcontrol{font-size:11px;padding:7px 9px}}</style></head><body><main>
-<header class="top"><div class="logo"><i>◢</i> DOWNTIME <span class="sub">PLANT OVERVIEW</span></div><div class="right"><span>SHIFT · DAILY VIEW</span><span class="pill">● PREVIEW</span><a id="exitOverview" class="topcontrol" href="index.html" aria-label="Exit Overview and return to homepage">↩ EXIT OVERVIEW</a><button id="overviewFullscreen" class="topcontrol" type="button" aria-pressed="false">⛶ FULL SCREEN</button></div></header>
+<header class="top"><div class="logo"><i>◢</i> DOWNTIME <span class="sub">PLANT OVERVIEW</span></div><div class="right"><span>SHIFT · DAILY VIEW</span><span class="pill" id="liveDataBadge">● CONNECTING DATA</span><a id="exitOverview" class="topcontrol" href="index.html" aria-label="Exit Overview and return to homepage">↩ EXIT OVERVIEW</a><button id="overviewFullscreen" class="topcontrol" type="button" aria-pressed="false">⛶ FULL SCREEN</button></div></header>
 <div class="metrics">
 <div class="panel status"><div class="label">PLANT STATUS</div><div class="plantstate"><span class="lamp" id="plantLamp"></span><span id="plantLabel">PLANT ON</span></div><button id="plantToggle" type="button" hidden aria-pressed="true">TURN PLANT OFF</button><div id="plantControlNote" class="label" style="margin-top:8px">STATUS VIEW · READ ONLY</div></div>
-<div class="panel"><div class="label">OPERATORS ON PLANT</div><div class="metric">5 <em>/ 5</em></div></div>
-<div class="panel"><div class="label">TOTAL DOWNTIME</div><div class="metric">01h 42m</div></div>
-<div class="panel"><div class="label">INCIDENTS TODAY</div><div class="metric">06</div></div>
-<div class="panel"><div class="label">AVAILABILITY</div><div class="metric">92.8%</div></div>
+<div class="panel"><div class="label">OPERATORS ON PLANT</div><div class="metric" id="operatorCount">—</div></div>
+<div class="panel"><div class="label">TOTAL DOWNTIME</div><div class="metric" id="totalDowntime">—</div></div>
+<div class="panel"><div class="label">INCIDENTS TODAY</div><div class="metric" id="incidentCount">—</div></div>
+<div class="panel"><div class="label">AVAILABILITY</div><div class="metric" id="availability">—</div></div>
 </div>
 <section class="section panel"><h2 class="heading">OPERATORS ON PLANT</h2><div class="opgrid">
 <article class="op" data-opprofile="JAN"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">JAN</div><div class="station">Station 01</div></article><article class="op" data-opprofile="MICK"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">MICK</div><div class="station">Station 02</div></article><article class="op" data-opprofile="GIGI"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">GIGI</div><div class="station">Station 03</div></article><article class="op" data-opprofile="DAZ"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">DAZ</div><div class="station">Station 04</div></article><article class="op" data-opprofile="SHAYNE"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">SHAYNE</div><div class="station">Station 05</div></article>
 </div></section>
-<div class="bottom"><section class="panel"><h2 class="heading">DAILY PRODUCTION TIMELINE</h2><div class="timeline"><div class="run" style="width:24%"></div><div class="stop" style="width:6%"></div><div class="run" style="width:24%"></div><div class="stop" style="width:10%"></div><div class="run" style="width:19%"></div><div class="stop" style="width:6%"></div><div class="run" style="width:11%"></div></div><div class="tick"><span>06:30</span><span>09:00</span><span>12:00</span><span>15:00</span><span>17:00</span></div><div class="legend"><span><i class="key" style="background:var(--green)"></i> Running</span><span><i class="key" style="background:var(--red)"></i> Downtime</span></div></section>
-<section class="panel"><h2 class="heading">DOWNTIME BY REASON</h2>
-<div class="reason"><div class="rhead"><span>Machinery breakdown</span><strong>54 min</strong></div><div class="track"><div class="fill f1" style="width:82%"></div></div></div>
-<div class="reason"><div class="rhead"><span>Blockage</span><strong>24 min</strong></div><div class="track"><div class="fill f2" style="width:48%"></div></div></div>
-<div class="reason"><div class="rhead"><span>Waiting for machinery</span><strong>16 min</strong></div><div class="track"><div class="fill f3" style="width:32%"></div></div></div>
-<div class="reason"><div class="rhead"><span>Cleaning / maintenance</span><strong>8 min</strong></div><div class="track"><div class="fill f4" style="width:16%"></div></div></div>
-</section></div><div class="note">PREVIEW MOCKUP · SAMPLE VALUES · NOT CONNECTED TO LIVE PLANT DATA</div>
+<div class="bottom"><section class="panel"><h2 class="heading">PRODUCTION TIMELINE</h2><div id="timelineUnavailable" class="label" style="padding:12px 0">Timeline unavailable — tracker records do not contain event start/end timestamps.</div></section><section class="panel"><h2 class="heading">DOWNTIME BY REASON · CURRENT WEEK</h2><div id="reasonStats" class="label">Loading real downtime records…</div></section></div><div class="note" id="dataSourceNote">LIVE DATA · connecting to main downtime tracker</div>
 </main><script>
 (() => {
  const operator = (new URLSearchParams(location.search).get('operator') || '').trim().toUpperCase();
@@ -54,6 +48,36 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
      }
    });
  }
+ function fmtMinutes(m){m=Math.max(0,Math.round(m||0));return String(Math.floor(m/60)).padStart(2,'0')+'h '+String(m%60).padStart(2,'0')+'m'}
+ function mins(t){if(!t||!/^\\d{2}:\\d{2}$/.test(t))return null;const [h,m]=t.split(':').map(Number);return h>23||m>59?null:h*60+m}
+ function getCurrentWeekKey(){const d=new Date();d.setHours(0,0,0,0);const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d.toISOString().slice(0,10)}
+ function renderLiveStats(payload){
+   const badge=document.getElementById('liveDataBadge'),reasonBox=document.getElementById('reasonStats'),source=document.getElementById('dataSourceNote');
+   const weekKey=getCurrentWeekKey(),weekData=payload?.weeks?.[weekKey];
+   if(!weekData?.days||!Array.isArray(weekData.days)){
+     document.getElementById('totalDowntime').textContent='NO DATA';
+     document.getElementById('incidentCount').textContent='—';
+     document.getElementById('availability').textContent='—';
+     document.getElementById('operatorCount').textContent='—';
+     reasonBox.textContent='No main-tracker records found for the current week.';
+     badge.textContent='● LIVE · NO WEEK DATA';source.textContent='LIVE DATA · main downtime tracker · no records for this week';return;
+   }
+   const daily=weekData.days.map(day=>{
+     const start=mins(day.start),stop=mins(day.stop),scheduled=(start===null||stop===null)?0:stop-start+(stop<=start?1440:0),net=Math.max(0,scheduled-75);
+     const entries=Array.isArray(day.entries)?day.entries:[],down=entries.reduce((sum,e)=>sum+Math.max(0,(Number(e.hours)||0)*60+(Number(e.minutes)||0)),0);
+     return {down,net,run:Math.max(0,net-down),entries,operator:day.operator||''};
+   });
+   const totalDown=daily.reduce((s,d)=>s+d.down,0),totalNet=daily.reduce((s,d)=>s+d.net,0),totalRun=Math.max(0,totalNet-totalDown);
+   const incidents=daily.reduce((s,d)=>s+d.entries.length,0),operators=[...new Set(daily.map(d=>d.operator).filter(Boolean))];
+   document.getElementById('totalDowntime').textContent=fmtMinutes(totalDown);
+   document.getElementById('incidentCount').textContent=String(incidents);
+   document.getElementById('availability').textContent=totalNet?((totalRun/totalNet)*100).toFixed(1)+'%':'—';
+   document.getElementById('operatorCount').textContent=operators.length+' assigned';
+   const causes={};daily.forEach(d=>d.entries.forEach(e=>{const reason=String(e.reason||'Unspecified');causes[reason]=(causes[reason]||0)+Math.max(0,(Number(e.hours)||0)*60+(Number(e.minutes)||0));}));
+   const sorted=Object.entries(causes).sort((a,b)=>b[1]-a[1]);
+   reasonBox.innerHTML=sorted.length?sorted.map(([name,value])=>'<div class="reason"><div class="rhead"><span>'+name.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))+'</span><strong>'+fmtMinutes(value)+'</strong></div><div class="track"><div class="fill" style="width:'+Math.max(0,Math.min(100,totalDown?value/totalDown*100:0))+'%"></div></div></div>').join(''):'No downtime reasons recorded.';
+   badge.textContent='● LIVE · MAIN TRACKER';source.textContent='LIVE DATA · main downtime tracker · week commencing '+weekKey+' · downtime '+fmtMinutes(totalDown)+' · running '+fmtMinutes(totalRun)+' · availability '+(totalNet?((totalRun/totalNet)*100).toFixed(1)+'%':'not calculable');
+ }
  function render(){
    statusPanel.classList.toggle('off', !plantOn);
    label.textContent = plantOn ? 'PLANT ON' : 'PLANT OFF';
@@ -72,9 +96,9 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
      if(authError)throw authError;
      const {data,error}=await plantClient.from('downtime_shared_state').select('payload,updated_at').eq('id',1).maybeSingle();
      if(error)throw error;
-     if(data?.payload){plantPayload=data.payload;plantOn=plantPayload.plantOn!==false;plantConnected=true;applyOperatorProfiles(plantPayload);render();}
+     if(data?.payload){plantPayload=data.payload;plantOn=plantPayload.plantOn!==false;plantConnected=true;applyOperatorProfiles(plantPayload);renderLiveStats(plantPayload);render();}
      plantClient.channel('plant-status-overview').on('postgres_changes',{event:'UPDATE',schema:'public',table:'downtime_shared_state',filter:'id=eq.1'},event=>{
-       if(!event?.new?.payload)return;plantPayload=event.new.payload;plantOn=plantPayload.plantOn!==false;plantConnected=true;applyOperatorProfiles(plantPayload);render();
+       if(!event?.new?.payload)return;plantPayload=event.new.payload;plantOn=plantPayload.plantOn!==false;plantConnected=true;applyOperatorProfiles(plantPayload);renderLiveStats(plantPayload);render();
      }).subscribe();
    }catch(error){note.textContent=authorized?'CONTROL ACCESS · '+operator+' · LOCAL PREVIEW':'STATUS VIEW · PREVIEW';console.warn('Plant status cloud connection failed',error)}
  }
@@ -99,7 +123,7 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
    fullscreenBtn.setAttribute('aria-pressed',String(active));
    fullscreenBtn.textContent=active?'⛶ EXIT FULL SCREEN':'⛶ FULL SCREEN';
  });
- if(new URLSearchParams(location.search).has('test')){plantConnected=true;plantPayload={plantOn:true,operatorProfiles:{}};note.textContent='CONTROL ACCESS · TEST MODE';}
+ if(new URLSearchParams(location.search).has('test')){plantConnected=true;plantPayload={plantOn:true,operatorProfiles:{},weeks:{}};note.textContent='CONTROL ACCESS · TEST MODE';renderLiveStats(plantPayload);}
  render();
  if(!new URLSearchParams(location.search).has('test')){const sdk=document.createElement('script');sdk.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';sdk.onload=connectPlantStatus;sdk.onerror=()=>{note.textContent=authorized?'CONTROL ACCESS · '+operator+' · LOCAL PREVIEW':'STATUS VIEW · PREVIEW'};document.head.appendChild(sdk);}
 })();
