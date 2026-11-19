@@ -147,7 +147,6 @@ try {
   assert.equal(await testOperatorRow.count(), 1, 'JAN admin roster should contain the added operator');
   await testOperatorRow.locator('button.danger').click();
   assert.ok(!(await jan.evaluate(() => localStorage.getItem('plantDowntime.operatorRoster.v1') || '')).includes('Test Operator'), 'JAN should be able to remove an operator');
-  await jan.close();
 
   // STAFF: presence, station and photo management moved from Settings. Off-site operators cannot be selected for assignment.
   await jan.locator('.nav[data-view=staff]').click();
