@@ -16,9 +16,11 @@ await new Promise((resolveListen, reject) => {
 
 const browser = await chromium.launch({ headless: true });
 const pageErrors = [];
+const browserMessages = [];
 async function newPage() {
   const page = await browser.newPage();
   page.on('pageerror', error => pageErrors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') browserMessages.push(message.text()); });
   return page;
 }
 async function enterTeamPin(page) {
@@ -45,6 +47,7 @@ try {
   assert.equal(vendorRequests.length, 0, 'third-party libraries must not block application startup');
   await offline.locator('#teamPin').fill('9999');
   await offline.locator('#unlockBtn').click();
+  console.log('DEBUG wrong PIN message:', JSON.stringify(await offline.locator('#authMsg').textContent()), 'pageErrors:', JSON.stringify(pageErrors), 'consoleErrors:', JSON.stringify(browserMessages));
   assert.match(await offline.locator('#authMsg').textContent(), /Incorrect PIN/, 'wrong team PIN should be rejected');
   assert.equal(await offline.locator('#authGate').isVisible(), true, 'wrong PIN must not unlock the app');
 
