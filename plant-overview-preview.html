@@ -61,6 +61,7 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
    lamp.style.boxShadow = plantOn ? '0 0 16px #2be07880' : '0 0 16px #ff525880';
    toggle.textContent = plantOn ? 'TURN PLANT OFF' : 'TURN PLANT ON';
    toggle.setAttribute('aria-pressed', String(plantOn));
+   toggle.disabled = authorized && !plantConnected;
    note.textContent = authorized ? (plantConnected ? 'CONTROL ACCESS · '+operator+' · LIVE SYNC' : 'CONTROL ACCESS · '+operator+' · CONNECTING') : 'STATUS VIEW · READ ONLY';
  }
  async function connectPlantStatus(){
@@ -98,6 +99,7 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
    fullscreenBtn.setAttribute('aria-pressed',String(active));
    fullscreenBtn.textContent=active?'⛶ EXIT FULL SCREEN':'⛶ FULL SCREEN';
  });
+ if(new URLSearchParams(location.search).has('test')){plantConnected=true;plantPayload={plantOn:true,operatorProfiles:{}};note.textContent='CONTROL ACCESS · TEST MODE';}
  render();
  if(!new URLSearchParams(location.search).has('test')){const sdk=document.createElement('script');sdk.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';sdk.onload=connectPlantStatus;sdk.onerror=()=>{note.textContent=authorized?'CONTROL ACCESS · '+operator+' · LOCAL PREVIEW':'STATUS VIEW · PREVIEW'};document.head.appendChild(sdk);}
 })();
