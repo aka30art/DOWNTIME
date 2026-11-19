@@ -94,29 +94,21 @@ try {
   assert.equal(await dowie.locator('#addEntry').isDisabled(), true, 'Dowie remains read-only after PIN change');
   await dowie.close();
 
-  // JAN adds Lee; Lee then receives the same read-only restrictions as Dowie.
-  const leeAdmin = await newPage();
-  await leeAdmin.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
-  await leeAdmin.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  leeAdmin.on('dialog', dialog => dialog.accept());
-  await enterTeamPin(leeAdmin);
-  await assignOperator(leeAdmin, '2666', 'Jan');
-  await leeAdmin.locator('.nav[data-view=settings]').click();
-  await leeAdmin.locator('#newOperatorName').fill('Lee');
-  await leeAdmin.locator('#newOperatorInitialPin').fill('7070');
-  await leeAdmin.locator('#addOperatorBtn').click();
-  assert.match(await leeAdmin.locator('#operatorAdminMsg').textContent(), /Operator added/, 'JAN should add Lee');
-  await leeAdmin.reload();
-  await enterTeamPin(leeAdmin);
-  await assignOperator(leeAdmin, '7070', 'Lee');
-  assert.match(await leeAdmin.locator('#dayHeading').textContent(), /OPERATOR: Lee/, 'Lee should authenticate after JAN adds the account');
-  assert.equal(await leeAdmin.locator('#addEntry').isDisabled(), true, 'Lee cannot add downtime entries');
-  assert.equal(await leeAdmin.locator('#plantStop').isDisabled(), true, 'Lee cannot change plant stop time');
-  assert.equal(await leeAdmin.locator('#exportBtn').isDisabled(), true, 'Lee cannot create shared PDF records');
-  await leeAdmin.locator('.nav[data-view=settings]').click();
-  assert.equal(await leeAdmin.locator('#settingsPlantAdminControls').isVisible(), false, 'Lee cannot change plant presets');
-  assert.equal(await leeAdmin.locator('#settingsAdminControls').isVisible(), false, 'Lee cannot access admin settings');
-  await leeAdmin.close();
+  // Lee is a default roster operator with PIN 9991 and Dowie's read-only restrictions.
+  const lee = await newPage();
+  await lee.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
+  await lee.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
+  await enterTeamPin(lee);
+  assert.equal(await lee.locator('.operator-choice[data-operator="Lee"]').count(), 1, 'Lee should be present in default operator list');
+  await assignOperator(lee, '9991', 'Lee');
+  assert.match(await lee.locator('#dayHeading').textContent(), /OPERATOR: Lee/, 'Lee should authenticate with default PIN 9991');
+  assert.equal(await lee.locator('#addEntry').isDisabled(), true, 'Lee cannot add downtime entries');
+  assert.equal(await lee.locator('#plantStop').isDisabled(), true, 'Lee cannot change plant stop time');
+  assert.equal(await lee.locator('#exportBtn').isDisabled(), true, 'Lee cannot create shared PDF records');
+  await lee.locator('.nav[data-view=settings]').click();
+  assert.equal(await lee.locator('#settingsPlantAdminControls').isVisible(), false, 'Lee cannot change plant presets');
+  assert.equal(await lee.locator('#settingsAdminControls').isVisible(), false, 'Lee cannot access admin settings');
+  await lee.close();
 
   const jan = await newPage();
   await jan.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
