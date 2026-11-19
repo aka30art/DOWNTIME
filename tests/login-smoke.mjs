@@ -156,7 +156,7 @@ try {
   assert.equal(await spectator.locator('#spectatorAccessCode').isVisible(), true, 'spectator access code field should appear');
   await spectator.locator('#spectatorAccessCode').fill('WRONG');
   await spectator.locator('#spectatorBtn').click();
-  await spectator.waitForFunction(() => /Access code rejected|unable to open/i.test(document.querySelector('#authMsg').textContent()), { timeout: 5000 });
+  await spectator.waitForFunction(() => /Access code rejected|unable to open/i.test(document.querySelector('#authMsg').textContent), { timeout: 5000 });
   assert.match(await spectator.locator('#authMsg').textContent(), /Access code rejected|unable to open/i, 'wrong supervisor code must be rejected');
   assert.equal(await spectator.locator('#authGate').isVisible(), true, 'wrong supervisor code must not open spectator mode');
   await spectator.locator('#spectatorAccessCode').fill(testSupervisorCode);
