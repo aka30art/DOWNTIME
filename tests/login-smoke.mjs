@@ -60,7 +60,7 @@ try {
   // Simulate a blocked Supabase CDN. The app must still open immediately in local mode.
   await offline.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
   await enterTeamPin(offline);
-  assert.equal(await offline.locator('.operator-choice').count(), 4, 'operator account buttons should be present');
+  assert.equal(await offline.locator('.operator-choice').count(), 5, 'operator account buttons should be present, including Lee');
   assert.equal(await offline.locator('#spectatorBtn').count(), 0, 'main gate should not contain spectator shortcut');
   await assignOperator(offline, '2666');
   assert.equal(await offline.locator('#operatorGate').isVisible(), false, 'operator gate should close after a valid operator PIN');
