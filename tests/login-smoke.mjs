@@ -156,6 +156,10 @@ try {
   assert.equal(await dowieStaffRow.locator('input[type=checkbox]').count(), 1, 'STAFF should provide an on-site/off-site switch for each non-Jan operator');
   assert.equal(await dowieStaffRow.locator('input[placeholder="Assigned station"]').count(), 1, 'station assignment control belongs in STAFF');
   assert.equal(await dowieStaffRow.locator('input[type=file]').count(), 1, 'operator photo upload belongs in STAFF');
+  const janStaffRow=jan.locator('#staffRosterList > div').filter({hasText:'Jan'});
+  assert.equal(await janStaffRow.locator('input[type=checkbox]').count(), 1, 'JAN also has an on-site/off-site switch');
+  assert.equal(await janStaffRow.locator('input[type=file]').count(), 1, 'JAN photo control belongs in STAFF');
+
   await dowieStaffRow.locator('input[type=checkbox]').uncheck();
   assert.match(await jan.locator('#operatorAdminMsg').textContent(), /OFF SITE/, 'presence switch should update operator on-site state');
   assert.equal(await jan.locator('.operator-choice[data-operator="Dowie"]').isDisabled(), true, 'off-site operator cannot be selected for station assignment');
