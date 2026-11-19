@@ -101,6 +101,99 @@ try {
   await assignOperator(cloudFailure, '2666');
   assert.equal(await cloudFailure.locator('#operatorGate').isVisible(), false, 'local access must survive cloud auth rejection');
 
+  // 4. Spectator mode must require the team PIN, but must not require an operator PIN or create an authenticated session.
+  const spectator = await newPage();
+  await spectator.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
+    status: 200,
+    contentType: 'application/javascript',
+    body: `(() => {
+      const now = new Date();
+      const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+      const iso = d => [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
+      const weekKey = iso(monday);
+      const dayIndex = Math.min((now.getDay() + 6) % 7, 5);
+      const days = Array.from({length: 6}, (_, i) => {
+        const date = new Date(monday); date.setDate(date.getDate() + i);
+        return { date: iso(date), start: '06:30', stop: '17:00', entries: [] };
+      });
+      days[dayIndex].operator = 'Supervisor Test';
+      days[dayIndex].entries = [{ area: 'Feeder', reason: 'Spectator test reason', hours: 1, minutes: 15 }];
+      const payload = { weeks: { [weekKey]: { days } }, areas: [], reasons: [], archive: [] };
+      window.__spectatorCalls = { auth: 0, writes: 0, reads: 0, options: null, realtimeHandler: null, initialPayload: payload };
+      window.supabase = {
+        createClient: (_url, _key, options = {}) => {
+          const spectatorClient = options.auth?.persistSession === false;
+          if (spectatorClient) window.__spectatorCalls.options = options;
+          return {
+            auth: { signInAnonymously: async () => {
+              if (spectatorClient) window.__spectatorCalls.auth++;
+              return { error: null };
+            } },
+            from: () => ({
+              select: () => ({
+                eq: () => ({
+                  maybeSingle: async () => {
+                    if (spectatorClient) window.__spectatorCalls.reads++;
+                    return { data: { payload, updated_at: '2026-11-19T03:00:00.000Z' }, error: null };
+                  }
+                })
+              }),
+              upsert: async () => { if (spectatorClient) window.__spectatorCalls.writes++; return { error: null }; },
+              insert: async () => { if (spectatorClient) window.__spectatorCalls.writes++; return { error: null }; },
+              update: async () => { if (spectatorClient) window.__spectatorCalls.writes++; return { error: null }; },
+              delete: async () => { if (spectatorClient) window.__spectatorCalls.writes++; return { error: null }; }
+            }),
+            channel: () => {
+              const channel = {
+                on: (_event, _filter, handler) => { if (spectatorClient) window.__spectatorCalls.realtimeHandler = handler; return channel; },
+                subscribe: callback => { if (spectatorClient && callback) callback('SUBSCRIBED'); return channel; }
+              };
+              return channel;
+            }
+          };
+        }
+      };
+    })();`,
+  }));
+  await spectator.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
+  await spectator.locator('#teamPin').fill('9999');
+  await spectator.locator('#spectatorBtn').click();
+  assert.match(await spectator.locator('#authMsg').textContent(), /Incorrect PIN/, 'spectator mode must reject an incorrect team PIN');
+  assert.equal(await spectator.locator('#authGate').isVisible(), true, 'incorrect PIN must not open spectator mode');
+  await spectator.locator('#teamPin').fill('0123');
+  await spectator.locator('#spectatorBtn').click();
+  await spectator.waitForFunction(() => document.querySelector('#spectatorView').style.display === 'block');
+  await spectator.waitForFunction(() => document.querySelector('#spectatorView').textContent.includes('LIVE · CONNECTED'));
+  assert.equal(await spectator.locator('#operatorGate').isVisible(), false, 'spectator must bypass operator assignment/login');
+  assert.equal(await spectator.locator('.shell').isVisible(), false, 'operator workspace must remain hidden in spectator mode');
+  assert.match(await spectator.locator('#spectatorView').textContent(), /Supervisor Test/, 'spectator view should display the assigned operator');
+  assert.match(await spectator.locator('#spectatorView').textContent(), /Spectator test reason/, 'spectator view should display downtime records');
+  assert.equal(await spectator.locator('#spectatorView button, #spectatorView input, #spectatorView select').count(), 0, 'spectator view must contain no editing controls');
+  const spectatorSecurity = await spectator.evaluate(() => ({
+    authCalls: window.__spectatorCalls.auth,
+    writes: window.__spectatorCalls.writes,
+    reads: window.__spectatorCalls.reads,
+    persistSession: window.__spectatorCalls.options?.auth?.persistSession,
+    localState: localStorage.getItem('plantDowntime.v1')
+  }));
+  assert.equal(spectatorSecurity.authCalls, 0, 'spectator must not call anonymous sign-in');
+  assert.equal(spectatorSecurity.writes, 0, 'spectator must not issue database writes');
+  assert.equal(spectatorSecurity.reads, 1, 'spectator should fetch the shared tracker once');
+  assert.equal(spectatorSecurity.persistSession, false, 'spectator client must not persist or restore an auth session');
+  assert.equal(spectatorSecurity.localState, null, 'spectator must not create or overwrite local tracker state');
+
+  // A live shared-state event must refresh the read-only dashboard without enabling controls.
+  await spectator.evaluate(() => {
+    const payload = JSON.parse(JSON.stringify(window.__spectatorCalls.initialPayload));
+    const week = Object.values(payload.weeks)[0];
+    const day = week.days.find(d => d.operator === 'Supervisor Test');
+    day.operator = 'Live Update Test';
+    window.__spectatorCalls.realtimeHandler({ eventType: 'UPDATE', new: { payload, updated_at: '2026-11-19T03:01:00.000Z' } });
+  });
+  await spectator.waitForFunction(() => document.querySelector('#spectatorView').textContent.includes('Live Update Test'));
+  assert.equal(await spectator.locator('#spectatorView button, #spectatorView input, #spectatorView select').count(), 0, 'live refresh must remain read-only');
+
   assert.deepEqual(pageErrors, [], `unexpected browser JavaScript errors: ${pageErrors.join('; ')}`);
   console.log('PASS: startup is independent of external CDNs');
   console.log('PASS: wrong and correct team PIN handling');
