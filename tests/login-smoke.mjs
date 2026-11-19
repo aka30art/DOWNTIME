@@ -188,6 +188,7 @@ try {
   await assignOperator(cloudFailure, '2666');
   assert.equal(await cloudFailure.locator('#operatorGate').isVisible(), false, 'local access must survive cloud auth rejection');
 
+  // Operator permission regression checks above run before the secure Spectator integration checks below.
   // 4. Spectator entry uses the secure Edge Function, a non-persistent anonymous session, and server-side refresh polling.
   const spectator = await newPage();
   await spectator.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
