@@ -1,0 +1,2 @@
+[functions.spectator-read]
+verify_jwt = true
