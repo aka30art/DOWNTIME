@@ -38,7 +38,7 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
    document.querySelectorAll('[data-opprofile]').forEach(card=>{
      const name=card.dataset.opprofile,key=name.charAt(0)+name.slice(1).toLowerCase(),profile=profiles[key]||profiles[name]||{};
      const station=card.querySelector('.station');
-     const stationMatch=String(profile.station||'').match(/^Station\\s*0?([1-6])(?:\\s|$)/i);
+     const stationMatch=String(profile.station||'').match(/^Station\s*0?([1-6])(?:\s|$)/i);
      const isAssigned=profile.onSite!==false&&!!stationMatch;
      card.style.display=isAssigned?'':'none';
      card.dataset.onPlant=isAssigned?'true':'false';
@@ -51,7 +51,7 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
        photoBox.appendChild(image);
      }
    });
-   document.querySelectorAll('[data-stationassigned]').forEach(slot=>{const stationNo=Number(slot.dataset.stationassigned);const assigned=Object.entries(profiles).filter(([name,profile])=>{const m=String(profile.station||'').match(/^Station\\s*0?([1-6])(?:\\s|$)/i);return profile.onSite!==false&&m&&Number(m[1])===stationNo;}).map(([name])=>name.toUpperCase());slot.textContent=assigned.length?assigned.join(', '):'UNASSIGNED';});
+   document.querySelectorAll('[data-stationassigned]').forEach(slot=>{const stationNo=Number(slot.dataset.stationassigned);const assigned=Object.entries(profiles).filter(([name,profile])=>{const m=String(profile.station||'').match(/^Station\s*0?([1-6])(?:\s|$)/i);return profile.onSite!==false&&m&&Number(m[1])===stationNo;}).map(([name])=>name.toUpperCase());slot.textContent=assigned.length?assigned.join(', '):'UNASSIGNED';});
  }
  function fmtMinutes(m){m=Math.max(0,Math.round(m||0));return String(Math.floor(m/60)).padStart(2,'0')+'h '+String(m%60).padStart(2,'0')+'m'}
  function mins(t){if(!t||!/^\\d{2}:\\d{2}$/.test(t))return null;const [h,m]=t.split(':').map(Number);return h>23||m>59?null:h*60+m}
@@ -78,7 +78,7 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
    }
    const start=mins(dayRecord.start),stop=mins(dayRecord.stop),scheduled=(start===null||stop===null)?0:stop-start+(stop<=start?1440:0),net=Math.max(0,scheduled-75);
    const entries=Array.isArray(dayRecord.entries)?dayRecord.entries:[],totalDown=entries.reduce((sum,e)=>sum+Math.max(0,(Number(e.hours)||0)*60+(Number(e.minutes)||0)),0),totalRun=Math.max(0,net-totalDown);
-   const incidents=entries.length,profiles=payload?.operatorProfiles||{},operators=Object.values(profiles).filter(profile=>profile&&profile.onSite!==false&&/^Station\\s*0?([1-6])(?:\\s|$)/i.test(String(profile.station||'')));
+   const incidents=entries.length,profiles=payload?.operatorProfiles||{},operators=Object.values(profiles).filter(profile=>profile&&profile.onSite!==false&&/^Station\s*0?([1-6])(?:\s|$)/i.test(String(profile.station||'')));
    document.getElementById('totalDowntime').textContent=fmtMinutes(totalDown);
    document.getElementById('incidentCount').textContent=String(incidents);
    document.getElementById('availability').textContent=net?((totalRun/net)*100).toFixed(1)+'%':'—';
