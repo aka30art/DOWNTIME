@@ -466,6 +466,14 @@ container.querySelector('.spectator-header')?.insertAdjacentHTML('beforeend','<a
 // Spectator access is handled through the verified spectator-read Edge Function in the account-selection flow.
 
 
+const fullscreenBtn=$('fullscreenBtn');
+if(fullscreenBtn){
+ const syncFullscreen=()=>{const active=document.body.classList.contains('app-fullscreen')||Boolean(document.fullscreenElement);fullscreenBtn.setAttribute('aria-pressed',String(active));fullscreenBtn.textContent=active?'⛶ EXIT FULL SCREEN':'⛶ FULL SCREEN';};
+ fullscreenBtn.addEventListener('click',()=>{const active=document.body.classList.contains('app-fullscreen')||Boolean(document.fullscreenElement);if(active){document.body.classList.remove('app-fullscreen');if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});}else{document.body.classList.add('app-fullscreen');if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{});}syncFullscreen();});
+ document.addEventListener('fullscreenchange',syncFullscreen);
+ syncFullscreen();
+}
+
 render();
 })();
 </script>
