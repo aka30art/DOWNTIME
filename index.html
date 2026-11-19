@@ -256,7 +256,7 @@ const parseWeek=k=>new Date(k+'T12:00:00');
 let weekStart=mondayOf(today),selected=0,entryDraft={area:'',reason:''},editing=-1;
 let state=load();
 function load(){try{return JSON.parse(localStorage.getItem(STORE))||{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360'],reasons:['Mick (diesel, filter, etc)','Blockage','Repair/Maintenance','Unknown'],archive:[]}}catch{return {weeks:{},areas:[],reasons:[],archive:[]}}}
-function persist(){localStorage.setItem(STORE,JSON.stringify(state))}
+function persist(){localStorage.setItem(STORE,JSON.stringify(state));syncCloud()}
 function key(){return iso(weekStart)}
 function blankDay(d){return {date:iso(d),start:'06:30',stop:'17:00',entries:[]}}
 function week(){if(!state.weeks[key()])state.weeks[key()]={days:DAYS.map((_,i)=>blankDay(plus(weekStart,i)))};return state.weeks[key()]}
