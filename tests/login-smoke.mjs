@@ -180,7 +180,10 @@ try {
   assert.equal(await jan.locator('#staffRosterList > div').filter({hasText:'Test Operator'}).count(), 1, 'removing app user must preserve independent STAFF membership');
   const dowieStaffRow=jan.locator('#staffRosterList > div').filter({hasText:'Dowie'});
   assert.equal(await dowieStaffRow.locator('input[type=checkbox]').count(), 1, 'STAFF should provide an on-site/off-site switch for each non-Jan operator');
-  assert.equal(await dowieStaffRow.locator('input[placeholder="Assigned station"]').count(), 1, 'station assignment control belongs in STAFF');
+  const stationSelect=dowieStaffRow.locator('select[aria-label^="Station assignment for"]');
+  assert.equal(await stationSelect.count(), 1, 'station assignment control belongs in STAFF as a preset dropdown');
+  assert.equal(await stationSelect.locator('option').count(), 7, 'station dropdown contains only unassigned plus six fixed presets');
+  assert.equal(await stationSelect.isEnabled(), true, 'JAN can edit station assignments');
   assert.equal(await dowieStaffRow.locator('input[type=file]').count(), 1, 'operator photo upload belongs in STAFF');
   const janStaffRow=jan.locator('#staffRosterList > div').filter({hasText:'Jan'});
   assert.equal(await janStaffRow.locator('input[type=checkbox]').count(), 1, 'JAN also has an on-site/off-site switch');
