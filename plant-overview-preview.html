@@ -3,7 +3,7 @@
 :root{--bg:#07121b;--surface:#0e1f2c;--surface2:#142b3b;--border:#243e52;--text:#edf4f8;--muted:#8ea6b7;--yellow:#ffd400;--green:#2be078;--red:#ff5258;--blue:#58aaff}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 500px at 50% -15%,#19364b 0%,transparent 65%),var(--bg);color:var(--text);font:14px/1.45 Inter,system-ui,-apple-system,Segoe UI,sans-serif}
 main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:0 0 16px;border-bottom:2px solid var(--yellow);margin-bottom:18px}.logo{font-size:24px;font-weight:950;letter-spacing:-.8px}.logo i{color:var(--yellow);font-style:normal}.sub{font-size:12px;color:var(--muted);font-weight:650;letter-spacing:1.4px;margin-left:12px}.right{display:flex;align-items:center;gap:12px;color:#b8c9d4}.pill{border:1px solid #1e8c54;background:#0d3022;color:var(--green);padding:6px 11px;border-radius:30px;font-size:11px;font-weight:850;letter-spacing:.7px}
-.metrics{display:grid;grid-template-columns:1.45fr repeat(4,1fr);gap:12px;margin-bottom:16px}.panel{background:linear-gradient(145deg,#14293a,#0b1924);border:1px solid var(--border);border-radius:15px;padding:16px;box-shadow:0 8px 28px #0002}.status{background:linear-gradient(145deg,#0c3525,#0b1a24);border-color:#1a6541}.label{font-size:10px;letter-spacing:1.3px;font-weight:900;color:var(--muted)}.status .label{color:#9de8b9}.plantstate{display:flex;align-items:center;gap:11px;margin-top:11px;font-size:30px;font-weight:950;letter-spacing:-1px;color:var(--green)}.lamp{width:15px;height:15px;background:var(--green);border-radius:50%;box-shadow:0 0 16px #2be07880}.metric{font-size:28px;font-weight:900;letter-spacing:-.8px;margin-top:12px}.metric em{font-style:normal;font-size:12px;color:var(--yellow)}
+.metrics{display:grid;grid-template-columns:1.45fr repeat(4,1fr);gap:12px;margin-bottom:16px}.panel{background:linear-gradient(145deg,#14293a,#0b1924);border:1px solid var(--border);border-radius:15px;padding:16px;box-shadow:0 8px 28px #0002}.status{background:linear-gradient(145deg,#0c3525,#0b1a24);border-color:#1a6541}.label{font-size:10px;letter-spacing:1.3px;font-weight:900;color:var(--muted)}.status .label{color:#9de8b9}.plantstate{display:flex;align-items:center;gap:11px;margin-top:11px;font-size:30px;font-weight:950;letter-spacing:-1px;color:var(--green)}.status.off{background:linear-gradient(145deg,#3a1720,#0b1a24);border-color:#7b2733}.status.off .label{color:#ffb1b4}.status.off .plantstate{color:var(--red)}.status.off .lamp{background:var(--red);box-shadow:0 0 16px #ff525880}#plantToggle{margin-top:12px;padding:10px 14px;border:1px solid var(--yellow);border-radius:9px;background:var(--yellow);color:#101820;font-weight:900;cursor:pointer}#plantToggle:focus-visible{outline:3px solid white;outline-offset:2px}.lamp{width:15px;height:15px;background:var(--green);border-radius:50%;box-shadow:0 0 16px #2be07880}.metric{font-size:28px;font-weight:900;letter-spacing:-.8px;margin-top:12px}.metric em{font-style:normal;font-size:12px;color:var(--yellow)}
 .section{margin:0 0 16px}.heading{font-size:15px;font-weight:900;letter-spacing:.4px;margin:0 0 13px;display:flex;align-items:center;gap:9px}.heading:before{content:"";width:4px;height:17px;background:var(--yellow);border-radius:3px}.opgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.op{overflow:hidden;text-align:center;border-radius:12px;border:1px solid var(--border);background:linear-gradient(150deg,#142b3a,#0a1924)}.photo{height:145px;display:grid;place-items:center;background:radial-gradient(circle at 50% 30%,#36566b,#162a39 70%);border-bottom:1px solid var(--border)}.avatar{width:100px;height:108px;position:relative}.avatar .helmet{position:absolute;left:14px;top:4px;width:72px;height:33px;border-radius:40px 40px 12px 12px;background:var(--yellow);border:5px solid #d5af00}.avatar .helmet:after{content:"";position:absolute;left:-12px;right:-12px;bottom:-8px;height:9px;background:#e5c000;border-radius:6px}.avatar .face{position:absolute;left:27px;top:35px;width:46px;height:50px;border-radius:22px 22px 18px 18px;background:#9eb0bd}.avatar .body{position:absolute;left:7px;bottom:0;width:86px;height:39px;border-radius:25px 25px 6px 6px;background:linear-gradient(90deg,#c49c00,#ffd400,#c49c00)}.avatar .eye{position:absolute;top:54px;width:4px;height:4px;border-radius:50%;background:#23394a;z-index:2}.avatar .e1{left:39px}.avatar .e2{left:57px}.name{font-size:16px;font-weight:900;margin:11px 10px 5px}.station{display:inline-block;margin:0 12px 12px;padding:7px 12px;border-radius:8px;border:1px solid #36566c;background:#20384a;color:var(--yellow);font-weight:800;font-size:12px}
 .bottom{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.timeline{display:flex;gap:3px;height:17px;border-radius:6px;overflow:hidden;margin:22px 0 10px;background:#223748}.run{background:var(--green)}.stop{background:var(--red)}.tick{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}.legend{display:flex;gap:16px;margin-top:17px;color:#b9cad5;font-size:12px}.legend span{display:flex;align-items:center;gap:7px}.key{width:10px;height:10px;border-radius:3px}.reason{margin:12px 0 15px}.rhead{display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px}.rhead strong{font-weight:850}.track{height:10px;background:#203647;border-radius:20px;overflow:hidden}.fill{height:100%;border-radius:20px}.f1{background:var(--red)}.f2{background:#ff923b}.f3{background:var(--yellow)}.f4{background:#8295a5}.note{color:#667d8e;font-size:10px;text-align:right;margin-top:15px}
 @media(max-width:1050px){.metrics{grid-template-columns:repeat(4,1fr)}.status{grid-column:1/-1}.opgrid{grid-template-columns:repeat(3,1fr)}}
@@ -11,7 +11,7 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
 </style></head><body><main>
 <header class="top"><div class="logo"><i>◢</i> DOWNTIME <span class="sub">PLANT OVERVIEW</span></div><div class="right"><span>SHIFT · DAILY VIEW</span><span class="pill">● PREVIEW</span></div></header>
 <div class="metrics">
-<div class="panel status"><div class="label">PLANT STATUS</div><div class="plantstate"><span class="lamp"></span><span id="plantLabel">PLANT ON</span></div></div>
+<div class="panel status"><div class="label">PLANT STATUS</div><div class="plantstate"><span class="lamp" id="plantLamp"></span><span id="plantLabel">PLANT ON</span></div><button id="plantToggle" type="button" hidden aria-pressed="true">TURN PLANT OFF</button><div id="plantControlNote" class="label" style="margin-top:8px">STATUS VIEW · READ ONLY</div></div>
 <div class="panel"><div class="label">OPERATORS ON PLANT</div><div class="metric">5 <em>/ 5</em></div></div>
 <div class="panel"><div class="label">TOTAL DOWNTIME</div><div class="metric">01h 42m</div></div>
 <div class="panel"><div class="label">INCIDENTS TODAY</div><div class="metric">06</div></div>
@@ -27,4 +27,29 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
 <div class="reason"><div class="rhead"><span>Waiting for machinery</span><strong>16 min</strong></div><div class="track"><div class="fill f3" style="width:32%"></div></div></div>
 <div class="reason"><div class="rhead"><span>Cleaning / maintenance</span><strong>8 min</strong></div><div class="track"><div class="fill f4" style="width:16%"></div></div></div>
 </section></div><div class="note">PREVIEW MOCKUP · SAMPLE VALUES · NOT CONNECTED TO LIVE PLANT DATA</div>
-</main></body></html>
+</main><script>
+(() => {
+ const operator = (new URLSearchParams(location.search).get('operator') || '').trim().toUpperCase();
+ const authorized = operator === 'JAN' || operator === 'MICK';
+ const statusPanel = document.querySelector('.status');
+ const toggle = document.getElementById('plantToggle');
+ const note = document.getElementById('plantControlNote');
+ const label = document.getElementById('plantLabel');
+ const lamp = document.getElementById('plantLamp');
+ let plantOn = true;
+ function render(){
+   statusPanel.classList.toggle('off', !plantOn);
+   label.textContent = plantOn ? 'PLANT ON' : 'PLANT OFF';
+   lamp.style.background = plantOn ? 'var(--green)' : 'var(--red)';
+   lamp.style.boxShadow = plantOn ? '0 0 16px #2be07880' : '0 0 16px #ff525880';
+   toggle.textContent = plantOn ? 'TURN PLANT OFF' : 'TURN PLANT ON';
+   toggle.setAttribute('aria-pressed', String(plantOn));
+ }
+ if(authorized){
+   toggle.hidden = false;
+   note.textContent = 'CONTROL ACCESS · ' + operator;
+   toggle.addEventListener('click', () => { plantOn = !plantOn; render(); });
+ }
+ render();
+})();
+</script></body></html>
