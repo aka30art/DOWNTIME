@@ -63,6 +63,9 @@ try {
   assert.equal(await offline.locator('.operator-choice').count(), 5, 'operator account buttons should be present, including Lee');
   assert.equal(await offline.locator('#spectatorBtn').count(), 0, 'main gate should not contain spectator shortcut');
   await assignOperator(offline, '2666');
+  const overviewLink = offline.locator('.overview-link');
+  assert.equal(await overviewLink.count(), 1, 'Overview navigation should be present for operators');
+  assert.equal(await overviewLink.getAttribute('href'), 'plant-overview-preview.html', 'Overview button should link to Plant Overview');
   assert.equal(await offline.locator('#operatorGate').isVisible(), false, 'operator gate should close after a valid operator PIN');
   assert.match(await offline.locator('#dayHeading').textContent(), /OPERATOR: Jan/, 'assigned operator should appear in the tracker');
   const saved = await offline.evaluate(() => localStorage.getItem('plantDowntime.v1'));
