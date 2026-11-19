@@ -14,7 +14,9 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,8 +26,6 @@ jobs:
           node-version: 22
       - name: Install browser test dependencies
         run: npm install --no-audit --no-fund
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
       - name: Run browser smoke tests
         run: npm run test:smoke
 
