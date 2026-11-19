@@ -12,12 +12,7 @@ drop policy if exists "Authenticated users can read downtime state" on public.do
 create policy "Authenticated users can read downtime state"
 on public.downtime_shared_state for select to authenticated using (true);
 
--- Spectator mode: unauthenticated visitors receive read-only access to shared state.
-grant select on table public.downtime_shared_state to anon;
-drop policy if exists "Unauthenticated spectators can read downtime state" on public.downtime_shared_state;
-create policy "Unauthenticated spectators can read downtime state"
-on public.downtime_shared_state for select to anon using (true);
-
+-- Spectator reads are served by the authenticated Edge Function; do not grant anon table access.
 drop policy if exists "Authenticated users can insert downtime state" on public.downtime_shared_state;
 create policy "Authenticated users can insert downtime state"
 on public.downtime_shared_state for insert to authenticated with check (true);
