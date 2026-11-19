@@ -462,7 +462,7 @@ async function openSpectatorMode(){
   return;
  }
  pinAttempts=0;$('spectatorBtn').disabled=true;$('unlockBtn').disabled=true;$('authMsg').textContent='Opening read-only spectator view…';
- $('authGate').style.display='none';$('spectatorView').style.display='block';spectatorMode=true;spectatorConnection='CONNECTING…';
+ $('authGate').style.display='none';$('operatorGate').style.display='none';$('spectatorView').style.display='block';document.querySelector('.shell').style.display='none';spectatorMode=true;spectatorConnection='CONNECTING…';
  $('spectatorView').innerHTML='<div class="spectator-wrap"><header class="spectator-header"><div><p class="spectator-eyebrow">PLANT DOWNTIME · LIVE OPERATIONS</p><h1>SPECTATOR VIEW</h1><p class="spectator-subtitle">Connecting to shared tracker using read-only access…</p></div><div class="spectator-live pending">● CONNECTING</div></header></div>';
  try{
   const baseClient=await Promise.race([loadSupabaseClient(),new Promise(resolve=>setTimeout(()=>resolve(null),8000))]);
