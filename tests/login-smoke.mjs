@@ -60,6 +60,8 @@ try {
   await offline.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
   await enterTeamPin(offline);
   await offline.waitForFunction(() => document.querySelector('#cloudStatus').textContent.includes('LOCAL MODE'));
+  assert.equal(await offline.locator('.operator-choice').count(), 4, 'operator account buttons should be present');
+  assert.equal(await offline.locator('#spectatorBtn').count(), 0, 'main gate should not contain spectator shortcut');
   await assignOperator(offline, '2666');
   assert.equal(await offline.locator('#operatorGate').isVisible(), false, 'operator gate should close after a valid operator PIN');
   assert.match(await offline.locator('#dayHeading').textContent(), /OPERATOR: Jan/, 'assigned operator should appear in the tracker');
