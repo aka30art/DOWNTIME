@@ -18,7 +18,7 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
 <div class="panel"><div class="label">AVAILABILITY</div><div class="metric">92.8%</div></div>
 </div>
 <section class="section panel"><h2 class="heading">OPERATORS ON PLANT</h2><div class="opgrid">
-<article class="op"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">JAN</div><div class="station">Station 01</div></article><article class="op"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">MICK</div><div class="station">Station 02</div></article><article class="op"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">GIGI</div><div class="station">Station 03</div></article><article class="op"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">DAZ</div><div class="station">Station 04</div></article><article class="op"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">SHAYNE</div><div class="station">Station 05</div></article>
+<article class="op" data-opprofile="JAN"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">JAN</div><div class="station">Station 01</div></article><article class="op" data-opprofile="MICK"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">MICK</div><div class="station">Station 02</div></article><article class="op" data-opprofile="GIGI"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">GIGI</div><div class="station">Station 03</div></article><article class="op" data-opprofile="DAZ"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">DAZ</div><div class="station">Station 04</div></article><article class="op" data-opprofile="SHAYNE"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">SHAYNE</div><div class="station">Station 05</div></article>
 </div></section>
 <div class="bottom"><section class="panel"><h2 class="heading">DAILY PRODUCTION TIMELINE</h2><div class="timeline"><div class="run" style="width:24%"></div><div class="stop" style="width:6%"></div><div class="run" style="width:24%"></div><div class="stop" style="width:10%"></div><div class="run" style="width:19%"></div><div class="stop" style="width:6%"></div><div class="run" style="width:11%"></div></div><div class="tick"><span>06:30</span><span>09:00</span><span>12:00</span><span>15:00</span><span>17:00</span></div><div class="legend"><span><i class="key" style="background:var(--green)"></i> Running</span><span><i class="key" style="background:var(--red)"></i> Downtime</span></div></section>
 <section class="panel"><h2 class="heading">DOWNTIME BY REASON</h2>
@@ -39,6 +39,21 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
  const label = document.getElementById('plantLabel');
  const lamp = document.getElementById('plantLamp');
  let plantOn = true;
+ function applyOperatorProfiles(payload){
+   const profiles=payload?.operatorProfiles||{};
+   document.querySelectorAll('[data-opprofile]').forEach(card=>{
+     const name=card.dataset.opprofile,profile=profiles[name]||{};
+     const station=card.querySelector('.station');
+     if(station&&profile.station)station.textContent=profile.station;
+     const photoBox=card.querySelector('.photo');
+     if(photoBox&&profile.photo){
+       photoBox.innerHTML='';
+       const image=document.createElement('img');image.src=profile.photo;image.alt=name+' operator photo';
+       image.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:12px';
+       photoBox.appendChild(image);
+     }
+   });
+ }
  function render(){
    statusPanel.classList.toggle('off', !plantOn);
    label.textContent = plantOn ? 'PLANT ON' : 'PLANT OFF';
@@ -56,9 +71,9 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
      if(authError)throw authError;
      const {data,error}=await plantClient.from('downtime_shared_state').select('payload,updated_at').eq('id',1).maybeSingle();
      if(error)throw error;
-     if(data?.payload){plantPayload=data.payload;plantOn=plantPayload.plantOn!==false;plantConnected=true;render();}
+     if(data?.payload){plantPayload=data.payload;plantOn=plantPayload.plantOn!==false;plantConnected=true;applyOperatorProfiles(plantPayload);render();}
      plantClient.channel('plant-status-overview').on('postgres_changes',{event:'UPDATE',schema:'public',table:'downtime_shared_state',filter:'id=eq.1'},event=>{
-       if(!event?.new?.payload)return;plantPayload=event.new.payload;plantOn=plantPayload.plantOn!==false;plantConnected=true;render();
+       if(!event?.new?.payload)return;plantPayload=event.new.payload;plantOn=plantPayload.plantOn!==false;plantConnected=true;applyOperatorProfiles(plantPayload);render();
      }).subscribe();
    }catch(error){note.textContent=authorized?'CONTROL ACCESS · '+operator+' · LOCAL PREVIEW':'STATUS VIEW · PREVIEW';console.warn('Plant status cloud connection failed',error)}
  }
