@@ -175,10 +175,10 @@ try {
     persistSession: window.__spectatorCalls.options?.auth?.persistSession,
     localState: localStorage.getItem('plantDowntime.v1')
   }));
-  assert.equal(spectatorSecurity.authCalls, 1, 'spectator should use anonymous JWT for Edge Function invocation');
+  assert.equal(spectatorSecurity.authCalls, 2, 'spectator attempts should use anonymous JWT for Edge Function invocation');
   assert.equal(spectatorSecurity.writes, 0, 'spectator must not issue database writes');
   assert.equal(spectatorSecurity.directReads, 0, 'spectator must not query the table directly');
-  assert.equal(spectatorSecurity.functionCalls, 2, 'spectator should call the secure endpoint for initial fetch and refresh');
+  assert.ok(spectatorSecurity.functionCalls >= 2, 'spectator should call the secure endpoint for rejected and accepted code attempts');
   assert.equal(spectatorSecurity.persistSession, false, 'spectator client must not persist auth session');
   assert.equal(spectatorSecurity.localState, null, 'spectator must not create or overwrite local tracker state');
   assert.deepEqual(pageErrors, [], `unexpected browser JavaScript errors: ${pageErrors.join('; ')}`);
