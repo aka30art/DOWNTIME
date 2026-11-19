@@ -95,17 +95,8 @@ try {
   assert.equal(await dowie.locator('#exportBtn').isDisabled(), true, 'Dowie cannot create shared PDF records');
   await dowie.locator('.nav[data-view=settings]').click();
   assert.equal(await dowie.locator('#settingsPlantAdminControls').isVisible(), false, 'Dowie cannot change plant presets');
-  assert.equal(await dowie.locator('#settingsAdminControls').isVisible(), false, 'Dowie cannot access operator administration or tracker settings');
-  await dowie.locator('#currentOperatorPin').fill('999');
-  await dowie.locator('#newOperatorPin').fill('888');
-  await dowie.locator('#confirmOperatorPin').fill('888');
-  await dowie.locator('#changeOperatorPin').click();
-  assert.match(await dowie.locator('#pinChangeMsg').textContent(), /PIN changed successfully/, 'Dowie may change only their own PIN');
-  await dowie.reload();
-  await enterTeamPin(dowie);
-  await assignOperator(dowie, '888', 'Dowie');
-  assert.match(await dowie.locator('#dayHeading').textContent(), /OPERATOR: Dowie/, 'Dowie PIN change must work on next login');
-  assert.equal(await dowie.locator('#addEntry').isDisabled(), true, 'Dowie remains read-only after PIN change');
+  assert.equal(await dowie.locator('#settingsAdminControls').isVisible(), false, 'Dowie cannot access app-user administration');
+  assert.equal(await dowie.locator('#currentOperatorPin').count(), 0, 'PIN management is removed from Settings');
   await dowie.close();
 
   // Lee is a default roster operator with PIN 9991 and Dowie's read-only restrictions.
@@ -121,7 +112,7 @@ try {
   assert.equal(await lee.locator('#exportBtn').isDisabled(), true, 'Lee cannot create shared PDF records');
   await lee.locator('.nav[data-view=settings]').click();
   assert.equal(await lee.locator('#settingsPlantAdminControls').isVisible(), false, 'Lee cannot change plant presets');
-  assert.equal(await lee.locator('#settingsAdminControls').isVisible(), false, 'Lee cannot access admin settings');
+  assert.equal(await lee.locator('#settingsAdminControls').isVisible(), false, 'Lee cannot access app-user administration');
   await lee.close();
 
   const jan = await newPage();
@@ -137,11 +128,11 @@ try {
   assert.equal(await jan.locator('#plantStart').isDisabled(), false, 'JAN must be able to unlock a permanently locked start time');
   await jan.locator('.nav[data-view=settings]').click();
   assert.equal(await jan.locator('#operatorAdminPanel').isVisible(), true, 'JAN must have operator administration controls');
-  assert.equal(await jan.locator('#settingsAdminControls').isVisible(), true, 'JAN must have editable plant settings');
+  assert.equal(await jan.locator('#settingsAdminControls').isVisible(), true, 'JAN must have app-user administration');
   await jan.locator('#newOperatorName').fill('Test Operator');
   await jan.locator('#newOperatorInitialPin').fill('7777');
   await jan.locator('#addOperatorBtn').click();
-  assert.match(await jan.locator('#operatorAdminMsg').textContent(), /Operator added/, 'JAN should be able to add an operator');
+  assert.match(await jan.locator('#operatorAdminMsg').textContent(), /User added/, 'JAN should be able to add an app user');
   assert.ok((await jan.evaluate(() => localStorage.getItem('plantDowntime.operatorRoster.v1') || '')).includes('Test Operator'), 'operator roster should persist locally');
   await jan.reload();
   await enterTeamPin(jan);
@@ -156,33 +147,31 @@ try {
   assert.equal(await testOperatorRow.count(), 1, 'JAN admin roster should contain the added operator');
   await testOperatorRow.locator('button.danger').click();
   assert.ok(!(await jan.evaluate(() => localStorage.getItem('plantDowntime.operatorRoster.v1') || '')).includes('Test Operator'), 'JAN should be able to remove an operator');
-  await jan.close();
 
-  // PIN change must validate the current PIN and work on the next login.
-  const pinChange = await newPage();
-  await pinChange.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
-  await pinChange.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await enterTeamPin(pinChange);
-  await assignOperator(pinChange, '1234', 'Mick');
-  await pinChange.locator('.nav[data-view=settings]').click();
-  await pinChange.locator('#currentOperatorPin').fill('1234');
-  await pinChange.locator('#newOperatorPin').fill('2666');
-  await pinChange.locator('#confirmOperatorPin').fill('2666');
-  await pinChange.locator('#changeOperatorPin').click();
-  assert.match(await pinChange.locator('#pinChangeMsg').textContent(), /Choose a PIN not used by another account/, 'operator PIN change must reject another account’s PIN');
-  await pinChange.locator('#currentOperatorPin').fill('1234');
-  await pinChange.locator('#newOperatorPin').fill('5678');
-  await pinChange.locator('#confirmOperatorPin').fill('5678');
-  await pinChange.locator('#changeOperatorPin').click();
-  assert.match(await pinChange.locator('#pinChangeMsg').textContent(), /PIN changed successfully/, 'operator PIN should be changed');
-  await pinChange.reload();
-  await enterTeamPin(pinChange);
-  await pinChange.locator('.operator-choice[data-operator="Mick"]').click();
-  await pinChange.locator('#operatorGatePin').fill('5678');
-  await pinChange.locator('#operatorContinue').click();
-  await pinChange.waitForFunction(() => document.querySelector('#operatorGate').style.display === 'none');
-  assert.match(await pinChange.locator('#dayHeading').textContent(), /OPERATOR: Mick/, 'changed PIN should work on the next login');
-  await pinChange.close();
+  // STAFF: presence, station and photo management moved from Settings. Off-site operators cannot be selected for assignment.
+  await jan.locator('.nav[data-view=staff]').click();
+  assert.equal(await jan.locator('#staffRosterList > div').count(), 4, 'STAFF should show the complete default roster including Jan, Mick, Dowie and Lee');
+  const dowieStaffRow=jan.locator('#staffRosterList > div').filter({hasText:'Dowie'});
+  assert.equal(await dowieStaffRow.locator('input[type=checkbox]').count(), 1, 'STAFF should provide an on-site/off-site switch for each non-Jan operator');
+  assert.equal(await dowieStaffRow.locator('input[placeholder="Assigned station"]').count(), 1, 'station assignment control belongs in STAFF');
+  assert.equal(await dowieStaffRow.locator('input[type=file]').count(), 1, 'operator photo upload belongs in STAFF');
+  const janStaffRow=jan.locator('#staffRosterList > div').filter({hasText:'Jan'});
+  assert.equal(await janStaffRow.locator('input[type=checkbox]').count(), 1, 'JAN also has an on-site/off-site switch');
+  assert.equal(await janStaffRow.locator('input[type=file]').count(), 1, 'JAN photo control belongs in STAFF');
+
+  await dowieStaffRow.locator('input[type=checkbox]').uncheck();
+  assert.match(await jan.locator('#operatorAdminMsg').textContent(), /OFF SITE/, 'presence switch should update operator on-site state');
+  assert.equal(await jan.locator('.operator-choice[data-operator="Dowie"]').isDisabled(), true, 'off-site operator cannot be selected for station assignment');
+  await dowieStaffRow.locator('input[type=checkbox]').check();
+  assert.equal(await jan.locator('.operator-choice[data-operator="Dowie"]').isDisabled(), false, 'on-site operator becomes assignable again');
+  await jan.locator('.nav[data-view=settings]').click();
+  assert.equal(await jan.locator('#operatorRosterList > div').count(), 4, 'Settings should list app users and role privileges');
+  assert.equal(await jan.locator('#operatorRosterList select[aria-label*="Dowie"]').count(), 1, 'Dowie role privilege should be editable in Settings');
+  assert.equal(await jan.locator('#operatorRosterList select[aria-label*="Lee"]').count(), 1, 'Lee role privilege should be editable in Settings');
+  assert.equal(await jan.locator('#operatorRosterList select[aria-label*="Jan"]').count(), 0, 'Jan remains the permanent Admin role');
+  assert.equal(await jan.locator('#areasInput').count(), 0, 'plant preset management is removed from Settings');
+  assert.equal(await jan.locator('#reasonsInput').count(), 0, 'reason preset management is removed from Settings');
+  await jan.close();
 
 // 2. Simulate a functioning Supabase SDK/client and verify cloud sync can initialize.
   const cloud = await newPage();
