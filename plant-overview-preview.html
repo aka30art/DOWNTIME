@@ -47,7 +47,7 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
        photoBox.appendChild(image);
      }
    });
-   document.querySelectorAll('[data-stationassigned]').forEach(slot=>{const stationNo=Number(slot.dataset.stationassigned);const assigned=Object.entries(profiles).filter(([name,profile])=>{const m=String(profile.station||'').match(/^Station (\d+)/i);return m&&Number(m[1])===stationNo;}).map(([name])=>name.toUpperCase());slot.textContent=assigned.length?assigned.join(', '):'UNASSIGNED';});
+   document.querySelectorAll('[data-stationassigned]').forEach(slot=>{const stationNo=Number(slot.dataset.stationassigned);const assigned=Object.entries(profiles).filter(([name,profile])=>{const m=String(profile.station||'').match(/^Station\\s*0?([1-6])(?:\\s|$)/i);return m&&Number(m[1])===stationNo;}).map(([name])=>name.toUpperCase());slot.textContent=assigned.length?assigned.join(', '):'UNASSIGNED';});
  }
  function fmtMinutes(m){m=Math.max(0,Math.round(m||0));return String(Math.floor(m/60)).padStart(2,'0')+'h '+String(m%60).padStart(2,'0')+'m'}
  function mins(t){if(!t||!/^\\d{2}:\\d{2}$/.test(t))return null;const [h,m]=t.split(':').map(Number);return h>23||m>59?null:h*60+m}
