@@ -66,6 +66,7 @@ try {
   const overviewLink = offline.locator('.overview-link');
   assert.equal(await overviewLink.count(), 1, 'Overview navigation should be present for operators');
   assert.equal(await overviewLink.getAttribute('href'), 'plant-overview-preview.html', 'Overview button should link to Plant Overview');
+  assert.equal(await overviewLink.getAttribute('target'), '_blank', 'Overview should open in a separate tab');
   assert.equal(await offline.locator('#operatorGate').isVisible(), false, 'operator gate should close after a valid operator PIN');
   assert.match(await offline.locator('#dayHeading').textContent(), /OPERATOR: Jan/, 'assigned operator should appear in the tracker');
   const saved = await offline.evaluate(() => localStorage.getItem('plantDowntime.v1'));
@@ -314,6 +315,9 @@ try {
   assert.match(await spectator.locator('#spectatorView').textContent(), /Spectator test reason/, 'Spectator view should display downtime records');
   assert.equal(await spectator.locator('#spectatorView button:not(#spectatorManualRefresh), #spectatorView input, #spectatorView select').count(), 0, 'Spectator view must contain no editing controls besides its read-only Refresh button');
   assert.equal(await spectator.locator('#spectatorManualRefresh').count(), 1, 'Spectator must have a manual Refresh control');
+  const spectatorOverview = spectator.locator('#spectatorView a[href="plant-overview-preview.html"]');
+  assert.equal(await spectatorOverview.count(), 1, 'Spectator view must include the Overview link');
+  assert.equal(await spectatorOverview.getAttribute('target'), '_blank', 'Spectator Overview should open in a separate tab');
   const spectatorCallsBeforeManual = await spectator.evaluate(() => window.__spectatorCalls.invocations);
   await spectator.locator('#spectatorManualRefresh').click();
   await spectator.waitForFunction(before => window.__spectatorCalls.invocations > before, spectatorCallsBeforeManual, { timeout: 5000 });
