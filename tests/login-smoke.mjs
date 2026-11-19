@@ -109,6 +109,11 @@ try {
   await assignOperator(pinChange, '1234', 'Mick');
   await pinChange.locator('.nav[data-view=settings]').click();
   await pinChange.locator('#currentOperatorPin').fill('1234');
+  await pinChange.locator('#newOperatorPin').fill('2666');
+  await pinChange.locator('#confirmOperatorPin').fill('2666');
+  await pinChange.locator('#changeOperatorPin').click();
+  assert.match(await pinChange.locator('#pinChangeMsg').textContent(), /Choose a PIN not used by another account/, 'operator PIN change must reject another account’s PIN');
+  await pinChange.locator('#currentOperatorPin').fill('1234');
   await pinChange.locator('#newOperatorPin').fill('5678');
   await pinChange.locator('#confirmOperatorPin').fill('5678');
   await pinChange.locator('#changeOperatorPin').click();
