@@ -12,15 +12,15 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
 <header class="top"><div class="logo"><i>◢</i> DOWNTIME <span class="sub">PLANT OVERVIEW</span></div><div class="right"><span>SHIFT · DAILY VIEW</span><span class="pill" id="liveDataBadge">● CONNECTING DATA</span><a id="exitOverview" class="topcontrol" href="index.html" aria-label="Exit Overview and return to homepage">↩ EXIT OVERVIEW</a><button id="overviewFullscreen" class="topcontrol" type="button" aria-pressed="false">⛶ FULL SCREEN</button></div></header>
 <div class="metrics">
 <div class="panel status"><div class="label">PLANT STATUS</div><div class="plantstate"><span class="lamp" id="plantLamp"></span><span id="plantLabel">PLANT ON</span></div><button id="plantToggle" type="button" hidden aria-pressed="true">TURN PLANT OFF</button><div id="plantControlNote" class="label" style="margin-top:8px">STATUS VIEW · READ ONLY</div></div>
-<div class="panel"><div class="label">OPERATORS RECORDED THIS WEEK</div><div class="metric" id="operatorCount">—</div></div>
+<div class="panel"><div class="label">OPERATOR TODAY</div><div class="metric" id="operatorCount">—</div></div>
 <div class="panel"><div class="label">TOTAL DOWNTIME</div><div class="metric" id="totalDowntime">—</div></div>
-<div class="panel"><div class="label">INCIDENTS THIS WEEK</div><div class="metric" id="incidentCount">—</div></div>
+<div class="panel"><div class="label">INCIDENTS TODAY</div><div class="metric" id="incidentCount">—</div></div>
 <div class="panel"><div class="label">AVAILABILITY</div><div class="metric" id="availability">—</div></div>
 </div>
 <section class="section panel"><h2 class="heading">OPERATORS ON PLANT</h2><div class="opgrid">
 <article class="op" data-opprofile="JAN"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">JAN</div><div class="station">Station 01</div></article><article class="op" data-opprofile="MICK"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">MICK</div><div class="station">Station 02</div></article><article class="op" data-opprofile="GIGI"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">GIGI</div><div class="station">Station 03</div></article><article class="op" data-opprofile="DAZ"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">DAZ</div><div class="station">Station 04</div></article><article class="op" data-opprofile="SHAYNE"><div class="photo" aria-label="Generic illustrative operator portrait"><div class="avatar"><div class="helmet"></div><div class="face"></div><span class="eye e1"></span><span class="eye e2"></span><div class="body"></div></div></div><div class="name">SHAYNE</div><div class="station">Station 05</div></article>
 </div></section>
-<div class="bottom"><section class="panel"><h2 class="heading">PRODUCTION TIMELINE</h2><div id="timelineUnavailable" class="label" style="padding:12px 0">Timeline unavailable — tracker records do not contain event start/end timestamps.</div></section><section class="panel"><h2 class="heading">DOWNTIME BY REASON · CURRENT WEEK</h2><div id="reasonStats" class="label">Loading real downtime records…</div></section></div><div class="note" id="dataSourceNote">LIVE DATA · connecting to main downtime tracker</div>
+<div class="bottom"><section class="panel"><h2 class="heading">PRODUCTION TIMELINE</h2><div id="timelineUnavailable" class="label" style="padding:12px 0">Timeline unavailable — tracker records do not contain event start/end timestamps.</div></section><section class="panel"><h2 class="heading">DOWNTIME BY REASON · TODAY</h2><div id="reasonStats" class="label">Loading real downtime records…</div></section></div><div class="note" id="dataSourceNote">LIVE DATA · connecting to main downtime tracker</div>
 </main><script>
 (() => {
  const operator = (new URLSearchParams(location.search).get('operator') || '').trim().toUpperCase();
@@ -53,7 +53,7 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
  function getCurrentWeekKey(){const d=new Date();d.setHours(0,0,0,0);const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d.toISOString().slice(0,10)}
  function renderLiveStats(payload){
    const badge=document.getElementById('liveDataBadge'),reasonBox=document.getElementById('reasonStats'),source=document.getElementById('dataSourceNote');
-   const weekKey=getCurrentWeekKey(),weekData=payload?.weeks?.[weekKey];
+   const weekKey=getCurrentWeekKey(),weekData=payload?.weeks?.[weekKey],today=new Date(),dayIndex=(today.getDay()+6)%7;
    if(!weekData?.days||!Array.isArray(weekData.days)){
      document.getElementById('totalDowntime').textContent='NO DATA';
      document.getElementById('incidentCount').textContent='—';
@@ -62,21 +62,26 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
      reasonBox.textContent='No main-tracker records found for the current week.';
      badge.textContent='● LIVE · NO WEEK DATA';source.textContent='LIVE DATA · main downtime tracker · no records for this week';return;
    }
-   const daily=weekData.days.map(day=>{
-     const start=mins(day.start),stop=mins(day.stop),scheduled=(start===null||stop===null)?0:stop-start+(stop<=start?1440:0),net=Math.max(0,scheduled-75);
-     const entries=Array.isArray(day.entries)?day.entries:[],down=entries.reduce((sum,e)=>sum+Math.max(0,(Number(e.hours)||0)*60+(Number(e.minutes)||0)),0);
-     return {down,net,run:Math.max(0,net-down),entries,operator:day.operator||''};
-   });
-   const totalDown=daily.reduce((s,d)=>s+d.down,0),totalNet=daily.reduce((s,d)=>s+d.net,0),totalRun=Math.max(0,totalNet-totalDown);
-   const incidents=daily.reduce((s,d)=>s+d.entries.length,0),operators=[...new Set(daily.map(d=>d.operator).filter(Boolean))];
+   const dayRecord=dayIndex<6?weekData.days[dayIndex]:null;
+   if(!dayRecord){
+     document.getElementById('totalDowntime').textContent='—';
+     document.getElementById('incidentCount').textContent='—';
+     document.getElementById('availability').textContent='—';
+     document.getElementById('operatorCount').textContent='—';
+     reasonBox.textContent='No weekday tracker record available for today.';
+     badge.textContent='● LIVE · NO DAY RECORD';source.textContent='LIVE DATA · main tracker · no weekday record for today';return;
+   }
+   const start=mins(dayRecord.start),stop=mins(dayRecord.stop),scheduled=(start===null||stop===null)?0:stop-start+(stop<=start?1440:0),net=Math.max(0,scheduled-75);
+   const entries=Array.isArray(dayRecord.entries)?dayRecord.entries:[],totalDown=entries.reduce((sum,e)=>sum+Math.max(0,(Number(e.hours)||0)*60+(Number(e.minutes)||0)),0),totalRun=Math.max(0,net-totalDown);
+   const incidents=entries.length,operators=dayRecord.operator?[dayRecord.operator]:[];
    document.getElementById('totalDowntime').textContent=fmtMinutes(totalDown);
    document.getElementById('incidentCount').textContent=String(incidents);
-   document.getElementById('availability').textContent=totalNet?((totalRun/totalNet)*100).toFixed(1)+'%':'—';
+   document.getElementById('availability').textContent=net?((totalRun/net)*100).toFixed(1)+'%':'—';
    document.getElementById('operatorCount').textContent=operators.length+' assigned';
-   const causes={};daily.forEach(d=>d.entries.forEach(e=>{const reason=String(e.reason||'Unspecified');causes[reason]=(causes[reason]||0)+Math.max(0,(Number(e.hours)||0)*60+(Number(e.minutes)||0));}));
+   const causes={};entries.forEach(e=>{const reason=String(e.reason||'Unspecified');causes[reason]=(causes[reason]||0)+Math.max(0,(Number(e.hours)||0)*60+(Number(e.minutes)||0));});
    const sorted=Object.entries(causes).sort((a,b)=>b[1]-a[1]);
    reasonBox.innerHTML=sorted.length?sorted.map(([name,value])=>'<div class="reason"><div class="rhead"><span>'+name.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))+'</span><strong>'+fmtMinutes(value)+'</strong></div><div class="track"><div class="fill" style="width:'+Math.max(0,Math.min(100,totalDown?value/totalDown*100:0))+'%"></div></div></div>').join(''):'No downtime reasons recorded.';
-   badge.textContent='● LIVE · MAIN TRACKER';source.textContent='LIVE DATA · main downtime tracker · week commencing '+weekKey+' · downtime '+fmtMinutes(totalDown)+' · running '+fmtMinutes(totalRun)+' · availability '+(totalNet?((totalRun/totalNet)*100).toFixed(1)+'%':'not calculable');
+   badge.textContent='● LIVE · MAIN TRACKER';source.textContent='LIVE DATA · main downtime tracker · today · downtime '+fmtMinutes(totalDown)+' · running '+fmtMinutes(totalRun)+' · availability '+(totalNet?((totalRun/totalNet)*100).toFixed(1)+'%':'not calculable');
  }
  function render(){
    statusPanel.classList.toggle('off', !plantOn);
