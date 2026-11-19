@@ -6,7 +6,7 @@ import vm from 'node:vm';
 import { chromium } from 'playwright';
 
 const html = await readFile(resolve('index.html'), 'utf8');
-const inlineScripts = [...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)]
+const inlineScripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
   .map(match => match[1]).filter(source => source.trim());
 inlineScripts.forEach((source, index) => new vm.Script(source, { filename: `inline-script-${index + 1}.js` }));
 const server = createServer((_req, res) => {
