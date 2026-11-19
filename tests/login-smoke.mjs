@@ -160,6 +160,16 @@ try {
   const staffOnlyRow=jan.locator('#staffRosterList > div').filter({hasText:'Test Staff Only'});
   await staffOnlyRow.locator('button.danger').click();
   assert.equal(await jan.locator('#staffRosterList > div').count(), 7, 'STAFF-only remove should reduce staff roster');
+  await jan.locator('#newStaffName').fill('Test Operator');
+  await jan.locator('#addStaffBtn').click();
+  assert.equal(await jan.locator('#staffRosterList > div').count(), 8, 'app-user name can be added independently to STAFF');
+  await jan.locator('.nav[data-view=settings]').click();
+  const appUserRow=jan.locator('#operatorRosterList > div').filter({hasText:'Test Operator'});
+  assert.equal(await appUserRow.count(), 1, 'test app user should still be present before removal');
+  await appUserRow.locator('button.danger').click();
+  assert.equal(await jan.locator('#operatorRosterList > div').count(), 3, 'app-user removal should reduce user list only');
+  await jan.locator('.nav[data-view=staff]').click();
+  assert.equal(await jan.locator('#staffRosterList > div').filter({hasText:'Test Operator'}).count(), 1, 'removing app user must preserve independent STAFF membership');
   const dowieStaffRow=jan.locator('#staffRosterList > div').filter({hasText:'Dowie'});
   assert.equal(await dowieStaffRow.locator('input[type=checkbox]').count(), 1, 'STAFF should provide an on-site/off-site switch for each non-Jan operator');
   assert.equal(await dowieStaffRow.locator('input[placeholder="Assigned station"]').count(), 1, 'station assignment control belongs in STAFF');
