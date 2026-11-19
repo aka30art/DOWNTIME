@@ -12,7 +12,7 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
 <header class="top"><div class="logo"><i>◢</i> DOWNTIME <span class="sub">PLANT OVERVIEW</span></div><div class="right"><span>SHIFT · DAILY VIEW</span><span class="pill" id="liveDataBadge">● CONNECTING DATA</span><a id="exitOverview" class="topcontrol" href="index.html" aria-label="Exit Overview and return to homepage">↩ EXIT OVERVIEW</a><button id="overviewFullscreen" class="topcontrol" type="button" aria-pressed="false">⛶ FULL SCREEN</button></div></header>
 <div class="metrics">
 <div class="panel status"><div class="label">PLANT STATUS</div><div class="plantstate"><span class="lamp" id="plantLamp"></span><span id="plantLabel">PLANT ON</span></div><button id="plantToggle" type="button" hidden aria-pressed="true">TURN PLANT OFF</button><div id="plantControlNote" class="label" style="margin-top:8px">STATUS VIEW · READ ONLY</div></div>
-<div class="panel"><div class="label">OPERATOR TODAY</div><div class="metric" id="operatorCount">—</div></div>
+<div class="panel"><div class="label">OPERATORS</div><div class="metric" id="operatorCount">—</div></div>
 <div class="panel"><div class="label">TOTAL DOWNTIME</div><div class="metric" id="totalDowntime">—</div></div>
 <div class="panel"><div class="label">INCIDENTS TODAY</div><div class="metric" id="incidentCount">—</div></div>
 <div class="panel"><div class="label">AVAILABILITY</div><div class="metric" id="availability">—</div></div>
@@ -38,7 +38,11 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
    document.querySelectorAll('[data-opprofile]').forEach(card=>{
      const name=card.dataset.opprofile,key=name.charAt(0)+name.slice(1).toLowerCase(),profile=profiles[key]||profiles[name]||{};
      const station=card.querySelector('.station');
-     if(station)station.textContent=profile.station||'UNASSIGNED';
+     const stationMatch=String(profile.station||'').match(/^Station\s*0?([1-6])(?:\s|$)/i);
+     const isAssigned=profile.onSite!==false&&!!stationMatch;
+     card.style.display=isAssigned?'':'none';
+     card.dataset.onPlant=isAssigned?'true':'false';
+     if(station)station.textContent=isAssigned?profile.station:'UNASSIGNED';
      const photoBox=card.querySelector('.photo');
      if(photoBox&&profile.photo){
        photoBox.innerHTML='';
@@ -47,7 +51,7 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
        photoBox.appendChild(image);
      }
    });
-   document.querySelectorAll('[data-stationassigned]').forEach(slot=>{const stationNo=Number(slot.dataset.stationassigned);const assigned=Object.entries(profiles).filter(([name,profile])=>{const m=String(profile.station||'').match(/^Station\\s*0?([1-6])(?:\\s|$)/i);return m&&Number(m[1])===stationNo;}).map(([name])=>name.toUpperCase());slot.textContent=assigned.length?assigned.join(', '):'UNASSIGNED';});
+   document.querySelectorAll('[data-stationassigned]').forEach(slot=>{const stationNo=Number(slot.dataset.stationassigned);const assigned=Object.entries(profiles).filter(([name,profile])=>{const m=String(profile.station||'').match(/^Station\s*0?([1-6])(?:\s|$)/i);return profile.onSite!==false&&m&&Number(m[1])===stationNo;}).map(([name])=>name.toUpperCase());slot.textContent=assigned.length?assigned.join(', '):'UNASSIGNED';});
  }
  function fmtMinutes(m){m=Math.max(0,Math.round(m||0));return String(Math.floor(m/60)).padStart(2,'0')+'h '+String(m%60).padStart(2,'0')+'m'}
  function mins(t){if(!t||!/^\\d{2}:\\d{2}$/.test(t))return null;const [h,m]=t.split(':').map(Number);return h>23||m>59?null:h*60+m}
@@ -74,11 +78,11 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
    }
    const start=mins(dayRecord.start),stop=mins(dayRecord.stop),scheduled=(start===null||stop===null)?0:stop-start+(stop<=start?1440:0),net=Math.max(0,scheduled-75);
    const entries=Array.isArray(dayRecord.entries)?dayRecord.entries:[],totalDown=entries.reduce((sum,e)=>sum+Math.max(0,(Number(e.hours)||0)*60+(Number(e.minutes)||0)),0),totalRun=Math.max(0,net-totalDown);
-   const incidents=entries.length,operators=dayRecord.operator?[dayRecord.operator]:[];
+   const incidents=entries.length,profiles=payload?.operatorProfiles||{},operators=Object.values(profiles).filter(profile=>profile&&profile.onSite!==false&&/^Station\s*0?([1-6])(?:\s|$)/i.test(String(profile.station||'')));
    document.getElementById('totalDowntime').textContent=fmtMinutes(totalDown);
    document.getElementById('incidentCount').textContent=String(incidents);
    document.getElementById('availability').textContent=net?((totalRun/net)*100).toFixed(1)+'%':'—';
-   document.getElementById('operatorCount').textContent=operators.length+' assigned';
+   document.getElementById('operatorCount').textContent=String(operators.length);
    const causes={};entries.forEach(e=>{const reason=String(e.reason||'Unspecified');causes[reason]=(causes[reason]||0)+Math.max(0,(Number(e.hours)||0)*60+(Number(e.minutes)||0));});
    const sorted=Object.entries(causes).sort((a,b)=>b[1]-a[1]);
    reasonBox.innerHTML=sorted.length?sorted.map(([name,value])=>'<div class="reason"><div class="rhead"><span>'+name.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))+'</span><strong>'+fmtMinutes(value)+'</strong></div><div class="track"><div class="fill" style="width:'+Math.max(0,Math.min(100,totalDown?value/totalDown*100:0))+'%"></div></div></div>').join(''):'No downtime reasons recorded.';

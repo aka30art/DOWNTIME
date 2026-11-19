@@ -6,12 +6,13 @@ import vm from 'node:vm';
 import { chromium } from 'playwright';
 
 const html = await readFile(resolve('index.html'), 'utf8');
+const overviewHtml = await readFile(resolve('plant-overview-preview.html'), 'utf8');
 const inlineScripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
   .map(match => match[1]).filter(source => source.trim());
 inlineScripts.forEach((source, index) => new vm.Script(source, { filename: `inline-script-${index + 1}.js` }));
-const server = createServer((_req, res) => {
+const server = createServer((req, res) => {
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
-  res.end(html);
+  res.end(req.url?.startsWith('/plant-overview-preview.html') ? overviewHtml : html);
 });
 await new Promise((resolveListen, reject) => {
   server.once('error', reject);
@@ -148,7 +149,7 @@ try {
   await testOperatorRow.locator('button.danger').click();
   assert.ok(!(await jan.evaluate(() => localStorage.getItem('plantDowntime.operatorRoster.v1') || '')).includes('Test Operator'), 'JAN should be able to remove an operator');
 
-  // STAFF: presence, station and photo management moved from Settings. Off-site operators cannot be selected for assignment.
+  // STAFF: presence, station and photo management moved from Settings. Off-site affects plant assignment only, never login access.
   await jan.locator('.nav[data-view=staff]').click();
   assert.equal(await jan.locator('#staffRosterList > div').count(), 7, 'STAFF should include app operators plus Gigi, Daz and Shayne');
   for (const staffName of ['Gigi','Daz','Shayne']) assert.equal(await jan.locator('#staffRosterList > div').filter({hasText:staffName}).count(), 1, `${staffName} should be present in STAFF`);
@@ -191,9 +192,24 @@ try {
 
   await dowieStaffRow.locator('input[type=checkbox]').uncheck();
   assert.match(await jan.locator('#operatorAdminMsg').textContent(), /OFF SITE/, 'presence switch should update operator on-site state');
-  assert.equal(await jan.locator('.operator-choice[data-operator="Dowie"]').isDisabled(), true, 'off-site operator cannot be selected for station assignment');
-  await dowieStaffRow.locator('input[type=checkbox]').check();
-  assert.equal(await jan.locator('.operator-choice[data-operator="Dowie"]').isDisabled(), false, 'on-site operator becomes assignable again');
+  assert.equal(await jan.locator('.operator-choice[data-operator="Dowie"]').isDisabled(), false, 'off-site status must not disable login');
+  assert.equal(await dowieStaffRow.locator('select[aria-label^="Station assignment for"]').isDisabled(), true, 'off-site operator station control must be disabled');
+  assert.equal(await dowieStaffRow.locator('select[aria-label^="Station assignment for"]').inputValue(), '', 'off-site toggle must clear station assignment');
+  await jan.reload();
+  await enterTeamPin(jan);
+  await assignOperator(jan, '999', 'Dowie');
+  assert.equal(await jan.locator('#operatorGate').isVisible(), false, 'off-site operator should pass login gate');
+  assert.equal(await jan.locator('#addEntry').isDisabled(), true, 'off-site Dowie login remains read-only');
+  assert.equal(await jan.locator('#operatorGate').isVisible(), false, 'off-site operator should pass login gate');
+  assert.equal(await jan.locator('#addEntry').isDisabled(), true, 'off-site Dowie login remains read-only');
+  assert.match(await jan.locator('#dayHeading').textContent(), /OPERATOR: Jan/, 'off-site login must not replace the recorded on-plant operator');
+  await jan.reload();
+  await enterTeamPin(jan);
+  await assignOperator(jan, '2666', 'Jan');
+  await jan.locator('.nav[data-view=staff]').click();
+  const reloadedDowieRow=jan.locator('#staffRosterList > div').filter({hasText:'Dowie'});
+  await reloadedDowieRow.locator('input[type=checkbox]').check();
+  assert.equal(await jan.locator('.operator-choice[data-operator="Dowie"]').isDisabled(), false, 'on-site status does not alter login eligibility');
   await jan.locator('.nav[data-view=settings]').click();
   assert.equal(await jan.locator('#operatorRosterList > div').count(), 4, 'Settings should list app users and role privileges');
   assert.equal(await jan.locator('#operatorRosterList select[aria-label*="Dowie"]').count(), 1, 'Dowie role privilege should be editable in Settings');
@@ -228,6 +244,30 @@ try {
   await cloud.waitForFunction(before => window.__cloudRefreshReads > before, cloudReadsBeforeManual, { timeout: 5000 });
   assert.equal(await cloud.locator('#manualRefreshBtn').isDisabled(), false, 'standard Refresh should re-enable after completion');
   assert.match(await cloud.locator('#manualRefreshBtn').textContent(), /REFRESH DATA/, 'standard Refresh should return to its idle label');
+
+
+  // Overview cards and count reflect only on-site operators with assigned stations.
+  const overview = await newPage();
+  await overview.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
+    status: 200, contentType: 'application/javascript', body: `(() => {
+      const now=new Date(), monday=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+      monday.setDate(monday.getDate()-((monday.getDay()+6)%7));
+      const iso=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+      const wk=iso(monday),dayIndex=Math.min((now.getDay()+6)%7,5);
+      const days=Array.from({length:6},(_,i)=>{const d=new Date(monday);d.setDate(d.getDate()+i);return {date:iso(d),start:'06:30',stop:'17:00',entries:[]};});days[dayIndex].operator='Jan';
+      window.__ovPayload={plantOn:true,operatorProfiles:{Jan:{station:'Station 1 · WOOD',onSite:true},Mick:{station:'Station 2 · WOOD',onSite:true},Daz:{station:'Station 3 · SCRAP',onSite:false},Gigi:{station:'',onSite:true},Shayne:{station:'Station 4 · SCRAP',onSite:true}},weeks:{[wk]:{days}},areas:[],reasons:[],archive:[]};
+      window.supabase={createClient:()=>({auth:{signInAnonymously:async()=>({error:null})},from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{payload:window.__ovPayload},error:null})})})}),channel:()=>({on:()=>({subscribe:()=>({})})})})};
+    })();` 
+  }));
+  await overview.goto('http://127.0.0.1:4173/plant-overview-preview.html',{waitUntil:'domcontentloaded'});
+  await overview.waitForFunction(()=>document.querySelector('#liveDataBadge').textContent.includes('LIVE · MAIN TRACKER'),{timeout:5000});
+  assert.equal(await overview.locator('.metrics .panel:nth-child(2) .label').textContent(),'OPERATORS','Overview metric label should change to Operators');
+  assert.equal(await overview.locator('#operatorCount').textContent(),'3','count should reflect only assigned on-site operators');
+  for (const name of ['JAN','MICK','SHAYNE']) assert.equal(await overview.locator(`[data-opprofile="${name}"]`).isVisible(),true,`${name} assigned and on-site should be visible`);
+  for (const name of ['DAZ','GIGI']) assert.equal(await overview.locator(`[data-opprofile="${name}"]`).isVisible(),false,`${name} off-site or unassigned should be hidden`);
+  assert.equal(await overview.locator('[data-stationassigned="3"]').textContent(),'UNASSIGNED','station grid must not list off-site operator');
+  await overview.close();
+
 
   // 3. A cloud authentication rejection must never re-cover or re-lock the tracker.
   const cloudFailure = await newPage();
