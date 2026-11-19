@@ -187,8 +187,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
  .modal{box-shadow:0 20px 60px #0008}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;scroll-behavior:auto!important}}
-.reportactions{display:flex;align-items:center;gap:8px}.reportdelete{padding:7px 9px;font-size:11px;border-radius:8px}.reportitem{display:flex;align-items:center;justify-content:space-between;gap:10px}.reportitem>div:first-child{min-width:0}@media(max-width:600px){.reportitem{gap:8px}.reportactions{flex-shrink:0}.reportdelete{padding:6px 8px}}</style></head>
-<body>
+.reportactions{display:flex;align-items:center;gap:8px}.reportdelete{padding:7px 9px;font-size:11px;border-radius:8px}.reportitem{display:flex;align-items:center;justify-content:space-between;gap:10px}.reportitem>div:first-child{min-width:0}@media(max-width:600px){.reportitem{gap:8px}.reportactions{flex-shrink:0}.reportdelete{padding:6px 8px}}
+#authGate{position:fixed;inset:0;z-index:20;background:#06111a;display:grid;place-items:center;padding:20px}#authGate .authbox{width:min(420px,100%);background:#132635;border:1px solid #344d60;border-radius:16px;padding:22px;box-shadow:0 20px 70px #0008}#authGate h2{margin-top:0;color:#ffc400}#authGate input{width:100%;margin:8px 0;background:#091721;border:1px solid #334b5c;border-radius:8px;padding:12px;color:white}#authGate button{width:100%;margin-top:10px}#authMsg{color:#9aafbd;margin-top:12px;min-height:22px}#cloudStatus{font-size:11px;color:#9aafbd;margin-top:5px}</style></head>
+<body><div id="authGate"><div class="authbox"><h2>PLANT DOWNTIME · LIVE</h2><p class="muted">Team access · Shared live tracking across devices</p><input id="authEmail" type="email" placeholder="Work email address"><button id="sendCode" class="primary">SEND LOGIN CODE</button><div id="otpArea" style="display:none"><input id="authCode" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit email code"><button id="verifyCode" class="primary">VERIFY &amp; SIGN IN</button></div><div id="authMsg"></div></div></div>
 <div class="shell">
 <aside class="side"><div class="brand"><b>///</b> PLANT<br>DOWNTIME<br>TRACKER</div>
 <button class="nav active" data-view="weekly">▦ &nbsp; Weekly Sheet</button>
