@@ -69,4 +69,6 @@ jobs:
           grep -q 'operatorChoices' /tmp/live-site.html
           grep -q 'unlockStartBtn' /tmp/live-site.html
           grep -q 'spectator-read' /tmp/live-site.html
-          echo "Live Pages smoke checks passed: operator gate, Jan unlock control, secure Spectator endpoint."
+          grep -q 'manualRefreshBtn' /tmp/live-site.html
+          grep -q 'spectatorManualRefresh' /tmp/live-site.html
+          echo "Live Pages smoke checks passed: standard-role and Spectator manual refresh controls, operator gate, and secure Spectator endpoint."
