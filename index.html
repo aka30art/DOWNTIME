@@ -232,7 +232,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media(max-width:700px){.spectator-kpis{gap:6px}.spectator-kpi{padding:10px 8px}.spectator-kpi span{font-size:9px}.spectator-today{grid-template-columns:repeat(2,minmax(0,1fr))}.spectator-daygrid{grid-template-columns:1fr}.spectator-panel{padding:12px}.spectator-day{padding:12px}}
 @media(max-width:380px){.spectator-kpi strong{font-size:16px}.spectator-daystats{gap:4px}.spectator-daystat{padding:6px}.spectator-daystat strong{font-size:11px}} 
 </style></head>
-<body><div id="authGate"><div class="authbox"><h2>PLANT DOWNTIME · LIVE</h2><p class="muted">Enter the 4-digit team PIN to continue.</p><input id="teamPin" type="password" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="••••" aria-label="4-digit PIN"><button id="unlockBtn" class="primary">UNLOCK APP</button><button id="spectatorBtn" type="button" class="quiet" style="border-color:#426b84;color:#9ed2f4">SPECTATOR VIEW · READ ONLY</button><div id="authMsg" role="status"></div></div></div>
+<body><div id="authGate"><div class="authbox"><h2>PLANT DOWNTIME · LIVE</h2><p class="muted">Enter the 4-digit team PIN to continue.</p><input id="teamPin" type="password" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="••••" aria-label="4-digit PIN"><button id="unlockBtn" class="primary">UNLOCK APP</button><input id="spectatorAccessCode" type="password" autocomplete="off" maxlength="64" placeholder="Supervisor access code" aria-label="Supervisor access code" style="display:none"><button id="spectatorBtn" type="button" class="quiet" style="border-color:#426b84;color:#9ed2f4">SPECTATOR VIEW · READ ONLY</button><div id="authMsg" role="status"></div></div></div>
 <div id="operatorGate" style="display:none;position:fixed;inset:0;z-index:19;background:#06111a;place-items:center;padding:20px"><div class="authbox" style="width:min(420px,100%);background:#132635;border:1px solid #344d60;border-radius:16px;padding:22px;box-shadow:0 20px 70px #0008"><h2 style="margin-top:0;color:#ffc400">ASSIGN OPERATOR</h2><p class="muted">Select the working day, then enter the operator PIN. Assignment is saved to that day’s weekly report.</p><label for="operatorDay" class="muted" style="font-size:11px;font-weight:800">DAY</label><select id="operatorDay" style="width:100%;margin:8px 0;background:#091721;border:1px solid #334b5c;border-radius:8px;padding:12px;color:white"><option value="0">Monday</option><option value="1">Tuesday</option><option value="2">Wednesday</option><option value="3">Thursday</option><option value="4">Friday</option><option value="5">Saturday</option></select><div id="operatorAssigned" class="muted" style="margin:4px 0 10px"></div><input id="operatorGatePin" type="password" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="Operator PIN" aria-label="Operator PIN" style="width:100%;margin:8px 0;background:#091721;border:1px solid #334b5c;border-radius:8px;padding:12px;color:white"><button id="operatorContinue" class="primary" style="width:100%;margin-top:10px">ASSIGN & OPEN TRACKER</button><div id="operatorMsg" role="status" style="color:#9aafbd;margin-top:12px;min-height:22px"></div></div></div>
 <div id="spectatorView" style="display:none"></div>
 <div class="shell">
@@ -303,7 +303,7 @@ const plus=(d,n)=>{let x=new Date(d);x.setDate(x.getDate()+n);return x};
 const parseWeek=k=>new Date(k+'T12:00:00');
 let weekStart=mondayOf(today),selected=0,entryDraft={area:'',reason:''},editing=-1;
 let state=load();state.recentReasons=state.recentReasons||[];state.undoAction=state.undoAction||null;
-let spectatorMode=false,spectatorClient=null,spectatorChannel=null,spectatorUpdatedAt=null,spectatorConnection='DISCONNECTED';
+let spectatorMode=false,spectatorClient=null,spectatorUpdatedAt=null,spectatorConnection='DISCONNECTED',spectatorAccessCode='',spectatorPromptOpen=false,spectatorRefreshTimer=null,spectatorRefreshing=false;
 function load(){try{return JSON.parse(localStorage.getItem(STORE))||{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360'],reasons:['Mick (diesel, filter, etc)','Blockage','Repair/Maintenance','Unknown'],archive:[]}}catch{return {weeks:{},areas:[],reasons:[],archive:[]}}}
 function persist(){if(spectatorMode)return false;localStorage.setItem(STORE,JSON.stringify(state));syncCloud();return true}
 function captureUndo(){state.undoAction={week:key(),day:selected,entries:JSON.parse(JSON.stringify(day().entries))}}
@@ -386,6 +386,18 @@ function renderArchive(){let a=state.archive||[];$('reportsList').innerHTML=a.le
 // SUPABASE LIVE SYNC
 const SB_URL='https://ygwfipksbbprqynvbklk.supabase.co',SB_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';
 let sb=null;
+function loadSupabaseSDK(){
+ if(window.supabase?.createClient)return Promise.resolve(window.supabase);
+ return new Promise(resolve=>{
+  const script=document.createElement('script');let finished=false;
+  const finish=sdk=>{if(finished)return;finished=true;clearTimeout(timer);resolve(sdk||null)};
+  script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';script.async=true;
+  script.onload=()=>finish(window.supabase?.createClient?window.supabase:null);
+  script.onerror=()=>finish(null);
+  const timer=setTimeout(()=>{script.remove();finish(null)},7000);
+  document.head.appendChild(script);
+ });
+}
 function loadSupabaseClient(){
  if(sb)return Promise.resolve(sb);
  if(window.supabase?.createClient){try{sb=window.supabase.createClient(SB_URL,SB_KEY);return Promise.resolve(sb)}catch(e){console.warn('Supabase client initialisation failed.',e);return Promise.resolve(null)}}
@@ -428,7 +440,7 @@ async function unlockTracker(){
   if(!cloudReady)throw new Error($('cloudStatus').textContent||'Cloud unavailable. Tracker remains available locally.');
  }catch(e){cloudStatus('LOCAL MODE · '+(e.message||'Cloud unavailable'));console.warn('Cloud initialisation failed; local tracker remains open.',e)}
  finally{$('unlockBtn').disabled=false}
-}$('unlockBtn').onclick=unlockTracker;$('spectatorBtn').onclick=openSpectatorMode;$('teamPin').addEventListener('keydown',e=>{if(e.key==='Enter')unlockTracker()});
+}$('unlockBtn').onclick=unlockTracker;$('spectatorBtn').onclick=openSpectatorMode;$('teamPin').addEventListener('keydown',e=>{if(e.key==='Enter')unlockTracker()});$('spectatorAccessCode').addEventListener('keydown',e=>{if(e.key==='Enter')openSpectatorMode()});
 async function cloudInit(){cloudStatus('Connecting…');let query;try{query=await Promise.race([sb.from('downtime_shared_state').select('payload,updated_at').eq('id',1).maybeSingle(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Cloud data request timed out.')),12000))])}catch(e){cloudStatus('Cloud error: '+e.message);return}const {data,error}=query;if(error){cloudStatus('Cloud error: '+error.message);return}const local=load();if(!data?.payload||!data.payload.weeks){state=local;const {error:upErr}=await sb.from('downtime_shared_state').upsert({id:1,payload:state,updated_at:new Date().toISOString()});if(upErr){cloudStatus('Upload error: '+upErr.message);return}}else state=data.payload;localStorage.setItem(STORE,JSON.stringify(state));cloudReady=true;render();cloudStatus('LIVE · synced');sb.channel('downtime-shared').on('postgres_changes',{event:'UPDATE',schema:'public',table:'downtime_shared_state',filter:'id=eq.1'},p=>{if(!cloudReady||cloudBusy||!p.new?.payload)return;state=p.new.payload;localStorage.setItem(STORE,JSON.stringify(state));render();cloudStatus('LIVE · remote update')}).subscribe(status=>{if(status==='SUBSCRIBED')cloudStatus('LIVE · connected')})}
 function syncCloud(){if(!cloudReady)return;cloudWrite=cloudWrite.then(async()=>{cloudBusy=true;const {error}=await sb.from('downtime_shared_state').upsert({id:1,payload:JSON.parse(JSON.stringify(state)),updated_at:new Date().toISOString()});cloudBusy=false;if(error)cloudStatus('Sync error: '+error.message);else cloudStatus('LIVE · synced')}).catch(e=>{cloudBusy=false;cloudStatus('Sync error: '+e.message)});}
 function renderSpectator(){
@@ -451,40 +463,51 @@ function renderSpectator(){
  }).join('');
  const statusClass=/ERROR|LOST|DISCONNECTED/.test(spectatorConnection)?'error':/CONNECTING/.test(spectatorConnection)?'pending':'';
  const updated=spectatorUpdatedAt?new Date(spectatorUpdatedAt).toLocaleString('en-GB'):'No update timestamp supplied';
- container.innerHTML='<div class="spectator-wrap"><header class="spectator-header"><div><p class="spectator-eyebrow">PLANT DOWNTIME · LIVE OPERATIONS</p><h1>SPECTATOR VIEW</h1><p class="spectator-subtitle">Read-only supervisor dashboard · operator login not required</p></div><div class="spectator-live '+statusClass+'"><span>●</span>'+safe(spectatorConnection)+'</div></header><p class="spectator-weeklabel">CURRENT WEEK · '+prettyDate(currentWeek)+' – '+prettyDate(iso(plus(mondayOf(today),5)))+'</p><section class="spectator-kpis"><div class="spectator-kpi"><span>WEEKLY DOWNTIME</span><strong>'+fmt(down)+'</strong></div><div class="spectator-kpi blue"><span>OVERALL DOWNTIME</span><strong>'+pct(net?down/net*100:0)+'</strong></div><div class="spectator-kpi blue"><span>OVERALL RUNNING</span><strong>'+pct(net?running/net*100:0)+'</strong></div></section><section class="spectator-panel"><h2>TODAY · '+todayName.toUpperCase()+'</h2><div class="spectator-today"><div class="spectator-today-item"><small>Operator on duty</small><strong>'+safe(todayOperator)+'</strong></div><div class="spectator-today-item"><small>Plant start</small><strong>'+(todayRecord?safe(todayRecord.data.start):'—')+'</strong></div><div class="spectator-today-item"><small>Downtime today</small><strong>'+todayDown+'</strong></div><div class="spectator-today-item"><small>Running today</small><strong>'+todayRun+'</strong></div></div></section><h2 style="font-size:16px;margin:17px 0 10px">WEEKLY DAY-BY-DAY RECORDS</h2><section class="spectator-daygrid">'+dayCards+'</section><footer class="spectator-footer"><span>READ ONLY · No records or settings can be changed in Spectator Mode.</span><span>Last shared update: '+safe(updated)+'</span></footer></div>';
+ container.innerHTML='<div class="spectator-wrap"><header class="spectator-header"><div><p class="spectator-eyebrow">PLANT DOWNTIME · LIVE OPERATIONS</p><h1>SPECTATOR VIEW</h1><p class="spectator-subtitle">Read-only supervisor dashboard · operator login not required</p></div><div class="spectator-live '+statusClass+'"><span>●</span>'+safe(spectatorConnection)+'</div></header><p class="spectator-weeklabel">CURRENT WEEK · '+prettyDate(currentWeek)+' – '+prettyDate(iso(plus(mondayOf(today),5)))+'</p><section class="spectator-kpis"><div class="spectator-kpi"><span>WEEKLY DOWNTIME</span><strong>'+fmt(down)+'</strong></div><div class="spectator-kpi blue"><span>OVERALL DOWNTIME</span><strong>'+pct(net?down/net*100:0)+'</strong></div><div class="spectator-kpi blue"><span>OVERALL RUNNING</span><strong>'+pct(net?running/net*100:0)+'</strong></div></section><section class="spectator-panel"><h2>TODAY · '+todayName.toUpperCase()+'</h2><div class="spectator-today"><div class="spectator-today-item"><small>Operator on duty</small><strong>'+safe(todayOperator)+'</strong></div><div class="spectator-today-item"><small>Plant start</small><strong>'+(todayRecord?safe(todayRecord.data.start):'—')+'</strong></div><div class="spectator-today-item"><small>Downtime today</small><strong>'+todayDown+'</strong></div><div class="spectator-today-item"><small>Running today</small><strong>'+todayRun+'</strong></div></div></section><h2 style="font-size:16px;margin:17px 0 10px">WEEKLY DAY-BY-DAY RECORDS</h2><section class="spectator-daygrid">'+dayCards+'</section><footer class="spectator-footer"><span>READ ONLY · No records or settings can be changed in Spectator Mode.</span><span>Last shared update: '+safe(updated)+' · Refreshes every 5 seconds</span></footer></div>';
 }
 async function openSpectatorMode(){
- const pin=$('teamPin').value;
- if(Date.now()<pinLockUntil){$('authMsg').textContent='Too many attempts. Try again in 30 seconds.';return}
- if(pin!==TEAM_PIN){
-  pinAttempts++;$('authMsg').textContent='Incorrect PIN.';$('teamPin').value='';
-  if(pinAttempts>=5){pinLockUntil=Date.now()+30000;pinAttempts=0;$('authMsg').textContent='Too many attempts. Locked for 30 seconds.'}
+ const field=$('spectatorAccessCode');
+ if(!spectatorPromptOpen){
+  spectatorPromptOpen=true;field.style.display='block';field.focus();
+  $('spectatorBtn').textContent='OPEN SPECTATOR VIEW';
+  $('authMsg').textContent='Enter the supervisor access code to open the read-only dashboard.';
   return;
  }
- pinAttempts=0;$('spectatorBtn').disabled=true;$('unlockBtn').disabled=true;$('authMsg').textContent='Opening read-only spectator view…';
- $('authGate').style.display='none';$('operatorGate').style.display='none';$('spectatorView').style.display='block';document.querySelector('.shell').style.display='none';spectatorMode=true;spectatorConnection='CONNECTING…';
- $('spectatorView').innerHTML='<div class="spectator-wrap"><header class="spectator-header"><div><p class="spectator-eyebrow">PLANT DOWNTIME · LIVE OPERATIONS</p><h1>SPECTATOR VIEW</h1><p class="spectator-subtitle">Connecting to shared tracker using read-only access…</p></div><div class="spectator-live pending">● CONNECTING</div></header></div>';
+ const code=field.value.trim();
+ if(!code){$('authMsg').textContent='Enter the supervisor access code.';field.focus();return}
+ $('spectatorBtn').disabled=true;$('unlockBtn').disabled=true;$('authMsg').textContent='Verifying supervisor access…';
  try{
-  const baseClient=await Promise.race([loadSupabaseClient(),new Promise(resolve=>setTimeout(()=>resolve(null),8000))]);
-  if(!baseClient||!window.supabase?.createClient)throw new Error('The Supabase library is unavailable. The live spectator view cannot connect.');
-  spectatorClient=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
-  const query=await Promise.race([spectatorClient.from('downtime_shared_state').select('payload,updated_at').eq('id',1).maybeSingle(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('The shared tracker request timed out.')),12000))]);
-  if(query.error)throw new Error(query.error.message);
-  if(query.data?.payload&&query.data.payload.weeks)state=query.data.payload;else state={weeks:{},areas:[],reasons:[],archive:[]};
-  spectatorUpdatedAt=query.data?.updated_at||null;spectatorConnection='LIVE · CONNECTING';renderSpectator();
-  spectatorChannel=spectatorClient.channel('downtime-spectator-readonly').on('postgres_changes',{event:'*',schema:'public',table:'downtime_shared_state',filter:'id=eq.1'},payload=>{
-   if(payload.new?.payload){state=payload.new.payload;spectatorUpdatedAt=payload.new.updated_at||new Date().toISOString();spectatorConnection='LIVE · UPDATED';renderSpectator();}
-   else if(payload.eventType==='DELETE'){state={weeks:{}};spectatorUpdatedAt=null;renderSpectator();}
-  }).subscribe(status=>{
-   if(status==='SUBSCRIBED')spectatorConnection='LIVE · CONNECTED';
-   else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')spectatorConnection='CONNECTION LOST';
-   renderSpectator();
-  });
+  const sdk=await Promise.race([loadSupabaseSDK(),new Promise(resolve=>setTimeout(()=>resolve(null),8000))]);
+  if(!sdk?.createClient)throw new Error('The secure spectator service could not be reached.');
+  spectatorClient=sdk.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+  const auth=await Promise.race([spectatorClient.auth.signInAnonymously(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Secure connection timed out.')),10000))]);
+  if(auth.error||!auth.data?.session)throw new Error('Unable to establish the secure spectator connection.');
+  spectatorAccessCode=code;
+  const initial=await Promise.race([spectatorClient.functions.invoke('spectator-read',{body:{access_code:spectatorAccessCode}}),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Spectator data request timed out.')),12000))]);
+  if(initial.error)throw new Error('Access code rejected or spectator service unavailable.');
+  if(!initial.data?.payload||typeof initial.data.payload!=='object')throw new Error('The spectator service returned invalid tracker data.');
+  state=initial.data.payload;spectatorUpdatedAt=initial.data.updated_at||null;spectatorConnection='LIVE · CONNECTED';
+  spectatorMode=true;
+  $('authGate').style.display='none';$('operatorGate').style.display='none';$('spectatorView').style.display='block';document.querySelector('.shell').style.display='none';
+  field.value='';renderSpectator();
+  spectatorRefreshTimer=setInterval(refreshSpectator,5000);
  }catch(e){
   spectatorConnection='CONNECTION ERROR';
-  $('spectatorView').innerHTML='<div class="spectator-wrap"><header class="spectator-header"><div><p class="spectator-eyebrow">PLANT DOWNTIME · LIVE OPERATIONS</p><h1>SPECTATOR VIEW</h1><p class="spectator-subtitle">Read-only supervisor access</p></div><div class="spectator-live error">● CONNECTION ERROR</div></header><div class="spectator-error">Unable to load the shared tracker. '+safe(e.message||'Unknown connection error')+'. No local or cached data has been presented as live data.</div></div>';
-  console.error('Spectator mode connection failed.',e);
+  $('authMsg').textContent=e.message||'Unable to open the spectator dashboard.';
+  console.warn('Spectator mode could not connect.',e);
+  spectatorClient=null;spectatorAccessCode='';
  }finally{$('spectatorBtn').disabled=false;$('unlockBtn').disabled=false}
+}
+async function refreshSpectator(){
+ if(!spectatorMode||!spectatorClient||spectatorRefreshing)return;
+ spectatorRefreshing=true;
+ try{
+  const result=await spectatorClient.functions.invoke('spectator-read',{body:{access_code:spectatorAccessCode}});
+  if(result.error||!result.data?.payload)throw new Error('Spectator refresh failed.');
+  state=result.data.payload;spectatorUpdatedAt=result.data.updated_at||null;spectatorConnection='LIVE · UPDATED';renderSpectator();
+ }catch(e){
+  spectatorConnection='CONNECTION LOST';renderSpectator();console.warn('Spectator refresh failed.',e);
+ }finally{spectatorRefreshing=false}
 }
 // PIN gate is required on each page load; anonymous cloud session is established after PIN entry.
 
