@@ -160,6 +160,13 @@ try {
   const staffOnlyRow=jan.locator('#staffRosterList > div').filter({hasText:'Test Staff Only'});
   await staffOnlyRow.locator('button.danger').click();
   assert.equal(await jan.locator('#staffRosterList > div').count(), 7, 'STAFF-only remove should reduce staff roster');
+  // Re-create the test app account before testing the separation between Settings and STAFF.
+  await jan.locator('.nav[data-view=settings]').click();
+  await jan.locator('#newOperatorName').fill('Test Operator');
+  await jan.locator('#newOperatorInitialPin').fill('8888');
+  await jan.locator('#addOperatorBtn').click();
+  assert.match(await jan.locator('#operatorAdminMsg').textContent(), /User added/, 'test app user should be re-added');
+  await jan.locator('.nav[data-view=staff]').click();
   await jan.locator('#newStaffName').fill('Test Operator');
   await jan.locator('#addStaffBtn').click();
   assert.equal(await jan.locator('#staffRosterList > div').count(), 8, 'app-user name can be added independently to STAFF');
