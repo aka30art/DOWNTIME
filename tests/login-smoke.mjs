@@ -265,6 +265,7 @@ try {
   assert.equal(await overview.locator('#operatorCount').textContent(),'3','count should reflect only assigned on-site operators');
   for (const name of ['JAN','MICK','SHAYNE']) assert.equal(await overview.locator(`[data-opprofile="${name}"]`).isVisible(),true,`${name} assigned and on-site should be visible`);
   for (const name of ['DAZ','GIGI']) assert.equal(await overview.locator(`[data-opprofile="${name}"]`).isVisible(),false,`${name} off-site or unassigned should be hidden`);
+  assert.equal(await overview.locator('[data-stationassigned="3"]').textContent(),'UNASSIGNED','station grid must not list off-site operator');
   await overview.close();
 
 
