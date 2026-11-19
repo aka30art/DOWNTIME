@@ -188,9 +188,53 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;scroll-behavior:auto!important}}
 .reportactions{display:flex;align-items:center;gap:8px}.reportdelete{padding:7px 9px;font-size:11px;border-radius:8px}.reportitem{display:flex;align-items:center;justify-content:space-between;gap:10px}.reportitem>div:first-child{min-width:0}@media(max-width:600px){.reportitem{gap:8px}.reportactions{flex-shrink:0}.reportdelete{padding:6px 8px}}
-#authGate{position:fixed;inset:0;z-index:20;background:#06111a;display:grid;place-items:center;padding:20px}#authGate .authbox{width:min(420px,100%);background:#132635;border:1px solid #344d60;border-radius:16px;padding:22px;box-shadow:0 20px 70px #0008}#authGate h2{margin-top:0;color:#ffc400}#authGate input{width:100%;margin:8px 0;background:#091721;border:1px solid #334b5c;border-radius:8px;padding:12px;color:white}#authGate button{width:100%;margin-top:10px}#authMsg{color:#9aafbd;margin-top:12px;min-height:22px}#cloudStatus{font-size:11px;color:#9aafbd;margin-top:5px}</style></head>
-<body><div id="authGate"><div class="authbox"><h2>PLANT DOWNTIME · LIVE</h2><p class="muted">Enter the 4-digit team PIN to continue.</p><input id="teamPin" type="password" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="••••" aria-label="4-digit PIN"><button id="unlockBtn" class="primary">UNLOCK APP</button><div id="authMsg" role="status"></div></div></div>
+#authGate{position:fixed;inset:0;z-index:20;background:#06111a;display:grid;place-items:center;padding:20px}#authGate .authbox{width:min(420px,100%);background:#132635;border:1px solid #344d60;border-radius:16px;padding:22px;box-shadow:0 20px 70px #0008}#authGate h2{margin-top:0;color:#ffc400}#authGate input{width:100%;margin:8px 0;background:#091721;border:1px solid #334b5c;border-radius:8px;padding:12px;color:white}#authGate button{width:100%;margin-top:10px}#authMsg{color:#9aafbd;margin-top:12px;min-height:22px}#cloudStatus{font-size:11px;color:#9aafbd;margin-top:5px}#spectatorView{min-height:100vh;padding:clamp(12px,3vw,30px);background:radial-gradient(ellipse at 50% -20%,#1b3547 0,#07131c 58%);color:var(--text)}
+.spectator-wrap{max-width:1500px;margin:0 auto}
+.spectator-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin:3px 0 18px}
+.spectator-eyebrow{font-size:11px;font-weight:900;letter-spacing:1.2px;color:var(--yellow);margin:0 0 5px}
+.spectator-header h1{font-size:clamp(23px,4vw,34px);line-height:1.1;margin:0;font-weight:950;letter-spacing:-.7px}
+.spectator-subtitle{color:var(--muted);margin:7px 0 0;font-size:13px}
+.spectator-live{display:inline-flex;align-items:center;gap:8px;border:1px solid #31566a;background:#0b202d;border-radius:30px;padding:9px 13px;font-size:11px;font-weight:900;letter-spacing:.6px;color:#9de0bd}
+.spectator-live.pending{color:#ffd46a;border-color:#725d2a}
+.spectator-live.error{color:#ff9d91;border-color:#80463d}
+.spectator-weeklabel{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:.7px;margin:0 0 9px}
+.spectator-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:15px}
+.spectator-kpi{background:linear-gradient(145deg,#192d3b,#0d1b26);border:1px solid #344d60;border-radius:12px;padding:15px;min-width:0}
+.spectator-kpi span{display:block;color:var(--muted);font-size:10px;font-weight:850;letter-spacing:.6px}
+.spectator-kpi strong{display:block;font-size:clamp(18px,3vw,25px);font-weight:950;margin-top:5px;white-space:nowrap}
+.spectator-kpi.blue{background:linear-gradient(145deg,#0c3760,#102638);border-color:#2163a3}
+.spectator-panel{background:linear-gradient(145deg,#142735,#0d1b26);border:1px solid #344d60;border-radius:14px;padding:16px;margin-bottom:14px;min-width:0;box-shadow:var(--shadow)}
+.spectator-panel h2{font-size:15px;margin:0 0 12px;font-weight:900}
+.spectator-today{display:grid;grid-template-columns:1.3fr repeat(3,minmax(0,1fr));gap:10px;align-items:stretch}
+.spectator-today-item{background:#091822;border:1px solid #2c4353;border-radius:10px;padding:12px;min-width:0}
+.spectator-today-item small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;font-weight:850}
+.spectator-today-item strong{display:block;font-size:18px;margin-top:5px;overflow-wrap:anywhere}
+.spectator-daygrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.spectator-day{background:linear-gradient(145deg,#142735,#0d1b26);border:1px solid #344d60;border-radius:13px;padding:14px;min-width:0}
+.spectator-day.today{border-color:#b18c16;box-shadow:0 0 0 1px #b18c1633}
+.spectator-dayhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px}
+.spectator-dayhead h3{font-size:15px;margin:0;font-weight:900}
+.spectator-todaytag{font-size:9px;font-weight:900;letter-spacing:.7px;color:#ffd21b;background:#3d3213;border:1px solid #6e5a1b;border-radius:20px;padding:4px 7px}
+.spectator-daymeta{font-size:11px;color:var(--muted);margin-bottom:11px}
+.spectator-daystats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.spectator-daystat{background:#091822;border:1px solid #293f4e;border-radius:8px;padding:8px;min-width:0}
+.spectator-daystat small{display:block;font-size:9px;color:var(--muted);font-weight:800;text-transform:uppercase}
+.spectator-daystat strong{display:block;font-size:13px;margin-top:4px;white-space:nowrap}
+.spectator-records{border-top:1px solid #29404e;margin-top:11px;padding-top:8px}
+.spectator-record{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #203645;font-size:11px}
+.spectator-record:last-child{border-bottom:0}
+.spectator-record b{display:block;color:#ffd21b;font-size:11px}
+.spectator-record small{color:var(--muted);font-size:10px}
+.spectator-record strong{white-space:nowrap;color:#7ec4ff;font-size:11px}
+.spectator-empty{font-size:11px;color:var(--muted);padding:6px 0}
+.spectator-footer{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:10px;padding:5px 2px 12px}
+.spectator-error{border:1px solid #80463d;background:#281a1b;color:#ffb0a6;padding:13px;border-radius:10px}
+@media(max-width:700px){.spectator-kpis{gap:6px}.spectator-kpi{padding:10px 8px}.spectator-kpi span{font-size:9px}.spectator-today{grid-template-columns:repeat(2,minmax(0,1fr))}.spectator-daygrid{grid-template-columns:1fr}.spectator-panel{padding:12px}.spectator-day{padding:12px}}
+@media(max-width:380px){.spectator-kpi strong{font-size:16px}.spectator-daystats{gap:4px}.spectator-daystat{padding:6px}.spectator-daystat strong{font-size:11px}} 
+</style></head>
+<body><div id="authGate"><div class="authbox"><h2>PLANT DOWNTIME · LIVE</h2><p class="muted">Enter the 4-digit team PIN to continue.</p><input id="teamPin" type="password" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="••••" aria-label="4-digit PIN"><button id="unlockBtn" class="primary">UNLOCK APP</button><button id="spectatorBtn" type="button" class="quiet" style="border-color:#426b84;color:#9ed2f4">SPECTATOR VIEW · READ ONLY</button><div id="authMsg" role="status"></div></div></div>
 <div id="operatorGate" style="display:none;position:fixed;inset:0;z-index:19;background:#06111a;place-items:center;padding:20px"><div class="authbox" style="width:min(420px,100%);background:#132635;border:1px solid #344d60;border-radius:16px;padding:22px;box-shadow:0 20px 70px #0008"><h2 style="margin-top:0;color:#ffc400">ASSIGN OPERATOR</h2><p class="muted">Select the working day, then enter the operator PIN. Assignment is saved to that day’s weekly report.</p><label for="operatorDay" class="muted" style="font-size:11px;font-weight:800">DAY</label><select id="operatorDay" style="width:100%;margin:8px 0;background:#091721;border:1px solid #334b5c;border-radius:8px;padding:12px;color:white"><option value="0">Monday</option><option value="1">Tuesday</option><option value="2">Wednesday</option><option value="3">Thursday</option><option value="4">Friday</option><option value="5">Saturday</option></select><div id="operatorAssigned" class="muted" style="margin:4px 0 10px"></div><input id="operatorGatePin" type="password" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="Operator PIN" aria-label="Operator PIN" style="width:100%;margin:8px 0;background:#091721;border:1px solid #334b5c;border-radius:8px;padding:12px;color:white"><button id="operatorContinue" class="primary" style="width:100%;margin-top:10px">ASSIGN & OPEN TRACKER</button><div id="operatorMsg" role="status" style="color:#9aafbd;margin-top:12px;min-height:22px"></div></div></div>
+<div id="spectatorView" style="display:none"></div>
 <div class="shell">
 <aside class="side"><div class="brand"><b>///</b> PLANT<br>DOWNTIME<br>TRACKER</div>
 <button class="nav active" data-view="weekly">▦ &nbsp; Weekly Sheet</button>
@@ -259,8 +303,9 @@ const plus=(d,n)=>{let x=new Date(d);x.setDate(x.getDate()+n);return x};
 const parseWeek=k=>new Date(k+'T12:00:00');
 let weekStart=mondayOf(today),selected=0,entryDraft={area:'',reason:''},editing=-1;
 let state=load();state.recentReasons=state.recentReasons||[];state.undoAction=state.undoAction||null;
+let spectatorMode=false,spectatorClient=null,spectatorChannel=null,spectatorUpdatedAt=null,spectatorConnection='DISCONNECTED';
 function load(){try{return JSON.parse(localStorage.getItem(STORE))||{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360'],reasons:['Mick (diesel, filter, etc)','Blockage','Repair/Maintenance','Unknown'],archive:[]}}catch{return {weeks:{},areas:[],reasons:[],archive:[]}}}
-function persist(){localStorage.setItem(STORE,JSON.stringify(state));syncCloud()}
+function persist(){if(spectatorMode)return false;localStorage.setItem(STORE,JSON.stringify(state));syncCloud();return true}
 function captureUndo(){state.undoAction={week:key(),day:selected,entries:JSON.parse(JSON.stringify(day().entries))}}
 function undoLast(){let u=state.undoAction;if(!u){alert("Nothing to undo yet.");return}if(u.week!==key()){alert("Last action is in another week. Navigate there to undo.");return}if(!confirm("Undo the last downtime change for "+DAYS[u.day]+"?"))return;selected=u.day;week().days[selected].entries=JSON.parse(JSON.stringify(u.entries));state.undoAction=null;persist();render()}
 $("undoBtn").onclick=undoLast;
@@ -383,9 +428,64 @@ async function unlockTracker(){
   if(!cloudReady)throw new Error($('cloudStatus').textContent||'Cloud unavailable. Tracker remains available locally.');
  }catch(e){cloudStatus('LOCAL MODE · '+(e.message||'Cloud unavailable'));console.warn('Cloud initialisation failed; local tracker remains open.',e)}
  finally{$('unlockBtn').disabled=false}
-}$('unlockBtn').onclick=unlockTracker;$('teamPin').addEventListener('keydown',e=>{if(e.key==='Enter')unlockTracker()});
+}$('unlockBtn').onclick=unlockTracker;$('spectatorBtn').onclick=openSpectatorMode;$('teamPin').addEventListener('keydown',e=>{if(e.key==='Enter')unlockTracker()});
 async function cloudInit(){cloudStatus('Connecting…');let query;try{query=await Promise.race([sb.from('downtime_shared_state').select('payload,updated_at').eq('id',1).maybeSingle(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Cloud data request timed out.')),12000))])}catch(e){cloudStatus('Cloud error: '+e.message);return}const {data,error}=query;if(error){cloudStatus('Cloud error: '+error.message);return}const local=load();if(!data?.payload||!data.payload.weeks){state=local;const {error:upErr}=await sb.from('downtime_shared_state').upsert({id:1,payload:state,updated_at:new Date().toISOString()});if(upErr){cloudStatus('Upload error: '+upErr.message);return}}else state=data.payload;localStorage.setItem(STORE,JSON.stringify(state));cloudReady=true;render();cloudStatus('LIVE · synced');sb.channel('downtime-shared').on('postgres_changes',{event:'UPDATE',schema:'public',table:'downtime_shared_state',filter:'id=eq.1'},p=>{if(!cloudReady||cloudBusy||!p.new?.payload)return;state=p.new.payload;localStorage.setItem(STORE,JSON.stringify(state));render();cloudStatus('LIVE · remote update')}).subscribe(status=>{if(status==='SUBSCRIBED')cloudStatus('LIVE · connected')})}
 function syncCloud(){if(!cloudReady)return;cloudWrite=cloudWrite.then(async()=>{cloudBusy=true;const {error}=await sb.from('downtime_shared_state').upsert({id:1,payload:JSON.parse(JSON.stringify(state)),updated_at:new Date().toISOString()});cloudBusy=false;if(error)cloudStatus('Sync error: '+error.message);else cloudStatus('LIVE · synced')}).catch(e=>{cloudBusy=false;cloudStatus('Sync error: '+e.message)});}
+function renderSpectator(){
+ const container=$('spectatorView');if(!container)return;
+ const currentWeek=iso(mondayOf(today)),weekData=state?.weeks?.[currentWeek],todayIndex=(today.getDay()+6)%7;
+ const days=DAYS.map((name,i)=>{
+  const original=weekData?.days?.[i]||{date:iso(plus(weekStart,i)),start:'06:30',stop:'17:00',entries:[]};
+  const d={date:original.date||iso(plus(weekStart,i)),start:original.start||'06:30',stop:original.stop||'17:00',operator:original.operator||'',entries:Array.isArray(original.entries)?original.entries:[]};
+  return {name:name,index:i,data:d,totals:calc(d)};
+ });
+ const net=days.reduce((sum,x)=>sum+x.totals.net,0),down=days.reduce((sum,x)=>sum+x.totals.down,0),running=Math.max(0,net-down);
+ const todayRecord=todayIndex<6?days[todayIndex]:null;
+ const todayName=todayRecord?todayRecord.name:'Sunday · no day slot';
+ const todayOperator=todayRecord?(todayRecord.data.operator||'NOT ASSIGNED'):'NO DAY SLOT';
+ const todayDown=todayRecord?fmt(todayRecord.totals.down):'—';
+ const todayRun=todayRecord?fmt(todayRecord.totals.run):'—';
+ const dayCards=days.map(x=>{
+  const d=x.data,c=x.totals,entries=d.entries.length?d.entries.map(e=>'<div class="spectator-record"><div><b>'+safe(e.area||'Unspecified area')+'</b><small>'+safe(e.reason||'No reason supplied')+'</small></div><strong>'+fmt(durationMinutes(e))+'</strong></div>').join(''):'<div class="spectator-empty">No downtime entries recorded.</div>';
+  return '<article class="spectator-day '+(x.index===todayIndex?'today':'')+'"><div class="spectator-dayhead"><h3>'+x.name.toUpperCase()+'</h3>'+(x.index===todayIndex?'<span class="spectator-todaytag">TODAY</span>':'')+'</div><div class="spectator-daymeta">'+prettyDate(d.date)+' · Operator: '+safe(d.operator||'Not assigned')+' · '+(d.start||'—')+'–'+(d.stop||'—')+'</div><div class="spectator-daystats"><div class="spectator-daystat"><small>Net time</small><strong>'+fmt(c.net)+'</strong></div><div class="spectator-daystat"><small>Downtime</small><strong>'+fmt(c.down)+'</strong></div><div class="spectator-daystat"><small>Running</small><strong>'+fmt(c.run)+'</strong></div></div><div class="spectator-records">'+entries+'</div></article>';
+ }).join('');
+ const statusClass=/ERROR|LOST|DISCONNECTED/.test(spectatorConnection)?'error':/CONNECTING/.test(spectatorConnection)?'pending':'';
+ const updated=spectatorUpdatedAt?new Date(spectatorUpdatedAt).toLocaleString('en-GB'):'No update timestamp supplied';
+ container.innerHTML='<div class="spectator-wrap"><header class="spectator-header"><div><p class="spectator-eyebrow">PLANT DOWNTIME · LIVE OPERATIONS</p><h1>SPECTATOR VIEW</h1><p class="spectator-subtitle">Read-only supervisor dashboard · operator login not required</p></div><div class="spectator-live '+statusClass+'"><span>●</span>'+safe(spectatorConnection)+'</div></header><p class="spectator-weeklabel">CURRENT WEEK · '+prettyDate(currentWeek)+' – '+prettyDate(iso(plus(mondayOf(today),5)))+'</p><section class="spectator-kpis"><div class="spectator-kpi"><span>WEEKLY DOWNTIME</span><strong>'+fmt(down)+'</strong></div><div class="spectator-kpi blue"><span>OVERALL DOWNTIME</span><strong>'+pct(net?down/net*100:0)+'</strong></div><div class="spectator-kpi blue"><span>OVERALL RUNNING</span><strong>'+pct(net?running/net*100:0)+'</strong></div></section><section class="spectator-panel"><h2>TODAY · '+todayName.toUpperCase()+'</h2><div class="spectator-today"><div class="spectator-today-item"><small>Operator on duty</small><strong>'+safe(todayOperator)+'</strong></div><div class="spectator-today-item"><small>Plant start</small><strong>'+(todayRecord?safe(todayRecord.data.start):'—')+'</strong></div><div class="spectator-today-item"><small>Downtime today</small><strong>'+todayDown+'</strong></div><div class="spectator-today-item"><small>Running today</small><strong>'+todayRun+'</strong></div></div></section><h2 style="font-size:16px;margin:17px 0 10px">WEEKLY DAY-BY-DAY RECORDS</h2><section class="spectator-daygrid">'+dayCards+'</section><footer class="spectator-footer"><span>READ ONLY · No records or settings can be changed in Spectator Mode.</span><span>Last shared update: '+safe(updated)+'</span></footer></div>';
+}
+async function openSpectatorMode(){
+ const pin=$('teamPin').value;
+ if(Date.now()<pinLockUntil){$('authMsg').textContent='Too many attempts. Try again in 30 seconds.';return}
+ if(pin!==TEAM_PIN){
+  pinAttempts++;$('authMsg').textContent='Incorrect PIN.';$('teamPin').value='';
+  if(pinAttempts>=5){pinLockUntil=Date.now()+30000;pinAttempts=0;$('authMsg').textContent='Too many attempts. Locked for 30 seconds.'}
+  return;
+ }
+ pinAttempts=0;$('spectatorBtn').disabled=true;$('unlockBtn').disabled=true;$('authMsg').textContent='Opening read-only spectator view…';
+ $('authGate').style.display='none';$('spectatorView').style.display='block';spectatorMode=true;spectatorConnection='CONNECTING…';
+ $('spectatorView').innerHTML='<div class="spectator-wrap"><header class="spectator-header"><div><p class="spectator-eyebrow">PLANT DOWNTIME · LIVE OPERATIONS</p><h1>SPECTATOR VIEW</h1><p class="spectator-subtitle">Connecting to shared tracker using read-only access…</p></div><div class="spectator-live pending">● CONNECTING</div></header></div>';
+ try{
+  const baseClient=await Promise.race([loadSupabaseClient(),new Promise(resolve=>setTimeout(()=>resolve(null),8000))]);
+  if(!baseClient||!window.supabase?.createClient)throw new Error('The Supabase library is unavailable. The live spectator view cannot connect.');
+  spectatorClient=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+  const query=await Promise.race([spectatorClient.from('downtime_shared_state').select('payload,updated_at').eq('id',1).maybeSingle(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('The shared tracker request timed out.')),12000))]);
+  if(query.error)throw new Error(query.error.message);
+  if(query.data?.payload&&query.data.payload.weeks)state=query.data.payload;else state={weeks:{},areas:[],reasons:[],archive:[]};
+  spectatorUpdatedAt=query.data?.updated_at||null;spectatorConnection='LIVE · CONNECTING';renderSpectator();
+  spectatorChannel=spectatorClient.channel('downtime-spectator-readonly').on('postgres_changes',{event:'*',schema:'public',table:'downtime_shared_state',filter:'id=eq.1'},payload=>{
+   if(payload.new?.payload){state=payload.new.payload;spectatorUpdatedAt=payload.new.updated_at||new Date().toISOString();spectatorConnection='LIVE · UPDATED';renderSpectator();}
+   else if(payload.eventType==='DELETE'){state={weeks:{}};spectatorUpdatedAt=null;renderSpectator();}
+  }).subscribe(status=>{
+   if(status==='SUBSCRIBED')spectatorConnection='LIVE · CONNECTED';
+   else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')spectatorConnection='CONNECTION LOST';
+   renderSpectator();
+  });
+ }catch(e){
+  spectatorConnection='CONNECTION ERROR';
+  $('spectatorView').innerHTML='<div class="spectator-wrap"><header class="spectator-header"><div><p class="spectator-eyebrow">PLANT DOWNTIME · LIVE OPERATIONS</p><h1>SPECTATOR VIEW</h1><p class="spectator-subtitle">Read-only supervisor access</p></div><div class="spectator-live error">● CONNECTION ERROR</div></header><div class="spectator-error">Unable to load the shared tracker. '+safe(e.message||'Unknown connection error')+'. No local or cached data has been presented as live data.</div></div>';
+  console.error('Spectator mode connection failed.',e);
+ }finally{$('spectatorBtn').disabled=false;$('unlockBtn').disabled=false}
+}
 // PIN gate is required on each page load; anonymous cloud session is established after PIN entry.
 
 render();
