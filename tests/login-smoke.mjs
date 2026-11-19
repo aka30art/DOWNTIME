@@ -148,7 +148,7 @@ try {
   await testOperatorRow.locator('button.danger').click();
   assert.ok(!(await jan.evaluate(() => localStorage.getItem('plantDowntime.operatorRoster.v1') || '')).includes('Test Operator'), 'JAN should be able to remove an operator');
 
-  // STAFF: presence, station and photo management moved from Settings. Off-site operators cannot be selected for assignment.
+  // STAFF: presence, station and photo management moved from Settings. Off-site affects plant assignment only, never login access.
   await jan.locator('.nav[data-view=staff]').click();
   assert.equal(await jan.locator('#staffRosterList > div').count(), 7, 'STAFF should include app operators plus Gigi, Daz and Shayne');
   for (const staffName of ['Gigi','Daz','Shayne']) assert.equal(await jan.locator('#staffRosterList > div').filter({hasText:staffName}).count(), 1, `${staffName} should be present in STAFF`);
@@ -191,9 +191,20 @@ try {
 
   await dowieStaffRow.locator('input[type=checkbox]').uncheck();
   assert.match(await jan.locator('#operatorAdminMsg').textContent(), /OFF SITE/, 'presence switch should update operator on-site state');
-  assert.equal(await jan.locator('.operator-choice[data-operator="Dowie"]').isDisabled(), true, 'off-site operator cannot be selected for station assignment');
-  await dowieStaffRow.locator('input[type=checkbox]').check();
-  assert.equal(await jan.locator('.operator-choice[data-operator="Dowie"]').isDisabled(), false, 'on-site operator becomes assignable again');
+  assert.equal(await jan.locator('.operator-choice[data-operator="Dowie"]').isDisabled(), false, 'off-site status must not disable login');
+  assert.equal(await dowieStaffRow.locator('select[aria-label^="Station assignment for"]').isDisabled(), true, 'off-site operator station control must be disabled');
+  assert.equal(await dowieStaffRow.locator('select[aria-label^="Station assignment for"]').inputValue(), '', 'off-site toggle must clear station assignment');
+  await jan.reload();
+  await enterTeamPin(jan);
+  await assignOperator(jan, '999', 'Dowie');
+  assert.match(await jan.locator('#dayHeading').textContent(), /OPERATOR: Dowie/, 'off-site operator must still be able to log in');
+  await jan.reload();
+  await enterTeamPin(jan);
+  await assignOperator(jan, '2666', 'Jan');
+  await jan.locator('.nav[data-view=staff]').click();
+  const reloadedDowieRow=jan.locator('#staffRosterList > div').filter({hasText:'Dowie'});
+  await reloadedDowieRow.locator('input[type=checkbox]').check();
+  assert.equal(await jan.locator('.operator-choice[data-operator="Dowie"]').isDisabled(), false, 'on-site status does not alter login eligibility');
   await jan.locator('.nav[data-view=settings]').click();
   assert.equal(await jan.locator('#operatorRosterList > div').count(), 4, 'Settings should list app users and role privileges');
   assert.equal(await jan.locator('#operatorRosterList select[aria-label*="Dowie"]').count(), 1, 'Dowie role privilege should be editable in Settings');
