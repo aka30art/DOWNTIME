@@ -229,7 +229,9 @@ try {
   assert.equal(await spectator.locator('#operatorGate').isVisible(), true, 'wrong supervisor code must not open spectator mode');
   await spectator.locator('#operatorGatePin').fill('TEST-SUPERVISOR-ONLY');
   await spectator.locator('#operatorContinue').click();
-  await spectator.waitForFunction(() => document.querySelector('#spectatorView').style.display === 'block');
+  await spectator.waitForFunction(() => document.querySelector('#spectatorView').style.display === 'block' || (document.querySelector('#operatorMsg').textContent && !document.querySelector('#operatorMsg').textContent.includes('Verifying supervisor access')), { timeout: 10000 });
+  const spectatorLoginState = await spectator.evaluate(() => ({display: document.querySelector('#spectatorView').style.display, message: document.querySelector('#operatorMsg').textContent}));
+  assert.equal(spectatorLoginState.display, 'block', `secure Spectator login failed: ${spectatorLoginState.message}`);
   await spectator.waitForFunction(() => document.querySelector('#spectatorView').textContent.includes('LIVE · CONNECTED'));
   assert.equal(await spectator.locator('#operatorGate').isVisible(), false, 'Spectator login should bypass operator assignment');
   assert.equal(await spectator.locator('.shell').isVisible(), false, 'operator workspace must remain hidden in Spectator mode');
