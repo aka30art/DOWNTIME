@@ -154,7 +154,7 @@ try {
   await jan.locator('.nav[data-view=settings]').click();
   const testOperatorRow = jan.locator('#operatorRosterList > div').filter({ hasText: 'Test Operator' });
   assert.equal(await testOperatorRow.count(), 1, 'JAN admin roster should contain the added operator');
-  await testOperatorRow.locator('button').click();
+  await testOperatorRow.locator('button.danger').click();
   assert.ok(!(await jan.evaluate(() => localStorage.getItem('plantDowntime.operatorRoster.v1') || '')).includes('Test Operator'), 'JAN should be able to remove an operator');
   await jan.close();
 
