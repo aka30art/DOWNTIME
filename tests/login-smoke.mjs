@@ -217,12 +217,12 @@ try {
   await enterTeamPin(spectator);
   assert.equal(await spectator.locator('#spectatorBtn').count(), 0, 'main gate must not contain a separate spectator shortcut');
   await spectator.locator('.operator-choice[data-operator="Spectator"]').click();
-  const readsBeforeSpectator = await spectator.evaluate(() => window.__spectatorCalls.reads);
-  const writesBeforeSpectator = await spectator.evaluate(() => window.__spectatorCalls.writes);
-  const localBeforeSpectator = await spectator.evaluate(() => localStorage.getItem('plantDowntime.v1'));
   await spectator.locator('#operatorGatePin').fill('WRONG');
   await spectator.locator('#operatorContinue').click();
   await spectator.waitForFunction(() => /Access denied|invalid/i.test(document.querySelector('#operatorMsg').textContent), { timeout: 5000 });
+  const readsBeforeSpectator = await spectator.evaluate(() => window.__spectatorCalls.reads);
+  const writesBeforeSpectator = await spectator.evaluate(() => window.__spectatorCalls.writes);
+  const localBeforeSpectator = await spectator.evaluate(() => localStorage.getItem('plantDowntime.v1'));
   assert.equal(await spectator.locator('#operatorGate').isVisible(), true, 'wrong supervisor code must not open spectator mode');
   await spectator.locator('#operatorGatePin').fill('TEST-SUPERVISOR-ONLY');
   await spectator.locator('#operatorContinue').click();
