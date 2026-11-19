@@ -198,7 +198,9 @@ try {
   await jan.reload();
   await enterTeamPin(jan);
   await assignOperator(jan, '999', 'Dowie');
-  assert.match(await jan.locator('#dayHeading').textContent(), /OPERATOR: Dowie/, 'off-site operator must still be able to log in');
+  assert.equal(await jan.locator('#operatorGate').isVisible(), false, 'off-site operator should pass login gate');
+  assert.equal(await jan.locator('#addEntry').isDisabled(), true, 'off-site Dowie login remains read-only');
+  assert.match(await jan.locator('#dayHeading').textContent(), /OPERATOR: Jan/, 'off-site login must not replace the recorded on-plant operator');
   await jan.reload();
   await enterTeamPin(jan);
   await assignOperator(jan, '2666', 'Jan');
