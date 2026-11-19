@@ -33,7 +33,8 @@ async function enterTeamPin(page) {
   await page.waitForFunction(() => document.querySelector('#authGate').style.display === 'none');
   await page.waitForFunction(() => document.querySelector('#operatorGate').style.display === 'grid');
 }
-async function assignOperator(page, pin = '2666') {
+async function assignOperator(page, pin = '2666', operator = (pin === '1234' ? 'Mick' : 'Jan')) {
+  await page.locator(`.operator-choice[data-operator="${operator}"]`).click();
   await page.locator('#operatorGatePin').fill(pin);
   await page.locator('#operatorContinue').click();
   await page.waitForFunction(() => document.querySelector('#operatorGate').style.display === 'none');
