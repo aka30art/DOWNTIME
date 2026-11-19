@@ -60,3 +60,13 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify deployed Pages site
+        env:
+          LIVE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -eu
+          curl --fail --silent --show-error --location --retry 8 --retry-delay 5 --retry-all-errors "$LIVE_URL" -o /tmp/live-site.html
+          grep -q 'operatorChoices' /tmp/live-site.html
+          grep -q 'unlockStartBtn' /tmp/live-site.html
+          grep -q 'spectator-read' /tmp/live-site.html
+          echo "Live Pages smoke checks passed: operator gate, Jan unlock control, secure Spectator endpoint."
