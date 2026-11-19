@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const expectedAccessCodeHash = "58625033ac5abeab1c02253b38ef526c975db7e9b61775f8eee7002e437c06bd";
+const expectedAccessCodeHash = "db8d92654226fd14a4a1f59e3fd563dd751fa8a6765a5a764c8762333a2b66bd";
 const allowedOrigin = "https://aka30art.github.io";
 const corsHeaders = {
   "Access-Control-Allow-Origin": allowedOrigin,
