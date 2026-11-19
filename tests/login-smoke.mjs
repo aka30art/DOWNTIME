@@ -150,7 +150,16 @@ try {
 
   // STAFF: presence, station and photo management moved from Settings. Off-site operators cannot be selected for assignment.
   await jan.locator('.nav[data-view=staff]').click();
-  assert.equal(await jan.locator('#staffRosterList > div').count(), 7, 'STAFF should include app operators plus Gigi, Daz and Shayne');\n  for (const staffName of ['Gigi','Daz','Shayne']) assert.equal(await jan.locator('#staffRosterList > div').filter({hasText:staffName}).count(), 1, `${staffName} should be present in STAFF`);\n  await jan.locator('#newStaffName').fill('Test Staff Only');\n  await jan.locator('#addStaffBtn').click();\n  assert.equal(await jan.locator('#staffRosterList > div').count(), 8, 'STAFF-only add should increase staff roster');\n  assert.equal(await jan.locator('#operatorRosterList > div').count(), 4, 'STAFF-only member must not appear in app-user Settings');\n  assert.equal(await jan.locator('.operator-choice[data-operator="Test Staff Only"]').count(), 0, 'STAFF-only member must not be an app login');\n  const staffOnlyRow=jan.locator('#staffRosterList > div').filter({hasText:'Test Staff Only'});\n  await staffOnlyRow.locator('button.danger').click();\n  assert.equal(await jan.locator('#staffRosterList > div').count(), 7, 'STAFF-only remove should reduce staff roster');
+  assert.equal(await jan.locator('#staffRosterList > div').count(), 7, 'STAFF should include app operators plus Gigi, Daz and Shayne');
+  for (const staffName of ['Gigi','Daz','Shayne']) assert.equal(await jan.locator('#staffRosterList > div').filter({hasText:staffName}).count(), 1, `${staffName} should be present in STAFF`);
+  await jan.locator('#newStaffName').fill('Test Staff Only');
+  await jan.locator('#addStaffBtn').click();
+  assert.equal(await jan.locator('#staffRosterList > div').count(), 8, 'STAFF-only add should increase staff roster');
+  assert.equal(await jan.locator('#operatorRosterList > div').count(), 4, 'STAFF-only member must not appear in app-user Settings');
+  assert.equal(await jan.locator('.operator-choice[data-operator="Test Staff Only"]').count(), 0, 'STAFF-only member must not be an app login');
+  const staffOnlyRow=jan.locator('#staffRosterList > div').filter({hasText:'Test Staff Only'});
+  await staffOnlyRow.locator('button.danger').click();
+  assert.equal(await jan.locator('#staffRosterList > div').count(), 7, 'STAFF-only remove should reduce staff roster');
   const dowieStaffRow=jan.locator('#staffRosterList > div').filter({hasText:'Dowie'});
   assert.equal(await dowieStaffRow.locator('input[type=checkbox]').count(), 1, 'STAFF should provide an on-site/off-site switch for each non-Jan operator');
   assert.equal(await dowieStaffRow.locator('input[placeholder="Assigned station"]').count(), 1, 'station assignment control belongs in STAFF');
