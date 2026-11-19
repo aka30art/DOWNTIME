@@ -69,6 +69,16 @@ try {
   assert.equal(await overviewLink.getAttribute('target'), '_blank', 'Overview should open in a separate tab');
   assert.equal(await offline.locator('#operatorGate').isVisible(), false, 'operator gate should close after a valid operator PIN');
   assert.match(await offline.locator('#dayHeading').textContent(), /OPERATOR: Jan/, 'assigned operator should appear in the tracker');
+  // Full-screen toggle must be present and switch into/out of fullscreen mode.
+  const fullscreenButton = offline.locator('#fullscreenBtn');
+  assert.equal(await fullscreenButton.count(), 1, 'operator interface should provide a Full Screen button');
+  await fullscreenButton.click();
+  await offline.waitForFunction(() => !!document.fullscreenElement || document.body.classList.contains('app-fullscreen'));
+  assert.equal(await fullscreenButton.getAttribute('aria-pressed'), 'true', 'Full Screen should report active state');
+  await fullscreenButton.click();
+  await offline.waitForFunction(() => !document.fullscreenElement && !document.body.classList.contains('app-fullscreen'));
+  assert.equal(await fullscreenButton.getAttribute('aria-pressed'), 'false', 'Full Screen should return to normal mode');
+
   const saved = await offline.evaluate(() => localStorage.getItem('plantDowntime.v1'));
   assert.ok(saved && saved.includes('Jan'), 'operator assignment should be persisted locally');
 
