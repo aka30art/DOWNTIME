@@ -204,6 +204,29 @@ try {
   await assignOperator(cloudFailure, '2666');
   assert.equal(await cloudFailure.locator('#operatorGate').isVisible(), false, 'local access must survive cloud auth rejection');
 
+  // Read Only – Management: new remote downtime records notify the manager, without write access.
+  const management = await newPage();
+  await management.addInitScript(() => localStorage.setItem('plantDowntime.operatorPrivileges.v1', JSON.stringify({ Mick: 'Read Only - Management' })));
+  await management.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
+    status: 200, contentType: 'application/javascript',
+    body: `window.__managementPayload = { weeks: {}, areas: [], reasons: [], archive: [] }; window.__managementCallback = null; window.supabase = { createClient: () => ({ auth: { signInAnonymously: async () => ({ error: null }) }, from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { payload: window.__managementPayload }, error: null }) }) }), upsert: async () => ({ error: null }) }), channel: () => ({ on: (_event, _filter, callback) => { window.__managementCallback = callback; return { subscribe: cb => { if (cb) cb('SUBSCRIBED'); return this; } }; } }) }) };`
+  }));
+  await management.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
+  await enterTeamPin(management);
+  await assignOperator(management, '1234', 'Mick');
+  assert.equal(await management.locator('#addEntry').isDisabled(), true, 'management role must be read-only');
+  await management.evaluate(() => {
+    const now=new Date(), monday=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    monday.setDate(monday.getDate()-((monday.getDay()+6)%7));
+    const iso=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+    const weekKey=iso(monday),days=Array.from({length:6},(_,i)=>{const d=new Date(monday);d.setDate(d.getDate()+i);return {date:iso(d),start:'06:30',stop:'17:00',startLocked:false,entries:[]}});
+    days[0].entries.push({area:'Feeder',reason:'New notification test',hours:1,minutes:5});
+    const payload={weeks:{[weekKey]:{days}},areas:[],reasons:[],archive:[]};
+    window.__managementCallback?.({new:{payload}});
+  });
+  await management.waitForFunction(() => document.body.textContent.includes('NEW DOWNTIME RECORDED'), { timeout: 5000 });
+  assert.match(await management.locator('#managementNotificationHost').textContent(), /Feeder.*New notification test.*01:05/s, 'toast should show the new entry detail');
+  await management.close();
   // Operator permission regression checks above run before the secure Spectator integration checks below.
   // 4. Spectator entry uses the secure Edge Function, a non-persistent anonymous session, and server-side refresh polling.
   const spectator = await newPage();
