@@ -8,8 +8,8 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
 .bottom{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.timeline{display:flex;gap:3px;height:17px;border-radius:6px;overflow:hidden;margin:22px 0 10px;background:#223748}.run{background:var(--green)}.stop{background:var(--red)}.tick{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}.legend{display:flex;gap:16px;margin-top:17px;color:#b9cad5;font-size:12px}.legend span{display:flex;align-items:center;gap:7px}.key{width:10px;height:10px;border-radius:3px}.reason{margin:12px 0 15px}.rhead{display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px}.rhead strong{font-weight:850}.track{height:10px;background:#203647;border-radius:20px;overflow:hidden}.fill{height:100%;border-radius:20px}.f1{background:var(--red)}.f2{background:#ff923b}.f3{background:var(--yellow)}.f4{background:#8295a5}.note{color:#667d8e;font-size:10px;text-align:right;margin-top:15px}
 @media(max-width:1050px){.metrics{grid-template-columns:repeat(4,1fr)}.status{grid-column:1/-1}.opgrid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:680px){main{padding:12px}.top{align-items:flex-start;flex-direction:column}.right{width:100%;justify-content:space-between}.metrics{grid-template-columns:repeat(2,1fr);gap:8px}.status{grid-column:1/-1}.plantstate{font-size:26px}.panel{padding:12px}.metric{font-size:22px}.opgrid{grid-template-columns:repeat(2,1fr);gap:8px}.photo{height:125px}.bottom{grid-template-columns:1fr}.note{text-align:left}}
-</style></head><body><main>
-<header class="top"><div class="logo"><i>◢</i> DOWNTIME <span class="sub">PLANT OVERVIEW</span></div><div class="right"><span>SHIFT · DAILY VIEW</span><span class="pill">● PREVIEW</span></div></header>
+.topcontrol{display:inline-block;text-decoration:none;color:var(--text);border:1px solid var(--border);border-radius:9px;padding:8px 11px;background:#142b3b;font:inherit;font-weight:850;cursor:pointer}.topcontrol:hover{border-color:var(--yellow);color:var(--yellow)}body.overview-fullscreen{position:fixed;inset:0;overflow:auto;width:100%;height:100%;z-index:40;background:var(--bg)}@media(max-width:680px){.right{flex-wrap:wrap;gap:7px}.topcontrol{font-size:11px;padding:7px 9px}}</style></head><body><main>
+<header class="top"><div class="logo"><i>◢</i> DOWNTIME <span class="sub">PLANT OVERVIEW</span></div><div class="right"><span>SHIFT · DAILY VIEW</span><span class="pill">● PREVIEW</span><a id="exitOverview" class="topcontrol" href="index.html" aria-label="Exit Overview and return to homepage">↩ EXIT OVERVIEW</a><button id="overviewFullscreen" class="topcontrol" type="button" aria-pressed="false">⛶ FULL SCREEN</button></div></header>
 <div class="metrics">
 <div class="panel status"><div class="label">PLANT STATUS</div><div class="plantstate"><span class="lamp" id="plantLamp"></span><span id="plantLabel">PLANT ON</span></div><button id="plantToggle" type="button" hidden aria-pressed="true">TURN PLANT OFF</button><div id="plantControlNote" class="label" style="margin-top:8px">STATUS VIEW · READ ONLY</div></div>
 <div class="panel"><div class="label">OPERATORS ON PLANT</div><div class="metric">5 <em>/ 5</em></div></div>
@@ -31,6 +31,8 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
 (() => {
  const operator = (new URLSearchParams(location.search).get('operator') || '').trim().toUpperCase();
  const authorized = operator === 'JAN' || operator === 'MICK';
+ const SB_URL='https://ygwfipksbbprqynvbklk.supabase.co',SB_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';
+ let plantClient=null,plantPayload=null,plantSyncBusy=false,plantConnected=false;
  const statusPanel = document.querySelector('.status');
  const toggle = document.getElementById('plantToggle');
  const note = document.getElementById('plantControlNote');
@@ -44,12 +46,44 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
    lamp.style.boxShadow = plantOn ? '0 0 16px #2be07880' : '0 0 16px #ff525880';
    toggle.textContent = plantOn ? 'TURN PLANT OFF' : 'TURN PLANT ON';
    toggle.setAttribute('aria-pressed', String(plantOn));
+   note.textContent = authorized ? (plantConnected ? 'CONTROL ACCESS · '+operator+' · LIVE SYNC' : 'CONTROL ACCESS · '+operator+' · CONNECTING') : 'STATUS VIEW · READ ONLY';
+ }
+ async function connectPlantStatus(){
+   try{
+     if(!window.supabase?.createClient)throw new Error('Supabase SDK unavailable');
+     plantClient=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+     const {error:authError}=await plantClient.auth.signInAnonymously();
+     if(authError)throw authError;
+     const {data,error}=await plantClient.from('downtime_shared_state').select('payload,updated_at').eq('id',1).maybeSingle();
+     if(error)throw error;
+     if(data?.payload){plantPayload=data.payload;plantOn=plantPayload.plantOn!==false;plantConnected=true;render();}
+     plantClient.channel('plant-status-overview').on('postgres_changes',{event:'UPDATE',schema:'public',table:'downtime_shared_state',filter:'id=eq.1'},event=>{
+       if(!event?.new?.payload)return;plantPayload=event.new.payload;plantOn=plantPayload.plantOn!==false;plantConnected=true;render();
+     }).subscribe();
+   }catch(error){note.textContent=authorized?'CONTROL ACCESS · '+operator+' · LOCAL PREVIEW':'STATUS VIEW · PREVIEW';console.warn('Plant status cloud connection failed',error)}
+ }
+ async function savePlantStatus(){
+   if(!authorized||!plantClient||!plantPayload||plantSyncBusy)return;
+   plantSyncBusy=true;toggle.disabled=true;
+   try{
+     const next=Object.assign({},plantPayload,{plantOn});
+     const {error}=await plantClient.from('downtime_shared_state').upsert({id:1,payload:next,updated_at:new Date().toISOString()});
+     if(error)throw error;plantPayload=next;plantConnected=true;
+   }catch(error){plantConnected=false;console.warn('Plant status update failed',error);alert('Plant status could not sync. Please retry when the connection is restored.')}
+   finally{plantSyncBusy=false;toggle.disabled=false;render()}
  }
  if(authorized){
    toggle.hidden = false;
    note.textContent = 'CONTROL ACCESS · ' + operator;
-   toggle.addEventListener('click', () => { plantOn = !plantOn; render(); });
+   toggle.addEventListener('click', async () => { plantOn = !plantOn; render(); await savePlantStatus(); });
  }
+ const fullscreenBtn=document.getElementById('overviewFullscreen');
+ if(fullscreenBtn)fullscreenBtn.addEventListener('click',()=>{
+   const active=document.body.classList.toggle('overview-fullscreen');
+   fullscreenBtn.setAttribute('aria-pressed',String(active));
+   fullscreenBtn.textContent=active?'⛶ EXIT FULL SCREEN':'⛶ FULL SCREEN';
+ });
  render();
+ const sdk=document.createElement('script');sdk.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';sdk.onload=connectPlantStatus;sdk.onerror=()=>{note.textContent=authorized?'CONTROL ACCESS · '+operator+' · LOCAL PREVIEW':'STATUS VIEW · PREVIEW'};document.head.appendChild(sdk);
 })();
 </script></body></html>
