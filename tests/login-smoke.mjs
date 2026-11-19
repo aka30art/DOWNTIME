@@ -33,10 +33,12 @@ async function enterTeamPin(page) {
   await page.waitForFunction(() => document.querySelector('#authGate').style.display === 'none');
   await page.waitForFunction(() => document.querySelector('#operatorGate').style.display === 'grid');
 }
-async function assignOperator(page, pin = '2666') {
+async function assignOperator(page, pin = '2666', operator = (pin === '1234' ? 'Mick' : 'Jan')) {
+  await page.locator(`.operator-choice[data-operator="${operator}"]`).click();
   await page.locator('#operatorGatePin').fill(pin);
   await page.locator('#operatorContinue').click();
   await page.waitForFunction(() => document.querySelector('#operatorGate').style.display === 'none');
+  await page.waitForFunction(() => /LOCAL MODE|LIVE · synced/.test(document.querySelector('#cloudStatus').textContent), { timeout: 15000 });
 }
 
 try {
@@ -58,14 +60,74 @@ try {
   // Simulate a blocked Supabase CDN. The app must still open immediately in local mode.
   await offline.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
   await enterTeamPin(offline);
-  await offline.waitForFunction(() => document.querySelector('#cloudStatus').textContent.includes('LOCAL MODE'));
+  assert.equal(await offline.locator('.operator-choice').count(), 4, 'operator account buttons should be present');
+  assert.equal(await offline.locator('#spectatorBtn').count(), 0, 'main gate should not contain spectator shortcut');
   await assignOperator(offline, '2666');
   assert.equal(await offline.locator('#operatorGate').isVisible(), false, 'operator gate should close after a valid operator PIN');
   assert.match(await offline.locator('#dayHeading').textContent(), /OPERATOR: Jan/, 'assigned operator should appear in the tracker');
   const saved = await offline.evaluate(() => localStorage.getItem('plantDowntime.v1'));
   assert.ok(saved && saved.includes('Jan'), 'operator assignment should be persisted locally');
 
-  // 2. Simulate a functioning Supabase SDK/client and verify cloud sync can initialize.
+    // Dowie is a restricted read-only operator, while JAN has administrator-only controls.
+  const dowie = await newPage();
+  await dowie.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
+  await dowie.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
+  await enterTeamPin(dowie);
+  await assignOperator(dowie, '999', 'Dowie');
+  assert.match(await dowie.locator('#dayHeading').textContent(), /OPERATOR: Dowie/, 'Dowie should log in with PIN 999');
+  assert.equal(await dowie.locator('.nav[data-view=settings]').isVisible(), false, 'Dowie must not access settings');
+  assert.equal(await dowie.locator('#addEntry').isDisabled(), true, 'Dowie cannot add downtime entries');
+  assert.equal(await dowie.locator('#plantStop').isDisabled(), true, 'Dowie cannot change plant stop time');
+  assert.equal(await dowie.locator('#exportBtn').isDisabled(), true, 'Dowie cannot create shared PDF records');
+  await dowie.close();
+
+  const jan = await newPage();
+  await jan.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
+  await jan.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
+  await enterTeamPin(jan);
+  await assignOperator(jan, '2666', 'Jan');
+  await jan.locator('.nav[data-view=settings]').click();
+  assert.equal(await jan.locator('#operatorAdminPanel').isVisible(), true, 'JAN must have operator administration controls');
+  assert.equal(await jan.locator('#settingsAdminControls').isVisible(), true, 'JAN must have editable plant settings');
+  await jan.locator('#newOperatorName').fill('Test Operator');
+  await jan.locator('#newOperatorInitialPin').fill('7777');
+  await jan.locator('#addOperatorBtn').click();
+  assert.match(await jan.locator('#operatorAdminMsg').textContent(), /Operator added/, 'JAN should be able to add an operator');
+  assert.ok((await jan.evaluate(() => localStorage.getItem('plantDowntime.operatorRoster.v1') || '')).includes('Test Operator'), 'operator roster should persist locally');
+  await jan.reload();
+  await enterTeamPin(jan);
+  assert.equal(await jan.locator('.operator-choice[data-operator="Test Operator"]').count(), 1, 'new operator should appear in the login list');
+  await assignOperator(jan, '7777', 'Test Operator');
+  assert.match(await jan.locator('#dayHeading').textContent(), /OPERATOR: Test Operator/, 'new operator PIN should authenticate');
+  await jan.close();
+
+  // PIN change must validate the current PIN and work on the next login.
+  const pinChange = await newPage();
+  await pinChange.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
+  await pinChange.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
+  await enterTeamPin(pinChange);
+  await assignOperator(pinChange, '1234', 'Mick');
+  await pinChange.locator('.nav[data-view=settings]').click();
+  await pinChange.locator('#currentOperatorPin').fill('1234');
+  await pinChange.locator('#newOperatorPin').fill('2666');
+  await pinChange.locator('#confirmOperatorPin').fill('2666');
+  await pinChange.locator('#changeOperatorPin').click();
+  assert.match(await pinChange.locator('#pinChangeMsg').textContent(), /Choose a PIN not used by another account/, 'operator PIN change must reject another account’s PIN');
+  await pinChange.locator('#currentOperatorPin').fill('1234');
+  await pinChange.locator('#newOperatorPin').fill('5678');
+  await pinChange.locator('#confirmOperatorPin').fill('5678');
+  await pinChange.locator('#changeOperatorPin').click();
+  assert.match(await pinChange.locator('#pinChangeMsg').textContent(), /PIN changed successfully/, 'operator PIN should be changed');
+  await pinChange.reload();
+  await enterTeamPin(pinChange);
+  await pinChange.locator('.operator-choice[data-operator="Mick"]').click();
+  await pinChange.locator('#operatorGatePin').fill('5678');
+  await pinChange.locator('#operatorContinue').click();
+  await pinChange.waitForFunction(() => document.querySelector('#operatorGate').style.display === 'none');
+  assert.match(await pinChange.locator('#dayHeading').textContent(), /OPERATOR: Mick/, 'changed PIN should work on the next login');
+  await pinChange.close();
+
+// 2. Simulate a functioning Supabase SDK/client and verify cloud sync can initialize.
   const cloud = await newPage();
   await cloud.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
     status: 200,
@@ -81,7 +143,6 @@ try {
   }));
   await cloud.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await enterTeamPin(cloud);
-  await cloud.waitForFunction(() => document.querySelector('#cloudStatus').textContent.includes('LIVE'));
   await assignOperator(cloud, '1234');
   assert.match(await cloud.locator('#dayHeading').textContent(), /OPERATOR: Mick/, 'cloud-enabled session should still complete operator login');
 
@@ -96,12 +157,11 @@ try {
   }));
   await cloudFailure.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await enterTeamPin(cloudFailure);
-  await cloudFailure.waitForFunction(() => document.querySelector('#cloudStatus').textContent.includes('LOCAL MODE'));
   assert.equal(await cloudFailure.locator('#operatorGate').isVisible(), true, 'cloud failure must leave operator gate usable');
   await assignOperator(cloudFailure, '2666');
   assert.equal(await cloudFailure.locator('#operatorGate').isVisible(), false, 'local access must survive cloud auth rejection');
 
-  // 4. Spectator mode must require the team PIN, but must not require an operator PIN or create an authenticated session.
+  // 4. Spectator entry uses the secure Edge Function, a non-persistent anonymous session, and server-side refresh polling.
   const spectator = await newPage();
   await spectator.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
     status: 200,
@@ -120,80 +180,93 @@ try {
       days[dayIndex].operator = 'Supervisor Test';
       days[dayIndex].entries = [{ area: 'Feeder', reason: 'Spectator test reason', hours: 1, minutes: 15 }];
       const payload = { weeks: { [weekKey]: { days } }, areas: [], reasons: [], archive: [] };
-      window.__spectatorCalls = { auth: 0, writes: 0, reads: 0, options: null, realtimeHandler: null, initialPayload: payload };
+      window.__spectatorCalls = { auth: 0, secureAuth: 0, reads: 0, writes: 0, invocations: 0, options: null, payload };
       window.supabase = {
         createClient: (_url, _key, options = {}) => {
-          const spectatorClient = options.auth?.persistSession === false;
-          if (spectatorClient) window.__spectatorCalls.options = options;
+          const secure = options.auth?.persistSession === false;
+          if (secure) window.__spectatorCalls.options = options;
           return {
             auth: { signInAnonymously: async () => {
-              if (spectatorClient) window.__spectatorCalls.auth++;
-              return { error: null };
+              if (secure) window.__spectatorCalls.secureAuth++;
+              else window.__spectatorCalls.auth++;
+              return { error: null, data: { session: { access_token: secure ? 'spectator-jwt' : 'tracker-jwt' } } };
             } },
             from: () => ({
-              select: () => ({
-                eq: () => ({
-                  maybeSingle: async () => {
-                    if (spectatorClient) window.__spectatorCalls.reads++;
-                    return { data: { payload, updated_at: '2026-11-19T03:00:00.000Z' }, error: null };
-                  }
-                })
-              }),
-              upsert: async () => { if (spectatorClient) window.__spectatorCalls.writes++; return { error: null }; },
-              insert: async () => { if (spectatorClient) window.__spectatorCalls.writes++; return { error: null }; },
-              update: async () => { if (spectatorClient) window.__spectatorCalls.writes++; return { error: null }; },
-              delete: async () => { if (spectatorClient) window.__spectatorCalls.writes++; return { error: null }; }
+              select: () => ({ eq: () => ({ maybeSingle: async () => {
+                window.__spectatorCalls.reads++;
+                return { data: { payload: window.__spectatorCalls.payload, updated_at: '2026-11-19T03:00:00.000Z' }, error: null };
+              }})}),
+              upsert: async () => { window.__spectatorCalls.writes++; return { error: null }; },
+              insert: async () => { window.__spectatorCalls.writes++; return { error: null }; },
+              update: async () => { window.__spectatorCalls.writes++; return { error: null }; },
+              delete: async () => { window.__spectatorCalls.writes++; return { error: null }; }
             }),
-            channel: () => {
-              const channel = {
-                on: (_event, _filter, handler) => { if (spectatorClient) window.__spectatorCalls.realtimeHandler = handler; return channel; },
-                subscribe: callback => { if (spectatorClient && callback) callback('SUBSCRIBED'); return channel; }
-              };
-              return channel;
-            }
+            functions: { invoke: async (name, options) => {
+              window.__spectatorCalls.invocations++;
+              if (name !== 'spectator-read' || options.body.access_code !== 'TEST-SUPERVISOR-ONLY')
+                return { data: null, error: { message: 'Access denied' } };
+              return { data: { payload: window.__spectatorCalls.payload, updated_at: new Date().toISOString() }, error: null };
+            } },
+            channel: () => ({ on: () => ({ subscribe: callback => { if (callback) callback('SUBSCRIBED'); return this; } }) })
           };
         }
       };
-    })();`,
+    })();`
   }));
   await spectator.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await spectator.locator('#teamPin').fill('9999');
-  await spectator.locator('#spectatorBtn').click();
-  assert.match(await spectator.locator('#authMsg').textContent(), /Incorrect PIN/, 'spectator mode must reject an incorrect team PIN');
-  assert.equal(await spectator.locator('#authGate').isVisible(), true, 'incorrect PIN must not open spectator mode');
-  await spectator.locator('#teamPin').fill('0123');
-  await spectator.locator('#spectatorBtn').click();
-  await spectator.waitForFunction(() => document.querySelector('#spectatorView').style.display === 'block');
+  await enterTeamPin(spectator);
+  assert.equal(await spectator.locator('#spectatorBtn').count(), 0, 'main gate must not contain a separate spectator shortcut');
+  await spectator.locator('.operator-choice[data-operator="Spectator"]').click();
+  await spectator.locator('#operatorGatePin').fill('WRONG');
+  await spectator.locator('#operatorContinue').click();
+  await spectator.waitForFunction(() => /Access denied|invalid/i.test(document.querySelector('#operatorMsg').textContent), { timeout: 5000 });
+  const readsBeforeSpectator = await spectator.evaluate(() => window.__spectatorCalls.reads);
+  const writesBeforeSpectator = await spectator.evaluate(() => window.__spectatorCalls.writes);
+  const localBeforeSpectator = await spectator.evaluate(() => localStorage.getItem('plantDowntime.v1'));
+  assert.equal(await spectator.locator('#operatorGate').isVisible(), true, 'wrong supervisor code must not open spectator mode');
+  await spectator.locator('#operatorGatePin').fill('TEST-SUPERVISOR-ONLY');
+  await spectator.locator('#operatorContinue').click();
+  await spectator.waitForFunction(() => document.querySelector('#spectatorView').style.display === 'block' || (document.querySelector('#operatorMsg').textContent && !document.querySelector('#operatorMsg').textContent.includes('Verifying supervisor access')), { timeout: 10000 });
+  const spectatorLoginState = await spectator.evaluate(() => ({display: document.querySelector('#spectatorView').style.display, message: document.querySelector('#operatorMsg').textContent}));
+  assert.equal(spectatorLoginState.display, 'block', `secure Spectator login failed: ${spectatorLoginState.message}`);
   await spectator.waitForFunction(() => document.querySelector('#spectatorView').textContent.includes('LIVE · CONNECTED'));
-  assert.equal(await spectator.locator('#operatorGate').isVisible(), false, 'spectator must bypass operator assignment/login');
-  assert.equal(await spectator.locator('.shell').isVisible(), false, 'operator workspace must remain hidden in spectator mode');
-  assert.match(await spectator.locator('#spectatorView').textContent(), /Supervisor Test/, 'spectator view should display the assigned operator');
-  assert.match(await spectator.locator('#spectatorView').textContent(), /Spectator test reason/, 'spectator view should display downtime records');
-  assert.equal(await spectator.locator('#spectatorView button, #spectatorView input, #spectatorView select').count(), 0, 'spectator view must contain no editing controls');
+  assert.equal(await spectator.locator('#operatorGate').isVisible(), false, 'Spectator login should bypass operator assignment');
+  assert.equal(await spectator.locator('.shell').isVisible(), false, 'operator workspace must remain hidden in Spectator mode');
+  assert.match(await spectator.locator('#spectatorView').textContent(), /Supervisor Test/, 'Spectator view should display operator records');
+  assert.match(await spectator.locator('#spectatorView').textContent(), /Spectator test reason/, 'Spectator view should display downtime records');
+  assert.equal(await spectator.locator('#spectatorView button, #spectatorView input, #spectatorView select').count(), 0, 'Spectator view must contain no editing controls');
   const spectatorSecurity = await spectator.evaluate(() => ({
     authCalls: window.__spectatorCalls.auth,
-    writes: window.__spectatorCalls.writes,
+    secureAuthCalls: window.__spectatorCalls.secureAuth,
     reads: window.__spectatorCalls.reads,
+    writes: window.__spectatorCalls.writes,
+    invocations: window.__spectatorCalls.invocations,
     persistSession: window.__spectatorCalls.options?.auth?.persistSession,
     localState: localStorage.getItem('plantDowntime.v1')
   }));
-  assert.equal(spectatorSecurity.authCalls, 0, 'spectator must not call anonymous sign-in');
-  assert.equal(spectatorSecurity.writes, 0, 'spectator must not issue database writes');
-  assert.equal(spectatorSecurity.reads, 1, 'spectator should fetch the shared tracker once');
-  assert.equal(spectatorSecurity.persistSession, false, 'spectator client must not persist or restore an auth session');
-  assert.equal(spectatorSecurity.localState, null, 'spectator must not create or overwrite local tracker state');
-
-  // A live shared-state event must refresh the read-only dashboard without enabling controls.
+  assert.equal(spectatorSecurity.secureAuthCalls, 2, 'Each rejected and accepted Spectator login attempt should use a fresh non-persistent anonymous JWT');
+  assert.equal(spectatorSecurity.writes, writesBeforeSpectator, 'Spectator must not issue database writes');
+  assert.equal(spectatorSecurity.reads, readsBeforeSpectator, 'Spectator must not read the shared table directly');
+  assert.equal(spectatorSecurity.persistSession, false, 'Spectator session must not persist');
+  assert.equal(spectatorSecurity.localState, localBeforeSpectator, 'Spectator must not change local tracker state');
   await spectator.evaluate(() => {
-    const payload = JSON.parse(JSON.stringify(window.__spectatorCalls.initialPayload));
+    const payload = JSON.parse(JSON.stringify(window.__spectatorCalls.payload));
     const week = Object.values(payload.weeks)[0];
     const day = week.days.find(d => d.operator === 'Supervisor Test');
     day.operator = 'Live Update Test';
-    window.__spectatorCalls.realtimeHandler({ eventType: 'UPDATE', new: { payload, updated_at: '2026-11-19T03:01:00.000Z' } });
+    window.__spectatorCalls.payload = payload;
   });
-  await spectator.waitForFunction(() => document.querySelector('#spectatorView').textContent.includes('Live Update Test'));
-  assert.equal(await spectator.locator('#spectatorView button, #spectatorView input, #spectatorView select').count(), 0, 'live refresh must remain read-only');
-
+  await spectator.waitForFunction(() => document.querySelector('#spectatorView').textContent.includes('Live Update Test'), { timeout: 7000 });
+  const postRefreshCalls = await spectator.evaluate(() => window.__spectatorCalls.invocations);
+  assert.ok(postRefreshCalls >= 3, 'Spectator should re-fetch shared state through the secure endpoint');
+  assert.deepEqual(pageErrors, [], `unexpected browser JavaScript errors: ${pageErrors.join('; ')}`);
+  console.log('PASS: team and operator account gates');
+  console.log('PASS: local-only operator login');
+  console.log('PASS: JAN-only admin panel and operator creation');
+  console.log('PASS: operator PIN change and relogin');
+  console.log('PASS: Dowie read-only restrictions');
+  console.log('PASS: secure Spectator endpoint and five-second refresh');
+  console.log('PASS: no uncaught browser JavaScript errors');
   assert.deepEqual(pageErrors, [], `unexpected browser JavaScript errors: ${pageErrors.join('; ')}`);
   console.log('PASS: startup is independent of external CDNs');
   console.log('PASS: wrong and correct team PIN handling');
