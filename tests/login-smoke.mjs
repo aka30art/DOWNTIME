@@ -247,7 +247,7 @@ try {
     persistSession: window.__spectatorCalls.options?.auth?.persistSession,
     localState: localStorage.getItem('plantDowntime.v1')
   }));
-  assert.equal(spectatorSecurity.secureAuthCalls, 1, 'Spectator should obtain its own anonymous JWT');
+  assert.equal(spectatorSecurity.secureAuthCalls, 2, 'Each rejected and accepted Spectator login attempt should use a fresh non-persistent anonymous JWT');
   assert.equal(spectatorSecurity.writes, writesBeforeSpectator, 'Spectator must not issue database writes');
   assert.equal(spectatorSecurity.reads, readsBeforeSpectator, 'Spectator must not read the shared table directly');
   assert.equal(spectatorSecurity.persistSession, false, 'Spectator session must not persist');
