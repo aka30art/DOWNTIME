@@ -16,7 +16,7 @@ const browser = await chromium.launch({ headless: true });
 try {
   async function open(operator) {
     const page = await browser.newPage();
-    await page.goto('http://127.0.0.1:4174/plant-overview-preview.html?operator=' + encodeURIComponent(operator), { waitUntil: 'domcontentloaded' });
+    await page.goto('http://127.0.0.1:4174/plant-overview-preview.html?operator=' + encodeURIComponent(operator) + '&test=1', { waitUntil: 'domcontentloaded' });
     return page;
   }
   for (const operator of ['JAN', 'MICK']) {
@@ -38,7 +38,19 @@ try {
     assert.equal(await page.locator('#plantLabel').textContent(), 'PLANT ON', 'read-only view should show initial sample status');
     await page.close();
   }
-  console.log('PASS: JAN and MICK can toggle Plant Overview ON/OFF; all other roles remain read-only.');
+  // Exit navigation and fullscreen controls are present and functional.
+  {
+    const page=await open('JAN');
+    assert.equal(await page.locator('#exitOverview').getAttribute('href'),'index.html','Exit Overview returns to homepage');
+    const fs=page.locator('#overviewFullscreen');
+    await fs.click();
+    assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('overview-fullscreen')),true,'fullscreen turns on');
+    assert.equal(await fs.textContent(),'⛶ EXIT FULL SCREEN','button label reflects fullscreen state');
+    await fs.click();
+    assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('overview-fullscreen')),false,'fullscreen turns off');
+    await page.close();
+  }
+  console.log('PASS: JAN/MICK plant toggle, restricted roles, exit Overview, and fullscreen controls.');
 } finally {
   await browser.close();
   await new Promise(resolveClose => server.close(resolveClose));
