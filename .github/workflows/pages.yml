@@ -73,4 +73,7 @@ jobs:
           grep -q 'spectator-read' /tmp/live-site.html
           grep -q 'manualRefreshBtn' /tmp/live-site.html
           grep -q 'spectatorManualRefresh' /tmp/live-site.html
+          grep -q 'overview-link' /tmp/live-site.html
+          grep -q 'OVERVIEW' /tmp/live-site.html
+          test "$(grep -o 'plant-overview-preview.html' /tmp/live-site.html | wc -l)" -ge 2
           echo "Live Pages smoke checks passed: standard-role and Spectator manual refresh controls, operator gate, and secure Spectator endpoint."
