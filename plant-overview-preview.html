@@ -50,6 +50,15 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
    note.textContent = 'CONTROL ACCESS · ' + operator;
    toggle.addEventListener('click', () => { plantOn = !plantOn; render(); });
  }
+
+ const fullscreenBtn = document.getElementById('overviewFullscreen');
+ if(fullscreenBtn){
+   fullscreenBtn.addEventListener('click', () => {
+     const active = document.body.classList.toggle('overview-fullscreen');
+     fullscreenBtn.setAttribute('aria-pressed', String(active));
+     fullscreenBtn.textContent = active ? '⛶ EXIT FULL SCREEN' : '⛶ FULL SCREEN';
+   });
+ }
  render();
 })();
 </script></body></html>
