@@ -249,7 +249,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div class="fields" style="margin-top:15px"><div class="field"><label>Hours</label><input id="durationHours" type="number" min="0" max="999" value="0"></div><div class="field"><label>Minutes</label><input id="durationMinutes" type="number" min="0" max="59" value="0"></div></div>
 <div class="modalfoot"><button id="cancelEntry">CANCEL</button><button class="primary" id="saveEntry">SAVE ENTRY</button></div></div></div>
 <div class="modalback" id="resetModal"><div class="modal"><h2>Export and reset this week?</h2><p>This will generate the weekly PDF, save a report record in this browser, and clear the active weekly sheet for the next week. Make sure you download and retain the PDF.</p><div class="modalfoot"><button id="cancelReset">CANCEL</button><button class="primary" id="confirmReset">EXPORT &amp; RESET</button></div></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
+<script>
 (()=>{
 const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],BREAK=75,STORE='plantDowntime.v1';
 const $=id=>document.getElementById(id);
@@ -305,7 +305,29 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelect
 $('saveSettings').onclick=()=>{state.areas=$('areasInput').value.split('\n').map(x=>x.trim()).filter(Boolean);state.reasons=$('reasonsInput').value.split('\n').map(x=>x.trim()).filter(Boolean);persist();$('settingsSaved').textContent=' Saved.';setTimeout(()=>$('settingsSaved').textContent='',2200)};
 $('fullResetBtn').onclick=()=>{if(confirm('RESET THE ENTIRE APP? This will permanently erase all weekly downtime data, archived reports, and custom presets from this device.')){localStorage.removeItem(STORE);location.reload()}};
 function reportData(){let w=week(),days=w.days.map((d,i)=>({name:DAYS[i],...d,calc:calc(d)})),net=days.reduce((a,d)=>a+d.calc.net,0),down=days.reduce((a,d)=>a+d.calc.down,0),causes={};days.forEach(d=>d.entries.forEach(e=>{causes[e.reason]=(causes[e.reason]||0)+durationMinutes(e)}));let top=Object.entries(causes).sort((a,b)=>b[1]-a[1]),prev=state.weeks[iso(plus(weekStart,-7))],prevDown=prev?prev.days.reduce((a,d)=>a+calc(d).down,0):null;return {week:key(),created:new Date().toISOString(),days,totalNet:net,totalDown:down,totalPct:net?down/net*100:0,totalRun:Math.max(0,net-down),totalRunPct:net?Math.max(0,net-down)/net*100:0,topCauses:top,prevDown,weekDelta:prevDown===null?null:down-prevDown}}
-async function buildReportPDF(data){if(!window.jspdf?.jsPDF)throw new Error('PDF library failed to load. Please refresh and try again.');const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});const endDate=iso(plus(parseWeek(data.week),5));pdf.setFillColor(8,20,30);pdf.rect(0,0,297,210,'F');pdf.setTextColor(255,204,0);pdf.setFont('helvetica','bold');pdf.setFontSize(19);pdf.text('WEEKLY PLANT DOWNTIME REPORT',14,17);pdf.setTextColor(225,235,242);pdf.setFontSize(10);pdf.text('Week: '+prettyDate(data.week)+' – '+prettyDate(endDate),14,25);pdf.text('Generated: '+new Date().toLocaleString('en-GB'),14,31);pdf.setFontSize(9);pdf.text('Break deduction: 75 minutes per working day',14,38);let rows=data.days.map(d=>[d.name,prettyDate(d.date),d.operator||'Not assigned',d.start||'—',d.stop||'—',fmt(d.calc.net),fmt(d.calc.down),fmt(d.calc.run),pct(d.calc.downPct),pct(d.calc.runPct)]);pdf.autoTable({startY:45,head:[['Day','Date','Operator','Start','Stop','Net time','Downtime','Running','Down %','Run %']],body:rows,theme:'grid',styles:{fontSize:8,cellPadding:2,textColor:[235,240,245],fillColor:[17,35,49],lineColor:[45,70,88]},headStyles:{fillColor:[38,57,72],textColor:[255,205,0],fontStyle:'bold'},alternateRowStyles:{fillColor:[12,26,37]},margin:{left:14,right:14}});let y=pdf.lastAutoTable.finalY+10;pdf.setTextColor(255,204,0);pdf.setFontSize(11);pdf.text('WEEK TOTAL',14,y);pdf.setTextColor(240,245,248);pdf.setFontSize(9);pdf.text('Net available: '+fmt(data.totalNet)+'   Downtime: '+fmt(data.totalDown)+' ('+pct(data.totalPct)+')   Running: '+fmt(data.totalRun)+' ('+pct(data.totalRunPct)+')',14,y+7);y+=17;pdf.setTextColor(255,204,0);pdf.setFontSize(11);pdf.text('DOWNTIME BREAKDOWN',14,y);pdf.setTextColor(240,245,248);pdf.setFontSize(9);let causes=data.topCauses||[];pdf.text(causes.length?causes.slice(0,5).map((x,i)=>(i+1)+'. '+x[0]+' — '+fmt(x[1])+' ('+(data.totalDown?(x[1]/data.totalDown*100).toFixed(1):0)+'%)').join('   |   '):'No downtime reasons recorded',14,y+7,{maxWidth:268});y+=17;pdf.setTextColor(255,204,0);pdf.text('WEEK-OVER-WEEK COMPARISON',14,y);pdf.setTextColor(240,245,248);pdf.setFontSize(9);pdf.text(data.prevDown===null?'Previous week unavailable':('Previous week downtime: '+fmt(data.prevDown)+'   Change: '+(data.weekDelta>0?'+':'')+fmt(data.weekDelta)+'   '+(data.weekDelta>0?'INCREASE':data.weekDelta<0?'DECREASE':'UNCHANGED')),14,y+7);return pdf.output('blob');}async function saveCloudReport(){if(!cloudReady){alert('Cloud is not connected. Please wait until LIVE · connected appears.');return}const btn=$('exportBtn');btn.disabled=true;btn.textContent='SAVING PDF…';try{const data=reportData(),blob=await buildReportPDF(data),fileName='Downtime_'+data.week+'_Weekly.pdf',path=data.week+'/'+Date.now()+'_'+fileName;const {error:uploadError}=await sb.storage.from('downtime-pdfs').upload(path,blob,{contentType:'application/pdf',upsert:false});if(uploadError)throw uploadError;const operators=Object.fromEntries(data.days.map(d=>[d.name,d.operator||'Not assigned']));const {error:insertError}=await sb.from('downtime_reports').insert({week_start:data.week,operators,file_name:fileName,storage_path:path,file_size_bytes:blob.size});if(insertError){await sb.storage.from('downtime-pdfs').remove([path]);throw insertError}await enforceArchiveLimit();await renderArchive();alert('Weekly PDF saved to the shared cloud archive.')}catch(e){console.error(e);alert('PDF archive save failed: '+(e.message||e))}finally{btn.disabled=false;btn.textContent='⇩ SAVE WEEKLY PDF TO CLOUD';}}
+let pdfLibrariesPromise=null;
+function loadPdfScript(src){
+ return new Promise((resolve,reject)=>{
+  const script=document.createElement('script');script.src=src;script.async=true;
+  const timer=setTimeout(()=>{script.remove();reject(new Error('PDF library load timed out. Please retry when online.'))},10000);
+  script.onload=()=>{clearTimeout(timer);resolve()};
+  script.onerror=()=>{clearTimeout(timer);reject(new Error('Unable to load a PDF library. Please check the connection and retry.'))};
+  document.head.appendChild(script);
+ });
+}
+async function ensurePdfLibraries(){
+ if(window.jspdf?.jsPDF&&window.jspdf.jsPDF.API?.autoTable)return true;
+ if(!pdfLibrariesPromise){
+  pdfLibrariesPromise=(async()=>{
+   await loadPdfScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+   await loadPdfScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js');
+   if(!window.jspdf?.jsPDF?.API?.autoTable)throw new Error('PDF table plugin failed to initialise.');
+   return true;
+  })().catch(e=>{pdfLibrariesPromise=null;throw e});
+ }
+ return pdfLibrariesPromise;
+}
+async function buildReportPDF(data){await ensurePdfLibraries();const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});const endDate=iso(plus(parseWeek(data.week),5));pdf.setFillColor(8,20,30);pdf.rect(0,0,297,210,'F');pdf.setTextColor(255,204,0);pdf.setFont('helvetica','bold');pdf.setFontSize(19);pdf.text('WEEKLY PLANT DOWNTIME REPORT',14,17);pdf.setTextColor(225,235,242);pdf.setFontSize(10);pdf.text('Week: '+prettyDate(data.week)+' – '+prettyDate(endDate),14,25);pdf.text('Generated: '+new Date().toLocaleString('en-GB'),14,31);pdf.setFontSize(9);pdf.text('Break deduction: 75 minutes per working day',14,38);let rows=data.days.map(d=>[d.name,prettyDate(d.date),d.operator||'Not assigned',d.start||'—',d.stop||'—',fmt(d.calc.net),fmt(d.calc.down),fmt(d.calc.run),pct(d.calc.downPct),pct(d.calc.runPct)]);pdf.autoTable({startY:45,head:[['Day','Date','Operator','Start','Stop','Net time','Downtime','Running','Down %','Run %']],body:rows,theme:'grid',styles:{fontSize:8,cellPadding:2,textColor:[235,240,245],fillColor:[17,35,49],lineColor:[45,70,88]},headStyles:{fillColor:[38,57,72],textColor:[255,205,0],fontStyle:'bold'},alternateRowStyles:{fillColor:[12,26,37]},margin:{left:14,right:14}});let y=pdf.lastAutoTable.finalY+10;pdf.setTextColor(255,204,0);pdf.setFontSize(11);pdf.text('WEEK TOTAL',14,y);pdf.setTextColor(240,245,248);pdf.setFontSize(9);pdf.text('Net available: '+fmt(data.totalNet)+'   Downtime: '+fmt(data.totalDown)+' ('+pct(data.totalPct)+')   Running: '+fmt(data.totalRun)+' ('+pct(data.totalRunPct)+')',14,y+7);y+=17;pdf.setTextColor(255,204,0);pdf.setFontSize(11);pdf.text('DOWNTIME BREAKDOWN',14,y);pdf.setTextColor(240,245,248);pdf.setFontSize(9);let causes=data.topCauses||[];pdf.text(causes.length?causes.slice(0,5).map((x,i)=>(i+1)+'. '+x[0]+' — '+fmt(x[1])+' ('+(data.totalDown?(x[1]/data.totalDown*100).toFixed(1):0)+'%)').join('   |   '):'No downtime reasons recorded',14,y+7,{maxWidth:268});y+=17;pdf.setTextColor(255,204,0);pdf.text('WEEK-OVER-WEEK COMPARISON',14,y);pdf.setTextColor(240,245,248);pdf.setFontSize(9);pdf.text(data.prevDown===null?'Previous week unavailable':('Previous week downtime: '+fmt(data.prevDown)+'   Change: '+(data.weekDelta>0?'+':'')+fmt(data.weekDelta)+'   '+(data.weekDelta>0?'INCREASE':data.weekDelta<0?'DECREASE':'UNCHANGED')),14,y+7);return pdf.output('blob');}async function saveCloudReport(){if(!cloudReady){alert('Cloud is not connected. Please wait until LIVE · connected appears.');return}const btn=$('exportBtn');btn.disabled=true;btn.textContent='SAVING PDF…';try{const data=reportData(),blob=await buildReportPDF(data),fileName='Downtime_'+data.week+'_Weekly.pdf',path=data.week+'/'+Date.now()+'_'+fileName;const {error:uploadError}=await sb.storage.from('downtime-pdfs').upload(path,blob,{contentType:'application/pdf',upsert:false});if(uploadError)throw uploadError;const operators=Object.fromEntries(data.days.map(d=>[d.name,d.operator||'Not assigned']));const {error:insertError}=await sb.from('downtime_reports').insert({week_start:data.week,operators,file_name:fileName,storage_path:path,file_size_bytes:blob.size});if(insertError){await sb.storage.from('downtime-pdfs').remove([path]);throw insertError}await enforceArchiveLimit();await renderArchive();alert('Weekly PDF saved to the shared cloud archive.')}catch(e){console.error(e);alert('PDF archive save failed: '+(e.message||e))}finally{btn.disabled=false;btn.textContent='⇩ SAVE WEEKLY PDF TO CLOUD';}}
 $('exportBtn').onclick=saveCloudReport;
 async function enforceArchiveLimit(){const limit=12;const {data,error}=await sb.from('downtime_reports').select('id,storage_path').order('created_at',{ascending:false});if(error)throw error;if(data.length<=limit)return;const old=data.slice(limit),paths=old.map(x=>x.storage_path);const {error:removeError}=await sb.storage.from('downtime-pdfs').remove(paths);if(removeError)throw removeError;const ids=old.map(x=>x.id);const {error:deleteError}=await sb.from('downtime_reports').delete().in('id',ids);if(deleteError)throw deleteError;}
 async function downloadCloudReport(path,name){const {data,error}=await sb.storage.from('downtime-pdfs').download(path);if(error){alert('Download failed: '+error.message);return}const url=URL.createObjectURL(data),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)}
@@ -318,7 +340,20 @@ function renderArchive(){let a=state.archive||[];$('reportsList').innerHTML=a.le
 
 // SUPABASE LIVE SYNC
 const SB_URL='https://ygwfipksbbprqynvbklk.supabase.co',SB_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';
-const sb=window.supabase?.createClient?window.supabase.createClient(SB_URL,SB_KEY):null;
+let sb=null;
+function loadSupabaseClient(){
+ if(sb)return Promise.resolve(sb);
+ if(window.supabase?.createClient){try{sb=window.supabase.createClient(SB_URL,SB_KEY);return Promise.resolve(sb)}catch(e){console.warn('Supabase client initialisation failed.',e);return Promise.resolve(null)}}
+ return new Promise(resolve=>{
+  const script=document.createElement('script');let finished=false;
+  const finish=client=>{if(finished)return;finished=true;clearTimeout(timer);if(client)sb=client;resolve(client)};
+  script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';script.async=true;
+  script.onload=()=>{try{finish(window.supabase?.createClient?window.supabase.createClient(SB_URL,SB_KEY):null)}catch(e){console.warn('Supabase SDK loaded but could not initialise.',e);finish(null)}};
+  script.onerror=()=>finish(null);
+  const timer=setTimeout(()=>{script.remove();finish(null)},7000);
+  document.head.appendChild(script);
+ });
+}
 let cloudReady=false,cloudBusy=false,cloudWrite=Promise.resolve();
 function cloudStatus(msg){const el=$('cloudStatus');if(el)el.textContent=msg}
 function populateOperatorGate(){if(!$('operatorDay').dataset.initialized){const todayIndex=(today.getDay()+6)%7;$('operatorDay').value=String(todayIndex<6?todayIndex:0);$('operatorDay').dataset.initialized='1'}let idx=Number($('operatorDay').value)||0;const d=week().days[idx];$('operatorAssigned').textContent='Current assignment for '+DAYS[idx]+': '+(d.operator||'Not assigned');$('operatorGatePin').value='';$('operatorMsg').textContent='';}
@@ -326,8 +361,29 @@ $('operatorDay').onchange=populateOperatorGate;
 $('operatorContinue').onclick=()=>{let idx=Number($('operatorDay').value)||0,pin=$('operatorGatePin').value,op=pin==='2666'?'Jan':pin==='1234'?'Mick':'';if(!op){$('operatorMsg').textContent='Incorrect operator PIN.';$('operatorGatePin').value='';return}selected=idx;week().days[idx].operator=op;persist();render();$('operatorGate').style.display='none';};
 $('operatorGatePin').addEventListener('keydown',e=>{if(e.key==='Enter')$('operatorContinue').click()});
 const TEAM_PIN='0123';let pinAttempts=0,pinLockUntil=0;
-async function unlockTracker(){const pin=$('teamPin').value;if(Date.now()<pinLockUntil){$('authMsg').textContent='Too many attempts. Try again in 30 seconds.';return}if(pin!==TEAM_PIN){pinAttempts++;$('authMsg').textContent='Incorrect PIN.';$('teamPin').value='';if(pinAttempts>=5){pinLockUntil=Date.now()+30000;pinAttempts=0;$('authMsg').textContent='Too many attempts. Locked for 30 seconds.'}return}pinAttempts=0;$('unlockBtn').disabled=true;$('authMsg').textContent='Opening tracker…';$('authGate').style.display='none';populateOperatorGate();$('operatorGate').style.display='grid';if(!sb){cloudStatus('LOCAL MODE · Cloud library unavailable');$('unlockBtn').disabled=false;return} $('cloudStatus').textContent='Connecting to shared cloud in background…';try{const auth=await Promise.race([sb.auth.signInAnonymously(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Cloud sign-in timed out. Tracker remains available locally.')),12000))]);if(auth.error)throw new Error('Cloud sign-in failed: '+auth.error.message);await cloudInit();if(!cloudReady)throw new Error($('cloudStatus').textContent||'Cloud unavailable. Tracker remains available locally.')}catch(e){cloudStatus('LOCAL MODE · '+(e.message||'Cloud unavailable'));console.warn('Cloud initialization failed; local tracker remains open.',e)}finally{$('unlockBtn').disabled=false}}
-$('unlockBtn').onclick=unlockTracker;$('teamPin').addEventListener('keydown',e=>{if(e.key==='Enter')unlockTracker()});
+async function unlockTracker(){
+ const pin=$('teamPin').value;
+ if(Date.now()<pinLockUntil){$('authMsg').textContent='Too many attempts. Try again in 30 seconds.';return}
+ if(pin!==TEAM_PIN){
+  pinAttempts++;$('authMsg').textContent='Incorrect PIN.';$('teamPin').value='';
+  if(pinAttempts>=5){pinLockUntil=Date.now()+30000;pinAttempts=0;$('authMsg').textContent='Too many attempts. Locked for 30 seconds.'}
+  return
+ }
+ pinAttempts=0;$('unlockBtn').disabled=true;$('authMsg').textContent='Opening tracker…';
+ // Open the local app before attempting any network request. Cloud services are optional.
+ $('authGate').style.display='none';$('operatorGate').style.display='grid';
+ try{populateOperatorGate()}catch(e){console.error('Operator gate initialisation failed.',e);cloudStatus('LOCAL MODE · Operator screen opened with a setup warning')}
+ try{
+  const client=await Promise.race([loadSupabaseClient(),new Promise(resolve=>setTimeout(()=>resolve(null),8000))]);
+  if(!client){cloudStatus('LOCAL MODE · Cloud library unavailable');return}
+  $('cloudStatus').textContent='Connecting to shared cloud in background…';
+  const auth=await Promise.race([client.auth.signInAnonymously(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Cloud sign-in timed out. Tracker remains available locally.')),12000))]);
+  if(auth.error)throw new Error('Cloud sign-in failed: '+auth.error.message);
+  await cloudInit();
+  if(!cloudReady)throw new Error($('cloudStatus').textContent||'Cloud unavailable. Tracker remains available locally.');
+ }catch(e){cloudStatus('LOCAL MODE · '+(e.message||'Cloud unavailable'));console.warn('Cloud initialisation failed; local tracker remains open.',e)}
+ finally{$('unlockBtn').disabled=false}
+}$('unlockBtn').onclick=unlockTracker;$('teamPin').addEventListener('keydown',e=>{if(e.key==='Enter')unlockTracker()});
 async function cloudInit(){cloudStatus('Connecting…');let query;try{query=await Promise.race([sb.from('downtime_shared_state').select('payload,updated_at').eq('id',1).maybeSingle(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Cloud data request timed out.')),12000))])}catch(e){cloudStatus('Cloud error: '+e.message);return}const {data,error}=query;if(error){cloudStatus('Cloud error: '+error.message);return}const local=load();if(!data?.payload||!data.payload.weeks){state=local;const {error:upErr}=await sb.from('downtime_shared_state').upsert({id:1,payload:state,updated_at:new Date().toISOString()});if(upErr){cloudStatus('Upload error: '+upErr.message);return}}else state=data.payload;localStorage.setItem(STORE,JSON.stringify(state));cloudReady=true;render();cloudStatus('LIVE · synced');sb.channel('downtime-shared').on('postgres_changes',{event:'UPDATE',schema:'public',table:'downtime_shared_state',filter:'id=eq.1'},p=>{if(!cloudReady||cloudBusy||!p.new?.payload)return;state=p.new.payload;localStorage.setItem(STORE,JSON.stringify(state));render();cloudStatus('LIVE · remote update')}).subscribe(status=>{if(status==='SUBSCRIBED')cloudStatus('LIVE · connected')})}
 function syncCloud(){if(!cloudReady)return;cloudWrite=cloudWrite.then(async()=>{cloudBusy=true;const {error}=await sb.from('downtime_shared_state').upsert({id:1,payload:JSON.parse(JSON.stringify(state)),updated_at:new Date().toISOString()});cloudBusy=false;if(error)cloudStatus('Sync error: '+error.message);else cloudStatus('LIVE · synced')}).catch(e=>{cloudBusy=false;cloudStatus('Sync error: '+e.message)});}
 // PIN gate is required on each page load; anonymous cloud session is established after PIN entry.
@@ -335,4 +391,4 @@ function syncCloud(){if(!cloudReady)return;cloudWrite=cloudWrite.then(async()=>{
 render();
 })();
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script></body></html>
+</body></html>
