@@ -6,12 +6,13 @@ import vm from 'node:vm';
 import { chromium } from 'playwright';
 
 const html = await readFile(resolve('index.html'), 'utf8');
+const overviewHtml = await readFile(resolve('plant-overview-preview.html'), 'utf8');
 const inlineScripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
   .map(match => match[1]).filter(source => source.trim());
 inlineScripts.forEach((source, index) => new vm.Script(source, { filename: `inline-script-${index + 1}.js` }));
-const server = createServer((_req, res) => {
+const server = createServer((req, res) => {
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
-  res.end(html);
+  res.end(req.url?.startsWith('/plant-overview-preview.html') ? overviewHtml : html);
 });
 await new Promise((resolveListen, reject) => {
   server.once('error', reject);
@@ -239,6 +240,28 @@ try {
   await cloud.waitForFunction(before => window.__cloudRefreshReads > before, cloudReadsBeforeManual, { timeout: 5000 });
   assert.equal(await cloud.locator('#manualRefreshBtn').isDisabled(), false, 'standard Refresh should re-enable after completion');
   assert.match(await cloud.locator('#manualRefreshBtn').textContent(), /REFRESH DATA/, 'standard Refresh should return to its idle label');
+
+
+  // Overview cards and count reflect only on-site operators with assigned stations.
+  const overview = await newPage();
+  await overview.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
+    status: 200, contentType: 'application/javascript', body: `(() => {
+      const now=new Date(), monday=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+      monday.setDate(monday.getDate()-((monday.getDay()+6)%7));
+      const iso=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+      const wk=iso(monday),dayIndex=Math.min((now.getDay()+6)%7,5);
+      const days=Array.from({length:6},(_,i)=>{const d=new Date(monday);d.setDate(d.getDate()+i);return {date:iso(d),start:'06:30',stop:'17:00',entries:[]};});days[dayIndex].operator='Jan';
+      window.__ovPayload={plantOn:true,operatorProfiles:{Jan:{station:'Station 1 · WOOD',onSite:true},Mick:{station:'Station 2 · WOOD',onSite:true},Daz:{station:'Station 3 · SCRAP',onSite:false},Gigi:{station:'',onSite:true},Shayne:{station:'Station 4 · SCRAP',onSite:true}},weeks:{[wk]:{days}},areas:[],reasons:[],archive:[]};
+      window.supabase={createClient:()=>({auth:{signInAnonymously:async()=>({error:null})},from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{payload:window.__ovPayload},error:null})})})}),channel:()=>({on:()=>({subscribe:()=>({})})})})};
+    })();` 
+  }));
+  await overview.goto('http://127.0.0.1:4173/plant-overview-preview.html',{waitUntil:'domcontentloaded'});
+  await overview.waitForFunction(()=>document.querySelector('#liveDataBadge').textContent.includes('LIVE · MAIN TRACKER'),{timeout:5000});
+  assert.equal(await overview.locator('.metrics .panel:nth-child(2) .label').textContent(),'OPERATORS','Overview metric label should change to Operators');
+  assert.equal(await overview.locator('#operatorCount').textContent(),'3','count should reflect only assigned on-site operators');
+  for (const name of ['JAN','MICK','SHAYNE']) assert.equal(await overview.locator(`[data-opprofile="${name}"]`).isVisible(),true,`${name} assigned and on-site should be visible`);
+  for (const name of ['DAZ','GIGI']) assert.equal(await overview.locator(`[data-opprofile="${name}"]`).isVisible(),false,`${name} off-site or unassigned should be hidden`);
+  await overview.close();
 
   // 3. A cloud authentication rejection must never re-cover or re-lock the tracker.
   const cloudFailure = await newPage();
