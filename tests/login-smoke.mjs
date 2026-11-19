@@ -2,9 +2,13 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import vm from 'node:vm';
 import { chromium } from 'playwright';
 
 const html = await readFile(resolve('index.html'), 'utf8');
+const inlineScripts = [...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)]
+  .map(match => match[1]).filter(source => source.trim());
+inlineScripts.forEach((source, index) => new vm.Script(source, { filename: `inline-script-${index + 1}.js` }));
 const server = createServer((_req, res) => {
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
   res.end(html);
