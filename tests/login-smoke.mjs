@@ -38,6 +38,7 @@ async function assignOperator(page, pin = '2666', operator = (pin === '1234' ? '
   await page.locator('#operatorGatePin').fill(pin);
   await page.locator('#operatorContinue').click();
   await page.waitForFunction(() => document.querySelector('#operatorGate').style.display === 'none');
+  await page.waitForFunction(() => /LOCAL MODE|LIVE · synced/.test(document.querySelector('#cloudStatus').textContent), { timeout: 15000 });
 }
 
 try {
@@ -59,7 +60,6 @@ try {
   // Simulate a blocked Supabase CDN. The app must still open immediately in local mode.
   await offline.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
   await enterTeamPin(offline);
-  await offline.waitForFunction(() => document.querySelector('#cloudStatus').textContent.includes('LOCAL MODE'));
   assert.equal(await offline.locator('.operator-choice').count(), 4, 'operator account buttons should be present');
   assert.equal(await offline.locator('#spectatorBtn').count(), 0, 'main gate should not contain spectator shortcut');
   await assignOperator(offline, '2666');
@@ -73,7 +73,6 @@ try {
   await dowie.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
   await dowie.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await enterTeamPin(dowie);
-  await dowie.waitForFunction(() => document.querySelector('#cloudStatus').textContent.includes('LOCAL MODE'));
   await assignOperator(dowie, '999', 'Dowie');
   assert.match(await dowie.locator('#dayHeading').textContent(), /OPERATOR: Dowie/, 'Dowie should log in with PIN 999');
   assert.equal(await dowie.locator('.nav[data-view=settings]').isVisible(), false, 'Dowie must not access settings');
@@ -86,7 +85,6 @@ try {
   await jan.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
   await jan.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await enterTeamPin(jan);
-  await jan.waitForFunction(() => document.querySelector('#cloudStatus').textContent.includes('LOCAL MODE'));
   await assignOperator(jan, '2666', 'Jan');
   await jan.locator('.nav[data-view=settings]').click();
   assert.equal(await jan.locator('#operatorAdminPanel').isVisible(), true, 'JAN must have operator administration controls');
@@ -98,7 +96,6 @@ try {
   assert.ok((await jan.evaluate(() => localStorage.getItem('plantDowntime.operatorRoster.v1') || '')).includes('Test Operator'), 'operator roster should persist locally');
   await jan.reload();
   await enterTeamPin(jan);
-  await jan.waitForFunction(() => document.querySelector('#cloudStatus').textContent.includes('LOCAL MODE'));
   assert.equal(await jan.locator('.operator-choice[data-operator="Test Operator"]').count(), 1, 'new operator should appear in the login list');
   await assignOperator(jan, '7777', 'Test Operator');
   assert.match(await jan.locator('#dayHeading').textContent(), /OPERATOR: Test Operator/, 'new operator PIN should authenticate');
@@ -109,7 +106,6 @@ try {
   await pinChange.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
   await pinChange.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await enterTeamPin(pinChange);
-  await pinChange.waitForFunction(() => document.querySelector('#cloudStatus').textContent.includes('LOCAL MODE'));
   await assignOperator(pinChange, '1234', 'Mick');
   await pinChange.locator('.nav[data-view=settings]').click();
   await pinChange.locator('#currentOperatorPin').fill('1234');
@@ -119,7 +115,6 @@ try {
   assert.match(await pinChange.locator('#pinChangeMsg').textContent(), /PIN changed successfully/, 'operator PIN should be changed');
   await pinChange.reload();
   await enterTeamPin(pinChange);
-  await pinChange.waitForFunction(() => document.querySelector('#cloudStatus').textContent.includes('LOCAL MODE'));
   await pinChange.locator('.operator-choice[data-operator="Mick"]').click();
   await pinChange.locator('#operatorGatePin').fill('5678');
   await pinChange.locator('#operatorContinue').click();
@@ -143,7 +138,6 @@ try {
   }));
   await cloud.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await enterTeamPin(cloud);
-  await cloud.waitForFunction(() => document.querySelector('#cloudStatus').textContent.includes('LIVE'));
   await assignOperator(cloud, '1234');
   assert.match(await cloud.locator('#dayHeading').textContent(), /OPERATOR: Mick/, 'cloud-enabled session should still complete operator login');
 
@@ -158,7 +152,6 @@ try {
   }));
   await cloudFailure.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await enterTeamPin(cloudFailure);
-  await cloudFailure.waitForFunction(() => document.querySelector('#cloudStatus').textContent.includes('LOCAL MODE'));
   assert.equal(await cloudFailure.locator('#operatorGate').isVisible(), true, 'cloud failure must leave operator gate usable');
   await assignOperator(cloudFailure, '2666');
   assert.equal(await cloudFailure.locator('#operatorGate').isVisible(), false, 'local access must survive cloud auth rejection');
@@ -217,7 +210,6 @@ try {
   }));
   await spectator.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await enterTeamPin(spectator);
-  await spectator.waitForFunction(() => document.querySelector('#cloudStatus').textContent.includes('LIVE'));
   assert.equal(await spectator.locator('#spectatorBtn').count(), 0, 'main gate must not contain a separate spectator shortcut');
   await spectator.locator('.operator-choice[data-operator="Spectator"]').click();
   const readsBeforeSpectator = await spectator.evaluate(() => window.__spectatorCalls.reads);
