@@ -75,17 +75,36 @@ try {
   await enterTeamPin(dowie);
   await assignOperator(dowie, '999', 'Dowie');
   assert.match(await dowie.locator('#dayHeading').textContent(), /OPERATOR: Dowie/, 'Dowie should log in with PIN 999');
-  assert.equal(await dowie.locator('.nav[data-view=settings]').isVisible(), false, 'Dowie must not access settings');
+  assert.equal(await dowie.locator('.nav[data-view=settings]').isVisible(), true, 'Dowie must be able to reach personal PIN settings');
   assert.equal(await dowie.locator('#addEntry').isDisabled(), true, 'Dowie cannot add downtime entries');
   assert.equal(await dowie.locator('#plantStop').isDisabled(), true, 'Dowie cannot change plant stop time');
   assert.equal(await dowie.locator('#exportBtn').isDisabled(), true, 'Dowie cannot create shared PDF records');
+  await dowie.locator('.nav[data-view=settings]').click();
+  assert.equal(await dowie.locator('#settingsPlantAdminControls').isVisible(), false, 'Dowie cannot change plant presets');
+  assert.equal(await dowie.locator('#settingsAdminControls').isVisible(), false, 'Dowie cannot access operator administration or tracker settings');
+  await dowie.locator('#currentOperatorPin').fill('999');
+  await dowie.locator('#newOperatorPin').fill('888');
+  await dowie.locator('#confirmOperatorPin').fill('888');
+  await dowie.locator('#changeOperatorPin').click();
+  assert.match(await dowie.locator('#pinChangeMsg').textContent(), /PIN changed successfully/, 'Dowie may change only their own PIN');
+  await dowie.reload();
+  await enterTeamPin(dowie);
+  await assignOperator(dowie, '888', 'Dowie');
+  assert.match(await dowie.locator('#dayHeading').textContent(), /OPERATOR: Dowie/, 'Dowie PIN change must work on next login');
+  assert.equal(await dowie.locator('#addEntry').isDisabled(), true, 'Dowie remains read-only after PIN change');
   await dowie.close();
 
   const jan = await newPage();
   await jan.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
   await jan.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
+  jan.on('dialog', dialog => dialog.accept());
   await enterTeamPin(jan);
   await assignOperator(jan, '2666', 'Jan');
+  await jan.locator('#lockStartBtn').click();
+  assert.equal(await jan.locator('#plantStart').isDisabled(), true, 'plant start should be locked before Jan admin unlock');
+  assert.equal(await jan.locator('#unlockStartBtn').isVisible(), true, 'JAN must see the admin start-unlock action');
+  await jan.locator('#unlockStartBtn').click();
+  assert.equal(await jan.locator('#plantStart').isDisabled(), false, 'JAN must be able to unlock a permanently locked start time');
   await jan.locator('.nav[data-view=settings]').click();
   assert.equal(await jan.locator('#operatorAdminPanel').isVisible(), true, 'JAN must have operator administration controls');
   assert.equal(await jan.locator('#settingsAdminControls').isVisible(), true, 'JAN must have editable plant settings');
@@ -99,6 +118,14 @@ try {
   assert.equal(await jan.locator('.operator-choice[data-operator="Test Operator"]').count(), 1, 'new operator should appear in the login list');
   await assignOperator(jan, '7777', 'Test Operator');
   assert.match(await jan.locator('#dayHeading').textContent(), /OPERATOR: Test Operator/, 'new operator PIN should authenticate');
+  await jan.reload();
+  await enterTeamPin(jan);
+  await assignOperator(jan, '2666', 'Jan');
+  await jan.locator('.nav[data-view=settings]').click();
+  const testOperatorRow = jan.locator('#operatorRosterList > div').filter({ hasText: 'Test Operator' });
+  assert.equal(await testOperatorRow.count(), 1, 'JAN admin roster should contain the added operator');
+  await testOperatorRow.locator('button').click();
+  assert.ok(!(await jan.evaluate(() => localStorage.getItem('plantDowntime.operatorRoster.v1') || '')).includes('Test Operator'), 'JAN should be able to remove an operator');
   await jan.close();
 
   // PIN change must validate the current PIN and work on the next login.
@@ -161,6 +188,7 @@ try {
   await assignOperator(cloudFailure, '2666');
   assert.equal(await cloudFailure.locator('#operatorGate').isVisible(), false, 'local access must survive cloud auth rejection');
 
+  // Operator permission regression checks above run before the secure Spectator integration checks below.
   // 4. Spectator entry uses the secure Edge Function, a non-persistent anonymous session, and server-side refresh polling.
   const spectator = await newPage();
   await spectator.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
