@@ -214,6 +214,7 @@ try {
   await management.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await enterTeamPin(management);
   await assignOperator(management, '1234', 'Mick');
+  await management.waitForTimeout(300); // Allow the login sync write to finish before the simulated realtime event.
   assert.equal(await management.locator('#addEntry').isDisabled(), true, 'management role must be read-only');
   await management.evaluate(() => {
     const now=new Date(), monday=new Date(now.getFullYear(),now.getMonth(),now.getDate());
