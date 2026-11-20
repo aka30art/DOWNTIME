@@ -125,18 +125,16 @@ try {
   assert.ok(saved && saved.includes('Jan'), 'operator assignment should be persisted locally');
 
   // Mick remains a standard operator; Jan is the sole permanent administrator.
+  // Legacy local roster is not an app USERS authority: only JAN's offline operator fallback remains.
   const mick = await newPage();
   await seedExistingUsers(mick,{names:['Jan','Mick']});
   await mick.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
-  await mick.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
+  await mick.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
   await enterTeamPin(mick);
-  assert.equal(await mick.locator('.operator-choice[data-operator="Mick"]').count(), 1, 'Mick should be present in canonical roster');
-  await assignOperator(mick, '1234', 'Mick');
-  assert.match(await mick.locator('#dayHeading').textContent(), /OPERATOR: Mick/, 'Mick should authenticate with PIN 1234');
-  assert.equal(await mick.locator('#settingsAdminControls').isVisible(), false, 'Mick cannot access app-user administration');
+  assert.equal(await mick.locator('.operator-choice').count(),1,'legacy login gate must not expose local USERS');
+  assert.equal(await mick.locator('.operator-choice[data-operator="Mick"]').count(),0,'Mick account must authenticate through central USERS, not local roster');
   await mick.close();
 
-  // Owner/admin must authenticate through the central account, not the legacy local PIN gate.
   const jan = await newPage();
   await jan.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
   let centralPayload={weeks:{},areas:[],reasons:[],archive:[],staffRoster:['Jan','Mick','Gigi','Daz','Shayne'],operatorProfiles:{
