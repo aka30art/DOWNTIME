@@ -18,20 +18,13 @@ try {
  for(const digit of '0123') await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click();
  await page.locator('#unlockBtn').click();
  await page.waitForFunction(()=>document.querySelector('#operatorGate').style.display==='grid');
- const canonical=['Jan','Mick','Gigi','Daz','Shayne'];
- for(const name of canonical) assert.equal(await page.locator('.operator-choice[data-operator="'+name+'"]').count(),1,name+' is in canonical roster');
+ assert.equal(await page.locator('.operator-choice[data-operator="Jan"]').count(),1,'JAN remains the only app user');
+ for(const name of ['Mick','Gigi','Daz','Shayne','Dowie','Lee','Spectator']) assert.equal(await page.locator('.operator-choice[data-operator="'+name+'"]').count(),0,name+' is removed from app USERS');
  assert.equal(await page.locator('.operator-choice[data-operator="Dowie"]').count(),0,'legacy Dowie removed');
  assert.equal(await page.locator('.operator-choice[data-operator="Lee"]').count(),0,'legacy Lee removed');
- assert.equal(await page.locator('.operator-choice[data-operator="Spectator"]').count(),1,'Spectator is distinct from operator roster');
- assert.equal(await page.locator('.operator-choice').count(),6,'5 operators plus Spectator');
+ assert.equal(await page.locator('.operator-choice').count(),1,'only JAN login choice is rendered');
  assert.equal(await page.locator('#refreshAppBtn').count(),1,'refresh/cache recovery control is present');
- // Spectator invalid credentials must not unlock read-only view or tracker.
- await page.locator('.operator-choice[data-operator="Spectator"]').click();
- await page.locator('#operatorGatePin').fill('INVALID');
- await page.locator('#operatorContinue').click();
- await page.waitForTimeout(500);
- assert.equal(await page.locator('#operatorGate').isVisible(),true,'invalid Spectator credentials are rejected');
- assert.equal(await page.locator('#spectatorView').isVisible(),false,'invalid Spectator credentials cannot reveal view');
+ // Spectator mode remains outside the app-users assignment list.
  // Jan retains admin access in offline/local mode.
  await page.locator('.operator-choice[data-operator="Jan"]').click();
  for(const digit of '2666') await page.locator('[data-pinpad="operatorGatePin"] [data-key="'+digit+'"]').click();
@@ -42,5 +35,5 @@ try {
  assert.equal(await page.locator('#operatorAdminPanel').isVisible(),true,'Jan admin panel remains accessible');
  assert.equal(await page.locator('#settingsAdminControls').isVisible(),true,'Jan user administration remains accessible');
  assert.deepEqual(errors,[],'no uncaught JS errors');
- console.log('PASS canonical operator roster; legacy removal; Spectator invalid-auth denial; Jan admin; offline login; no JS errors');
+ console.log('PASS JAN-only app-users gate; Jan admin; offline login; no JS errors');
 } finally { await browser.close(); await new Promise(ok=>server.close(ok)); }
