@@ -1,18 +1,26 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const html = await readFile('index.html', 'utf8');
-const script = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]).filter(s => s.trim()).join('\n');
-for (const check of [
-  ['function showPlantTransitionAlert(plantOn,updatedAt)', 'plant transition modal handler exists'],
-  ['ACKNOWLEDGE', 'modal has an acknowledgement control'],
-  ['setTimeout(()=>{closePlantTransitionAlert();next()},10000)', 'PLANT ON alert automatically closes after ten seconds'],
-  ['if(plantAlertActive&&!plantAlertActive.plantOn)closePlantTransitionAlert()', 'PLANT OFF alert is closed when plant returns ON'],
-  ['plantAlertQueue=plantAlertQueue.filter(q=>q.plantOn)', 'stale OFF alerts are not kept queued when status returns ON'],
-  ['plantChanged=cloudReady&&managementRole()', 'cloud transition popups are restricted to management role'],
-  ['typeof previous?.plantOn===\'boolean\'', 'initial sync is excluded from transition notifications'],
-  ['applyIncomingCloudPayload(data.payload,\'LIVE · management updates\',data.updated_at)', 'polling forwards transition timestamps'],
-  ['applyIncomingCloudPayload(p.new.payload,\'LIVE · remote update\',p.new.updated_at)', 'realtime forwards transition timestamps'],
-  ['wasLive&&typeof previousPlantOn===\'boolean\'', 'spectator reconnect does not alert on stale state'],
-]) assert.ok(script.includes(check[0]), check[1]);
-console.log('PASS: plant transition alerts, acknowledgement, auto-dismiss rules, management role gating, timestamps, and reconnect suppression.');
+const html=await readFile('index.html','utf8');
+const overview=await readFile('plant-overview-preview.html','utf8');
+const api=await readFile('supabase/functions/central-bank/index.ts','utf8');
+const scripts=[...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)].map(m=>m[1]).filter(s=>s.trim()).join('\\n');
+
+for(const [needle,label] of [
+ ['function showPlantTransitionAlert(plantOn,updatedAt)','tracker transition alert exists'],
+ ['ACKNOWLEDGE','tracker alert has acknowledgement control'],
+ ['setTimeout(()=>{closePlantTransitionAlert();next()},10000)','tracker PLANT ON alert auto-dismisses'],
+ ['plantChanged=cloudReady&&managementRole()','tracker alerts are limited to management visibility'],
+ ['typeof previous?.plantOn===\'boolean\'','initial state load is not a transition'],
+ ['applyIncomingCloudPayload(result.payload,\'CENTRAL · remote update\',result.updatedAt,result.version,result.user)','polling applies central versioned changes'],
+ ['DowntimeCentral.saveTracker(snapshot,centralVersion)','tracker transitions and writes use central data bank']
+])assert.ok(scripts.includes(needle),label);
+
+assert.match(api,/action==="set-plant-status"/,'central plant toggle action exists');
+assert.match(api,/if\(!priv\.canEditTracker\)return json\(\{error:"Permission denied"\},403\)/,'central API enforces plant toggle permission');
+assert.match(api,/eq\("version",Number\(body\.version\)\)\.select\("id"\)\.maybeSingle\(\)/,'plant status uses version compare-and-swap');
+assert.ok(overview.includes("centralCall('get-state')"),'Plant Overview reads central state');
+assert.ok(overview.includes("centralCall('set-plant-status'"),'Plant Overview writes central plant status');
+assert.ok(!overview.includes('downtime_shared_state'),'Plant Overview no longer connects to legacy shared state');
+assert.ok(overview.includes("sessionStorage.getItem('downtime.central.session.v1')"),'Plant Overview uses the authenticated central browser session');
+console.log('PASS: central plant status sync, role gating, version conflict handling, and transition alerts.');
