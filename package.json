@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:smoke": "node tests/login-smoke.mjs && node tests/overview-toggle.mjs && node tests/plant-transition-alerts.mjs && npm run test:photo-evidence",
+    "test:smoke": "node tests/login-smoke.mjs && node tests/roster-regression.mjs && node tests/overview-toggle.mjs && node tests/plant-transition-alerts.mjs && npm run test:photo-evidence",
     "test:photo-evidence": "node tests/photo-evidence.mjs"
   },
   "devDependencies": {
