@@ -5,7 +5,7 @@ const config=fs.readFileSync("supabase/config.toml","utf8");
 for(const action of ["list","create","update","delete"])assert.ok(source.includes('action==="'+action+'"'),"API action "+action);
 assert.ok(source.includes('["OWNER","ADMIN"].includes(actor.tier)'),"Only OWNER/ADMIN access management");
 assert.ok(source.includes('target.tier==="OWNER"||target.username==="jan"'),"OWNER account protected");
-assert.ok(source.includes("600_000")&&source.includes("PBKDF2"),"Strong password hashing for created/reset passwords");
+assert.ok(source.includes("600_000")&&source.includes("PBKDF2"),"PINs are hashed server-side");
 assert.ok(source.includes("revoked_at")&&source.includes('is("revoked_at",null)'),"Session revocation is enforced");
 assert.ok(source.includes("downtime_sync_audit"),"User changes are audited");
 assert.ok(!source.toLowerCase().includes("email"),"No email-based workflows");
