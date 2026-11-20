@@ -197,6 +197,44 @@ try {
   await jan.waitForFunction(()=>centralPayload.staffRoster.includes('Test Staff Only'));
   assert.equal(await jan.locator('#staffRosterList > div').count(),6,'STAFF add syncs to central payload');
   assert.equal(centralUsers.some(user=>user.username==='teststaffonly'),false,'STAFF member does not automatically create a USERS account');
+
+  // Device B loads the same central payload and removes the staff record; Device A sees the same backend state.
+  const deviceB=await newPage();
+  await deviceB.route('**/functions/v1/username-auth',async route=>{
+    const body=route.request().postDataJSON()||{},user={username:'jan',displayName:'Jan',tier:'OWNER'};
+    if(body.action==='login')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({token:'b'.repeat(48),user})});
+    if(body.action==='validate')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({user})});
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true})});
+  });
+  await deviceB.route('**/functions/v1/central-sync',async route=>{
+    const body=route.request().postDataJSON()||{};
+    if(body.action==='read')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({payload:centralPayload,version:centralVersion})});
+    if(body.action==='write'){centralPayload=body.payload;centralVersion++;return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,payload:centralPayload,version:centralVersion})});}
+    return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({error:'Unknown sync action'})});
+  });
+  await deviceB.route('**/functions/v1/central-users',async route=>{
+    const body=route.request().postDataJSON()||{};
+    if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({users:centralUsers})});
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true})});
+  });
+  await deviceB.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
+  await deviceB.locator('#centralLoginSwitch').click();
+  await deviceB.locator('#centralUsername').fill('jan');
+  await deviceB.locator('#centralPin').fill('8642');
+  await deviceB.locator('#centralLoginBtn').click();
+  await deviceB.waitForFunction(()=>document.querySelector('#authGate').style.display==='none');
+  await deviceB.locator('.nav[data-view=staff]').click();
+  await deviceB.waitForFunction(()=>document.querySelector('#staffRosterList').textContent.includes('Test Staff Only'));
+  assert.equal(await deviceB.locator('#staffRosterList > div').count(),6,'Device B receives Device A STAFF add from central payload');
+  deviceB.on('dialog',dialog=>dialog.accept());
+  const staffOnB=deviceB.locator('#staffRosterList > div').filter({hasText:'Test Staff Only'});
+  await staffOnB.locator('button.danger').click();
+  await deviceB.waitForFunction(()=>!centralPayload.staffRoster.includes('Test Staff Only'));
+  const readOnA=await jan.evaluate(()=>centralSyncRequest('read'));
+  assert.equal(readOnA.payload.staffRoster.includes('Test Staff Only'),false,'Device A read sees Device B STAFF removal');
+  assert.equal(centralUsers.some(user=>user.username==='testuser'),true,'STAFF removal does not delete the separate USERS account');
+  await deviceB.close();
+
   const staffOnlyRow=jan.locator('#staffRosterList > div').filter({hasText:'Test Staff Only'});
   await staffOnlyRow.locator('button.danger').click();
   await jan.waitForFunction(()=>!centralPayload.staffRoster.includes('Test Staff Only'));
