@@ -57,18 +57,28 @@ Other open PRs: #14 Plant Overview exit/fullscreen; #11 post-deploy preview URL 
 - Authentication implementation is blocked on a product/security decision: keep PIN-style operator login or move to strong email/password (or another strong credential) for Supabase Auth. Short PINs alone are not suitable as standalone internet-facing authentication without an explicitly designed server-side risk-control scheme. Do not create/bootstrap Jan credentials until the owner's identity and credential provisioning method are supplied securely.
 - Remaining work is still Phase 2 Auth/bootstrap, followed by shared-data adapters, realtime/conflict/offline support, migration/backup, and multi-device acceptance testing. CI passing here validates the audit/schema contract—not cross-device functionality.
 
-## Phase 2 Auth foundation — staged implementation (2026-11-20)
-- Added staged Supabase Edge Function source: `supabase/functions/admin-user-invite/index.ts`. It requires bearer JWT, validates the session with Auth, restricts caller to OWNER/ADMIN claims, only OWNER may assign ADMIN, and invitations cannot assign OWNER. Provisioning uses server-only `SUPABASE_SECRET_KEY`; rollback deletes a newly invited user if metadata assignment fails.
-- Configured `verify_jwt = true` for the function in `supabase/config.toml`.
-- Added Auth invite contract test `tests/auth-invite-contract.mjs` and wired it into the smoke pipeline.
-- This is source/CI groundwork only: function is NOT deployed; no secrets set; no Auth configuration changed; no users invited; no production schema changes. CORS is currently restricted to the GitHub Pages origin. Before deployment, configure required server secrets and redirect allowlist, confirm email-based account login, and complete owner bootstrap/security review.
-- Function's authorization relies on server-managed `app_metadata.tier`; no tier may be set through user-editable metadata. A server-side role claims audit and RLS policy review remain required before integration.
+## Authentication direction — username-only, no email (2026-11-20)
 
-### Auth/USERS security hardening follow-up (2026-11-20)
-- Proceeding with email/password Supabase Auth as the baseline account credential model; operator PINs are not the internet-facing identity credential. Operator/station identity remains a separate domain pending the mapping decision and migration design.
-- Central USERS migration RLS was hardened from a broad `FOR ALL` policy to separate insert/update/delete policies. ADMIN cannot create, update, or delete OWNER or ADMIN tier profiles; OWNER retains privileged management. This reduces direct-table privilege escalation risk in addition to the invitation endpoint guard.
-- Contract tests now assert the tier-write policy separation and Auth invitation protections. These are source-level contract checks, not a live RLS/Auth acceptance test. SQL has not been applied to production.
-- Next engineering step: implement Auth session UI and account profile lookup with explicit session lifecycle (login, refresh, logout/revoke), then replace local USERS admin UI with central profile CRUD using least-privilege server-side enforcement. This step is still pending; do not describe the legacy PIN login or local USERS roster as centrally authenticated.
+- Owner explicitly rejected email-based account workflows. No email fields, email invitations, email login, email-based recovery, or email requirements are part of DOWNTIME.
+- Required login identity is a unique username. Credentials are provisioned and managed without email addresses. The application must never expose or store plaintext passwords.
+- The staged Supabase Auth invitation and Auth-backed central USERS endpoints are obsolete and must not be deployed or used. Supabase Auth's standard email/phone identity model is not the requested username-only model.
+- Authentication requires a custom server-side design: password hashing with a strong password KDF, rate-limited login, opaque high-entropy session tokens with only token hashes stored server-side, expiry/rotation/revocation, disabled-account checks, protected OWNER bootstrap, and audit records. Tier/privilege decisions are server authoritative, never client-supplied.
+- Because GitHub Pages and Supabase Edge Functions are different origins, browser session transport and storage must be explicitly security-tested. Do not use localStorage as an authentication-token store or silently adopt pseudo-email accounts. Validate cookie/CORS behavior and session protections before selecting the final session transport.
+- Direct client access to protected Supabase tables must remain blocked until the custom session can be securely validated and authorization enforced. Shared data mutations should go through server endpoints that validate the custom session and tier before service-role operations, or a separately validated secure RLS/JWT integration.
+- This is an architecture pivot, not a finished login system. No credentials/bootstrap secrets are created, no endpoint is deployed, and no production migration is applied.
 
-- Added staged central USERS management Edge Function `admin-user-management`: Authenticated OWNER/ADMIN list; tier update and deletion actions; protected OWNER/ADMIN accounts cannot be edited or deleted via this endpoint; no OWNER tier assignment is allowed. It uses a server-side Supabase secret and requires JWT verification.
-- Added `tests/central-users-contract.mjs` to the CI smoke script. Endpoint remains staged/not deployed, and central USERS UI is not yet wired into the app.
+## Remaining phases
+- Phase 0: Audit and source baseline.
+- Phase 1: Additive central schema, versioned writes, audit, realtime, and policy contract tests.
+- Phase 2: Username-only custom authentication, session lifecycle, protected OWNER bootstrap, and server-side authorization.
+- Phase 3: App adapters and realtime sync for USERS, STAFF, settings, tracker, plant overview, photos, and archive; conflict-safe writes and offline queue.
+- Phase 4: Preview/export, backup, and explicit conflict-resolved migration from local data.
+- Phase 5: Cross-device acceptance tests, RLS/API security tests, rollback plan, CI, then separately authorized merge/deploy.
+
+## Critical migration safeguards
+- Never overwrite local data silently; capture/export backup first.
+- No arbitrary last-write-wins for roster/settings conflicts.
+- Never place service-role keys in browser code, Git, logs, or tests.
+- No permissive anonymous access.
+- No production schema rollout or UI cutover until username-only authentication and authorization are tested.
+- Preserve tracker behavior, tier semantics, STAFF/USERS separation, and Jan OWNER/ROOT protection.
