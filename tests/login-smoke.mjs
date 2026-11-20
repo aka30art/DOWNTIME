@@ -29,14 +29,14 @@ async function newPage() {
   return page;
 }
 async function enterTeamPin(page) {
-  await page.locator('#teamPin').fill('0123');
+  for (const digit of '0123') await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click();
   await page.locator('#unlockBtn').click();
   await page.waitForFunction(() => document.querySelector('#authGate').style.display === 'none');
   await page.waitForFunction(() => document.querySelector('#operatorGate').style.display === 'grid');
 }
 async function assignOperator(page, pin = '2666', operator = (pin === '1234' ? 'Mick' : 'Jan')) {
   await page.locator(`.operator-choice[data-operator="${operator}"]`).click();
-  await page.locator('#operatorGatePin').fill(pin);
+  for (const digit of pin) await page.locator('[data-pinpad="operatorGatePin"] [data-key="'+digit+'"]').click();
   await page.locator('#operatorContinue').click();
   await page.waitForFunction(() => document.querySelector('#operatorGate').style.display === 'none');
   await page.waitForFunction(() => /LOCAL MODE|LIVE · synced/.test(document.querySelector('#cloudStatus').textContent), { timeout: 15000 });
@@ -52,7 +52,7 @@ try {
   await offline.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 5000 });
   assert.equal(await offline.locator('#authGate').isVisible(), true, 'team PIN gate should be visible at startup');
   assert.equal(vendorRequests.length, 0, 'third-party libraries must not block application startup');
-  await offline.locator('#teamPin').fill('9999');
+  for (const digit of '9999') await offline.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click();
   await offline.locator('#unlockBtn').click();
   console.log('DEBUG wrong PIN message:', JSON.stringify(await offline.locator('#authMsg').textContent()), 'pageErrors:', JSON.stringify(pageErrors), 'consoleErrors:', JSON.stringify(browserMessages));
   assert.match(await offline.locator('#authMsg').textContent(), /Incorrect PIN/, 'wrong team PIN should be rejected');

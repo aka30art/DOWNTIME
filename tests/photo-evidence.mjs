@@ -8,7 +8,8 @@ const workflow=await readFile('.github/workflows/photo-evidence-cleanup.yml','ut
 
 assert.match(html,/let SB_URL='https:\/\/ygwfipksbbprqynvbklk\.supabase\.co'/,'Supabase constants are initialized before photo endpoint use');
 assert.doesNotMatch(html,/const SB_URL=/,'No duplicate Supabase constants declaration remains');
-assert.match(html,/id="photoInput" type="file" accept="image\/\*" capture="environment"/,'Mobile camera/gallery file input exists');
+assert.match(html,/id="photoInput" type="file" accept="image\/\*"/,'Gallery/files picker input exists');
+assert.match(html,/id="photoCameraInput" type="file" accept="image\/\*" capture="environment"/,'Dedicated camera capture input exists');
 assert.match(html,/PHOTO EVIDENCE \(OPTIONAL · 24 HOURS\)/,'Photo is explicitly optional and time-limited');
 assert.match(html,/function photoCompress\(file\)/,'Client-side image compression function exists');
 assert.match(html,/1920\/Math\.max\(img\.width,img\.height\)/,'Compression constrains longest edge to 1920px');
