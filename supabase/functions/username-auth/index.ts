@@ -67,6 +67,32 @@ Deno.serve(async (req) => {
   let body: any;
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
   const action = body?.action;
+  if (action === "bootstrap-owner") {
+    const bootstrapSecret = Deno.env.get("DOWNTIME_OWNER_BOOTSTRAP_SECRET");
+    const providedSecret = req.headers.get("x-owner-bootstrap-secret") || "";
+    const secretBytes = encoder.encode(bootstrapSecret || "");
+    const providedBytes = encoder.encode(providedSecret);
+    let secretDiff = secretBytes.length ^ providedBytes.length;
+    for (let i = 0; i < Math.max(secretBytes.length, providedBytes.length); i++) secretDiff |= (secretBytes[i] || 0) ^ (providedBytes[i] || 0);
+    if (!bootstrapSecret || secretDiff !== 0) return json({ error: "Forbidden" }, 403);
+    const username = String(body?.username || "").trim().toLowerCase();
+    const displayName = String(body?.displayName || "").trim();
+    const password = String(body?.password || "");
+    if (username !== "jan" || !displayName || displayName.length > 80 || password.length < 16 || password.length > 256) return json({ error: "Bootstrap requires Jan, a display name, and a 16–256 character password" }, 400);
+    const { count, error: countError } = await admin.from("downtime_app_users").select("user_id", { count: "exact", head: true });
+    if (countError) return json({ error: "Bootstrap unavailable" }, 503);
+    if (count !== 0) return json({ error: "Bootstrap is already closed" }, 409);
+    const passwordHash = await (async (pw: string) => {
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const key = await crypto.subtle.importKey("raw", encoder.encode(pw), "PBKDF2", false, ["deriveBits"]);
+      const derived = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: PBKDF2_ITERATIONS }, key, 256);
+      return "pbkdf2-sha256$" + PBKDF2_ITERATIONS + "$" + b64(salt) + "$" + b64(derived);
+    })(password);
+    const { data, error: insertError } = await admin.from("downtime_app_users").insert({ username: "jan", display_name: displayName, password_hash: passwordHash, tier: "OWNER", enabled: true }).select("user_id,username,display_name,tier,enabled").single();
+    if (insertError) return json({ error: "Bootstrap failed" }, 503);
+    await admin.from("downtime_sync_audit").insert({ actor_id: data.user_id, domain: "USERS", record_key: data.user_id, operation: "INSERT", new_data: { username: "jan", tier: "OWNER", bootstrap: true } });
+    return json({ user: data, bootstrapClosed: true }, 201);
+  }
   if (action === "login") {
     const username = String(body?.username || "").trim().toLowerCase();
     const password = String(body?.password || "");
