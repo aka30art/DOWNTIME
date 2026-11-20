@@ -15,7 +15,7 @@ const tierDefault:Record<string,Record<string,boolean>>={
 };
 const cryptoHex=(bytes:Uint8Array)=>Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 const digest=async(s:string)=>cryptoHex(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s))));
-async function hashPin(pin:string,salt:string){const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(pin),"PBKDF2",false,["deriveBits"]);return cryptoHex(new Uint8Array(await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode(salt),iterations:150000,hash:"SHA-256"},key,256))}
+async function hashPin(pin:string,salt:string){const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(pin),"PBKDF2",false,["deriveBits"]);return cryptoHex(new Uint8Array(await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode(salt),iterations:150000,hash:"SHA-256"},key,256)))}
 async function verifyPin(pin:string,user:any){return user?.pinSalt&&user?.pinHash&&await hashPin(pin,user.pinSalt)===user.pinHash}
 function safeUser(u:any){return {username:u.username,tier:u.tier,enabled:u.enabled!==false,displayName:u.displayName||u.username}}
 function normalizeBank(p:any){const b=p||{};b.appData=b.appData||{};b.users=Array.isArray(b.users)?b.users:[];b.tiers=b.tiers||structuredClone(tierDefault);b.staff=b.staff||{roster:[],profiles:{}};b.statsSource=b.statsSource||{weeks:b.appData.weeks||{}};return b}
