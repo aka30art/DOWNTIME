@@ -16,4 +16,11 @@ assert.ok(source.includes('target.tier==="ADMIN"&&actor.tier!=="OWNER"'),"Only O
 assert.ok(source.includes('userId===session.user_id&&actor.tier!=="OWNER"'),"Non-owner cannot self-manage central account");
 assert.ok(!source.toLowerCase().includes("email"),"No email-based workflows");
 assert.ok(config.includes("[functions.central-users]")&&config.includes("verify_jwt = false"),"Function config present");
+
+// JAN / ROOT OWNER invariants: central management must never demote, disable, rename, PIN-reset, or delete OWNER.
+const updateBlock=source.slice(source.indexOf('if(action==="update")'),source.indexOf('if(action==="delete")'));
+const deleteBlock=source.slice(source.indexOf('if(action==="delete")'));
+assert.ok(updateBlock.includes('target.tier==="OWNER"||target.username==="jan"'),"OWNER update guard is present (covers demotion/disable/rename/PIN reset)");
+assert.ok(deleteBlock.includes('target.tier==="OWNER"||target.username==="jan"'),"OWNER deletion guard is present");
+
 console.log("Central users contract checks passed (static checks only).");
