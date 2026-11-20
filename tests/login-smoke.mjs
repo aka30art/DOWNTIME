@@ -111,6 +111,8 @@ try{
  await overviewPage.close();
  await owner.page.locator('#manualRefreshBtn').click();
  await owner.page.waitForFunction(()=>document.querySelector('#cloudStatus').textContent.includes('MANUAL REFRESH COMPLETE'),{timeout:5000});
+ const transitionAck=owner.page.locator('#plantTransitionAlertHost button');
+ if(await transitionAck.count())await transitionAck.click();
  await owner.page.locator('.nav[data-view="settings"]').click();
  await owner.page.locator('#newAreaPreset').fill('Central Sync Test');
  await owner.page.locator('#addAreaPresetBtn').click();
