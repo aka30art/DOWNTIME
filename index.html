@@ -514,7 +514,7 @@ async function centralLogout(){try{if(centralSessionToken())await centralRequest
 }
 $('centralLoginBtn').onclick=centralLogin;$('centralPin').addEventListener('keydown',e=>{if(e.key==='Enter')centralLogin()});async function restoreCentralSession(){
  const token=centralSession();if(!token)return;
- try{const data=await centralRequest('validate',{},token);centralSessionTokenValue=token;centralCurrentUsername=data.user.username;activeOperator=data.user.tier==='OWNER'?'Jan':(data.user.displayName||data.user.username);centralTierByName[activeOperator]=data.user.tier==='OWNER'?'JAN — OWNER / ROOT':data.user.tier;operatorReadOnly=false;operatorAdmin=['OWNER','ADMIN'].includes(data.user.tier);$('centralLogoutBtn').style.display='inline-block';$('authGate').style.display='none';$('operatorGate').style.display='none';render();await centralSyncLoad();cloudStatus('CENTRAL ACCOUNT · SESSION RESTORED')}catch(e){sessionStorage.removeItem('downtime.central.session');centralSessionTokenValue='';}
+ try{const data=await centralRequest('validate',{},token);centralSessionTokenValue=token;centralCurrentUsername=data.user.username;activeOperator=data.user.tier==='OWNER'?'Jan':(data.user.displayName||data.user.username);centralTierByName[activeOperator]=data.user.tier==='OWNER'?'JAN — OWNER / ROOT':data.user.tier;operatorReadOnly=false;operatorAdmin=['OWNER','ADMIN'].includes(data.user.tier);$('centralLogoutBtn').style.display='inline-block';$('authGate').style.display='none';$('operatorGate').style.display='none';enforceOperatorMode();render();await centralSyncLoad();cloudStatus('CENTRAL ACCOUNT · SESSION RESTORED')}catch(e){sessionStorage.removeItem('downtime.central.session');centralSessionTokenValue='';}
 }
 restoreCentralSession();
 
