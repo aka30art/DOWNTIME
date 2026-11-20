@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     const username = String(body?.username || "").trim().toLowerCase();
     const displayName = String(body?.displayName || "").trim();
     const pin = String(body?.pin || "");
-    if (username !== "jan" || !displayName || displayName.length > 80 || !/^\\d{4,8}$/.test(pin)) return json({ error: "Bootstrap requires Jan, a display name, and a 4–8 digit PIN" }, 400);
+    if (username !== "jan" || !displayName || displayName.length > 80 || !/^\d{4,8}$/.test(pin)) return json({ error: "Bootstrap requires Jan, a display name, and a 4–8 digit PIN" }, 400);
     const { count, error: countError } = await admin.from("downtime_app_users").select("user_id", { count: "exact", head: true });
     if (countError) return json({ error: "Bootstrap unavailable" }, 503);
     if (count !== 0) return json({ error: "Bootstrap is already closed" }, 409);
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
       const derived = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: PBKDF2_ITERATIONS }, key, 256);
       return "pbkdf2-sha256$" + PBKDF2_ITERATIONS + "$" + b64(salt) + "$" + b64(derived);
     })(pin);
-    const { data, error: insertError } = await admin.from("downtime_app_users").insert({ username: "jan", display_name: displayName, password_hash: passwordHash, tier: "OWNER", enabled: true }).select("user_id,username,display_name,tier,enabled").single();
+    const { data, error: insertError } = await admin.from("downtime_app_users").insert({ username: "jan", display_name: displayName, password_hash: pinHash, tier: "OWNER", enabled: true }).select("user_id,username,display_name,tier,enabled").single();
     if (insertError) return json({ error: "Bootstrap failed" }, 503);
     await admin.from("downtime_sync_audit").insert({ actor_id: data.user_id, domain: "USERS", record_key: data.user_id, operation: "INSERT", new_data: { username: "jan", tier: "OWNER", bootstrap: true } });
     return json({ user: data, bootstrapClosed: true }, 201);
@@ -96,14 +96,14 @@ Deno.serve(async (req) => {
   if (action === "login") {
     const username = String(body?.username || "").trim().toLowerCase();
     const pin = String(body?.pin || "");
-    if (!/^[a-z0-9._-]{3,32}$/.test(username) || !/^\\d{4,8}$/.test(pin)) return json({ error: "Invalid username or PIN" }, 400);
+    if (!/^[a-z0-9._-]{3,32}$/.test(username) || !/^\d{4,8}$/.test(pin)) return json({ error: "Invalid username or PIN" }, 400);
     const rateKey = await digestToken("downtime-login:" + username);
     const { data: permitted, error: rateError } = await admin.rpc("downtime_auth_rate_limit", { p_login_key_hash: rateKey, p_max_attempts: 5, p_window_seconds: 900 });
     if (rateError) return json({ error: "Authentication unavailable" }, 503);
     if (permitted !== true) return json({ error: "Too many login attempts. Try again later." }, 429);
     const { data: user, error } = await admin.from("downtime_app_users").select("user_id,username,display_name,password_hash,tier,enabled").eq("username", username).maybeSingle();
     if (error) return json({ error: "Authentication unavailable" }, 503);
-    if (!user || !user.enabled || !await verifyPassword(pin, user.password_hash)) return json({ error: "Invalid username or password" }, 401);
+    if (!user || !user.enabled || !await verifyPassword(pin, user.password_hash)) return json({ error: "Invalid username or PIN" }, 401);
     await admin.rpc("downtime_auth_rate_limit_reset", { p_login_key_hash: rateKey });
     const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
     const token = b64(tokenBytes);
