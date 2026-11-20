@@ -38,7 +38,11 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
 <section class="section panel"><h2 class="heading">STATION MATERIAL CLASSIFICATION</h2><div class="stationblueprint"><div class="blueprintbays"><div class="blueprintbay"><div class="stationbay general"><strong>STATION 5</strong><span>GENERAL</span><small class="stationassigned" data-stationassigned="5">UNASSIGNED</small></div><div class="stationbay general"><strong>STATION 6</strong><span>GENERAL</span><small class="stationassigned" data-stationassigned="6">UNASSIGNED</small></div></div><div class="blueprintbay"><div class="stationbay scrap"><strong>STATION 3</strong><span>SCRAP</span><small class="stationassigned" data-stationassigned="3">UNASSIGNED</small></div><div class="stationbay scrap"><strong>STATION 4</strong><span>SCRAP</span><small class="stationassigned" data-stationassigned="4">UNASSIGNED</small></div></div><div class="blueprintbay"><div class="stationbay wood"><strong>STATION 1</strong><span>WOOD</span><small class="stationassigned" data-stationassigned="1">UNASSIGNED</small></div><div class="stationbay wood"><strong>STATION 2</strong><span>WOOD</span><small class="stationassigned" data-stationassigned="2">UNASSIGNED</small></div></div><div class="blueprintlane"><span class="lanemark">←</span><span class="lanemark">—</span><span class="lanearrow">←</span><span class="lanemark">—</span><span class="lanemark">—</span><span class="lanearrow">←</span><span class="lanemark">—</span><span class="lanemark">—</span><span class="lanearrow">←</span><span class="lanemark">—</span><span class="lanemark">—</span></div></div></div><div class="materialcaption">PLANT LANE FLOW · LEFTWARD DIRECTION</div></section><div class="bottom"><section class="panel"><h2 class="heading">DOWNTIME BY REASON · TODAY</h2><div id="reasonStats" class="label">Loading real downtime records…</div></section></div><div class="note" id="dataSourceNote">LIVE DATA · connecting to main downtime tracker</div>
 </main><script>
 (() => {
- const operator = (new URLSearchParams(location.search).get('operator') || '').trim().toUpperCase();
+ const params=new URLSearchParams(location.search),testMode=params.has('test');
+ const operator=(params.get('operator')||'').trim().toUpperCase();
+ let authorized=testMode&&(operator==='JAN'||operator==='MICK'),viewerTier='',centralToken=null,centralVersion=0,plantPayload=null,plantSyncBusy=false,plantConnected=false,canViewStaff=true,canViewDashboards=true,canViewAssignments=true;
+ const CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';
+ try{const session=JSON.parse(sessionStorage.getItem('downtime.central.session.v1')||'null');centralToken=session?.token||null}catch{}
  const authorized = operator === 'JAN' || operator === 'MICK';
  const SB_URL='https://ygwfipksbbprqynvbklk.supabase.co',SB_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';
  let plantClient=null,plantPayload=null,plantSyncBusy=false,plantConnected=false;
@@ -53,7 +57,7 @@ async function getStaffOriginalPhoto(name){if(!window.indexedDB)return null;retu
 function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightbox');if(box)return box;box=document.createElement('div');box.id='staffPhotoLightbox';box.className='photo-lightbox';box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');box.setAttribute('aria-label','Expanded staff photo');box.innerHTML='<button type="button" class="photo-lightbox-close" aria-label="Close photo">×</button><img alt="Expanded staff photo"><div class="photo-lightbox-hint">TAP OUTSIDE OR × TO CLOSE</div>';document.body.appendChild(box);const close=()=>{box.classList.remove('open');box.querySelector('img').src='';};box.querySelector('.photo-lightbox-close').addEventListener('click',close);box.addEventListener('click',e=>{if(e.target===box)close()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&box.classList.contains('open'))close()});return box;}
  async function openStaffPhoto(src,alt,name){const box=ensurePhotoLightbox(),img=box.querySelector('img');img.src=src;img.alt=alt||'Expanded staff photo';box.classList.add('open');try{const original=await getStaffOriginalPhoto(name);if(original&&box.classList.contains('open')&&img.alt===(alt||'Expanded staff photo')){const objectUrl=URL.createObjectURL(original);img.onload=()=>{if(img.dataset.originalObjectUrl)URL.revokeObjectURL(img.dataset.originalObjectUrl);img.dataset.originalObjectUrl=objectUrl;};img.src=objectUrl;}}catch(e){/* thumbnail remains available */}}
  function applyOperatorProfiles(payload){
-   const profiles=payload?.operatorProfiles||{};
+   const profiles=payload?.staff?.profiles||payload?.appData?.operatorProfiles||payload?.operatorProfiles||{};
    document.querySelectorAll('[data-opprofile]').forEach(card=>{
      const name=card.dataset.opprofile,key=name.charAt(0)+name.slice(1).toLowerCase(),profile=profiles[key]||profiles[name]||{};
      const station=card.querySelector('.station');
@@ -78,7 +82,8 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
  function getCurrentWeekKey(){const d=new Date();d.setHours(0,0,0,0);const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d.toISOString().slice(0,10)}
  function renderLiveStats(payload){
    const badge=document.getElementById('liveDataBadge'),reasonBox=document.getElementById('reasonStats'),source=document.getElementById('dataSourceNote');
-   const weekKey=getCurrentWeekKey(),weekData=payload?.weeks?.[weekKey],today=new Date(),dayIndex=(today.getDay()+6)%7;
+   const appData=payload?.appData||payload||{};
+   const weekKey=getCurrentWeekKey(),weekData=appData?.weeks?.[weekKey],today=new Date(),dayIndex=(today.getDay()+6)%7;
    if(!weekData?.days||!Array.isArray(weekData.days)){
      document.getElementById('totalDowntime').textContent='NO DATA';
      document.getElementById('incidentCount').textContent='—';
@@ -98,7 +103,7 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
    }
    const start=mins(dayRecord.start),stop=mins(dayRecord.stop),scheduled=(start===null||stop===null)?0:stop-start+(stop<=start?1440:0),net=Math.max(0,scheduled-75);
    const entries=Array.isArray(dayRecord.entries)?dayRecord.entries:[],totalDown=entries.reduce((sum,e)=>sum+Math.max(0,(Number(e.hours)||0)*60+(Number(e.minutes)||0)),0),totalRun=Math.max(0,net-totalDown);
-   const incidents=entries.length,profiles=payload?.operatorProfiles||{},operators=Object.values(profiles).filter(profile=>profile&&profile.onSite!==false&&/^Station\s*0?([1-6])(?:\s|$)/i.test(String(profile.station||'')));
+   const incidents=entries.length,profiles=payload?.staff?.profiles||appData?.operatorProfiles||payload?.operatorProfiles||{},operators=Object.values(profiles).filter(profile=>profile&&profile.onSite!==false&&/^Station\\s*0?([1-6])(?:\\s|$)/i.test(String(profile.station||'')));
    document.getElementById('totalDowntime').textContent=fmtMinutes(totalDown);
    document.getElementById('incidentCount').textContent=String(incidents);
    document.getElementById('availability').textContent=net?((totalRun/net)*100).toFixed(1)+'%':'—';
@@ -121,35 +126,83 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
    toggle.disabled = authorized && !plantConnected;
    note.textContent = authorized ? (plantConnected ? 'CONTROL ACCESS · '+operator+' · LIVE SYNC' : 'CONTROL ACCESS · '+operator+' · CONNECTING') : 'STATUS VIEW · PREVIEW';
  }
+ async function centralCall(action,body={}){
+   if(!centralToken)throw new Error('Central session missing. Return to the tracker and sign in again.');
+   const response=await fetch(CENTRAL_API,{method:'POST',headers:{'Content-Type':'application/json','x-downtime-session':centralToken},body:JSON.stringify({action,...body})});
+   const data=await response.json().catch(()=>({error:'Invalid central response'}));
+   if(!response.ok){const error=new Error(data.error||'Central request failed');error.status=response.status;throw error}
+   return data;
+ }
+ function applyCentralVisibility(payload,user){
+   const tier=user?.tier||'USER',defaults={
+     OWNER:{canEditTracker:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true},
+     ADMIN:{canEditTracker:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true},
+     MANAGER:{canEditTracker:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true},
+     SUPERVISOR:{canEditTracker:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true},
+     USER:{canEditTracker:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true},
+     SPECTATOR:{canEditTracker:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false}
+   };
+   const rights=payload?.tiers?.[tier]||defaults[tier]||defaults.USER;
+   authorized=!!rights.canEditTracker;viewerTier=tier;canViewStaff=!!rights.canViewStaff;canViewAssignments=!!rights.canViewAssignments;canViewDashboards=!!rights.canViewDashboards;
+   toggle.hidden=!authorized;
+   const staffSection=document.querySelector('.opgrid')?.closest('.section');
+   const stationSection=document.querySelector('.stationblueprint')?.closest('.section');
+   if(staffSection)staffSection.style.display=canViewStaff?'':'none';
+   if(stationSection)stationSection.style.display=canViewAssignments?'':'none';
+   const metricCards=document.querySelectorAll('.metrics>.panel');
+   metricCards.forEach((card,index)=>{if(index>0)card.style.display=canViewDashboards?'':'none'});
+   const bottom=document.querySelector('.bottom');if(bottom)bottom.style.display=canViewDashboards?'':'none';
+   if(!canViewStaff)applyOperatorProfiles({staff:{profiles:{}}});
+ }
+ function renderCentralPayload(result,notify=false){
+   const previous=plantOn,next=result.payload?.appData?.plantOn!==false;
+   centralVersion=Number(result.version)||centralVersion;
+   plantPayload=result.payload||{};
+   plantOn=next;plantConnected=true;
+   applyCentralVisibility(plantPayload,result.user||{tier:viewerTier});
+   if(canViewStaff)applyOperatorProfiles(plantPayload);
+   if(canViewDashboards)renderLiveStats(plantPayload);
+   render();
+   if(notify&&previous!==next)showOverviewPlantAlert(next,result.updatedAt);
+ }
  async function connectPlantStatus(){
    try{
-     if(!window.supabase?.createClient)throw new Error('Supabase SDK unavailable');
-     plantClient=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
-     const {error:authError}=await plantClient.auth.signInAnonymously();
-     if(authError)throw authError;
-     const {data,error}=await plantClient.from('downtime_shared_state').select('payload,updated_at').eq('id',1).maybeSingle();
-     if(error)throw error;
-     if(data?.payload){plantPayload=data.payload;plantOn=plantPayload.plantOn!==false;plantConnected=true;applyOperatorProfiles(plantPayload);renderLiveStats(plantPayload);render();}
-     let overviewPreviousOn=plantOn;
-     plantClient.channel('plant-status-overview').on('postgres_changes',{event:'UPDATE',schema:'public',table:'downtime_shared_state',filter:'id=eq.1'},event=>{
-       if(!event?.new?.payload)return;const incomingOn=event.new.payload.plantOn!==false;const changed=typeof overviewPreviousOn==='boolean'&&overviewPreviousOn!==incomingOn;overviewPreviousOn=incomingOn;plantPayload=event.new.payload;plantOn=incomingOn;plantConnected=true;applyOperatorProfiles(plantPayload);renderLiveStats(plantPayload);render();if(changed)showOverviewPlantAlert(incomingOn,event.new.updated_at);
-     }).subscribe();
-   }catch(error){note.textContent=authorized?'CONTROL ACCESS · '+operator+' · LOCAL PREVIEW':'STATUS VIEW · PREVIEW';console.warn('Plant status cloud connection failed',error)}
+     if(testMode)return;
+     const result=await centralCall('get-state');
+     renderCentralPayload(result,false);
+     let prior=plantOn;
+     setInterval(async()=>{
+       try{
+         const latest=await centralCall('get-state');
+         const latestOn=latest.payload?.appData?.plantOn!==false;
+         const changed=typeof prior==='boolean'&&prior!==latestOn;
+         prior=latestOn;
+         renderCentralPayload(latest,changed);
+       }catch(error){if(error.status===401){plantConnected=false;note.textContent='SESSION EXPIRED · RETURN TO TRACKER AND SIGN IN AGAIN'}else console.warn('Central Overview refresh failed',error)}
+     },5000);
+   }catch(error){
+     note.textContent='CENTRAL DATA UNAVAILABLE · '+(error.message||'Return to the tracker and sign in again');
+     console.warn('Central Overview connection failed',error);
+   }
  }
  async function savePlantStatus(){
-   if(!authorized||!plantClient||!plantPayload||plantSyncBusy)return;
+   if(!authorized||!centralToken||!plantPayload||plantSyncBusy)return;
    plantSyncBusy=true;toggle.disabled=true;
    try{
-     const next=Object.assign({},plantPayload,{plantOn});
-     const {error}=await plantClient.from('downtime_shared_state').upsert({id:1,payload:next,updated_at:new Date().toISOString()});
-     if(error)throw error;plantPayload=next;plantConnected=true;
-   }catch(error){plantConnected=false;console.warn('Plant status update failed',error);alert('Plant status could not sync. Please retry when the connection is restored.')}
-   finally{plantSyncBusy=false;toggle.disabled=false;render()}
+     const result=await centralCall('set-plant-status',{plantOn,version:centralVersion});
+     centralVersion=Number(result.version)||centralVersion;plantPayload.appData=plantPayload.appData||{};plantPayload.appData.plantOn=plantOn;plantConnected=true;
+   }catch(error){
+     plantConnected=false;console.warn('Central plant status update failed',error);
+     alert(error.message==='Version conflict; refresh before changing plant status'?'Plant status changed elsewhere. Reloading the latest central state.':'Plant status could not sync. Please retry when the connection is restored.');
+     try{renderCentralPayload(await centralCall('get-state'),false)}catch{}
+   }finally{plantSyncBusy=false;toggle.disabled=false;render()}
  }
- if(authorized){
-   toggle.hidden = false;
-   note.textContent = 'CONTROL ACCESS · ' + operator;
-   toggle.addEventListener('click', async () => { plantOn = !plantOn; render(); if(new URLSearchParams(location.search).has('test'))showOverviewPlantAlert(plantOn,new Date().toISOString()); await savePlantStatus(); });
+ if(testMode){
+   authorized=operator==='JAN'||operator==='MICK';
+   if(authorized){toggle.hidden=false;note.textContent='CONTROL ACCESS · TEST MODE'}
+   toggle.addEventListener('click',()=>{plantOn=!plantOn;render();showOverviewPlantAlert(plantOn,new Date().toISOString())});
+ }else{
+   toggle.addEventListener('click',async()=>{if(!authorized||plantSyncBusy)return;plantOn=!plantOn;render();await savePlantStatus()});
  }
  const fullscreenBtn=document.getElementById('overviewFullscreen');
  if(fullscreenBtn)fullscreenBtn.addEventListener('click',()=>{
@@ -157,8 +210,8 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
    fullscreenBtn.setAttribute('aria-pressed',String(active));
    fullscreenBtn.textContent=active?'⛶ EXIT FULL SCREEN':'⛶ FULL SCREEN';
  });
- if(new URLSearchParams(location.search).has('test')){plantConnected=true;plantPayload={plantOn:true,operatorProfiles:{},weeks:{}};note.textContent='CONTROL ACCESS · TEST MODE';renderLiveStats(plantPayload);}
+ if(testMode){plantConnected=true;plantPayload={plantOn:true,operatorProfiles:{},weeks:{}};note.textContent='CONTROL ACCESS · TEST MODE';renderLiveStats(plantPayload);}
  render();
- if(!new URLSearchParams(location.search).has('test')){const sdk=document.createElement('script');sdk.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';sdk.onload=connectPlantStatus;sdk.onerror=()=>{note.textContent=authorized?'CONTROL ACCESS · '+operator+' · LOCAL PREVIEW':'STATUS VIEW · PREVIEW'};document.head.appendChild(sdk);}
+ if(!testMode)connectPlantStatus();
 })();
 </script></body></html>
