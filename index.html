@@ -463,7 +463,7 @@ async function centralUsersRequest(action,body={}){
  let data={};try{data=await response.json()}catch{}if(!response.ok)throw new Error(data.error||'Central USERS request failed');return data
 }
 async function renderCentralUsers(){
- const panel=$('centralUserAdminPanel');if(!panel)return;panel.style.display=centralSessionToken()&&(activeOperator==='Jan'||centralTierByName[activeOperator]==='ADMIN')?'block':'none';
+ refreshConflictExportButton();const panel=$('centralUserAdminPanel');if(!panel)return;panel.style.display=centralSessionToken()&&(activeOperator==='Jan'||centralTierByName[activeOperator]==='ADMIN')?'block':'none';
  if(panel.style.display==='none')return;
  const list=$('centralUserList');list.textContent='Loading central accounts…';
  try{const {users}=await centralUsersRequest('list');list.innerHTML='';(users||[]).forEach(user=>{
