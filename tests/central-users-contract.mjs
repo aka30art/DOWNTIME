@@ -13,7 +13,7 @@ assert.ok(source.includes("revoked_at")&&source.includes('is("revoked_at",null)'
 assert.ok(source.includes("downtime_sync_audit"),"User changes are audited");
 assert.ok(source.includes('actor.tier==="ADMIN"&&tier==="ADMIN"'),"ADMIN cannot create another ADMIN");
 assert.ok(source.includes('target.tier==="ADMIN"&&actor.tier!=="OWNER"'),"Only OWNER can manage ADMIN accounts");
-assert.ok(source.includes("userId===session.user_id&&actor.tier!==\\"OWNER\\""),"Non-owner cannot self-manage central account");
+assert.ok(source.includes('userId===session.user_id&&actor.tier!=="OWNER"'),"Non-owner cannot self-manage central account");
 assert.ok(!source.toLowerCase().includes("email"),"No email-based workflows");
 assert.ok(config.includes("[functions.central-users]")&&config.includes("verify_jwt = false"),"Function config present");
 console.log("Central users contract checks passed (static checks only).");
