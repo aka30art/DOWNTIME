@@ -24,6 +24,6 @@ assert.ok(!schema.includes('email'), 'no email-based identity fields');
 for (const domain of ['USERS','STAFF','Privileges','Settings','Downtime','Plant Overview','Media','Reports']) {
   assert.ok(audit.includes(domain), 'audit identifies domain: ' + domain);
 }
-for (const requirement of ['username-only','No email','opaque session tokens','service-role']) {
+for (const requirement of ['username-only','No email','opaque high-entropy session tokens','service-role']) {
   assert.ok(audit.toLowerCase().includes(requirement.toLowerCase()), 'audit covers auth requirement: ' + requirement);
 console.log('Username-only central schema contract passed (static checks only).');
