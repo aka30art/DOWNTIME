@@ -74,3 +74,13 @@ Other open PRs: #14 Plant Overview exit/fullscreen; #11 post-deploy preview URL 
 - Phase 3: App adapters and realtime sync for USERS, STAFF, settings, tracker, plant overview, photos, and archive; conflict-safe writes and offline queue.
 - Phase 4: Preview/export, backup, and explicit conflict-resolved migration from local data.
 - Phase 5: Cross-device acceptance tests, RLS/API security tests, rollback plan, CI, then separately authorized merge/deploy.
+
+## Remediation progress update — username auth and central USERS API (staged)
+- Added Edge Function `username-auth` with username-only login, password verification, 12-hour opaque sessions, session validation and revocation. No email identity or workflow.
+- Password verification uses PBKDF2-SHA256 (600,000 iterations) and random salt. Credentials are not returned to the client.
+- Added staged DB-backed login throttling (5 attempts per 15-minute window per normalized username-key) with a successful-login reset.
+- Added a one-time Jan OWNER bootstrap action gated by `DOWNTIME_OWNER_BOOTSTRAP_SECRET`. The secret is not committed or configured. Bootstrap is limited to the first user, username `jan`, and a 16+ character password. No Jan credential has been created.
+- Added server-mediated `central-users` API for list/create/update/delete, accessible only to valid OWNER/ADMIN sessions. Jan/OWNER is protected from edits and removal; password changes, disabled status, and tier changes revoke target sessions. Passwords are hashed server-side and user changes are audit-logged.
+- Added static contract tests for username authentication, central USERS API, and their CI pipeline integration. These tests validate code contracts only—not deployed endpoint behavior or security penetration testing.
+- A CI failure caused by a missing npm script was corrected; a subsequent run exposed malformed package JSON from escaped newline insertion. That JSON formatting defect was corrected and verified by parsing the current package file.
+- Latest staged code is on the remediation branch only. CI on the latest commit has not yet been confirmed green. Neither function has been deployed; the migration has not been applied.
