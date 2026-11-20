@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     const pinHash = await (async (pw: string) => {
       const salt = crypto.getRandomValues(new Uint8Array(16));
       const key = await crypto.subtle.importKey("raw", encoder.encode(pw), "PBKDF2", false, ["deriveBits"]);
-      const derived = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: PBKDF2_ITERATIONS }, key, 256);
+      const derived = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: PBKDF2_ITERATIONS }, key, 256));
       return "pbkdf2-sha256$" + PBKDF2_ITERATIONS + "$" + b64(salt) + "$" + b64(derived);
     })(pin);
     const { data, error: insertError } = await admin.from("downtime_app_users").insert({ username: "jan", display_name: displayName, password_hash: pinHash, tier: "OWNER", enabled: true }).select("user_id,username,display_name,tier,enabled").single();
