@@ -11,6 +11,7 @@ assert.ok(auth.includes('action === "login"'), "username login action exists");
 assert.ok(auth.includes('action === "validate"'), "session validation action exists");
 assert.ok(auth.includes('action === "logout"'), "session revocation action exists");
 assert.ok(auth.includes("PBKDF2") && auth.includes("600_000"), "PIN verifier uses PBKDF2 with strong iteration count");
+assert.match(auth, /\\d\{4,8\}/, "PIN is restricted to 4-8 digits");
 assert.ok(auth.includes('downtime_auth_rate_limit'), "login calls rate limiter");
 assert.ok(auth.includes("crypto.getRandomValues"), "session token generated with secure randomness");
 assert.ok(auth.includes('token_hash'), "only token hash is stored");
