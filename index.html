@@ -453,7 +453,7 @@ let centralSessionToken='',centralTierByName={};
 function centralSession(){try{return sessionStorage.getItem('downtime.central.session')||''}catch{return ''}}let centralVersion=0,centralSyncQueue=Promise.resolve(),centralPollHandle=null,centralSyncBusy=false;
 async function centralSyncRequest(action,payload=null,expectedVersion=null){
  const token=centralSessionToken();if(!token)throw new Error('Central session missing');
- const response=await fetch(SB_URL+'/functions/v1/central-sync',{method:'POST',headers:{'Content-Type':'application/json','x-app-session':token},body:JSON.stringify({action,...(payload!==null?{payload}:{}),...(expectedVersion!==null?{expectedVersion}:{})})});
+ const response=await fetch(SB_URL+'/functions/v1/central-sync',{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'x-app-session':token},body:JSON.stringify({action,...(payload!==null?{payload}:{}),...(expectedVersion!==null?{expectedVersion}:{})})});
  let data={};try{data=await response.json()}catch{}
  if(!response.ok){const e=new Error(data.error||'Central sync failed');e.status=response.status;e.data=data;throw e}return data
 }
@@ -490,7 +490,12 @@ async function centralLogin(){
  }catch(e){$('centralLoginMsg').textContent=e.message||'Login failed';$('centralPin').value=''}
  finally{btn.disabled=false}
 }
-$('centralLoginBtn').onclick=centralLogin;$('centralPin').addEventListener('keydown',e=>{if(e.key==='Enter')centralLogin()});
+$('centralLoginBtn').onclick=centralLogin;$('centralPin').addEventListener('keydown',e=>{if(e.key==='Enter')centralLogin()});async function restoreCentralSession(){
+ const token=centralSession();if(!token)return;
+ try{const data=await centralRequest('validate',{},token);centralSessionTokenValue=token;activeOperator=data.user.tier==='OWNER'?'Jan':(data.user.displayName||data.user.username);centralTierByName[activeOperator]=data.user.tier==='OWNER'?'JAN — OWNER / ROOT':data.user.tier;operatorReadOnly=false;operatorAdmin=['OWNER','ADMIN'].includes(data.user.tier);$('authGate').style.display='none';$('operatorGate').style.display='none';render();await centralSyncLoad();cloudStatus('CENTRAL ACCOUNT · SESSION RESTORED')}catch(e){sessionStorage.removeItem('downtime.central.session');centralSessionTokenValue='';}
+}
+restoreCentralSession();
+
 
 document.querySelectorAll('[data-pinpad]').forEach(pad=>{const input=$(pad.dataset.pinpad);input.readOnly=true;pad.querySelectorAll('[data-key]').forEach(btn=>btn.onclick=()=>{const key=btn.dataset.key;if(key==='clear')input.value='';else if(key==='back')input.value=input.value.slice(0,-1);else if(input.value.length<input.maxLength)input.value+=key;});});async function unlockTracker(){
  const pin=$('teamPin').value;
