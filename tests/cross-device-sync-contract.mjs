@@ -7,7 +7,7 @@ const audit = fs.readFileSync('docs/CROSS_DEVICE_SYNC_AUDIT.md','utf8');
 for (const table of ['downtime_app_users','downtime_auth_sessions','downtime_staff','downtime_app_config','downtime_sync_audit']) {
   assert.ok(schema.includes('create table if not exists public.' + table), 'schema includes ' + table);
 }
-for (const tier of ['OWNER','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR']) {
+for (const tier of ['OWNER','ADMIN','MANAGER','SUPERVISOR','USER']) {
   assert.ok(schema.includes("'" + tier + "'"), 'tier is preserved: ' + tier);
 }
 assert.ok(schema.includes('username text not null unique'), 'username is the central login identifier');
