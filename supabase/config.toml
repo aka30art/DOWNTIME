@@ -1,2 +1,5 @@
 [functions.spectator-read]
 verify_jwt = true
+
+[functions.central-bank]
+verify_jwt = false
