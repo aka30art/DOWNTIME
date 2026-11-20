@@ -65,7 +65,7 @@ Deno.serve(async(req)=>{
     if(body?.password!==undefined){const password=String(body.password);if(password.length<12||password.length>256)return json({error:"Password must be 12–256 characters"},400);changes.password_hash=await hashPassword(password);}
     const {data,error}=await admin.from("downtime_app_users").update(changes).eq("user_id",userId).select("user_id,username,display_name,tier,enabled").single();
     if(error)return json({error:"User update failed"},409);
-    if(changes.enabled===false||changes.password_hash)await admin.from("downtime_auth_sessions").update({revoked_at:new Date().toISOString()}).eq("user_id",userId).is("revoked_at",null);
+    if(changes.enabled===false||changes.password_hash||changes.tier)await admin.from("downtime_auth_sessions").update({revoked_at:new Date().toISOString()}).eq("user_id",userId).is("revoked_at",null);
     await admin.from("downtime_sync_audit").insert({actor_id:actor.user_id,domain:"USERS",record_key:userId,operation:"UPDATE",old_data:{username:target.username,tier:target.tier,enabled:target.enabled},new_data:{username:data.username,tier:data.tier,enabled:data.enabled}});
     return json({user:data});
   }
