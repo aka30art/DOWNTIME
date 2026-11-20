@@ -25,4 +25,6 @@ assert.ok(!app.includes('id="newOperatorName"')&&!app.includes('id="addOperatorB
 assert.ok(!app.includes("textContent='User added.'"),"legacy local USER mutation feedback removed");
 assert.ok(app.includes("CENTRAL_CONFLICT_DRAFT_KEY")&&app.includes("attemptedPayload:attempted"),"local edits are backed up on CAS conflict");
 assert.ok(app.includes("exportCentralConflictDraft")&&app.includes("centralConflictExportBtn"),"central conflict draft can be exported for recovery");
+assert.ok(app.includes("centralUserTier==='OWNER'")&&app.includes("['OWNER','ADMIN'].includes(centralUserTier)"),"privilege checks are based on authenticated central tier, not the display name");
+assert.ok(app.includes("centralSessionToken()?tierReadOnly(centralUserTier)"),"central read-only access is evaluated from central tier");
 console.log("Central frontend auth/USERS/sync contract passed (static checks only).");
