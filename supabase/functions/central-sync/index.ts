@@ -17,7 +17,7 @@ async function validate(admin:any,token:string){
   const hash=await tokenHash(token);
   const {data,error}=await admin.from("downtime_auth_sessions").select("session_id,user_id,expires_at,revoked_at,downtime_app_users(user_id,username,display_name,tier,enabled)").eq("token_hash",hash).maybeSingle();
   if(error||!data||data.revoked_at||new Date(data.expires_at)<=new Date())return null;
-  const user=data.downtime_app_users;
+  const joined=data.downtime_app_users,user:any=Array.isArray(joined)?joined[0]:joined;
   if(!user?.enabled)return null;
   return {user,session:data};
 }
