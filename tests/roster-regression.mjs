@@ -13,6 +13,7 @@ try {
  const page=await browser.newPage();
  page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{
+   if(localStorage.getItem('downtimeRegression.fixtureSeeded.v1'))return;
    const photo='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
    localStorage.setItem('plantDowntime.operatorRoster.v1',JSON.stringify(['Jan','Mick','Gigi','Daz','Shayne','Legacy User']));
    localStorage.setItem('plantDowntime.operatorPins.v1',JSON.stringify({Jan:'8642',Mick:'1234','Legacy User':'7777'}));
@@ -25,6 +26,7 @@ try {
      Daz:{station:'Station 4 · SCRAP',photo,onSite:true},
      Shayne:{station:'Station 5 · SCRAP',photo,onSite:true}
    }}));
+   localStorage.setItem('downtimeRegression.fixtureSeeded.v1','1');
  });
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',r=>r.abort());
  await page.goto('http://127.0.0.1:4174/',{waitUntil:'domcontentloaded'});
