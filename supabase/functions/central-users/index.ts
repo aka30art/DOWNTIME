@@ -45,7 +45,7 @@ Deno.serve(async(req)=>{
   }
   if(action==="create"){
     const username=String(body?.username||"").trim().toLowerCase(),displayName=String(body?.displayName||"").trim(),pin=String(body?.pin||""),tier=String(body?.tier||"");
-    if(!usernamePattern.test(username)||!displayName||displayName.length>80||!/^\\d{4,8}$/.test(pin)||!tiers.includes(tier))return json({error:"Invalid username, display name, password, or tier"},400);
+    if(!usernamePattern.test(username)||!displayName||displayName.length>80||!/^\d{4,8}$/.test(pin)||!tiers.includes(tier))return json({error:"Invalid username, display name, password, or tier"},400);
     const passwordHash=await hashPassword(pin);
     const {data,error}=await admin.from("downtime_app_users").insert({username,display_name:displayName,password_hash:passwordHash,tier,enabled:true}).select("user_id,username,display_name,tier,enabled").single();
     if(error)return json({error:"User creation failed (username may already exist)"},409);
@@ -62,7 +62,7 @@ Deno.serve(async(req)=>{
     if(body?.displayName!==undefined){const name=String(body.displayName).trim();if(!name||name.length>80)return json({error:"Invalid display name"},400);changes.display_name=name;}
     if(body?.tier!==undefined){const tier=String(body.tier);if(!tiers.includes(tier))return json({error:"Invalid tier"},400);changes.tier=tier;}
     if(body?.enabled!==undefined){if(typeof body.enabled!=="boolean")return json({error:"Invalid enabled flag"},400);changes.enabled=body.enabled;}
-    if(body?.pin!==undefined){const password=String(body.password);if(!/^\\d{4,8}$/.test(pin))return json({error:"Password must be 12–256 characters"},400);changes.password_hash=await hashPassword(password);}
+    if(body?.pin!==undefined){const pin=String(body.pin);if(!/^\d{4,8}$/.test(pin))return json({error:"PIN must be 4–8 digits"},400);changes.password_hash=await hashPassword(pin);}
     const {data,error}=await admin.from("downtime_app_users").update(changes).eq("user_id",userId).select("user_id,username,display_name,tier,enabled").single();
     if(error)return json({error:"User update failed"},409);
     if(changes.enabled===false||changes.password_hash||changes.tier)await admin.from("downtime_auth_sessions").update({revoked_at:new Date().toISOString()}).eq("user_id",userId).is("revoked_at",null);
