@@ -30,7 +30,7 @@ select
       'SPECTATOR', jsonb_build_object('canEditTracker',false,'canManageUsers',false,'canManageStaff',false,'canManageSettings',false,'canViewStaff',false,'canViewAssignments',false,'canViewDashboards',false,'canViewReports',false)
     ),
     'staff', jsonb_build_object(
-      'roster', coalesce(s.payload->'staffRoster','[]'::jsonb),
+      'roster', '["Jan","Mick","Gigi","Daz","Shayne"]'::jsonb,
       'profiles', coalesce(s.payload->'operatorProfiles','{}'::jsonb)
     ),
     'statsSource', jsonb_build_object('weeks',coalesce(s.payload->'weeks','{}'::jsonb))
