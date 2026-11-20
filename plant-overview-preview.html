@@ -43,7 +43,6 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
  let authorized=testMode&&(operator==='JAN'||operator==='MICK'),viewerTier='',centralToken=null,centralVersion=0,plantPayload=null,plantSyncBusy=false,plantConnected=false,canViewStaff=true,canViewDashboards=true,canViewAssignments=true;
  const CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';
  try{const session=JSON.parse(sessionStorage.getItem('downtime.central.session.v1')||'null');centralToken=session?.token||null}catch{}
- const authorized = operator === 'JAN' || operator === 'MICK';
  const SB_URL='https://ygwfipksbbprqynvbklk.supabase.co',SB_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';
  let plantClient=null,plantPayload=null,plantSyncBusy=false,plantConnected=false;
  const statusPanel = document.querySelector('.status');
@@ -103,7 +102,7 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
    }
    const start=mins(dayRecord.start),stop=mins(dayRecord.stop),scheduled=(start===null||stop===null)?0:stop-start+(stop<=start?1440:0),net=Math.max(0,scheduled-75);
    const entries=Array.isArray(dayRecord.entries)?dayRecord.entries:[],totalDown=entries.reduce((sum,e)=>sum+Math.max(0,(Number(e.hours)||0)*60+(Number(e.minutes)||0)),0),totalRun=Math.max(0,net-totalDown);
-   const incidents=entries.length,profiles=payload?.staff?.profiles||appData?.operatorProfiles||payload?.operatorProfiles||{},operators=Object.values(profiles).filter(profile=>profile&&profile.onSite!==false&&/^Station\\s*0?([1-6])(?:\\s|$)/i.test(String(profile.station||'')));
+   const incidents=entries.length,profiles=payload?.staff?.profiles||appData?.operatorProfiles||payload?.operatorProfiles||{},operators=Object.values(profiles).filter(profile=>profile&&profile.onSite!==false&&/^Station\s*0?([1-6])(?:\s|$)/i.test(String(profile.station||'')));
    document.getElementById('totalDowntime').textContent=fmtMinutes(totalDown);
    document.getElementById('incidentCount').textContent=String(incidents);
    document.getElementById('availability').textContent=net?((totalRun/net)*100).toFixed(1)+'%':'—';
