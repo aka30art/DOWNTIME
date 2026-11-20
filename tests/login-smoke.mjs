@@ -29,14 +29,14 @@ async function newPage() {
   return page;
 }
 async function enterTeamPin(page) {
-  await page.locator('#teamPin').fill('0123');
+  for (const digit of '0123') await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click();
   await page.locator('#unlockBtn').click();
   await page.waitForFunction(() => document.querySelector('#authGate').style.display === 'none');
   await page.waitForFunction(() => document.querySelector('#operatorGate').style.display === 'grid');
 }
 async function assignOperator(page, pin = '2666', operator = (pin === '1234' ? 'Mick' : 'Jan')) {
   await page.locator(`.operator-choice[data-operator="${operator}"]`).click();
-  await page.locator('#operatorGatePin').fill(pin);
+  for (const digit of pin) await page.locator('[data-pinpad="operatorGatePin"] [data-key="'+digit+'"]').click();
   await page.locator('#operatorContinue').click();
   await page.waitForFunction(() => document.querySelector('#operatorGate').style.display === 'none');
   await page.waitForFunction(() => /LOCAL MODE|LIVE · synced/.test(document.querySelector('#cloudStatus').textContent), { timeout: 15000 });
