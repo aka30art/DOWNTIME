@@ -33,6 +33,10 @@ try{
  assert.equal(await page.locator('#refreshAppBtn').count(),1,'app refresh recovery control should be available');
  await page.locator('#refreshAppBtn').click();
  await page.waitForURL(/refresh=/);
+ await page.waitForFunction(()=>document.querySelector('#authGate').style.display!=='none');
+ for(const d of '0123') await page.locator('[data-pinpad="teamPin"] [data-key="'+d+'"]').click();
+ await page.locator('#unlockBtn').click();
+ await page.waitForFunction(()=>document.querySelector('#operatorGate').style.display==='grid');
  await page.locator('.operator-choice[data-operator="Jan"]').click();
  for(const d of '2666') await page.locator('[data-pinpad="operatorGatePin"] [data-key="'+d+'"]').click();
  await page.locator('#operatorContinue').click();
