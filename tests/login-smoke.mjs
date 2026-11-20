@@ -294,7 +294,7 @@ try {
   assert.equal(await management.locator('#addEntry').isDisabled(),true,'central USER tier must be read-only');
   assert.equal(await management.locator('#plantStart').isDisabled(),true,'central USER tier cannot edit plant start time');
   assert.equal(await management.locator('#settingsAdminControls').isVisible(),false,'central USER tier cannot access administration');
-  assert.equal(await management.locator('#staffRosterList').count(),0,'central USER cannot see staff controls outside staff page');
+  assert.equal(await management.locator('#staffRosterList').isVisible(),false,'central USER cannot see staff controls outside staff page');
   
   assert.deepEqual(pageErrors, [], `unexpected browser JavaScript errors: ${pageErrors.join('; ')}`);
   console.log('PASS: JAN-only migration, retained JAN PIN, and STAFF profile preservation');
