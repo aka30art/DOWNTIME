@@ -63,9 +63,14 @@ Deno.serve(async(req)=>{
  if(action==="get-state"){const publicBank={...bank,users:bank.users.map(safeUser)};if(!priv.canViewStaff){publicBank.staff={roster:[],profiles:{}};const restrictedData={...(publicBank.appData||{})};delete restrictedData.archive;delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}publicBank.appData=restrictedData;publicBank.statsSource={weeks:restrictedData.weeks||{}};}if(!priv.canViewReports&&publicBank.appData){delete publicBank.appData.archive;}return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
  if(action==="save-state"){
    if(!priv.canEditTracker)return json({error:"Permission denied"},403);
-   const incoming=body?.appData;if(!incoming||typeof incoming!=="object")return json({error:"appData required"},400);
-   bank.appData=incoming;bank.statsSource={weeks:incoming.weeks||{}};
-   const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version));
+   const incoming=body?.appData;if(!incoming||typeof incoming!=="object"||Array.isArray(incoming))return json({error:"appData required"},400);
+   const nextAppData={...incoming};
+   if(!priv.canManageSettings){for(const field of ["areas","reasons","quickReasons"]){if(field in (bank.appData||{}))nextAppData[field]=bank.appData[field];}}
+   if(!priv.canManageStaff){nextAppData.operatorProfiles=bank.appData?.operatorProfiles||bank.staff?.profiles||{};nextAppData.staffRoster=bank.appData?.staffRoster||bank.staff?.roster||[];}
+   else{bank.staff.profiles=nextAppData.operatorProfiles||bank.staff.profiles||{};bank.staff.roster=Array.isArray(nextAppData.staffRoster)?nextAppData.staffRoster:(bank.staff.roster||[]);}
+   if(!priv.canViewReports)nextAppData.archive=bank.appData?.archive||[];
+   bank.appData=nextAppData;bank.statsSource={weeks:nextAppData.weeks||{}};
+   const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Version conflict; refresh before saving"},409);
    return json({version:(row?.version||0)+1,updatedAt:new Date().toISOString()});
  }
@@ -104,6 +109,8 @@ Deno.serve(async(req)=>{
    bank.staff.profiles=bank.staff.profiles||{};bank.staff.roster=bank.staff.roster||[];
    bank.staff.profiles[name]={...(bank.staff.profiles[name]||{}),...(body.profile||{}),name};
    if(!bank.staff.roster.includes(name))bank.staff.roster.push(name);
+   bank.appData.operatorProfiles=bank.appData.operatorProfiles||{};bank.appData.operatorProfiles[name]=bank.staff.profiles[name];
+   bank.appData.staffRoster=bank.staff.roster.slice();
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Version conflict"},409);
    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"staff-save",details:{name}});
