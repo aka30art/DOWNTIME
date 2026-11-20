@@ -109,6 +109,9 @@ try{
  assert.equal(owner.getBank().appData.plantOn,false,'Overview plant toggle writes centrally');
  assert.ok(owner.actions.some(x=>x.action==='set-plant-status'),'Overview status change uses the central status action');
  await overviewPage.close();
+ const pollsBefore=owner.actions.filter(x=>x.action==='get-state').length;
+ await owner.page.waitForTimeout(5500);
+ assert.ok(owner.actions.filter(x=>x.action==='get-state').length>pollsBefore,'main tracker automatically polls central state for cross-device changes');
  await owner.page.locator('#manualRefreshBtn').click();
  await owner.page.waitForFunction(()=>document.querySelector('#cloudStatus').textContent.includes('MANUAL REFRESH COMPLETE'),{timeout:5000});
  const transitionAck=owner.page.locator('#plantTransitionAlertHost button');
