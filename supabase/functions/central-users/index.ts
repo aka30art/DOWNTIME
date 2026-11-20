@@ -34,8 +34,8 @@ Deno.serve(async(req)=>{
   if(token.length<40||token.length>512)return json({error:"Session required"},401);
   const tokenHash=await hashToken(token);
   const {data:session,error:sErr}=await admin.from("downtime_auth_sessions").select("session_id,user_id,expires_at,revoked_at,downtime_app_users(user_id,username,display_name,tier,enabled)").eq("token_hash",tokenHash).maybeSingle();
-  if(sErr||!session||session.revoked_at||new Date(session.expires_at)<=new Date()||!session.downtime_app_users?.enabled)return json({error:"Session invalid or expired"},401);
-  const actor=session.downtime_app_users;
+  const linkedUser=session?.downtime_app_users,actor:any=Array.isArray(linkedUser)?linkedUser[0]:linkedUser;
+  if(sErr||!session||session.revoked_at||new Date(session.expires_at)<=new Date()||!actor?.enabled)return json({error:"Session invalid or expired"},401);
   if(!["OWNER","ADMIN"].includes(actor.tier))return json({error:"Administrator permission required"},403);
   const action=body?.action;
   if(action==="list"){
