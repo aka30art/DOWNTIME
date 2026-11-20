@@ -55,6 +55,8 @@ try {
  for(const digit of '8642') await page.locator('[data-pinpad="operatorGatePin"] [data-key="'+digit+'"]').click();
  await page.locator('#operatorContinue').click();
  await page.waitForFunction(()=>document.querySelector('#operatorGate').style.display==='none');
+ assert.equal(await page.locator('#addEntry').isDisabled(),true,'legacy local fallback cannot edit tracker without central account');
+ assert.equal(await page.locator('#plantOperatorToggle').isDisabled(),true,'legacy local fallback cannot toggle plant status');
  await page.locator('.nav[data-view=settings]').click();
  assert.equal(await page.locator('#addOperatorBtn').count(),0,'local USER management controls are removed');
  assert.equal(await page.locator('#centralUserAdminPanel').isVisible(),false,'central USERS administration requires validated central Owner/Admin login');
