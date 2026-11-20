@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const allowedOrigin = "https://aka30art.github.io";
 const corsHeaders = {
   "Access-Control-Allow-Origin": allowedOrigin,
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-app-session",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-app-session, x-owner-bootstrap-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Vary": "Origin",
   "Content-Type": "application/json",
