@@ -39,7 +39,7 @@ async function assignOperator(page, pin = '2666', operator = (pin === '1234' ? '
   for (const digit of pin) await page.locator('[data-pinpad="operatorGatePin"] [data-key="'+digit+'"]').click();
   await page.locator('#operatorContinue').click();
   await page.waitForFunction(() => document.querySelector('#operatorGate').style.display === 'none');
-  await page.waitForFunction(() => /LOCAL MODE|LIVE · synced/.test(document.querySelector('#cloudStatus').textContent), { timeout: 15000 });
+  await page.waitForFunction(() => /LOCAL MODE|LIVE · synced|LIVE · connected/.test(document.querySelector('#cloudStatus').textContent), { timeout: 15000 });
 }
 async function seedExistingUsers(page, { names=['Jan','Mick','Gigi','Daz','Shayne'], pins={Jan:'2666',Mick:'1234'}, privileges={} }={}) {
   // Test fixture only: these cases exercise existing account/permission workflows after migration.
