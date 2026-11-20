@@ -26,4 +26,5 @@ for (const domain of ['USERS','STAFF','Privileges','Settings','Downtime','Plant 
 }
 for (const requirement of ['username-only','No email','opaque high-entropy session tokens','service-role']) {
   assert.ok(audit.toLowerCase().includes(requirement.toLowerCase()), 'audit covers auth requirement: ' + requirement);
+}
 console.log('Username-only central schema contract passed (static checks only).');
