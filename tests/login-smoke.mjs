@@ -192,7 +192,8 @@ try {
   assert.equal(await jan.locator('#staffRosterList > div').count(),5,'central STAFF starts with five operators');
   await jan.locator('#newStaffName').fill('Test Staff Only');
   await jan.locator('#addStaffBtn').click();
-  await jan.waitForFunction(()=>centralPayload.staffRoster.includes('Test Staff Only'));
+  await jan.waitForFunction(()=>document.querySelector('#staffRosterList').textContent.includes('Test Staff Only'));
+  assert.equal(centralPayload.staffRoster.includes('Test Staff Only'),true,'STAFF addition reaches central payload');
   assert.equal(await jan.locator('#staffRosterList > div').count(),6,'STAFF add syncs to central payload');
   assert.equal(centralUsers.some(user=>user.username==='teststaffonly'),false,'STAFF member does not automatically create a USERS account');
 
@@ -227,7 +228,8 @@ try {
   deviceB.on('dialog',dialog=>dialog.accept());
   const staffOnB=deviceB.locator('#staffRosterList > div').filter({hasText:'Test Staff Only'});
   await staffOnB.locator('button.danger').click();
-  await deviceB.waitForFunction(()=>!centralPayload.staffRoster.includes('Test Staff Only'));
+  await deviceB.waitForFunction(()=>document.querySelector('#staffRosterList').textContent.includes('Test Staff Only')===false);
+  assert.equal(centralPayload.staffRoster.includes('Test Staff Only'),false,'STAFF removal reaches central payload');
   const readOnA=await jan.evaluate(()=>centralSyncRequest('read'));
   assert.equal(readOnA.payload.staffRoster.includes('Test Staff Only'),false,'Device A read sees Device B STAFF removal');
   assert.equal(centralUsers.some(user=>user.username==='testuser'),true,'STAFF removal does not delete the separate USERS account');
