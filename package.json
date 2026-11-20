@@ -6,7 +6,7 @@
   "scripts": {
     "test:smoke": "node tests/login-smoke.mjs && node tests/roster-regression.mjs && node tests/overview-toggle.mjs && node tests/plant-transition-alerts.mjs && npm run test:photo-evidence && npm run test:central-bank",
     "test:photo-evidence": "node tests/photo-evidence.mjs",
-    "test:central-bank": "node tests/simple-central-bank-contract.mjs && node tests/central-bank-api-contract.mjs && node tests/central-bank-client-contract.mjs && node tests/central-bank-admin-contract.mjs"
+    "test:central-bank": "node tests/simple-central-bank-contract.mjs && node tests/central-bank-api-contract.mjs && node tests/central-bank-client-contract.mjs && node tests/central-bank-admin-contract.mjs && node tests/central-bank-tracker-contract.mjs"
   },
   "devDependencies": {
     "playwright": "1.56.1"
