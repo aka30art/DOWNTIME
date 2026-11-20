@@ -58,6 +58,7 @@ try {
     const offDialog=page.locator('#overviewPlantAlertHost [role="alertdialog"]');
     await offDialog.waitFor({state:'visible'});
     assert.equal(await offDialog.locator('h2').textContent(),'PLANT OFF','Overview should show OFF popup');
+    assert.equal(await page.locator('#overviewPlantAlertHost').evaluate(el=>getComputedStyle(el).pointerEvents),'none','alert overlay must not block underlying plant controls');
     await plantButton.click(); // OFF -> ON clears OFF popup and displays ON popup
     const onDialog=page.locator('#overviewPlantAlertHost [role="alertdialog"]');
     await onDialog.waitFor({state:'visible'});
