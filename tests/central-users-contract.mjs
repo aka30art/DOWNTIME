@@ -1,0 +1,13 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+const source=fs.readFileSync("supabase/functions/central-users/index.ts","utf8");
+const config=fs.readFileSync("supabase/config.toml","utf8");
+for(const action of ["list","create","update","delete"])assert.ok(source.includes('action==="'+action+'"'),"API action "+action);
+assert.ok(source.includes('["OWNER","ADMIN"].includes(actor.tier)'),"Only OWNER/ADMIN access management");
+assert.ok(source.includes('target.tier==="OWNER"||target.username==="jan"'),"OWNER account protected");
+assert.ok(source.includes("600_000")&&source.includes("PBKDF2"),"Strong password hashing for created/reset passwords");
+assert.ok(source.includes("revoked_at")&&source.includes('is("revoked_at",null)'),"Session revocation is enforced");
+assert.ok(source.includes("downtime_sync_audit"),"User changes are audited");
+assert.ok(!source.toLowerCase().includes("email"),"No email-based workflows");
+assert.ok(config.includes("[functions.central-users]")&&config.includes("verify_jwt = false"),"Function config present");
+console.log("Central users contract checks passed (static checks only).");
