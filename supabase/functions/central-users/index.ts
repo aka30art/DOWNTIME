@@ -56,7 +56,9 @@ Deno.serve(async(req)=>{
     const userId=String(body?.userId||"");
     const {data:target,error:lookupError}=await admin.from("downtime_app_users").select("user_id,username,tier,enabled").eq("user_id",userId).maybeSingle();
     if(lookupError||!target)return json({error:"User not found"},404);
-    if(target.tier==="OWNER"||target.username==="jan")return json({error:"OWNER account is protected"},403);\n    if(target.tier==="ADMIN"&&actor.tier!=="OWNER")return json({error:"ADMIN accounts can only be managed by OWNER"},403);\n    if(userId===session.user_id&&actor.tier!=="OWNER")return json({error:"Self-management is not allowed"},403);
+    if(target.tier==="OWNER"||target.username==="jan")return json({error:"OWNER account is protected"},403);
+    if(target.tier==="ADMIN"&&actor.tier!=="OWNER")return json({error:"ADMIN accounts can only be managed by OWNER"},403);
+    if(userId===session.user_id&&actor.tier!=="OWNER")return json({error:"Self-management is not allowed"},403);
     const changes:any={updated_at:new Date().toISOString()};
     if(body?.username!==undefined){const username=String(body.username).trim().toLowerCase();if(!usernamePattern.test(username))return json({error:"Invalid username"},400);changes.username=username;}
     if(body?.displayName!==undefined){const name=String(body.displayName).trim();if(!name||name.length>80)return json({error:"Invalid display name"},400);changes.display_name=name;}
