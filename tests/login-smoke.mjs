@@ -229,8 +229,7 @@ try {
   const staffOnB=deviceB.locator('#staffRosterList > div').filter({hasText:'Test Staff Only'});
   await staffOnB.locator('button.danger').click();
   await deviceB.waitForFunction(()=>document.querySelector('#staffRosterList').textContent.includes('Test Staff Only')===false);
-  assert.equal(centralPayload.staffRoster.includes('Test Staff Only'),false,'STAFF removal reaches central payload');
-  assert.equal(centralPayload.staffRoster.includes('Test Staff Only'),false,'Device A and Device B share the same backend STAFF collection');
+  assert.equal(centralPayload.staffRoster.includes('Test Staff Only'),false,'Device B removal reaches the shared central STAFF payload');
   assert.equal(centralUsers.some(user=>user.username==='testuser'),true,'STAFF removal does not delete the separate USERS account');
   await deviceB.close();
 
