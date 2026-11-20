@@ -78,6 +78,7 @@ Deno.serve(async (req) => {
     const { data: user, error } = await admin.from("downtime_app_users").select("user_id,username,display_name,password_hash,tier,enabled").eq("username", username).maybeSingle();
     if (error) return json({ error: "Authentication unavailable" }, 503);
     if (!user || !user.enabled || !await verifyPassword(password, user.password_hash)) return json({ error: "Invalid username or password" }, 401);
+    await admin.rpc("downtime_auth_rate_limit_reset", { p_login_key_hash: rateKey });
     const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
     const token = b64(tokenBytes);
     const tokenHash = await digestToken(token);
