@@ -472,9 +472,9 @@ async function centralSyncWrite(){
  return centralSyncQueue
 }
 
-function centralRequest(action,body={},token=centralSession()){return fetch(CENTRAL_AUTH_URL,{method:'POST',headers:{'Content-Type':'application/json',...(token?{'x-app-session':token}:{})},body:JSON.stringify({action,...body})}).then(async r=>{let data={};try{data=await r.json()}catch{}if(!r.ok)throw new Error(data.error||'Request failed');return data})}
-$('centralLoginSwitch').onclick=()=>{$('authGate').querySelector('.authbox').style.display='none';$('centralLoginPanel').style.display='block';$('centralUsername').focus()};
-$('legacyLoginSwitch').onclick=()=>{$('centralLoginPanel').style.display='none';$('authGate').querySelector('.authbox').style.display='block'};
+function centralRequest(action,body={},token=centralSession()){return fetch(CENTRAL_AUTH_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,...(token?{'x-app-session':token}:{})},body:JSON.stringify({action,...body})}).then(async r=>{let data={};try{data=await r.json()}catch{}if(!r.ok)throw new Error(data.error||'Request failed');return data})}
+$('centralLoginSwitch').onclick=()=>{const box=$('authGate').querySelector('.authbox');['h2','p','#teamPin','.pinpad','#unlockBtn','#centralLoginSwitch','#authMsg'].forEach(sel=>{const el=box.querySelector(sel);if(el)el.style.display='none'});$('centralLoginPanel').style.display='block';$('centralUsername').focus()};
+$('legacyLoginSwitch').onclick=()=>{const box=$('authGate').querySelector('.authbox');$('centralLoginPanel').style.display='none';['h2','p','#teamPin','.pinpad','#unlockBtn','#centralLoginSwitch','#authMsg'].forEach(sel=>{const el=box.querySelector(sel);if(el)el.style.display=''})};
 async function centralLogin(){
  const username=$('centralUsername').value.trim().toLowerCase(),pin=$('centralPin').value;
  const btn=$('centralLoginBtn');btn.disabled=true;$('centralLoginMsg').textContent='Signing in…';
