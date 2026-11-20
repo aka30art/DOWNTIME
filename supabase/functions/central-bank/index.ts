@@ -37,11 +37,12 @@ Deno.serve(async(req)=>{
    if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username)||!/^[0-9]{4,8}$/.test(pin))return json({error:"Username 2-32 characters; PIN 4-8 digits required"},400);
    const salt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));
    bank.users=[{username,displayName:username,tier:"OWNER",enabled:true,pinSalt:salt,pinHash:await hashPin(pin,salt)}];
-   const {error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",row?.version||0);
-   if(error)return json({error:"Bootstrap write failed"},500);
+   const {data:bootWrite,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",row?.version||0).select("id").maybeSingle();
+   if(error||!bootWrite)return json({error:"Bootstrap conflict; refresh and retry"},409);
    await db.from("downtime_central_audit").insert({username,action:"bootstrap",details:{}});
    return json({ok:true,message:"Owner account initialized. Sign in."});
  }
+ if(action==="list-users"){return json({users:bank.users.filter((u:any)=>u.enabled!==false).map((u:any)=>({username:u.username,displayName:u.displayName||u.username,tier:u.tier}))});}
  if(action==="login"){
    const username=String(body.username||"").trim(),pin=String(body.pin||"");
    if(pin.length>8||!username)return json({error:"Invalid credentials"},401);
@@ -77,7 +78,7 @@ Deno.serve(async(req)=>{
    const username=String(body.username||"").trim(),displayName=String(body.displayName||username).trim(),newTier=String(body.tier||"USER"),pin=String(body.pin||"");
    if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username)||!tiers.includes(newTier))return json({error:"Invalid user/tier"},400);
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
-   if(idx>=0&&bank.users[idx].tier==="OWNER"&&newTier!=="OWNER"&&tier!=="OWNER")return json({error:"Only OWNER can demote OWNER"},403);
+   if(newTier==="OWNER"&&tier!=="OWNER")return json({error:"Only OWNER can assign OWNER tier"},403);if(idx>=0&&bank.users[idx].tier==="OWNER"&&tier!=="OWNER")return json({error:"Only OWNER can modify OWNER account"},403);
    let user=idx>=0?bank.users[idx]:{username};
    user.username=username;user.displayName=displayName;user.tier=newTier;user.enabled=body.enabled!==false;
    if(pin){if(!/^[0-9]{4,8}$/.test(pin))return json({error:"PIN must be 4-8 digits"},400);user.pinSalt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));user.pinHash=await hashPin(pin,user.pinSalt)}
