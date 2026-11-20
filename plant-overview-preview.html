@@ -67,11 +67,13 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
      if(station)station.textContent=isAssigned?profile.station:'UNASSIGNED';
      const photoBox=card.querySelector('.photo');
      if(photoBox){photoBox.classList.add('staff-photo-zoom');photoBox.onclick=()=>{const image=photoBox.querySelector('img');if(image&&image.src)openStaffPhoto(image.src,image.alt,name);};}
-     if(photoBox&&profile.photo){
+     if(photoBox&&(profile.photo||profile.photoPath)){
        photoBox.innerHTML='';
-       const image=document.createElement('img');image.src=profile.photo;image.alt=name+' operator photo';
+       const image=document.createElement('img');image.alt=name+' operator photo';
        image.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:12px';
+       if(profile.photo)image.src=profile.photo;
        photoBox.appendChild(image);
+       if(!profile.photo&&profile.photoPath&&centralToken)centralCall('staff-photo-read',{path:profile.photoPath}).then(result=>{if(photoBox.contains(image))image.src=result.url}).catch(error=>console.warn('Central staff photo unavailable',error));
      }
    });
    document.querySelectorAll('[data-stationassigned]').forEach(slot=>{const stationNo=Number(slot.dataset.stationassigned);const assigned=Object.entries(profiles).filter(([name,profile])=>{const m=String(profile.station||'').match(/^Station\s*0?([1-6])(?:\s|$)/i);return profile.onSite!==false&&m&&Number(m[1])===stationNo;}).map(([name])=>name.toUpperCase());slot.textContent=assigned.length?assigned.join(', '):'UNASSIGNED';});
