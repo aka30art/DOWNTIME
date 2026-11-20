@@ -10,7 +10,7 @@ assert.ok(auth.includes('username !== "jan"'), "bootstrap identity is locked to 
 assert.ok(auth.includes('action === "login"'), "username login action exists");
 assert.ok(auth.includes('action === "validate"'), "session validation action exists");
 assert.ok(auth.includes('action === "logout"'), "session revocation action exists");
-assert.ok(auth.includes("PBKDF2") && auth.includes("600_000"), "password verifier uses PBKDF2 with strong iteration count");
+assert.ok(auth.includes("PBKDF2") && auth.includes("600_000"), "PIN verifier uses PBKDF2 with strong iteration count");
 assert.ok(auth.includes('downtime_auth_rate_limit'), "login calls rate limiter");
 assert.ok(auth.includes("crypto.getRandomValues"), "session token generated with secure randomness");
 assert.ok(auth.includes('token_hash'), "only token hash is stored");
