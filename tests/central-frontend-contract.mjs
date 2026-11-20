@@ -19,4 +19,10 @@ assert.ok(app.includes("if(centralSessionToken())centralSyncWrite();else syncClo
 assert.ok(app.includes("sessionStorage.setItem('downtime.central.session'"),"central session stored only for current browser session");
 assert.ok(!app.includes("localStorage.setItem('downtime.central.session'"),"central session token is not stored persistently");
 assert.ok(app.includes("'apikey':SB_KEY"),"Supabase function calls include API key header");
-console.log("Central frontend auth/sync contract passed (static checks only).");
+assert.ok(app.includes("centralUsersRequest('update'"),"central account edits use central USERS API");
+assert.ok(app.includes("centralUsersRequest('create'")&&app.includes("centralUsersRequest('delete'"),"central account create/remove use central USERS API");
+assert.ok(!app.includes('id="newOperatorName"')&&!app.includes('id="addOperatorBtn"'),"legacy local user creation UI is removed");
+assert.ok(!app.includes("textContent='User added.'"),"legacy local USER mutation feedback removed");
+assert.ok(app.includes("CENTRAL_CONFLICT_DRAFT_KEY")&&app.includes("attemptedPayload:attempted"),"local edits are backed up on CAS conflict");
+assert.ok(app.includes("exportCentralConflictDraft")&&app.includes("centralConflictExportBtn"),"central conflict draft can be exported for recovery");
+console.log("Central frontend auth/USERS/sync contract passed (static checks only).");
