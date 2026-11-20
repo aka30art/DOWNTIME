@@ -83,8 +83,8 @@ Deno.serve(async(req)=>{
    user.username=username;user.displayName=displayName;user.tier=newTier;user.enabled=body.enabled!==false;
    if(pin){if(!/^[0-9]{4,8}$/.test(pin))return json({error:"PIN must be 4-8 digits"},400);user.pinSalt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));user.pinHash=await hashPin(pin,user.pinSalt)}
    if(idx>=0)bank.users[idx]=user;else{if(!pin)return json({error:"PIN required for new user"},400);bank.users.push(user)}
-   const {error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version));
-   if(error)return json({error:"Version conflict"},409);
+   const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
+   if(error||!write)return json({error:"Version conflict"},409);
    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"user-save",details:{target:username,tier:newTier}});
    return json({ok:true,version:(row?.version||0)+1});
  }
@@ -93,8 +93,8 @@ Deno.serve(async(req)=>{
    const target=String(body.username||"");if(target===currentUser.username)return json({error:"Cannot delete your own account"},400);
    const victim=bank.users.find((u:any)=>u.username===target);if(victim?.tier==="OWNER"&&tier!=="OWNER")return json({error:"OWNER only"},403);
    bank.users=bank.users.filter((u:any)=>u.username!==target);
-   const {error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version));
-   if(error)return json({error:"Version conflict"},409);
+   const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
+   if(error||!write)return json({error:"Version conflict"},409);
    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"user-delete",details:{target}});
    return json({ok:true,version:(row?.version||0)+1});
  }
@@ -104,8 +104,8 @@ Deno.serve(async(req)=>{
    bank.staff.profiles=bank.staff.profiles||{};bank.staff.roster=bank.staff.roster||[];
    bank.staff.profiles[name]={...(bank.staff.profiles[name]||{}),...(body.profile||{}),name};
    if(!bank.staff.roster.includes(name))bank.staff.roster.push(name);
-   const {error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version));
-   if(error)return json({error:"Version conflict"},409);
+   const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
+   if(error||!write)return json({error:"Version conflict"},409);
    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"staff-save",details:{name}});
    return json({ok:true,version:(row?.version||0)+1});
  }
@@ -128,8 +128,8 @@ Deno.serve(async(req)=>{
    if(tier!=="OWNER")return json({error:"OWNER only"},403);
    const proposed=body.tiers;if(!proposed||typeof proposed!=="object")return json({error:"Tiers required"},400);
    bank.tiers=proposed;
-   const {error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version));
-   if(error)return json({error:"Version conflict"},409);
+   const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
+   if(error||!write)return json({error:"Version conflict"},409);
    return json({ok:true,version:(row?.version||0)+1});
  }
  if(action==="logout"){await db.from("downtime_central_sessions").delete().eq("token_hash",tokenHash);return json({ok:true});}
