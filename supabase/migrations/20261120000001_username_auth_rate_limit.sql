@@ -44,3 +44,19 @@ end;
 $$;
 revoke all on function public.downtime_auth_rate_limit(text,integer,integer) from public, anon, authenticated;
 grant execute on function public.downtime_auth_rate_limit(text,integer,integer) to service_role;
+
+create or replace function public.downtime_auth_rate_limit_reset(p_login_key_hash text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if length(p_login_key_hash) <> 44 then return; end if;
+  update public.downtime_auth_attempts
+    set window_started_at=now(),attempt_count=0,blocked_until=null,updated_at=now()
+    where login_key_hash=p_login_key_hash;
+end;
+$$;
+revoke all on function public.downtime_auth_rate_limit_reset(text) from public, anon, authenticated;
+grant execute on function public.downtime_auth_rate_limit_reset(text) to service_role;
