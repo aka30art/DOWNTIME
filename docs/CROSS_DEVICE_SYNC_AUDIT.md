@@ -31,13 +31,13 @@ Other open PRs: #14 Plant Overview exit/fullscreen; #11 post-deploy preview URL 
 8. Media: central storage with authenticated access; photo evidence retention and expiry rules preserved.
 9. Reports/archive: central archive metadata and storage with role-aware access.
 
-## Proposed phased implementation (safe rollout)
-- Phase 0: Audit, baseline inventory, migration design, PR checks. This PR starts Phase 0/1.
-- Phase 1: Additive central schema, optimistic concurrency/versioning, RLS, audit trail, realtime publication, schema tests. No live data migration yet.
-- Phase 2: Supabase Auth, secure Jan-owner bootstrap (requires owner identity and credential set outside source control), tier-aware server authorization, revocation/session controls.
-- Phase 3: App data adapters and realtime subscriptions for USERS, STAFF, settings, tracker state, plant overview, photos and archive. Conflict-safe mutation APIs and explicit offline queue/status.
-- Phase 4: One-time import of device-local data with preview, conflict resolution, and verified backup. Laptop is not automatically assumed to be authoritative; user must choose/confirm source when data differs.
-- Phase 5: Cross-device acceptance tests, RLS tests, migration rollback/backup procedure, CI, merge, deploy, and post-deploy verification.
+## Proposed phased implementation (username-only architecture)
+- Phase 0: Audit main app and production Supabase baseline; document gaps and preserve data.
+- Phase 1: Staged schema for username-only USERS and opaque sessions, central STAFF/config/audit, tracker versioning, deny direct browser access. No production migration.
+- Phase 2: Implement and security-test custom username login, strong password hashing, session issue/validate/revoke, brute-force protection, and Jan OWNER bootstrap.
+- Phase 3: Build server-mediated data APIs with server-side tier enforcement, conflict-safe writes, subscriptions/refresh, and explicit offline queue/status. Do not rely on direct browser DB access.
+- Phase 4: Connect app domains and perform backup/preview-based data migration from devices with explicit conflict resolution.
+- Phase 5: Multi-device acceptance and security testing, CI, rollback plan. Merge/deploy only after separate explicit approval.
 
 ## Critical migration safeguards
 - Never overwrite existing local data silently. Capture/export backup first.
@@ -74,11 +74,3 @@ Other open PRs: #14 Plant Overview exit/fullscreen; #11 post-deploy preview URL 
 - Phase 3: App adapters and realtime sync for USERS, STAFF, settings, tracker, plant overview, photos, and archive; conflict-safe writes and offline queue.
 - Phase 4: Preview/export, backup, and explicit conflict-resolved migration from local data.
 - Phase 5: Cross-device acceptance tests, RLS/API security tests, rollback plan, CI, then separately authorized merge/deploy.
-
-## Critical migration safeguards
-- Never overwrite local data silently; capture/export backup first.
-- No arbitrary last-write-wins for roster/settings conflicts.
-- Never place service-role keys in browser code, Git, logs, or tests.
-- No permissive anonymous access.
-- No production schema rollout or UI cutover until username-only authentication and authorization are tested.
-- Preserve tracker behavior, tier semantics, STAFF/USERS separation, and Jan OWNER/ROOT protection.
