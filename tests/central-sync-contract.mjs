@@ -1,0 +1,17 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+const migration=fs.readFileSync("supabase/migrations/20261120000002_shared_state_cas.sql","utf8");
+const fn=fs.readFileSync("supabase/functions/central-sync/index.ts","utf8");
+assert.match(migration,/downtime_shared_state_cas/);
+assert.match(migration,/for update/i);
+assert.match(migration,/row_version <> p_expected_version/);
+assert.match(migration,/grant execute.*service_role/is);
+assert.match(fn,/x-app-session/);
+assert.match(fn,/validate\(/);
+assert.match(fn,/action==="read"/);
+assert.match(fn,/action==="write"/);
+assert.match(fn,/expectedVersion/);
+assert.match(fn,/currentPayload/);
+assert.match(fn,/\["OWNER","ADMIN","SUPERVISOR"\]/);
+assert.match(fn,/409/);
+console.log("central-sync CAS API contract passed");
