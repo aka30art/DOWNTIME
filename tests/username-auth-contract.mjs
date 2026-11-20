@@ -1,0 +1,28 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+const auth = fs.readFileSync("supabase/functions/username-auth/index.ts", "utf8");
+const config = fs.readFileSync("supabase/config.toml", "utf8");
+const rateLimit = fs.readFileSync("supabase/migrations/20261120000001_username_auth_rate_limit.sql", "utf8");
+assert.ok(auth.includes('action === "bootstrap-owner"'), "one-time Jan OWNER bootstrap action exists");
+assert.ok(auth.includes("DOWNTIME_OWNER_BOOTSTRAP_SECRET"), "bootstrap secret is required");
+assert.ok(auth.includes('username !== "jan"'), "bootstrap identity is locked to Jan");
+assert.ok(auth.includes('action === "login"'), "username login action exists");
+assert.ok(auth.includes('action === "validate"'), "session validation action exists");
+assert.ok(auth.includes('action === "logout"'), "session revocation action exists");
+assert.ok(auth.includes("PBKDF2") && auth.includes("600_000"), "PIN verifier uses PBKDF2 with strong iteration count");
+assert.match(auth, /\\d\{4,8\}/, "PIN is restricted to 4-8 digits");
+assert.ok(auth.includes('downtime_auth_rate_limit'), "login calls rate limiter");
+assert.ok(auth.includes("crypto.getRandomValues"), "session token generated with secure randomness");
+assert.ok(auth.includes('token_hash'), "only token hash is stored");
+assert.ok(auth.includes('revoked_at'), "session revocation supported");
+assert.ok(auth.includes('tier: valid.user.tier'), "server returns tier from central user record");
+assert.ok(auth.includes('enabled'), "disabled-user validation exists");
+assert.ok(auth.includes('https://aka30art.github.io'), "CORS origin is allowlisted");
+assert.ok(!auth.includes("localStorage"), "auth endpoint never stores tokens in localStorage");
+assert.ok(!auth.toLowerCase().includes("email"), "no email identity in endpoint");
+assert.ok(config.includes("[functions.username-auth]") && config.includes("verify_jwt = false"), "custom-session function configured for non-JWT auth");
+assert.ok(rateLimit.includes("attempt_count") && rateLimit.includes("for update"), "rate limiter uses row locking");
+assert.ok(rateLimit.includes("blocked_until"), "rate limiter blocks excess attempts");
+assert.ok(rateLimit.includes("downtime_auth_rate_limit_reset"), "success reset function is defined");
+console.log("Username auth contract checks passed (static checks only).");

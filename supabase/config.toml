@@ -1,2 +1,11 @@
 [functions.spectator-read]
 verify_jwt = true
+
+[functions.username-auth]
+verify_jwt = false
+
+[functions.central-users]
+verify_jwt = false
+
+[functions.central-sync]
+verify_jwt = false

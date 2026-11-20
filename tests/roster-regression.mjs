@@ -55,19 +55,14 @@ try {
  for(const digit of '8642') await page.locator('[data-pinpad="operatorGatePin"] [data-key="'+digit+'"]').click();
  await page.locator('#operatorContinue').click();
  await page.waitForFunction(()=>document.querySelector('#operatorGate').style.display==='none');
+ assert.equal(await page.locator('#addEntry').isDisabled(),true,'legacy local fallback cannot edit tracker without central account');
+ assert.equal(await page.locator('#plantOperatorToggle').isDisabled(),true,'legacy local fallback cannot toggle plant status');
  await page.locator('.nav[data-view=settings]').click();
- await page.locator('#newOperatorName').fill('Regression User');
- await page.locator('#newOperatorInitialPin').fill('7777');
- await page.locator('#addOperatorBtn').click();
- assert.match(await page.locator('#operatorAdminMsg').textContent(),/User added/,'JAN can add a new user after migration');
- assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('plantDowntime.operatorRoster.v1')||'[]')),['Jan','Regression User'],'new USERS entry persists rather than being overwritten by roster reads');
- await page.reload();
- for(const digit of '0123') await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click();
- await page.locator('#unlockBtn').click();
- await page.waitForFunction(()=>document.querySelector('#operatorGate').style.display==='grid');
- assert.deepEqual(await page.locator('.operator-choice').evaluateAll(bs=>bs.map(b=>b.dataset.operator)),['Jan','Regression User'],'new user survives a reload');
+ assert.equal(await page.locator('#addOperatorBtn').count(),0,'local USER management controls are removed');
+ assert.equal(await page.locator('#centralUserAdminPanel').isVisible(),false,'central USERS administration requires validated central Owner/Admin login');
+ assert.equal(await page.locator('#settingsAdminControls').isVisible(),false,'legacy offline login cannot access admin settings');
  assert.deepEqual(errors,[],'no uncaught browser errors');
- console.log('PASS: JAN-only USERS migration; JAN PIN and STAFF profiles preserved; future user additions persist');
+ console.log('PASS: legacy USERS migration, central administration gate, and STAFF profile preservation');
 } finally {
  await browser.close();
  await new Promise(ok=>server.close(ok));
