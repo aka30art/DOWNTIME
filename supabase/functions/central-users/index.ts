@@ -56,11 +56,11 @@ Deno.serve(async(req)=>{
     const userId=String(body?.userId||"");
     const {data:target,error:lookupError}=await admin.from("downtime_app_users").select("user_id,username,tier,enabled").eq("user_id",userId).maybeSingle();
     if(lookupError||!target)return json({error:"User not found"},404);
-    if(target.tier==="OWNER"||target.username==="jan")return json({error:"OWNER account is protected"},403);
+    if(target.tier==="OWNER"||target.username==="jan")return json({error:"OWNER account is protected"},403);\n    if(target.tier==="ADMIN"&&actor.tier!=="OWNER")return json({error:"ADMIN accounts can only be managed by OWNER"},403);
     const changes:any={updated_at:new Date().toISOString()};
     if(body?.username!==undefined){const username=String(body.username).trim().toLowerCase();if(!usernamePattern.test(username))return json({error:"Invalid username"},400);changes.username=username;}
     if(body?.displayName!==undefined){const name=String(body.displayName).trim();if(!name||name.length>80)return json({error:"Invalid display name"},400);changes.display_name=name;}
-    if(body?.tier!==undefined){const tier=String(body.tier);if(!tiers.includes(tier))return json({error:"Invalid tier"},400);changes.tier=tier;}
+    if(body?.tier!==undefined){const tier=String(body.tier);if(!tiers.includes(tier)||(actor.tier==="ADMIN"&&tier==="ADMIN"))return json({error:"Invalid or restricted tier"},400);changes.tier=tier;}
     if(body?.enabled!==undefined){if(typeof body.enabled!=="boolean")return json({error:"Invalid enabled flag"},400);changes.enabled=body.enabled;}
     if(body?.pin!==undefined){const pin=String(body.pin);if(!/^\d{4,8}$/.test(pin))return json({error:"PIN must be 4–8 digits"},400);changes.password_hash=await hashPassword(pin);}
     const {data,error}=await admin.from("downtime_app_users").update(changes).eq("user_id",userId).select("user_id,username,display_name,tier,enabled").single();
