@@ -46,3 +46,13 @@ Other open PRs: #14 Plant Overview exit/fullscreen; #11 post-deploy preview URL 
 - Do not enable permissive anon policies.
 - No live schema rollout or UI cutover until authenticated access is established and tested.
 - Existing tracker behavior, tier semantics, and Jan owner protections must be preserved.
+
+## Remediation progress update — 2026-11-20 18:03 UTC
+- Contract test assertions corrected in commit `67d0b4f8ed4541fe20f3df6b0aa8b3023755b66d`.
+- Verified PR CI run `44789085882` (run #127): completed successfully; smoke job passed, including `test:sync-contract` in the smoke script chain.
+- Verified tracker workflow run `44789085869` (run #377): browser smoke tests passed; deploy/build stages were skipped for this PR branch (no deployment occurred).
+- Supabase live schema inventory rechecked: only existing `downtime_shared_state`, `downtime_reports`, and `downtime_attachments` tables are present. Proposed central users/staff/config/audit tables and tracker version column are NOT live.
+- Live migration list contains no PR #47 proposed migration. No live schema mutation was performed.
+- Existing live Edge Functions are `photo-evidence` and `spectator-read`; no central-sync Auth/provisioning function is present.
+- Authentication implementation is blocked on a product/security decision: keep PIN-style operator login or move to strong email/password (or another strong credential) for Supabase Auth. Short PINs alone are not suitable as standalone internet-facing authentication without an explicitly designed server-side risk-control scheme. Do not create/bootstrap Jan credentials until the owner's identity and credential provisioning method are supplied securely.
+- Remaining work is still Phase 2 Auth/bootstrap, followed by shared-data adapters, realtime/conflict/offline support, migration/backup, and multi-device acceptance testing. CI passing here validates the audit/schema contract—not cross-device functionality.
