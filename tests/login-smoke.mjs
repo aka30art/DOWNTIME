@@ -7,7 +7,7 @@ import { chromium } from 'playwright';
 
 const html = await readFile(resolve('index.html'), 'utf8');
 const overviewHtml = await readFile(resolve('plant-overview-preview.html'), 'utf8');
-[...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)].map(m=>m[1]).filter(s=>s.trim()).forEach((s,i)=>new vm.Script(s,{filename:'inline-script-'+(i+1)+'.js'}));
+[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(s=>s.trim()).forEach((s,i)=>new vm.Script(s,{filename:'inline-script-'+(i+1)+'.js'}));
 const server=createServer((req,res)=>{res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store'});res.end(req.url?.startsWith('/plant-overview-preview.html')?overviewHtml:html)});
 await new Promise((resolveListen,reject)=>{server.once('error',reject);server.listen(4173,'127.0.0.1',resolveListen)});
 const browser=await chromium.launch({headless:true});
