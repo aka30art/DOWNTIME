@@ -464,13 +464,13 @@ async function centralUsersRequest(action,body={}){
  let data={};try{data=await response.json()}catch{}if(!response.ok)throw new Error(data.error||'Central USERS request failed');return data
 }
 async function renderCentralUsers(){
- const panel=$('centralUserAdminPanel');if(!panel)return;panel.style.display=centralSessionToken()&&['OWNER','ADMIN'].includes(centralTierByName[activeOperator])?'block':'none';
+ const panel=$('centralUserAdminPanel');if(!panel)return;panel.style.display=centralSessionToken()&&(activeOperator==='Jan'||centralTierByName[activeOperator]==='ADMIN')?'block':'none';
  if(panel.style.display==='none')return;
  const list=$('centralUserList');list.textContent='Loading central accounts…';
  try{const {users}=await centralUsersRequest('list');list.innerHTML='';(users||[]).forEach(user=>{
   const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px;border-bottom:1px solid #334b5c';
   const text=document.createElement('span');text.textContent=user.display_name+' · '+user.username+' · '+user.tier+' · '+(user.enabled?'ACTIVE':'DISABLED');row.appendChild(text);
-  if(user.tier!=='OWNER'&&user.username!=='jan'){
+  if(user.tier!=='OWNER'&&user.username!=='jan'&&user.username!==String($('centralUsername').value||'').trim().toLowerCase()){
    const edit=document.createElement('button');edit.type='button';edit.textContent='EDIT';edit.onclick=async()=>{const name=prompt('Display name',user.display_name);if(name===null)return;const username=prompt('Username',user.username);if(username===null)return;const tier=prompt('Tier (ADMIN, MANAGER, SUPERVISOR, USER)',user.tier);if(tier===null)return;const pin=prompt('New PIN (leave blank to keep current)');try{await centralUsersRequest('update',{userId:user.user_id,displayName:name,username,tier,...(pin?{pin}:{})});$('centralUserAdminMsg').textContent='Central user updated.';await renderCentralUsers()}catch(e){$('centralUserAdminMsg').textContent=e.message}};
    const toggle=document.createElement('button');toggle.type='button';toggle.textContent=user.enabled?'DISABLE':'ENABLE';toggle.onclick=async()=>{try{await centralUsersRequest('update',{userId:user.user_id,enabled:!user.enabled});await renderCentralUsers()}catch(e){$('centralUserAdminMsg').textContent=e.message}};
    const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='REMOVE';remove.onclick=async()=>{if(!confirm('Remove central user '+user.username+'? This revokes their access.'))return;try{await centralUsersRequest('delete',{userId:user.user_id});await renderCentralUsers()}catch(e){$('centralUserAdminMsg').textContent=e.message}};
