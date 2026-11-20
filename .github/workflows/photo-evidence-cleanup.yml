@@ -8,9 +8,13 @@ permissions:
 jobs:
   cleanup:
     runs-on: ubuntu-24.04
+    env:
+      PHOTO_CLEANUP_SECRET: ${{ secrets.PHOTO_CLEANUP_SECRET }}
+      SUPABASE_FUNCTION_URL: ${{ secrets.SUPABASE_FUNCTION_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
     steps:
       - name: Remove expired evidence
-        if: ${{ secrets.PHOTO_CLEANUP_SECRET != '' }}
+        if: env.PHOTO_CLEANUP_SECRET != ''
         env:
           CLEANUP_SECRET: ${{ secrets.PHOTO_CLEANUP_SECRET }}
           SUPABASE_URL: ${{ secrets.SUPABASE_FUNCTION_URL }}
