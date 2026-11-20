@@ -19,7 +19,7 @@ try {
     await page.goto('http://127.0.0.1:4174/plant-overview-preview.html?operator=' + encodeURIComponent(operator) + '&test=1', { waitUntil: 'domcontentloaded' });
     return page;
   }
-  for (const operator of ['JAN', 'MICK']) {
+  for (const operator of ['JAN']) {
     const page = await open(operator);
     const button = page.locator('#plantToggle');
     assert.equal(await button.isVisible(), true, operator + ' must have toggle access');
@@ -32,7 +32,7 @@ try {
     assert.equal(await button.textContent(), 'TURN PLANT OFF');
     await page.close();
   }
-  for (const operator of ['GIGI', 'DAZ', 'SHAYNE', 'SPECTATOR', '']) {
+  for (const operator of ['MICK', 'GIGI', 'DAZ', 'SHAYNE', 'OLD USER', '']) {
     const page = await open(operator);
     assert.equal(await page.locator('#plantToggle').isVisible(), false, operator + ' should be read-only');
     assert.equal(await page.locator('#plantLabel').textContent(), 'PLANT ON', 'read-only view should show initial sample status');
@@ -67,7 +67,7 @@ try {
     assert.equal(await page.locator('#overviewPlantAlertHost').count(),0,'ON popup automatically closes after ten seconds');
     await page.close();
   }
-  console.log('PASS: JAN/MICK plant toggle, restricted roles, exit Overview, fullscreen, and status popup auto-dismiss.');
+  console.log('PASS: JAN-only plant toggle, restricted roles, exit Overview, fullscreen, and status popup auto-dismiss.');
 } finally {
   await browser.close();
   await new Promise(resolveClose => server.close(resolveClose));
