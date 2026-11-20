@@ -43,8 +43,6 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
  let authorized=testMode&&(operator==='JAN'||operator==='MICK'),viewerTier='',centralToken=null,centralVersion=0,plantPayload=null,plantSyncBusy=false,plantConnected=false,canViewStaff=true,canViewDashboards=true,canViewAssignments=true;
  const CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';
  try{const session=JSON.parse(sessionStorage.getItem('downtime.central.session.v1')||'null');centralToken=session?.token||null}catch{}
- const SB_URL='https://ygwfipksbbprqynvbklk.supabase.co',SB_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';
- let plantClient=null,plantPayload=null,plantSyncBusy=false,plantConnected=false;
  const statusPanel = document.querySelector('.status');
  const toggle = document.getElementById('plantToggle');
  const note = document.getElementById('plantControlNote');
