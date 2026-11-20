@@ -59,11 +59,49 @@ create policy "downtime_app_users_self_or_admin_read" on public.downtime_app_use
   for select to authenticated
   using (user_id = auth.uid() or (auth.jwt()->'app_metadata'->>'tier') in ('OWNER','ADMIN'));
 
+-- Split write policies to protect OWNER and ADMIN accounts from privilege escalation.
+-- ADMIN may manage ordinary tiers only; OWNER may manage every non-OWNER profile.
 drop policy if exists "downtime_app_users_admin_manage" on public.downtime_app_users;
-create policy "downtime_app_users_admin_manage" on public.downtime_app_users
-  for all to authenticated
-  using ((auth.jwt()->'app_metadata'->>'tier') in ('OWNER','ADMIN'))
-  with check ((auth.jwt()->'app_metadata'->>'tier') in ('OWNER','ADMIN'));
+drop policy if exists "downtime_app_users_admin_insert" on public.downtime_app_users;
+drop policy if exists "downtime_app_users_admin_update" on public.downtime_app_users;
+drop policy if exists "downtime_app_users_admin_delete" on public.downtime_app_users;
+
+create policy "downtime_app_users_admin_insert" on public.downtime_app_users
+  for insert to authenticated
+  with check (
+    (auth.jwt()->'app_metadata'->>'tier') = 'OWNER'
+    or (
+      (auth.jwt()->'app_metadata'->>'tier') = 'ADMIN'
+      and tier not in ('OWNER','ADMIN')
+    )
+  );
+
+create policy "downtime_app_users_admin_update" on public.downtime_app_users
+  for update to authenticated
+  using (
+    (auth.jwt()->'app_metadata'->>'tier') = 'OWNER'
+    or (
+      (auth.jwt()->'app_metadata'->>'tier') = 'ADMIN'
+      and tier not in ('OWNER','ADMIN')
+    )
+  )
+  with check (
+    (auth.jwt()->'app_metadata'->>'tier') = 'OWNER'
+    or (
+      (auth.jwt()->'app_metadata'->>'tier') = 'ADMIN'
+      and tier not in ('OWNER','ADMIN')
+    )
+  );
+
+create policy "downtime_app_users_admin_delete" on public.downtime_app_users
+  for delete to authenticated
+  using (
+    (auth.jwt()->'app_metadata'->>'tier') = 'OWNER'
+    or (
+      (auth.jwt()->'app_metadata'->>'tier') = 'ADMIN'
+      and tier not in ('OWNER','ADMIN')
+    )
+  );
 
 drop policy if exists "downtime_staff_authenticated_read" on public.downtime_staff;
 create policy "downtime_staff_authenticated_read" on public.downtime_staff
