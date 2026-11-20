@@ -350,6 +350,7 @@ function renderWeeklyIntelligence(){const totals=week().days.map(calc),down=tota
 $('addEntry').onclick=()=>{if(!operatorReadOnly)openEntry()};$('cancelEntry').onclick=closeEntry;
 // PHOTO EVIDENCE — optional, private signed-upload workflow (24h expiry)
 let photoDraft=null, photoExisting=null, photoEntryKey=null, photoUploading=false, photoRemoved=false;
+let SB_URL='https://ygwfipksbbprqynvbklk.supabase.co', SB_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';
 const PHOTO_ENDPOINT=SB_URL+'/functions/v1/photo-evidence';
 function photoStatus(t){$('photoStatus').textContent=t}
 function photoShowPreview(url){$('photoPreview').src=url;$('photoPreviewWrap').style.display='block'}
@@ -405,7 +406,7 @@ function renderLocalArchive(){let a=state.archive||[];$('reportsList').innerHTML
 
 
 // SUPABASE LIVE SYNC
-const SB_URL='https://ygwfipksbbprqynvbklk.supabase.co',SB_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';
+// Supabase constants initialized above to support photo endpoint; retained shared client configuration.
 let sb=null;
 function loadSupabaseClient(){
  if(sb)return Promise.resolve(sb);
