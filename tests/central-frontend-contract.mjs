@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 const app=fs.readFileSync("index.html","utf8");
-assert.ok(app.includes("centralLoginPanel"),"central account login UI exists");
+assert.ok(app.includes("centralLoginPanel"),"central account login UI exists");\nassert.equal((app.match(/function centralSessionToken\\(\\)/g)||[]).length,1,"central token helper is defined once");\nassert.ok(!app.includes("let centralSessionToken=''"),"no duplicate token declaration");
 assert.ok(app.includes("centralUsername")&&app.includes("centralPin"),"username and PIN inputs exist");
 assert.ok(app.includes("centralRequest('login'"),"login calls username-auth endpoint");
-assert.ok(app.includes("centralSyncLoad()"),"central login loads shared data");
+assert.ok(app.includes("centralSyncLoad()"),"central login loads shared data");\nassert.ok(app.includes("enforceOperatorMode();render();"),"central login immediately applies tier restrictions");\nassert.ok(app.includes("centralUserAdminPanel"),"central user management panel is present");\nassert.ok(app.includes("centralUsersRequest('create'"),"central add-user action calls the server");\nassert.ok(app.includes("centralUsersRequest('delete'"),"central remove-user action calls the server");
 assert.ok(app.includes("centralSyncRequest('read')"),"central shared state read endpoint is used");
 assert.ok(app.includes("centralSyncRequest('write'"),"central shared state write endpoint is used");
 assert.ok(app.includes("expectedVersion")&&app.includes("centralVersion"),"versioned write contract is used");
