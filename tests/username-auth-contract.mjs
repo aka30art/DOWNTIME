@@ -20,4 +20,5 @@ assert.ok(!auth.toLowerCase().includes("email"), "no email identity in endpoint"
 assert.ok(config.includes("[functions.username-auth]") && config.includes("verify_jwt = false"), "custom-session function configured for non-JWT auth");
 assert.ok(rateLimit.includes("attempt_count") && rateLimit.includes("for update"), "rate limiter uses row locking");
 assert.ok(rateLimit.includes("blocked_until"), "rate limiter blocks excess attempts");
+assert.ok(rateLimit.includes("downtime_auth_rate_limit_reset"), "success reset function is defined");
 console.log("Username auth contract checks passed (static checks only).");
