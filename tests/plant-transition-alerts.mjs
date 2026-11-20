@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 const html=await readFile('index.html','utf8');
 const overview=await readFile('plant-overview-preview.html','utf8');
 const api=await readFile('supabase/functions/central-bank/index.ts','utf8');
-const scripts=[...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)].map(m=>m[1]).filter(s=>s.trim()).join('\\n');
+const scripts=html;
 
 for(const [needle,label] of [
  ['function showPlantTransitionAlert(plantOn,updatedAt)','plant transition alert exists'],
