@@ -44,10 +44,13 @@ async function assignOperator(page, pin = '2666', operator = (pin === '1234' ? '
 async function seedExistingUsers(page, { names=['Jan','Mick','Gigi','Daz','Shayne'], pins={Jan:'2666',Mick:'1234'}, privileges={} }={}) {
   // Test fixture only: these cases exercise existing account/permission workflows after migration.
   await page.addInitScript(({names,pins,privileges}) => {
-    localStorage.setItem('plantDowntime.usersJanOnly.v1','1');
-    localStorage.setItem('plantDowntime.operatorRoster.v1',JSON.stringify(names));
-    localStorage.setItem('plantDowntime.operatorPins.v1',JSON.stringify(pins));
-    localStorage.setItem('plantDowntime.operatorPrivileges.v1',JSON.stringify(privileges));
+    const migration='plantDowntime.usersJanOnly.v1';
+    if(!localStorage.getItem(migration)) {
+      localStorage.setItem('plantDowntime.operatorRoster.v1',JSON.stringify(names));
+      localStorage.setItem('plantDowntime.operatorPins.v1',JSON.stringify(pins));
+      localStorage.setItem('plantDowntime.operatorPrivileges.v1',JSON.stringify(privileges));
+      localStorage.setItem(migration,'1');
+    }
   }, {names,pins,privileges});
 }
 
