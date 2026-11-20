@@ -28,11 +28,12 @@ function makeBank(){
  return {appData:{weeks:{},areas:['Feeder'],reasons:['Blockage'],quickReasons:['Blockage'],archive:[],plantOn:true},users:[],tiers,staff:{roster:Object.keys(profiles),profiles},statsSource:{weeks:{}}};
 }
 async function openFor(tier,pin='2468'){
- const page=await browser.newPage();
+ const context=await browser.newContext();
+ const page=await context.newPage();
  page.on('pageerror',e=>errors.push(e.message));
  let bank=makeBank(),version=1,token='central-session-'+tier;
  const actions=[];
- await page.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank',async route=>{
+ await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank',async route=>{
   const req=route.request().postDataJSON(),action=req.action;
   actions.push({action,body:req});
   const ok=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
@@ -58,13 +59,19 @@ async function openFor(tier,pin='2468'){
    version++;
    return ok({version,updatedAt:new Date().toISOString()});
   }
+  if(action==='set-plant-status'){
+   if(!tiers[tier].canEditTracker)return ok({error:'Permission denied'},403);
+   if(Number(req.version)!==version)return ok({error:'Version conflict; refresh before changing plant status'},409);
+   bank.appData.plantOn=req.plantOn;version++;
+   return ok({version,updatedAt:new Date().toISOString()});
+  }
   if(action==='logout')return ok({ok:true});
   return ok({error:'Unknown action'},400);
  });
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
- return {page,actions,getBank:()=>bank,getVersion:()=>version};
+ return {context,page,actions,getBank:()=>bank,getVersion:()=>version};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
 async function signIn(page,pin='2468'){
@@ -83,7 +90,7 @@ try{
  await rejected.page.locator('#unlockBtn').click();
  await rejected.page.waitForFunction(()=>document.querySelector('#authMsg').textContent.includes('Invalid username or PIN'),{timeout:5000});
  assert.equal(await rejected.page.locator('#authGate').isVisible(),true,'bad PIN must keep central login gate open');
- await rejected.page.close();
+ await rejected.context.close();
 
  // OWNER login and central versioned persistence.
  const owner=await openFor('OWNER');
@@ -93,6 +100,15 @@ try{
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').isVisible(),true,'OWNER can view reports');
  assert.equal(await owner.page.locator('.overview-link').isVisible(),true,'OWNER can view Plant Overview');
  assert.equal(await owner.page.locator('#addEntry').isDisabled(),false,'OWNER can edit tracker');
+ const [overviewPage]=await Promise.all([owner.context.waitForEvent('page'),owner.page.locator('.overview-link').click()]);
+ await overviewPage.waitForLoadState('domcontentloaded');
+ await overviewPage.waitForFunction(()=>document.querySelector('#plantControlNote')?.textContent.includes('LIVE SYNC'),{timeout:5000});
+ assert.equal(await overviewPage.locator('#plantToggle').isVisible(),true,'OWNER receives plant toggle access in the authenticated Overview tab');
+ await overviewPage.locator('#plantToggle').click();
+ await overviewPage.waitForTimeout(150);
+ assert.equal(owner.getBank().appData.plantOn,false,'Overview plant toggle writes centrally');
+ assert.ok(owner.actions.some(x=>x.action==='set-plant-status'),'Overview status change uses the central status action');
+ await overviewPage.close();
  await owner.page.locator('.nav[data-view="settings"]').click();
  await owner.page.locator('#newAreaPreset').fill('Central Sync Test');
  await owner.page.locator('#addAreaPresetBtn').click();
@@ -103,7 +119,7 @@ try{
  assert.equal(owner.getVersion(),2,'central write must advance the compare-and-swap version');
  await owner.page.locator('#logoutBtn').click();
  await owner.page.waitForFunction(()=>document.querySelector('#authGate').style.display!=='none');
- await owner.page.close();
+ await owner.context.close();
 
  // USER is fully informed but cannot edit or submit anything.
  const user=await openFor('USER','2468');
@@ -113,7 +129,7 @@ try{
  assert.equal(await user.page.locator('.nav[data-view="reports"]').isVisible(),true,'USER can see reports');
  assert.equal(await user.page.locator('.overview-link').isVisible(),true,'USER can see Plant Overview');
  assert.notEqual(await user.page.locator('.weeklyKpis').evaluate(el=>getComputedStyle(el).display),'none','USER can see dashboards');
- await user.page.close();
+ await user.context.close();
 
  // SUPERVISOR can edit tracker data but not manage users or STAFF.
  const supervisor=await openFor('SUPERVISOR','2468');
@@ -122,7 +138,7 @@ try{
  assert.equal(await supervisor.page.locator('#newStaffName').isVisible().catch(()=>false),false,'STAFF editing is not exposed before selecting STAFF view');
  await supervisor.page.locator('.nav[data-view="staff"]').click();
  assert.equal(await supervisor.page.locator('#addStaffBtn').isEnabled(),false,'SUPERVISOR cannot add STAFF');
- await supervisor.page.close();
+ await supervisor.context.close();
 
  // SPECTATOR receives no staff/assignment/dashboard/report surfaces.
  const spectator=await openFor('SPECTATOR','2468');
@@ -132,7 +148,7 @@ try{
  assert.equal(await spectator.page.locator('.overview-link').isVisible(),false,'SPECTATOR cannot view assignments overview');
  assert.equal(await spectator.page.locator('.weeklyKpis').evaluate(el=>getComputedStyle(el).display),'none','SPECTATOR cannot view dashboards');
  assert.equal(await spectator.page.locator('#addEntry').isDisabled(),true,'SPECTATOR is read-only');
- await spectator.page.close();
+ await spectator.context.close();
 
  assert.deepEqual(errors,[],'no browser JavaScript errors');
  console.log('PASS: central username/PIN authentication and invalid PIN rejection');
