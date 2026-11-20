@@ -56,3 +56,10 @@ Other open PRs: #14 Plant Overview exit/fullscreen; #11 post-deploy preview URL 
 - Existing live Edge Functions are `photo-evidence` and `spectator-read`; no central-sync Auth/provisioning function is present.
 - Authentication implementation is blocked on a product/security decision: keep PIN-style operator login or move to strong email/password (or another strong credential) for Supabase Auth. Short PINs alone are not suitable as standalone internet-facing authentication without an explicitly designed server-side risk-control scheme. Do not create/bootstrap Jan credentials until the owner's identity and credential provisioning method are supplied securely.
 - Remaining work is still Phase 2 Auth/bootstrap, followed by shared-data adapters, realtime/conflict/offline support, migration/backup, and multi-device acceptance testing. CI passing here validates the audit/schema contract—not cross-device functionality.
+
+## Phase 2 Auth foundation — staged implementation (2026-11-20)
+- Added staged Supabase Edge Function source: `supabase/functions/admin-user-invite/index.ts`. It requires bearer JWT, validates the session with Auth, restricts caller to OWNER/ADMIN claims, only OWNER may assign ADMIN, and invitations cannot assign OWNER. Provisioning uses server-only `SUPABASE_SECRET_KEY`; rollback deletes a newly invited user if metadata assignment fails.
+- Configured `verify_jwt = true` for the function in `supabase/config.toml`.
+- Added Auth invite contract test `tests/auth-invite-contract.mjs` and wired it into the smoke pipeline.
+- This is source/CI groundwork only: function is NOT deployed; no secrets set; no Auth configuration changed; no users invited; no production schema changes. CORS is currently restricted to the GitHub Pages origin. Before deployment, configure required server secrets and redirect allowlist, confirm email-based account login, and complete owner bootstrap/security review.
+- Function's authorization relies on server-managed `app_metadata.tier`; no tier may be set through user-editable metadata. A server-side role claims audit and RLS policy review remain required before integration.
