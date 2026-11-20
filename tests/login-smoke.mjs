@@ -129,16 +129,16 @@ try {
 
   // STAFF: presence, station and photo management moved from Settings. Off-site affects plant assignment only, never login access.
   await jan.locator('.nav[data-view=staff]').click();
-  assert.equal(await jan.locator('#staffRosterList > div').count(), 7, 'STAFF should include app operators plus Gigi, Daz and Shayne');
+  assert.equal(await jan.locator('#staffRosterList > div').count(), 5, 'STAFF should contain the five canonical operators');
   for (const staffName of ['Gigi','Daz','Shayne']) assert.equal(await jan.locator('#staffRosterList > div').filter({hasText:staffName}).count(), 1, `${staffName} should be present in STAFF`);
   await jan.locator('#newStaffName').fill('Test Staff Only');
   await jan.locator('#addStaffBtn').click();
-  assert.equal(await jan.locator('#staffRosterList > div').count(), 8, 'STAFF-only add should increase staff roster');
-  assert.equal(await jan.locator('#operatorRosterList > div').count(), 4, 'STAFF-only member must not appear in app-user Settings');
+  assert.equal(await jan.locator('#staffRosterList > div').count(), 6, 'STAFF-only add should increase staff roster');
+  assert.equal(await jan.locator('#operatorRosterList > div').count(), 5, 'STAFF-only member must not appear in app-user Settings');
   assert.equal(await jan.locator('.operator-choice[data-operator="Test Staff Only"]').count(), 0, 'STAFF-only member must not be an app login');
   const staffOnlyRow=jan.locator('#staffRosterList > div').filter({hasText:'Test Staff Only'});
   await staffOnlyRow.locator('button.danger').click();
-  assert.equal(await jan.locator('#staffRosterList > div').count(), 7, 'STAFF-only remove should reduce staff roster');
+  assert.equal(await jan.locator('#staffRosterList > div').count(), 5, 'STAFF-only remove should reduce staff roster');
   // Re-create the test app account before testing the separation between Settings and STAFF.
   await jan.locator('.nav[data-view=settings]').click();
   await jan.locator('#newOperatorName').fill('Test Operator');
@@ -148,7 +148,7 @@ try {
   await jan.locator('.nav[data-view=staff]').click();
   await jan.locator('#newStaffName').fill('Test Operator');
   await jan.locator('#addStaffBtn').click();
-  assert.equal(await jan.locator('#staffRosterList > div').count(), 8, 'app-user name can be added independently to STAFF');
+  assert.equal(await jan.locator('#staffRosterList > div').count(), 6, 'app-user name can be added independently to STAFF');
   await jan.locator('.nav[data-view=settings]').click();
   const appUserRow=jan.locator('#operatorRosterList > div').filter({hasText:'Test Operator'});
   assert.equal(await appUserRow.count(), 1, 'test app user should still be present before removal');
