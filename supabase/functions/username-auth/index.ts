@@ -71,6 +71,10 @@ Deno.serve(async (req) => {
     const username = String(body?.username || "").trim().toLowerCase();
     const password = String(body?.password || "");
     if (!/^[a-z0-9._-]{3,32}$/.test(username) || password.length < 1 || password.length > 256) return json({ error: "Invalid username or password" }, 400);
+    const rateKey = await digestToken("downtime-login:" + username);
+    const { data: permitted, error: rateError } = await admin.rpc("downtime_auth_rate_limit", { p_login_key_hash: rateKey, p_max_attempts: 5, p_window_seconds: 900 });
+    if (rateError) return json({ error: "Authentication unavailable" }, 503);
+    if (permitted !== true) return json({ error: "Too many login attempts. Try again later." }, 429);
     const { data: user, error } = await admin.from("downtime_app_users").select("user_id,username,display_name,password_hash,tier,enabled").eq("username", username).maybeSingle();
     if (error) return json({ error: "Authentication unavailable" }, 503);
     if (!user || !user.enabled || !await verifyPassword(password, user.password_hash)) return json({ error: "Invalid username or password" }, 401);
