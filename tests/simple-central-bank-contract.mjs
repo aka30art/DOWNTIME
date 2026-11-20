@@ -11,6 +11,6 @@ assert.ok(sql.includes("'staff'"), 'central payload contains staff');
 assert.ok(sql.includes("'statsSource'"), 'central payload contains stats inputs');
 assert.ok(sql.includes('on conflict (id) do nothing'), 'seed is non-overwriting');
 assert.ok(sql.includes('revoke all on public.downtime_central_bank from anon, authenticated'), 'bank is not exposed directly to browser roles');
-assert.ok(docs.includes('Never store PINs in plaintext'), 'PIN security requirement documented');
-assert.ok(docs.includes('Release gate'), 'deployment gate documented');
+assert.ok(docs.includes('PINs are never stored in plaintext'), 'PIN security requirement documented');
+assert.ok(docs.includes('Acceptance gate before merge or deployment'), 'deployment gate documented');
 console.log('Simple central database contract checks passed (static checks only).');
