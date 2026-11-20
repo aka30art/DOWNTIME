@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:smoke": "node tests/login-smoke.mjs && node tests/roster-regression.mjs && node tests/overview-toggle.mjs && node tests/plant-transition-alerts.mjs && npm run test:photo-evidence && npm run test:sync-contract",
+    "test:smoke": "node tests/login-smoke.mjs && node tests/roster-regression.mjs && node tests/overview-toggle.mjs && node tests/plant-transition-alerts.mjs && npm run test:photo-evidence && npm run test:sync-contract && npm run test:username-auth-contract",
     "test:photo-evidence": "node tests/photo-evidence.mjs",
     "test:sync-contract": "node tests/cross-device-sync-contract.mjs"
   },
