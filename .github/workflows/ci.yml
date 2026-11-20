@@ -15,6 +15,8 @@ jobs:
           node-version: 22
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x\n      - run: npm install --no-audit --no-fund\n      - run: deno check supabase/functions/username-auth/index.ts supabase/functions/central-users/index.ts supabase/functions/central-sync/index.ts
+          deno-version: v2.x
+      - run: npm install --no-audit --no-fund
+      - run: deno check supabase/functions/username-auth/index.ts supabase/functions/central-users/index.ts supabase/functions/central-sync/index.ts
       - run: npx playwright install chromium
       - run: npm run test:smoke
