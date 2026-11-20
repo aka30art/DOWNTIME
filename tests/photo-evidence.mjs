@@ -6,6 +6,8 @@ const fn=await readFile('supabase/functions/photo-evidence/index.ts','utf8');
 const migration=await readFile('supabase/migrations/20261120010000_photo_evidence.sql','utf8');
 const workflow=await readFile('.github/workflows/photo-evidence-cleanup.yml','utf8');
 
+assert.match(html,/let SB_URL='https:\/\/ygwfipksbbprqynvbklk\.supabase\.co'/,'Supabase constants are initialized before photo endpoint use');
+assert.doesNotMatch(html,/const SB_URL=/,'No duplicate Supabase constants declaration remains');
 assert.match(html,/id="photoInput" type="file" accept="image\/\*" capture="environment"/,'Mobile camera/gallery file input exists');
 assert.match(html,/PHOTO EVIDENCE \(OPTIONAL · 24 HOURS\)/,'Photo is explicitly optional and time-limited');
 assert.match(html,/function photoCompress\(file\)/,'Client-side image compression function exists');
