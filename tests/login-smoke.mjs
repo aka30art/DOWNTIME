@@ -220,8 +220,8 @@ try {
   }));
   await cloud.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await enterTeamPin(cloud);
-  await assignOperator(cloud, '1234');
-  assert.match(await cloud.locator('#dayHeading').textContent(), /OPERATOR: Mick/, 'cloud-enabled session should still complete operator login');
+  await assignOperator(cloud, '2666', 'Jan');
+  assert.match(await cloud.locator('#dayHeading').textContent(), /OPERATOR: Jan/, 'cloud-enabled legacy Jan session should still complete operator login');
   assert.equal(await cloud.locator('#manualRefreshBtn').count(), 1, 'cloud-connected standard roles should see manual Refresh');
   assert.match(await cloud.locator('#lastSync').textContent(), /Last successful refresh ·/, 'initial cloud load should record last successful refresh time');
   const cloudReadsBeforeManual = await cloud.evaluate(() => window.__cloudRefreshReads);
@@ -269,32 +269,33 @@ try {
   await assignOperator(cloudFailure, '2666');
   assert.equal(await cloudFailure.locator('#operatorGate').isVisible(), false, 'local access must survive cloud auth rejection');
 
-  // Read Only – Management: new remote downtime records notify the manager, without write access.
+  // Central USER tier is authenticated from USERS and remains read-only.
   const management = await newPage();
-  await seedExistingUsers(management,{names:['Jan','Mick'],privileges:{Mick:'Read Only - Management'}});
-  await management.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
-    status: 200, contentType: 'application/javascript',
-    body: `window.__managementPayload = { weeks: {}, areas: [], reasons: [], archive: [] }; window.__managementCallback = null; window.supabase = { createClient: () => ({ auth: { signInAnonymously: async () => ({ error: null }) }, from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { payload: window.__managementPayload }, error: null }) }) }), upsert: async () => ({ error: null }) }), channel: () => ({ on: (_event, _filter, callback) => { window.__managementCallback = callback; return { subscribe: cb => { if (cb) cb('SUBSCRIBED'); return this; } }; } }) }) };`
-  }));
-  await management.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await enterTeamPin(management);
-  await assignOperator(management, '1234', 'Mick');
-  await management.waitForTimeout(300); // Allow the login sync write to finish before the simulated realtime event.
-  assert.equal(await management.locator('#addEntry').isDisabled(), true, 'management role must be read-only');
-  await management.evaluate(() => {
-    const now=new Date(), monday=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-    monday.setDate(monday.getDate()-((monday.getDay()+6)%7));
-    const iso=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
-    const weekKey=iso(monday),days=Array.from({length:6},(_,i)=>{const d=new Date(monday);d.setDate(d.getDate()+i);return {date:iso(d),start:'06:30',stop:'17:00',startLocked:false,entries:[]}});
-    days[0].entries.push({area:'Feeder',reason:'New notification test',hours:1,minutes:5});
-    const payload={weeks:{[weekKey]:{days}},areas:[],reasons:[],archive:[]};
-    window.__managementCallback?.({new:{payload}});
+  await management.route('**/functions/v1/username-auth',async route=>{
+    const body=route.request().postDataJSON()||{},user={username:'mick',displayName:'Mick',tier:'USER'};
+    if(body.action==='login')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({token:'m'.repeat(48),user})});
+    if(body.action==='validate')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({user})});
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true})});
   });
-  await management.waitForFunction(() => document.body.textContent.includes('NEW DOWNTIME RECORDED'), { timeout: 5000 });
-  assert.match(await management.locator('#managementNotificationHost').textContent(), /Feeder.*New notification test.*01:05/s, 'toast should show the new entry detail');
-  // Spectator is no longer an app user and cannot be selected from the login gate.
-  assert.equal(await management.locator('.operator-choice[data-operator="Spectator"]').count(),0,'Spectator is absent from app login choices');
-  await management.close();
+  let userPayload={weeks:{},areas:[],reasons:[],archive:[],staffRoster:['Jan','Mick','Gigi','Daz','Shayne'],operatorProfiles:{}};
+  let userVersion=1;
+  await management.route('**/functions/v1/central-sync',async route=>{
+    const body=route.request().postDataJSON()||{};
+    if(body.action==='read')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({payload:userPayload,version:userVersion})});
+    if(body.action==='write'){userPayload=body.payload;userVersion++;return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,payload:userPayload,version:userVersion})});}
+    return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({error:'Unknown sync action'})});
+  });
+  await management.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
+  await management.locator('#centralLoginSwitch').click();
+  await management.locator('#centralUsername').fill('mick');
+  await management.locator('#centralPin').fill('1234');
+  await management.locator('#centralLoginBtn').click();
+  await management.waitForFunction(()=>document.querySelector('#authGate').style.display==='none');
+  assert.equal(await management.locator('#addEntry').isDisabled(),true,'central USER tier must be read-only');
+  assert.equal(await management.locator('#plantStart').isDisabled(),true,'central USER tier cannot edit plant start time');
+  assert.equal(await management.locator('#settingsAdminControls').isVisible(),false,'central USER tier cannot access administration');
+  assert.equal(await management.locator('#staffRosterList').count(),0,'central USER cannot see staff controls outside staff page');
+  
   assert.deepEqual(pageErrors, [], `unexpected browser JavaScript errors: ${pageErrors.join('; ')}`);
   console.log('PASS: JAN-only migration, retained JAN PIN, and STAFF profile preservation');
   console.log('PASS: independent app-user add/remove workflows after migration');
