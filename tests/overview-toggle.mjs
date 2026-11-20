@@ -50,7 +50,24 @@ try {
     assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('overview-fullscreen')),false,'fullscreen turns off');
     await page.close();
   }
-  console.log('PASS: JAN/MICK plant toggle, restricted roles, exit Overview, and fullscreen controls.');
+  // Overview plant alerts: OFF persists until ON, then ON alert auto-dismisses after ten seconds.
+  {
+    const page=await open('JAN');
+    const plantButton=page.locator('#plantToggle');
+    await plantButton.click(); // test mode changes ON -> OFF locally
+    const offDialog=page.locator('#overviewPlantAlertHost [role="alertdialog"]');
+    await offDialog.waitFor({state:'visible'});
+    assert.equal(await offDialog.locator('h2').textContent(),'PLANT OFF','Overview should show OFF popup');
+    assert.equal(await page.locator('#overviewPlantAlertHost').evaluate(el=>getComputedStyle(el).pointerEvents),'none','alert overlay must not block underlying plant controls');
+    await plantButton.click(); // OFF -> ON clears OFF popup and displays ON popup
+    const onDialog=page.locator('#overviewPlantAlertHost [role="alertdialog"]');
+    await onDialog.waitFor({state:'visible'});
+    assert.equal(await onDialog.locator('h2').textContent(),'PLANT ON','Overview should show ON popup after transition');
+    await onDialog.waitFor({state:'detached',timeout:12000});
+    assert.equal(await page.locator('#overviewPlantAlertHost').count(),0,'ON popup automatically closes after ten seconds');
+    await page.close();
+  }
+  console.log('PASS: JAN/MICK plant toggle, restricted roles, exit Overview, fullscreen, and status popup auto-dismiss.');
 } finally {
   await browser.close();
   await new Promise(resolveClose => server.close(resolveClose));
