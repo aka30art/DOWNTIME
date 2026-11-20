@@ -109,6 +109,8 @@ try{
  assert.equal(owner.getBank().appData.plantOn,false,'Overview plant toggle writes centrally');
  assert.ok(owner.actions.some(x=>x.action==='set-plant-status'),'Overview status change uses the central status action');
  await overviewPage.close();
+ await owner.page.locator('#manualRefreshBtn').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#cloudStatus').textContent.includes('MANUAL REFRESH COMPLETE'),{timeout:5000});
  await owner.page.locator('.nav[data-view="settings"]').click();
  await owner.page.locator('#newAreaPreset').fill('Central Sync Test');
  await owner.page.locator('#addAreaPresetBtn').click();
@@ -116,7 +118,7 @@ try{
  for(let i=0;i<30&&!owner.actions.some(x=>x.action==='save-state');i++)await owner.page.waitForTimeout(100);
  assert.ok(owner.actions.some(x=>x.action==='save-state'),'tracker changes must write through central save-state API');
  assert.ok(owner.getBank().appData.areas.includes('Central Sync Test'),'central bank mock should retain the edited tracker setting');
- assert.equal(owner.getVersion(),2,'central write must advance the compare-and-swap version');
+ assert.equal(owner.getVersion(),3,'plant status and tracker edits must each advance the compare-and-swap version');
  await owner.page.locator('#logoutBtn').click();
  await owner.page.waitForFunction(()=>document.querySelector('#authGate').style.display!=='none');
  await owner.context.close();
