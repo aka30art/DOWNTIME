@@ -7,7 +7,7 @@ create table if not exists public.downtime_app_users (
   username text not null unique check (username = lower(username) and username ~ '^[a-z0-9._-]{3,32}$'),
   display_name text not null,
   password_hash text not null,
-  tier text not null check (tier in ('OWNER','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR')),
+  tier text not null check (tier in ('OWNER','ADMIN','MANAGER','SUPERVISOR','USER')),
   enabled boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
