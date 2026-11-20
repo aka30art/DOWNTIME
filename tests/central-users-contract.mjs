@@ -6,6 +6,9 @@ for(const action of ["list","create","update","delete"])assert.ok(source.include
 assert.ok(source.includes('["OWNER","ADMIN"].includes(actor.tier)'),"Only OWNER/ADMIN access management");
 assert.ok(source.includes('target.tier==="OWNER"||target.username==="jan"'),"OWNER account protected");
 assert.ok(source.includes("600_000")&&source.includes("PBKDF2"),"PINs are hashed server-side");
+assert.ok(source.includes("enc.encode(pin)"),"PIN value is the actual KDF input");
+assert.ok(source.includes("body?.pin")&&source.includes("4–8 digits"),"PIN creation and reset validation exists");
+assert.ok(!source.includes("SPECTATOR"),"Spectator tier is excluded from central user creation");
 assert.ok(source.includes("revoked_at")&&source.includes('is("revoked_at",null)'),"Session revocation is enforced");
 assert.ok(source.includes("downtime_sync_audit"),"User changes are audited");
 assert.ok(!source.toLowerCase().includes("email"),"No email-based workflows");
