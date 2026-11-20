@@ -320,9 +320,9 @@ try {
   });
   await management.waitForFunction(() => document.body.textContent.includes('NEW DOWNTIME RECORDED'), { timeout: 5000 });
   assert.match(await management.locator('#managementNotificationHost').textContent(), /Feeder.*New notification test.*01:05/s, 'toast should show the new entry detail');
-  await management.close();
   // Spectator is no longer an app user and cannot be selected from the login gate.
   assert.equal(await management.locator('.operator-choice[data-operator="Spectator"]').count(),0,'Spectator is absent from app login choices');
+  await management.close();
   assert.deepEqual(pageErrors, [], `unexpected browser JavaScript errors: ${pageErrors.join('; ')}`);
   console.log('PASS: JAN-only migration, retained JAN PIN, and STAFF profile preservation');
   console.log('PASS: independent app-user add/remove workflows after migration');
