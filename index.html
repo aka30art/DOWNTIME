@@ -484,7 +484,7 @@ let centralSessionTokenValue='',centralCurrentUsername='';
 async function centralSyncLoad(){
  const data=await centralSyncRequest('read');centralVersion=Number(data.version)||0;
  if(data.payload&&data.payload.weeks){state=data.payload;const needsStaffMigration=!Array.isArray(state.staffRoster);if(needsStaffMigration){staffRoster();await centralSyncWrite();}localStorage.setItem(STORE,JSON.stringify(state));render();cloudStatus('CENTRAL · LIVE · synced');}
- else {state=load();await centralSyncWrite();cloudStatus('CENTRAL · INITIALISED');}
+ else {state=load();staffRoster();await centralSyncWrite();cloudStatus('CENTRAL · INITIALISED');}
  const last=$('lastSync');if(last)last.textContent='Last successful central sync · '+new Date().toLocaleString('en-GB');
  if(centralPollHandle)clearInterval(centralPollHandle);
  centralPollHandle=setInterval(async()=>{if(centralSyncBusy)return;try{const incoming=await centralSyncRequest('read');if(Number(incoming.version)>centralVersion&&incoming.payload){centralVersion=Number(incoming.version);state=incoming.payload;localStorage.setItem(STORE,JSON.stringify(state));render();if($('lastSync'))$('lastSync').textContent='Last successful central sync · '+new Date().toLocaleString('en-GB');cloudStatus('CENTRAL · LIVE · updated')} }catch(e){cloudStatus('CENTRAL · CONNECTION LOST')}},15000);
