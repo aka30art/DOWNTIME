@@ -41,10 +41,35 @@ async function assignOperator(page, pin = '2666', operator = (pin === '1234' ? '
   await page.waitForFunction(() => document.querySelector('#operatorGate').style.display === 'none');
   await page.waitForFunction(() => /LOCAL MODE|LIVE · synced/.test(document.querySelector('#cloudStatus').textContent), { timeout: 15000 });
 }
+async function seedExistingUsers(page, { names=['Jan','Mick','Gigi','Daz','Shayne'], pins={Jan:'2666',Mick:'1234'}, privileges={} }={}) {
+  // Test fixture only: these cases exercise existing account/permission workflows after migration.
+  await page.addInitScript(({names,pins,privileges}) => {
+    const migration='plantDowntime.usersJanOnly.v1';
+    if(!localStorage.getItem(migration)) {
+      localStorage.setItem('plantDowntime.operatorRoster.v1',JSON.stringify(names));
+      localStorage.setItem('plantDowntime.operatorPins.v1',JSON.stringify(pins));
+      localStorage.setItem('plantDowntime.operatorPrivileges.v1',JSON.stringify(privileges));
+      localStorage.setItem(migration,'1');
+    }
+  }, {names,pins,privileges});
+}
 
 try {
   // 1. The app must render and accept the team PIN without making any vendor request at startup.
   const offline = await newPage();
+  await offline.addInitScript(() => {
+    localStorage.setItem('plantDowntime.operatorRoster.v1',JSON.stringify(['Jan','Mick','Gigi','Daz','Shayne','Legacy User']));
+    localStorage.setItem('plantDowntime.operatorPins.v1',JSON.stringify({Jan:'8642',Mick:'1234','Legacy User':'7777'}));
+    localStorage.setItem('plantDowntime.operatorPrivileges.v1',JSON.stringify({Mick:'Read Only','Legacy User':'Operator'}));
+    localStorage.setItem('plantDowntime.staffRoster.v1',JSON.stringify(['Jan','Mick','Gigi','Daz','Shayne']));
+    localStorage.setItem('plantDowntime.v1',JSON.stringify({weeks:{},areas:[],reasons:[],archive:[],operatorProfiles:{
+      Jan:{station:'Station 1 · WOOD',photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',onSite:true},
+      Mick:{station:'Station 2 · WOOD',photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',onSite:true},
+      Gigi:{station:'Station 3 · SCRAP',photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',onSite:true},
+      Daz:{station:'Station 4 · SCRAP',photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',onSite:true},
+      Shayne:{station:'Station 5 · SCRAP',photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',onSite:true}
+    }}));
+  });
   const vendorRequests = [];
   offline.on('request', request => {
     if (/cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com/.test(request.url())) vendorRequests.push(request.url());
@@ -61,9 +86,23 @@ try {
   // Simulate a blocked Supabase CDN. The app must still open immediately in local mode.
   await offline.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
   await enterTeamPin(offline);
-  assert.equal(await offline.locator('.operator-choice').count(), 6, 'five canonical operators plus Spectator should be present');
+  assert.equal(await offline.locator('.operator-choice').count(), 1, 'JAN must be the only login choice after legacy USERS migration');
+  assert.equal(await offline.locator('.operator-choice[data-operator="Spectator"]').count(), 0, 'Spectator must not appear in app USERS');
+  const migratedStorage = await offline.evaluate(() => ({
+    users: JSON.parse(localStorage.getItem('plantDowntime.operatorRoster.v1') || '[]'),
+    pins: JSON.parse(localStorage.getItem('plantDowntime.operatorPins.v1') || '{}'),
+    privileges: JSON.parse(localStorage.getItem('plantDowntime.operatorPrivileges.v1') || '{}'),
+    staff: JSON.parse(localStorage.getItem('plantDowntime.staffRoster.v1') || '[]'),
+    profiles: JSON.parse(localStorage.getItem('plantDowntime.v1') || '{}').operatorProfiles
+  }));
+  assert.deepEqual(migratedStorage.users,['Jan'],'migration leaves JAN as the only app USER');
+  assert.deepEqual(migratedStorage.pins,{Jan:'8642'},'migration preserves JAN PIN and removes legacy user PIN overrides');
+  assert.deepEqual(migratedStorage.privileges,{},'legacy app-user privileges are removed');
+  assert.deepEqual(migratedStorage.staff,['Jan','Mick','Gigi','Daz','Shayne'],'STAFF roster is not changed by USERS migration');
+  assert.equal(migratedStorage.profiles.Gigi.station,'Station 3 · SCRAP','Gigi STAFF profile remains intact');
+  assert.ok(migratedStorage.profiles.Gigi.photo.startsWith('data:image/'),'Gigi STAFF photo remains intact');
   assert.equal(await offline.locator('#spectatorBtn').count(), 0, 'main gate should not contain spectator shortcut');
-  await assignOperator(offline, '2666');
+  await assignOperator(offline, '8642');
   const overviewLink = offline.locator('.overview-link');
   assert.equal(await overviewLink.count(), 1, 'Overview navigation should be present for operators');
   assert.equal(await overviewLink.getAttribute('href'), 'plant-overview-preview.html', 'Overview button should link to Plant Overview');
@@ -85,6 +124,7 @@ try {
 
   // Mick remains a standard operator; Jan is the sole permanent administrator.
   const mick = await newPage();
+  await seedExistingUsers(mick,{names:['Jan','Mick']});
   await mick.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
   await mick.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   await enterTeamPin(mick);
@@ -95,6 +135,7 @@ try {
   await mick.close();
 
   const jan = await newPage();
+  await seedExistingUsers(jan);
   await jan.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
   await jan.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
   jan.on('dialog', dialog => dialog.accept());
@@ -192,6 +233,7 @@ try {
 
 // 2. Simulate a functioning Supabase SDK/client and verify cloud sync can initialize.
   const cloud = await newPage();
+  await seedExistingUsers(cloud,{names:['Jan','Mick']});
   await cloud.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
     status: 200,
     contentType: 'application/javascript',
@@ -257,7 +299,7 @@ try {
 
   // Read Only – Management: new remote downtime records notify the manager, without write access.
   const management = await newPage();
-  await management.addInitScript(() => localStorage.setItem('plantDowntime.operatorPrivileges.v1', JSON.stringify({ Mick: 'Read Only - Management' })));
+  await seedExistingUsers(management,{names:['Jan','Mick'],privileges:{Mick:'Read Only - Management'}});
   await management.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
     status: 200, contentType: 'application/javascript',
     body: `window.__managementPayload = { weeks: {}, areas: [], reasons: [], archive: [] }; window.__managementCallback = null; window.supabase = { createClient: () => ({ auth: { signInAnonymously: async () => ({ error: null }) }, from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { payload: window.__managementPayload }, error: null }) }) }), upsert: async () => ({ error: null }) }), channel: () => ({ on: (_event, _filter, callback) => { window.__managementCallback = callback; return { subscribe: cb => { if (cb) cb('SUBSCRIBED'); return this; } }; } }) }) };`
@@ -278,129 +320,14 @@ try {
   });
   await management.waitForFunction(() => document.body.textContent.includes('NEW DOWNTIME RECORDED'), { timeout: 5000 });
   assert.match(await management.locator('#managementNotificationHost').textContent(), /Feeder.*New notification test.*01:05/s, 'toast should show the new entry detail');
+  // Spectator is no longer an app user and cannot be selected from the login gate.
+  assert.equal(await management.locator('.operator-choice[data-operator="Spectator"]').count(),0,'Spectator is absent from app login choices');
   await management.close();
-  // Operator permission regression checks above run before the secure Spectator integration checks below.
-  // 4. Spectator entry uses the secure Edge Function, a non-persistent anonymous session, and server-side refresh polling.
-  const spectator = await newPage();
-  await spectator.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.fulfill({
-    status: 200,
-    contentType: 'application/javascript',
-    body: `(() => {
-      const now = new Date();
-      const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-      const iso = d => [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
-      const weekKey = iso(monday);
-      const dayIndex = Math.min((now.getDay() + 6) % 7, 5);
-      const days = Array.from({length: 6}, (_, i) => {
-        const date = new Date(monday); date.setDate(date.getDate() + i);
-        return { date: iso(date), start: '06:30', stop: '17:00', entries: [] };
-      });
-      days[dayIndex].operator = 'Supervisor Test';
-      days[dayIndex].entries = [{ area: 'Feeder', reason: 'Spectator test reason', hours: 1, minutes: 15 }];
-      const payload = { weeks: { [weekKey]: { days } }, areas: [], reasons: [], archive: [] };
-      window.__spectatorCalls = { auth: 0, secureAuth: 0, reads: 0, writes: 0, invocations: 0, options: null, payload };
-      window.supabase = {
-        createClient: (_url, _key, options = {}) => {
-          const secure = options.auth?.persistSession === false;
-          if (secure) window.__spectatorCalls.options = options;
-          return {
-            auth: { signInAnonymously: async () => {
-              if (secure) window.__spectatorCalls.secureAuth++;
-              else window.__spectatorCalls.auth++;
-              return { error: null, data: { session: { access_token: secure ? 'spectator-jwt' : 'tracker-jwt' } } };
-            } },
-            from: () => ({
-              select: () => ({ eq: () => ({ maybeSingle: async () => {
-                window.__spectatorCalls.reads++;
-                return { data: { payload: window.__spectatorCalls.payload, updated_at: '2026-11-19T03:00:00.000Z' }, error: null };
-              }})}),
-              upsert: async () => { window.__spectatorCalls.writes++; return { error: null }; },
-              insert: async () => { window.__spectatorCalls.writes++; return { error: null }; },
-              update: async () => { window.__spectatorCalls.writes++; return { error: null }; },
-              delete: async () => { window.__spectatorCalls.writes++; return { error: null }; }
-            }),
-            functions: { invoke: async (name, options) => {
-              window.__spectatorCalls.invocations++;
-              if (name !== 'spectator-read' || options.body.access_code !== 'TEST-SUPERVISOR-ONLY')
-                return { data: null, error: { message: 'Access denied' } };
-              return { data: { payload: window.__spectatorCalls.payload, updated_at: new Date().toISOString() }, error: null };
-            } },
-            channel: () => ({ on: () => ({ subscribe: callback => { if (callback) callback('SUBSCRIBED'); return this; } }) })
-          };
-        }
-      };
-    })();`
-  }));
-  await spectator.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await enterTeamPin(spectator);
-  assert.equal(await spectator.locator('#spectatorBtn').count(), 0, 'main gate must not contain a separate spectator shortcut');
-  await spectator.locator('.operator-choice[data-operator="Spectator"]').click();
-  await spectator.locator('#operatorGatePin').fill('WRONG');
-  await spectator.locator('#operatorContinue').click();
-  await spectator.waitForFunction(() => /Access denied|invalid/i.test(document.querySelector('#operatorMsg').textContent), { timeout: 5000 });
-  const readsBeforeSpectator = await spectator.evaluate(() => window.__spectatorCalls.reads);
-  const writesBeforeSpectator = await spectator.evaluate(() => window.__spectatorCalls.writes);
-  const localBeforeSpectator = await spectator.evaluate(() => localStorage.getItem('plantDowntime.v1'));
-  assert.equal(await spectator.locator('#operatorGate').isVisible(), true, 'wrong supervisor code must not open spectator mode');
-  await spectator.locator('#operatorGatePin').fill('TEST-SUPERVISOR-ONLY');
-  await spectator.locator('#operatorContinue').click();
-  await spectator.waitForFunction(() => document.querySelector('#spectatorView').style.display === 'block' || (document.querySelector('#operatorMsg').textContent && !document.querySelector('#operatorMsg').textContent.includes('Verifying supervisor access')), { timeout: 10000 });
-  const spectatorLoginState = await spectator.evaluate(() => ({display: document.querySelector('#spectatorView').style.display, message: document.querySelector('#operatorMsg').textContent}));
-  assert.equal(spectatorLoginState.display, 'block', `secure Spectator login failed: ${spectatorLoginState.message}`);
-  await spectator.waitForFunction(() => document.querySelector('#spectatorView').textContent.includes('LIVE · CONNECTED'));
-  assert.equal(await spectator.locator('#operatorGate').isVisible(), false, 'Spectator login should bypass operator assignment');
-  assert.equal(await spectator.locator('.shell').isVisible(), false, 'operator workspace must remain hidden in Spectator mode');
-  assert.match(await spectator.locator('#spectatorView').textContent(), /Supervisor Test/, 'Spectator view should display operator records');
-  assert.match(await spectator.locator('#spectatorView').textContent(), /Spectator test reason/, 'Spectator view should display downtime records');
-  assert.equal(await spectator.locator('#spectatorView button:not(#spectatorManualRefresh), #spectatorView input, #spectatorView select').count(), 0, 'Spectator view must contain no editing controls besides its read-only Refresh button');
-  assert.equal(await spectator.locator('#spectatorManualRefresh').count(), 1, 'Spectator must have a manual Refresh control');
-  const spectatorOverview = spectator.locator('#spectatorView a[href="plant-overview-preview.html"]');
-  assert.equal(await spectatorOverview.count(), 1, 'Spectator view must include the Overview link');
-  assert.equal(await spectatorOverview.getAttribute('target'), '_blank', 'Spectator Overview should open in a separate tab');
-  const spectatorCallsBeforeManual = await spectator.evaluate(() => window.__spectatorCalls.invocations);
-  await spectator.locator('#spectatorManualRefresh').click();
-  await spectator.waitForFunction(before => window.__spectatorCalls.invocations > before, spectatorCallsBeforeManual, { timeout: 5000 });
-  await spectator.waitForFunction(() => { const b=document.querySelector('#spectatorManualRefresh'); return b && !b.disabled && b.textContent.includes('REFRESH DATA'); }, { timeout: 5000 });
-  const spectatorSecurity = await spectator.evaluate(() => ({
-    authCalls: window.__spectatorCalls.auth,
-    secureAuthCalls: window.__spectatorCalls.secureAuth,
-    reads: window.__spectatorCalls.reads,
-    writes: window.__spectatorCalls.writes,
-    invocations: window.__spectatorCalls.invocations,
-    persistSession: window.__spectatorCalls.options?.auth?.persistSession,
-    localState: localStorage.getItem('plantDowntime.v1')
-  }));
-  assert.equal(spectatorSecurity.secureAuthCalls, 2, 'Each rejected and accepted Spectator login attempt should use a fresh non-persistent anonymous JWT');
-  assert.equal(spectatorSecurity.writes, writesBeforeSpectator, 'Spectator must not issue database writes');
-  assert.equal(spectatorSecurity.reads, readsBeforeSpectator, 'Spectator must not read the shared table directly');
-  assert.equal(spectatorSecurity.persistSession, false, 'Spectator session must not persist');
-  assert.equal(spectatorSecurity.localState, localBeforeSpectator, 'Spectator must not change local tracker state');
-  await spectator.evaluate(() => {
-    const payload = JSON.parse(JSON.stringify(window.__spectatorCalls.payload));
-    const week = Object.values(payload.weeks)[0];
-    const day = week.days.find(d => d.operator === 'Supervisor Test');
-    day.operator = 'Live Update Test';
-    window.__spectatorCalls.payload = payload;
-  });
-  await spectator.waitForFunction(() => document.querySelector('#spectatorView').textContent.includes('Live Update Test'), { timeout: 7000 });
-  const postRefreshCalls = await spectator.evaluate(() => window.__spectatorCalls.invocations);
-  assert.ok(postRefreshCalls >= 3, 'Spectator should re-fetch shared state through the secure endpoint');
   assert.deepEqual(pageErrors, [], `unexpected browser JavaScript errors: ${pageErrors.join('; ')}`);
-  console.log('PASS: team and operator account gates');
-  console.log('PASS: local-only operator login');
-  console.log('PASS: JAN-only admin panel and operator creation');
-  console.log('PASS: operator PIN change and relogin');
-  console.log('PASS: Dowie read-only restrictions');
-  console.log('PASS: secure Spectator endpoint and five-second refresh');
-  console.log('PASS: no uncaught browser JavaScript errors');
-  assert.deepEqual(pageErrors, [], `unexpected browser JavaScript errors: ${pageErrors.join('; ')}`);
-  console.log('PASS: startup is independent of external CDNs');
-  console.log('PASS: wrong and correct team PIN handling');
-  console.log('PASS: local-only login when Supabase is blocked');
-  console.log('PASS: operator assignment and local persistence');
-  console.log('PASS: successful Supabase sign-in and sync initialization');
-  console.log('PASS: cloud auth failure does not block local access');
+  console.log('PASS: JAN-only migration, retained JAN PIN, and STAFF profile preservation');
+  console.log('PASS: independent app-user add/remove workflows after migration');
+  console.log('PASS: seeded standard-user permissions and cloud sync regression cases');
+  console.log('PASS: Spectator absent from login choices');
   console.log('PASS: no uncaught browser JavaScript errors');
 } finally {
   await browser.close();
