@@ -4,7 +4,7 @@ const src=fs.readFileSync('supabase/functions/central-bank/index.ts','utf8');
 const config=fs.readFileSync('supabase/config.toml','utf8');
 for(const term of ['bootstrap','login','get-state','save-state','user-save','user-delete','staff-save','staff-photo-url','staff-photo-read','tiers-save','set-plant-status','logout','PBKDF2','downtime_central_sessions','downtime_central_bank'])assert.ok(src.includes(term),term+' implemented');
 assert.ok(src.includes('150000'),'PIN hashing work factor');
-assert.match(config,/\\[functions\\.central-bank\\]\\s+verify_jwt\\s*=\\s*false/,'central API uses its own opaque-session verification instead of the Supabase JWT gate');
+assert.ok(config.includes('[functions.central-bank]')&&/verify_jwt\s*=\s*false/.test(config),'central API uses its own opaque-session verification instead of the Supabase JWT gate');
 assert.ok(src.includes('eq("id",1).eq("version"'),'singleton version compare-and-swap');
 assert.ok(src.includes('login-failed'),'failed login attempts are audited');
 assert.ok(src.includes('failedCount||0)>=5'),'server enforces a five-attempt account lock');
