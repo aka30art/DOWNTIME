@@ -18,6 +18,8 @@ assert.doesNotMatch(html,/downtime_shared_state/,'main tracker no longer reads o
 assert.match(html,/DowntimeCentral\.saveTracker\(snapshot,centralVersion\)/,'tracker changes use central versioned save');
 assert.match(html,/DowntimeCentral\.state\(\)/,'manual refresh and cross-device sync read central state');
 assert.match(html,/centralPendingWrites>0/,'polling is suspended while central writes are pending');
+assert.match(html,/if\(!centralReady\|\|cloudSyncFailed\|\|managementPollBusy\|\|cloudBusy\|\|centralPendingWrites>0\)return/,'polling is suspended after a failed central write so unsynced local edits are not overwritten');
+assert.match(html,/if\(cloudSyncFailed&&!confirm\(/,'manual refresh requires confirmation before discarding a failed local snapshot');
 
 assert.match(client,/list-users/,'client loads central USER choices');
 assert.match(client,/sessionStorage/,'opaque sessions are held in tab-scoped storage');
