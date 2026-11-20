@@ -76,6 +76,8 @@ Deno.serve(async(req)=>{
     const {data:target,error:lookupError}=await admin.from("downtime_app_users").select("user_id,username,tier").eq("user_id",userId).maybeSingle();
     if(lookupError||!target)return json({error:"User not found"},404);
     if(target.tier==="OWNER"||target.username==="jan")return json({error:"OWNER account is protected"},403);
+    if(target.tier==="ADMIN"&&actor.tier!=="OWNER")return json({error:"ADMIN accounts can only be removed by OWNER"},403);
+    if(userId===session.user_id&&actor.tier!=="OWNER")return json({error:"Self-removal is not allowed"},403);
     const {error}=await admin.from("downtime_app_users").delete().eq("user_id",userId);
     if(error)return json({error:"User deletion failed"},409);
     await admin.from("downtime_sync_audit").insert({actor_id:actor.user_id,domain:"USERS",record_key:userId,operation:"DELETE",old_data:{username:target.username,tier:target.tier}});
