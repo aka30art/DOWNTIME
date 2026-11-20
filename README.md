@@ -3,6 +3,7 @@
 A dependency-free weekly downtime recording app designed for GitHub Pages.
 
 ## Features
+- JAN-only application access and administrator PIN login; STAFF records remain separate.
 - Monday–Saturday weekly sheets and individual day detail.
 - Preset plant-area and downtime-reason buttons, plus manual entry.
 - Manual duration entry in hours and minutes.
