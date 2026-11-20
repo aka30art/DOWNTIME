@@ -131,6 +131,16 @@ Deno.serve(async(req)=>{
    if(error)return json({error:error.message},404);
    return json({url:data.signedUrl});
  }
+ if(action==="set-plant-status"){
+   if(!priv.canEditTracker)return json({error:"Permission denied"},403);
+   if(typeof body.plantOn!=="boolean")return json({error:"plantOn must be boolean"},400);
+   bank.appData=bank.appData||{};
+   bank.appData.plantOn=body.plantOn;
+   const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
+   if(error||!write)return json({error:"Version conflict; refresh before changing plant status"},409);
+   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"set-plant-status",details:{plantOn:body.plantOn}});
+   return json({version:(row?.version||0)+1,updatedAt:new Date().toISOString()});
+ }
  if(action==="tiers-save"){
    if(tier!=="OWNER")return json({error:"OWNER only"},403);
    const proposed=body.tiers;if(!proposed||typeof proposed!=="object")return json({error:"Tiers required"},400);
