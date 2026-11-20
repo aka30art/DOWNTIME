@@ -1,8 +1,2 @@
 [functions.spectator-read]
 verify_jwt = true
-
-[functions.admin-user-invite]
-verify_jwt = true
-
-[functions.admin-user-management]
-verify_jwt = true
