@@ -20,6 +20,7 @@
     async logout(){try{if(session?.token)await call("logout",{},session.token)}finally{session=null;sessionStorage.removeItem(SESSION_KEY)}},
     async state(){return call("get-state")},
     async saveTracker(appData,version){return call("save-state",{appData,version})},
+    async setPlantStatus(plantOn,version){return call("set-plant-status",{plantOn,version})},
     async saveUser(data,version){return call("user-save",{...data,version})},
     async deleteUser(username,version){return call("user-delete",{username,version})},
     async saveStaff(name,profile,version){return call("staff-save",{name,profile,version})},
