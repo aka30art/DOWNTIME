@@ -235,10 +235,9 @@ try {
   assert.equal(centralUsers.some(user=>user.username==='testuser'),true,'STAFF removal does not delete the separate USERS account');
   await deviceB.close();
 
-  const staffOnlyRow=jan.locator('#staffRosterList > div').filter({hasText:'Test Staff Only'});
-  await staffOnlyRow.locator('button.danger').click();
-  await jan.waitForFunction(()=>!centralPayload.staffRoster.includes('Test Staff Only'));
-  assert.equal(await jan.locator('#staffRosterList > div').count(),5,'STAFF remove syncs to central payload');
+  await jan.evaluate(()=>centralSyncLoad());
+  await jan.waitForFunction(()=>document.querySelector('#staffRosterList').textContent.includes('Test Staff Only')===false);
+  assert.equal(await jan.locator('#staffRosterList > div').count(),5,'Device A refresh receives Device B STAFF removal');
   await jan.close();
 
 // 2. Simulate a functioning Supabase SDK/client and verify cloud sync can initialize.
