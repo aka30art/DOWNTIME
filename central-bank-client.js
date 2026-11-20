@@ -10,7 +10,7 @@
     if(token)headers["x-downtime-session"]=token;
     const response=await fetch(endpoint,{method:"POST",headers,body:JSON.stringify({action,...body})});
     let result={};try{result=await response.json()}catch{}
-    if(!response.ok)throw new Error(result.error||"Central API request failed.");
+    if(!response.ok){const error=new Error(result.error||"Central API request failed.");error.status=response.status;throw error;}
     return result;
   }
   window.DowntimeCentral={
