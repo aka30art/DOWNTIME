@@ -60,7 +60,7 @@ Deno.serve(async(req)=>{
  const currentUser=bank.users.find((u:any)=>u.username===session.username&&u.enabled!==false);
  if(!currentUser)return json({error:"Account disabled"},401);
  const tier=currentUser.tier,priv=bank.tiers[tier]||tierDefault[tier]||{};
- if(action==="get-state"){const publicBank={...bank,users:bank.users.map(safeUser)};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
+ if(action==="get-state"){const publicBank={...bank,users:bank.users.map(safeUser)};if(!priv.canViewStaff){publicBank.staff={roster:[],profiles:{}};const restrictedData={...(publicBank.appData||{})};delete restrictedData.archive;delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}publicBank.appData=restrictedData;publicBank.statsSource={weeks:restrictedData.weeks||{}};}if(!priv.canViewReports&&publicBank.appData){delete publicBank.appData.archive;}return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
  if(action==="save-state"){
    if(!priv.canEditTracker)return json({error:"Permission denied"},403);
    const incoming=body?.appData;if(!incoming||typeof incoming!=="object")return json({error:"appData required"},400);
