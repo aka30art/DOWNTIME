@@ -10,7 +10,7 @@ assert.ok(source.includes("enc.encode(pin)"),"PIN value is the actual KDF input"
 assert.ok(source.includes("body?.pin")&&source.includes("4–8 digits"),"PIN creation and reset validation exists");
 assert.ok(!source.includes("SPECTATOR"),"Spectator tier is excluded from central user creation");
 assert.ok(source.includes("revoked_at")&&source.includes('is("revoked_at",null)'),"Session revocation is enforced");
-assert.ok(source.includes("downtime_sync_audit"),"User changes are audited");\nassert.ok(source.includes("actor.tier===\\"ADMIN\\"&&tier===\\"ADMIN\\""),"ADMIN cannot create another ADMIN");\nassert.ok(source.includes("target.tier===\\"ADMIN\\"&&actor.tier!==\\"OWNER\\""),"Only OWNER can manage ADMIN accounts");
+assert.ok(source.includes("downtime_sync_audit"),"User changes are audited");assert.ok(source.includes('actor.tier===\"ADMIN\"&&tier===\"ADMIN\"'),\"ADMIN cannot create another ADMIN\");assert.ok(source.includes('target.tier===\"ADMIN\"&&actor.tier!==\"OWNER\"'),\"Only OWNER can manage ADMIN accounts\");
 assert.ok(!source.toLowerCase().includes("email"),"No email-based workflows");
 assert.ok(config.includes("[functions.central-users]")&&config.includes("verify_jwt = false"),"Function config present");
 console.log("Central users contract checks passed (static checks only).");
