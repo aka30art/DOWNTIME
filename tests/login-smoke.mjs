@@ -45,6 +45,8 @@ async function seedExistingUsers(page, { names=['Jan','Mick','Gigi','Daz','Shayn
   // Test fixture only: these cases exercise existing account/permission workflows after migration.
   await page.addInitScript(({names,pins,privileges}) => {
     const migration='plantDowntime.usersJanOnly.v2';
+    // These fixtures represent browsers that have already completed both migrations.
+    localStorage.setItem('plantDowntime.pinsJanOnly.v1','1');
     if(!localStorage.getItem(migration)) {
       localStorage.setItem('plantDowntime.operatorRoster.v1',JSON.stringify(names));
       localStorage.setItem('plantDowntime.operatorPins.v1',JSON.stringify(pins));
