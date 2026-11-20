@@ -4,12 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:smoke": "node tests/login-smoke.mjs && node tests/roster-regression.mjs && node tests/overview-toggle.mjs && node tests/plant-transition-alerts.mjs && npm run test:photo-evidence && npm run test:sync-contract && npm run test:username-auth-contract && npm run test:central-users-contract && npm run test:central-sync-contract",
+    "test:smoke": "node tests/login-smoke.mjs && node tests/roster-regression.mjs && node tests/overview-toggle.mjs && node tests/plant-transition-alerts.mjs && npm run test:photo-evidence && npm run test:sync-contract && npm run test:username-auth-contract && npm run test:central-users-contract && npm run test:central-sync-contract && npm run test:central-frontend-contract",
     "test:photo-evidence": "node tests/photo-evidence.mjs",
     "test:sync-contract": "node tests/cross-device-sync-contract.mjs",
     "test:username-auth-contract": "node tests/username-auth-contract.mjs",
     "test:central-users-contract": "node tests/central-users-contract.mjs",
-    "test:central-sync-contract": "node tests/central-sync-contract.mjs"
+    "test:central-sync-contract": "node tests/central-sync-contract.mjs",\n    "test:central-frontend-contract": "node tests/central-frontend-contract.mjs"
   },
   "devDependencies": {
     "playwright": "1.56.1"
