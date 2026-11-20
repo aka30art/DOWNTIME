@@ -84,3 +84,13 @@ Other open PRs: #14 Plant Overview exit/fullscreen; #11 post-deploy preview URL 
 - Added static contract tests for username authentication, central USERS API, and their CI pipeline integration. These tests validate code contracts only—not deployed endpoint behavior or security penetration testing.
 - A CI failure caused by a missing npm script was corrected; a subsequent run exposed malformed package JSON from escaped newline insertion. That JSON formatting defect was corrected and verified by parsing the current package file.
 - Latest staged code is on the remediation branch only. CI on the latest commit has not yet been confirmed green. Neither function has been deployed; the migration has not been applied.
+
+
+## Remediation progress update — central tracker API (staged)
+- Added Edge Function `central-sync`: validates custom username-session token server-side, exposes authenticated read and versioned write actions, and rejects write attempts from OWNER/ADMIN/SUPERVISOR-excluded read-only tiers (only OWNER, ADMIN, SUPERVISOR may write).
+- Added SQL migration `20261120000002_shared_state_cas.sql` defining `downtime_shared_state_cas`, a row-locking compare-and-swap write that checks the expected version and returns conflict/current data instead of silently overwriting concurrent writes. The API returns HTTP 409 on version conflicts.
+- The function uses service-role access only; the service key remains server-side. The staged migration grants execute only to service_role.
+- Added a central-sync contract test and wired it into npm smoke tests. Static contract checks do not prove runtime behavior.
+- Added function config with `verify_jwt=false` because the function validates the custom opaque session itself.
+- **Not yet complete:** frontend is still on the legacy PIN/local operator flow and direct Supabase shared-state sync. This endpoint is not integrated into the frontend; realtime subscription, offline queue, central USERS/STAFF/settings adapters, migration tooling, and live multi-device acceptance remain to be implemented.
+- No production migration, function deployment, data migration, or live app cutover has occurred.
