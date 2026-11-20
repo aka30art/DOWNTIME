@@ -61,7 +61,7 @@ try {
   // Simulate a blocked Supabase CDN. The app must still open immediately in local mode.
   await offline.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
   await enterTeamPin(offline);
-  assert.equal(await offline.locator('.operator-choice').count(), 5, 'operator account buttons should be present, including Lee');
+  assert.equal(await offline.locator('.operator-choice').count(), 6, 'five canonical operators plus Spectator should be present');
   assert.equal(await offline.locator('#spectatorBtn').count(), 0, 'main gate should not contain spectator shortcut');
   await assignOperator(offline, '2666');
   const overviewLink = offline.locator('.overview-link');
@@ -83,38 +83,16 @@ try {
   const saved = await offline.evaluate(() => localStorage.getItem('plantDowntime.v1'));
   assert.ok(saved && saved.includes('Jan'), 'operator assignment should be persisted locally');
 
-    // Dowie is a restricted read-only operator, while JAN has administrator-only controls.
-  const dowie = await newPage();
-  await dowie.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
-  await dowie.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await enterTeamPin(dowie);
-  await assignOperator(dowie, '999', 'Dowie');
-  assert.match(await dowie.locator('#dayHeading').textContent(), /OPERATOR: Dowie/, 'Dowie should log in with PIN 999');
-  assert.equal(await dowie.locator('.nav[data-view=settings]').isVisible(), true, 'Dowie must be able to reach personal PIN settings');
-  assert.equal(await dowie.locator('#addEntry').isDisabled(), true, 'Dowie cannot add downtime entries');
-  assert.equal(await dowie.locator('#plantStop').isDisabled(), true, 'Dowie cannot change plant stop time');
-  assert.equal(await dowie.locator('#exportBtn').isDisabled(), true, 'Dowie cannot create shared PDF records');
-  await dowie.locator('.nav[data-view=settings]').click();
-  assert.equal(await dowie.locator('#settingsPlantAdminControls').isVisible(), false, 'Dowie cannot change plant presets');
-  assert.equal(await dowie.locator('#settingsAdminControls').isVisible(), false, 'Dowie cannot access app-user administration');
-  assert.equal(await dowie.locator('#currentOperatorPin').count(), 0, 'PIN management is removed from Settings');
-  await dowie.close();
-
-  // Lee is a default roster operator with PIN 9991 and Dowie's read-only restrictions.
-  const lee = await newPage();
-  await lee.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
-  await lee.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  await enterTeamPin(lee);
-  assert.equal(await lee.locator('.operator-choice[data-operator="Lee"]').count(), 1, 'Lee should be present in default operator list');
-  await assignOperator(lee, '9991', 'Lee');
-  assert.match(await lee.locator('#dayHeading').textContent(), /OPERATOR: Lee/, 'Lee should authenticate with default PIN 9991');
-  assert.equal(await lee.locator('#addEntry').isDisabled(), true, 'Lee cannot add downtime entries');
-  assert.equal(await lee.locator('#plantStop').isDisabled(), true, 'Lee cannot change plant stop time');
-  assert.equal(await lee.locator('#exportBtn').isDisabled(), true, 'Lee cannot create shared PDF records');
-  await lee.locator('.nav[data-view=settings]').click();
-  assert.equal(await lee.locator('#settingsPlantAdminControls').isVisible(), false, 'Lee cannot change plant presets');
-  assert.equal(await lee.locator('#settingsAdminControls').isVisible(), false, 'Lee cannot access app-user administration');
-  await lee.close();
+  // Mick remains a standard operator; Jan is the sole permanent administrator.
+  const mick = await newPage();
+  await mick.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
+  await mick.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
+  await enterTeamPin(mick);
+  assert.equal(await mick.locator('.operator-choice[data-operator="Mick"]').count(), 1, 'Mick should be present in canonical roster');
+  await assignOperator(mick, '1234', 'Mick');
+  assert.match(await mick.locator('#dayHeading').textContent(), /OPERATOR: Mick/, 'Mick should authenticate with PIN 1234');
+  assert.equal(await mick.locator('#settingsAdminControls').isVisible(), false, 'Mick cannot access app-user administration');
+  await mick.close();
 
   const jan = await newPage();
   await jan.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
@@ -179,41 +157,34 @@ try {
   assert.equal(await jan.locator('#operatorRosterList > div').count(), appUserCountBeforeRemoval - 1, 'app-user removal should reduce user list only');
   await jan.locator('.nav[data-view=staff]').click();
   assert.equal(await jan.locator('#staffRosterList > div').filter({hasText:'Test Operator'}).count(), 1, 'removing app user must preserve independent STAFF membership');
-  const dowieStaffRow=jan.locator('#staffRosterList > div').filter({hasText:'Dowie'});
-  assert.equal(await dowieStaffRow.locator('input[type=checkbox]').count(), 1, 'STAFF should provide an on-site/off-site switch for each non-Jan operator');
-  const stationSelect=dowieStaffRow.locator('select[aria-label^="Station assignment for"]');
+  const gigiStaffRow=jan.locator('#staffRosterList > div').filter({hasText:'Gigi'});
+  assert.equal(await gigiStaffRow.locator('input[type=checkbox]').count(), 1, 'STAFF should provide an on-site/off-site switch for Gigi');
+  const stationSelect=gigiStaffRow.locator('select[aria-label^="Station assignment for"]');
   assert.equal(await stationSelect.count(), 1, 'station assignment control belongs in STAFF as a preset dropdown');
   assert.equal(await stationSelect.locator('option').count(), 7, 'station dropdown contains only unassigned plus six fixed presets');
   assert.equal(await stationSelect.isEnabled(), true, 'JAN can edit station assignments');
-  assert.equal(await dowieStaffRow.locator('input[type=file]').count(), 1, 'operator photo upload belongs in STAFF');
+  assert.equal(await gigiStaffRow.locator('input[type=file]').count(), 1, 'operator photo upload belongs in STAFF');
   const janStaffRow=jan.locator('#staffRosterList > div').filter({hasText:'Jan'});
   assert.equal(await janStaffRow.locator('input[type=checkbox]').count(), 1, 'JAN also has an on-site/off-site switch');
   assert.equal(await janStaffRow.locator('input[type=file]').count(), 1, 'JAN photo control belongs in STAFF');
 
-  await dowieStaffRow.locator('input[type=checkbox]').uncheck();
+  await gigiStaffRow.locator('input[type=checkbox]').uncheck();
   assert.match(await jan.locator('#operatorAdminMsg').textContent(), /OFF SITE/, 'presence switch should update operator on-site state');
-  assert.equal(await jan.locator('.operator-choice[data-operator="Dowie"]').isDisabled(), false, 'off-site status must not disable login');
-  assert.equal(await dowieStaffRow.locator('select[aria-label^="Station assignment for"]').isDisabled(), true, 'off-site operator station control must be disabled');
-  assert.equal(await dowieStaffRow.locator('select[aria-label^="Station assignment for"]').inputValue(), '', 'off-site toggle must clear station assignment');
-  await jan.reload();
-  await enterTeamPin(jan);
-  await assignOperator(jan, '999', 'Dowie');
-  assert.equal(await jan.locator('#operatorGate').isVisible(), false, 'off-site operator should pass login gate');
-  assert.equal(await jan.locator('#addEntry').isDisabled(), true, 'off-site Dowie login remains read-only');
-  assert.equal(await jan.locator('#operatorGate').isVisible(), false, 'off-site operator should pass login gate');
-  assert.equal(await jan.locator('#addEntry').isDisabled(), true, 'off-site Dowie login remains read-only');
-  assert.match(await jan.locator('#dayHeading').textContent(), /OPERATOR: Jan/, 'off-site login must not replace the recorded on-plant operator');
+  assert.equal(await jan.locator('.operator-choice[data-operator="Gigi"]').isDisabled(), false, 'off-site status must not disable login');
+  assert.equal(await gigiStaffRow.locator('select[aria-label^="Station assignment for"]').isDisabled(), true, 'off-site operator station control must be disabled');
+  assert.equal(await gigiStaffRow.locator('select[aria-label^="Station assignment for"]').inputValue(), '', 'off-site toggle must clear station assignment');
   await jan.reload();
   await enterTeamPin(jan);
   await assignOperator(jan, '2666', 'Jan');
+  assert.equal(await jan.locator('#operatorGate').isVisible(), false, 'Jan login should pass operator gate');
   await jan.locator('.nav[data-view=staff]').click();
-  const reloadedDowieRow=jan.locator('#staffRosterList > div').filter({hasText:'Dowie'});
-  await reloadedDowieRow.locator('input[type=checkbox]').check();
-  assert.equal(await jan.locator('.operator-choice[data-operator="Dowie"]').isDisabled(), false, 'on-site status does not alter login eligibility');
+  const reloadedGigiRow=jan.locator('#staffRosterList > div').filter({hasText:'Gigi'});
+  await reloadedGigiRow.locator('input[type=checkbox]').check();
+  assert.equal(await jan.locator('.operator-choice[data-operator="Gigi"]').isDisabled(), false, 'on-site status does not alter login eligibility');
   await jan.locator('.nav[data-view=settings]').click();
-  assert.equal(await jan.locator('#operatorRosterList > div').count(), 4, 'Settings should list app users and role privileges');
-  assert.equal(await jan.locator('#operatorRosterList select[aria-label*="Dowie"]').count(), 1, 'Dowie role privilege should be editable in Settings');
-  assert.equal(await jan.locator('#operatorRosterList select[aria-label*="Lee"]').count(), 1, 'Lee role privilege should be editable in Settings');
+  assert.equal(await jan.locator('#operatorRosterList > div').count(), 5, 'Settings should list the five canonical app users and role privileges');
+  assert.equal(await jan.locator('#operatorRosterList select[aria-label*="Gigi"]').count(), 1, 'Gigi role privilege should be editable in Settings');
+  assert.equal(await jan.locator('#operatorRosterList select[aria-label*="Daz"]').count(), 1, 'Daz role privilege should be editable in Settings');
   assert.equal(await jan.locator('#operatorRosterList select[aria-label*="Jan"]').count(), 0, 'Jan remains the permanent Admin role');
   assert.equal(await jan.locator('#areasInput').count(), 0, 'plant preset management is removed from Settings');
   assert.equal(await jan.locator('#reasonsInput').count(), 0, 'reason preset management is removed from Settings');
