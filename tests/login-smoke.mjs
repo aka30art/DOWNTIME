@@ -175,6 +175,7 @@ try {
   await jan.locator('#centralPin').fill('8642');
   await jan.locator('#centralLoginBtn').click();
   await jan.waitForFunction(()=>document.querySelector('#authGate').style.display==='none');
+  await jan.locator('.nav[data-view=settings]').click();
   await jan.waitForFunction(()=>document.querySelector('#centralUserAdminPanel').style.display==='block');
   assert.equal(await jan.locator('#centralUserAdminPanel').isVisible(),true,'JAN owner should access central USERS administration');
   assert.equal(await jan.locator('#addOperatorBtn').count(),0,'legacy local user creation must be removed');
