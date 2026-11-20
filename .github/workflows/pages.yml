@@ -68,12 +68,13 @@ jobs:
         run: |
           set -eu
           curl --fail --silent --show-error --location --retry 8 --retry-delay 5 --retry-all-errors "$LIVE_URL" -o /tmp/live-site.html
-          grep -q 'operatorChoices' /tmp/live-site.html
-          grep -q 'unlockStartBtn' /tmp/live-site.html
-          grep -q 'spectator-read' /tmp/live-site.html
+          grep -q 'centralUsername' /tmp/live-site.html
+          grep -q 'central-bank-client.js' /tmp/live-site.html
+          grep -q 'DOWNTIME_CENTRAL_API' /tmp/live-site.html
+          grep -q 'DowntimeCentral.login(username,pin)' /tmp/live-site.html
+          grep -q 'DowntimeCentral.saveTracker(snapshot,centralVersion)' /tmp/live-site.html
           grep -q 'manualRefreshBtn' /tmp/live-site.html
-          grep -q 'spectatorManualRefresh' /tmp/live-site.html
+          grep -q 'centralAdminNav' /tmp/live-site.html
           grep -q 'overview-link' /tmp/live-site.html
-          grep -q 'OVERVIEW' /tmp/live-site.html
-          test "$(grep -o 'plant-overview-preview.html' /tmp/live-site.html | wc -l)" -ge 2
-          echo "Live Pages smoke checks passed: standard-role and Spectator manual refresh controls, operator gate, and secure Spectator endpoint."
+          grep -q 'plant-overview-preview.html' /tmp/live-site.html
+          echo "Live Pages smoke checks passed: central USER authentication, central versioned sync, role admin entry point, and Plant Overview."
