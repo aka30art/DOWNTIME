@@ -1,0 +1,32 @@
+name: Photo evidence expiry cleanup
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    env:
+      PHOTO_CLEANUP_SECRET: ${{ secrets.PHOTO_CLEANUP_SECRET }}
+      SUPABASE_FUNCTION_URL: ${{ secrets.SUPABASE_FUNCTION_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+    steps:
+      - name: Remove expired evidence
+        if: env.PHOTO_CLEANUP_SECRET != ''
+        env:
+          CLEANUP_SECRET: ${{ secrets.PHOTO_CLEANUP_SECRET }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_FUNCTION_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -eu
+          test -n "$SUPABASE_URL"
+          test -n "$SUPABASE_ANON_KEY"
+          curl --fail --silent --show-error --retry 3 --retry-delay 5 \
+            -X POST "$SUPABASE_URL" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "x-cleanup-secret: $CLEANUP_SECRET" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"cleanup"}'
