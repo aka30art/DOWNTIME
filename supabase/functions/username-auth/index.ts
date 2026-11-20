@@ -34,7 +34,8 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   if (!Number.isSafeInteger(iterations) || iterations < 300_000 || iterations > 2_000_000) return false;
   const salt = fromB64(parts[2]), expected = fromB64(parts[3]);
   const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]);
-  const actual = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations }, key, expected.length * 8));
+  const saltBuffer = salt.buffer.slice(salt.byteOffset, salt.byteOffset + salt.byteLength) as ArrayBuffer;
+  const actual = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: saltBuffer, iterations }, key, expected.length * 8));
   if (actual.length !== expected.length) return false;
   let diff = 0;
   for (let i = 0; i < actual.length; i++) diff |= actual[i] ^ expected[i];
