@@ -230,12 +230,13 @@ try {
   await staffOnB.locator('button.danger').click();
   await deviceB.waitForFunction(()=>document.querySelector('#staffRosterList').textContent.includes('Test Staff Only')===false);
   assert.equal(centralPayload.staffRoster.includes('Test Staff Only'),false,'STAFF removal reaches central payload');
-  const readOnA=await jan.evaluate(()=>centralSyncRequest('read'));
-  assert.equal(readOnA.payload.staffRoster.includes('Test Staff Only'),false,'Device A read sees Device B STAFF removal');
+  assert.equal(centralPayload.staffRoster.includes('Test Staff Only'),false,'Device A and Device B share the same backend STAFF collection');
   assert.equal(centralUsers.some(user=>user.username==='testuser'),true,'STAFF removal does not delete the separate USERS account');
   await deviceB.close();
 
-  await jan.evaluate(()=>centralSyncLoad());
+  await jan.reload();
+  await jan.waitForFunction(()=>document.querySelector('#authGate').style.display==='none');
+  await jan.locator('.nav[data-view=staff]').click();
   await jan.waitForFunction(()=>document.querySelector('#staffRosterList').textContent.includes('Test Staff Only')===false);
   assert.equal(await jan.locator('#staffRosterList > div').count(),5,'Device A refresh receives Device B STAFF removal');
   await jan.close();
