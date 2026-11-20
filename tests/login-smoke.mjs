@@ -18,7 +18,7 @@ try{
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
  assert.equal(await page.locator('#authGate').isVisible(),true);
- for(const d of '9999')await page.locator('[data-pinpad="teamPin"] [data-key="'+d+'"]').click();await page.locator('#unlockBtn').click();assert.match(await page.locator('#authMsg').textContent(),/Incorrect PIN/);
+ for(const d of '9999')await page.locator('[data-pinpad="teamPin"] [data-key="'+d+'"]').click();await page.locator('#unlockBtn').click();await page.waitForFunction(()=>document.querySelector('#authMsg').textContent.includes('Incorrect PIN'));assert.match(await page.locator('#authMsg').textContent(),/Incorrect PIN/);
  for(const d of '0123')await page.locator('[data-pinpad="teamPin"] [data-key="'+d+'"]').click();await page.locator('#unlockBtn').click();await page.waitForFunction(()=>document.querySelector('#operatorGate').style.display==='grid');
  assert.equal(await page.locator('.operator-choice').count(),1);assert.equal(await page.locator('.operator-choice').getAttribute('data-operator'),'Jan');
  assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('plantDowntime.operatorRoster.v1'))),['Jan']);
