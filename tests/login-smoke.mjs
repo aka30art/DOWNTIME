@@ -335,8 +335,8 @@ try {
   
   assert.deepEqual(pageErrors, [], `unexpected browser JavaScript errors: ${pageErrors.join('; ')}`);
   console.log('PASS: JAN-only migration, retained JAN PIN, and STAFF profile preservation');
-  console.log('PASS: independent app-user add/remove workflows after migration');
-  console.log('PASS: seeded standard-user permissions and cloud sync regression cases');
+  console.log('PASS: central OWNER login, central USERS creation, and independent STAFF management');
+  console.log('PASS: central USER read-only permissions and legacy offline operator fallback');
   console.log('PASS: Spectator absent from login choices');
   console.log('PASS: no uncaught browser JavaScript errors');
 } finally {
