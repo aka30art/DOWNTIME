@@ -13,13 +13,13 @@ const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,
 const enc=new TextEncoder();
 function b64(bytes:Uint8Array){let s="";for(const x of bytes)s+=String.fromCharCode(x);return btoa(s)}
 async function hashToken(token:string){return b64(new Uint8Array(await crypto.subtle.digest("SHA-256",enc.encode(token))))}
-async function hashPassword(password:string){
+async function hashPassword(pin:string){
   const salt=crypto.getRandomValues(new Uint8Array(16));
   const key=await crypto.subtle.importKey("raw",enc.encode(password),"PBKDF2",false,["deriveBits"]);
   const derived=new Uint8Array(await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt,iterations:600_000},key,256));
   return "pbkdf2-sha256$600000$"+b64(salt)+"$"+b64(derived);
 }
-const tiers=["ADMIN","MANAGER","SUPERVISOR","USER","SPECTATOR"];
+const tiers=["ADMIN","MANAGER","SUPERVISOR","USER"];
 const usernamePattern=/^[a-z0-9._-]{3,32}$/;
 
 Deno.serve(async(req)=>{
@@ -44,9 +44,9 @@ Deno.serve(async(req)=>{
     return json({users:data||[]});
   }
   if(action==="create"){
-    const username=String(body?.username||"").trim().toLowerCase(),displayName=String(body?.displayName||"").trim(),password=String(body?.password||""),tier=String(body?.tier||"");
-    if(!usernamePattern.test(username)||!displayName||displayName.length>80||password.length<12||password.length>256||!tiers.includes(tier))return json({error:"Invalid username, display name, password, or tier"},400);
-    const passwordHash=await hashPassword(password);
+    const username=String(body?.username||"").trim().toLowerCase(),displayName=String(body?.displayName||"").trim(),pin=String(body?.pin||""),tier=String(body?.tier||"");
+    if(!usernamePattern.test(username)||!displayName||displayName.length>80||!/^\\d{4,8}$/.test(pin)||!tiers.includes(tier))return json({error:"Invalid username, display name, password, or tier"},400);
+    const passwordHash=await hashPassword(pin);
     const {data,error}=await admin.from("downtime_app_users").insert({username,display_name:displayName,password_hash:passwordHash,tier,enabled:true}).select("user_id,username,display_name,tier,enabled").single();
     if(error)return json({error:"User creation failed (username may already exist)"},409);
     await admin.from("downtime_sync_audit").insert({actor_id:actor.user_id,domain:"USERS",record_key:data.user_id,operation:"INSERT",new_data:{username,tier,enabled:true}});
@@ -62,7 +62,7 @@ Deno.serve(async(req)=>{
     if(body?.displayName!==undefined){const name=String(body.displayName).trim();if(!name||name.length>80)return json({error:"Invalid display name"},400);changes.display_name=name;}
     if(body?.tier!==undefined){const tier=String(body.tier);if(!tiers.includes(tier))return json({error:"Invalid tier"},400);changes.tier=tier;}
     if(body?.enabled!==undefined){if(typeof body.enabled!=="boolean")return json({error:"Invalid enabled flag"},400);changes.enabled=body.enabled;}
-    if(body?.password!==undefined){const password=String(body.password);if(password.length<12||password.length>256)return json({error:"Password must be 12–256 characters"},400);changes.password_hash=await hashPassword(password);}
+    if(body?.pin!==undefined){const password=String(body.password);if(!/^\\d{4,8}$/.test(pin))return json({error:"Password must be 12–256 characters"},400);changes.password_hash=await hashPassword(password);}
     const {data,error}=await admin.from("downtime_app_users").update(changes).eq("user_id",userId).select("user_id,username,display_name,tier,enabled").single();
     if(error)return json({error:"User update failed"},409);
     if(changes.enabled===false||changes.password_hash||changes.tier)await admin.from("downtime_auth_sessions").update({revoked_at:new Date().toISOString()}).eq("user_id",userId).is("revoked_at",null);
