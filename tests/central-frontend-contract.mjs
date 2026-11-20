@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+const app=fs.readFileSync("index.html","utf8");
+assert.ok(app.includes("centralLoginPanel"),"central account login UI exists");
+assert.ok(app.includes("centralUsername")&&app.includes("centralPin"),"username and PIN inputs exist");
+assert.ok(app.includes("centralRequest('login'"),"login calls username-auth endpoint");
+assert.ok(app.includes("centralSyncLoad()"),"central login loads shared data");
+assert.ok(app.includes("centralSyncRequest('read')"),"central shared state read endpoint is used");
+assert.ok(app.includes("centralSyncRequest('write'"),"central shared state write endpoint is used");
+assert.ok(app.includes("expectedVersion")&&app.includes("centralVersion"),"versioned write contract is used");
+assert.ok(app.includes("setInterval(async()=>{if(centralSyncBusy)return;try{const incoming=await centralSyncRequest('read')"),"central poll checks for remote updates");
+assert.ok(app.includes("if(centralSessionToken())centralSyncWrite();else syncCloud();"),"central-auth sessions route persist to central API");
+assert.ok(app.includes("sessionStorage.setItem('downtime.central.session'"),"central session stored only for current browser session");
+assert.ok(!app.includes("localStorage.setItem('downtime.central.session'"),"central session token is not stored persistently");
+assert.ok(app.includes("'apikey':SB_KEY"),"Supabase function calls include API key header");
+console.log("Central frontend auth/sync contract passed (static checks only).");
