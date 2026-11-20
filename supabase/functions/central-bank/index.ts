@@ -60,7 +60,7 @@ Deno.serve(async(req)=>{
  const currentUser=bank.users.find((u:any)=>u.username===session.username&&u.enabled!==false);
  if(!currentUser)return json({error:"Account disabled"},401);
  const tier=currentUser.tier,priv=bank.tiers[tier]||tierDefault[tier]||{};
- if(action==="get-state")return json({payload:bank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});
+ if(action==="get-state"){const publicBank={...bank,users:bank.users.map(safeUser)};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
  if(action==="save-state"){
    if(!priv.canEditTracker)return json({error:"Permission denied"},403);
    const incoming=body?.appData;if(!incoming||typeof incoming!=="object")return json({error:"appData required"},400);
