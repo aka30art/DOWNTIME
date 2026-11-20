@@ -309,7 +309,7 @@ try {
   // Central USER tier is authenticated from USERS and remains read-only.
   const management = await newPage();
   await management.route('**/functions/v1/username-auth',async route=>{
-    const body=route.request().postDataJSON()||{},user={username:'mick',displayName:'Mick',tier:'USER'};
+    const body=route.request().postDataJSON()||{},user={username:'mick',displayName:'Jan',tier:'USER'};
     if(body.action==='login')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({token:'m'.repeat(48),user})});
     if(body.action==='validate')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({user})});
     return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true})});
@@ -331,6 +331,8 @@ try {
   assert.equal(await management.locator('#addEntry').isDisabled(),true,'central USER tier must be read-only');
   assert.equal(await management.locator('#plantStart').isDisabled(),true,'central USER tier cannot edit plant start time');
   assert.equal(await management.locator('#settingsAdminControls').isVisible(),false,'central USER tier cannot access administration');
+  assert.equal(await management.locator('#unlockStartBtn').isVisible(),false,'display name Jan cannot impersonate ROOT OWNER privileges');
+  assert.equal(await management.locator('#centralUserAdminPanel').isVisible(),false,'central USER display name Jan cannot see USERS administration');
   assert.equal(await management.locator('#staffRosterList').isVisible(),false,'central USER cannot see staff controls outside staff page');
   
   assert.deepEqual(pageErrors, [], `unexpected browser JavaScript errors: ${pageErrors.join('; ')}`);
