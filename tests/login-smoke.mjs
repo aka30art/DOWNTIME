@@ -52,7 +52,7 @@ try {
   await offline.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 5000 });
   assert.equal(await offline.locator('#authGate').isVisible(), true, 'team PIN gate should be visible at startup');
   assert.equal(vendorRequests.length, 0, 'third-party libraries must not block application startup');
-  await offline.locator('#teamPin').fill('9999');
+  for (const digit of '9999') await offline.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click();
   await offline.locator('#unlockBtn').click();
   console.log('DEBUG wrong PIN message:', JSON.stringify(await offline.locator('#authMsg').textContent()), 'pageErrors:', JSON.stringify(pageErrors), 'consoleErrors:', JSON.stringify(browserMessages));
   assert.match(await offline.locator('#authMsg').textContent(), /Incorrect PIN/, 'wrong team PIN should be rejected');
