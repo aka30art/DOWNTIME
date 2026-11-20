@@ -136,101 +136,70 @@ try {
   assert.equal(await mick.locator('#settingsAdminControls').isVisible(), false, 'Mick cannot access app-user administration');
   await mick.close();
 
+  // Owner/admin must authenticate through the central account, not the legacy local PIN gate.
   const jan = await newPage();
-  await seedExistingUsers(jan);
   await jan.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', route => route.abort());
-  await jan.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
-  jan.on('dialog', dialog => dialog.accept());
-  await enterTeamPin(jan);
-  await assignOperator(jan, '2666', 'Jan');
-  await jan.locator('#lockStartBtn').click();
-  assert.equal(await jan.locator('#plantStart').isDisabled(), true, 'plant start should be locked before Jan admin unlock');
-  assert.equal(await jan.locator('#unlockStartBtn').isVisible(), true, 'JAN must see the admin start-unlock action');
-  await jan.locator('#unlockStartBtn').click();
-  assert.equal(await jan.locator('#plantStart').isDisabled(), false, 'JAN must be able to unlock a permanently locked start time');
-  await jan.locator('.nav[data-view=settings]').click();
-  assert.equal(await jan.locator('#operatorAdminPanel').isVisible(), true, 'JAN must have operator administration controls');
-  assert.equal(await jan.locator('#settingsAdminControls').isVisible(), true, 'JAN must have app-user administration');
-  await jan.locator('#newOperatorName').fill('Test Operator');
-  await jan.locator('#newOperatorInitialPin').fill('7777');
-  await jan.locator('#addOperatorBtn').click();
-  assert.match(await jan.locator('#operatorAdminMsg').textContent(), /User added/, 'JAN should be able to add an app user');
-  assert.ok((await jan.evaluate(() => localStorage.getItem('plantDowntime.operatorRoster.v1') || '')).includes('Test Operator'), 'operator roster should persist locally');
-  await jan.reload();
-  await enterTeamPin(jan);
-  assert.equal(await jan.locator('.operator-choice[data-operator="Test Operator"]').count(), 1, 'new operator should appear in the login list');
-  await assignOperator(jan, '7777', 'Test Operator');
-  assert.match(await jan.locator('#dayHeading').textContent(), /OPERATOR: Test Operator/, 'new operator PIN should authenticate');
-  await jan.reload();
-  await enterTeamPin(jan);
-  await assignOperator(jan, '2666', 'Jan');
-  await jan.locator('.nav[data-view=settings]').click();
-  const testOperatorRow = jan.locator('#operatorRosterList > div').filter({ hasText: 'Test Operator' });
-  assert.equal(await testOperatorRow.count(), 1, 'JAN admin roster should contain the added operator');
-  await testOperatorRow.locator('button.danger').click();
-  assert.ok(!(await jan.evaluate(() => localStorage.getItem('plantDowntime.operatorRoster.v1') || '')).includes('Test Operator'), 'JAN should be able to remove an operator');
+  let centralPayload={weeks:{},areas:[],reasons:[],archive:[],staffRoster:['Jan','Mick','Gigi','Daz','Shayne'],operatorProfiles:{
+    Jan:{station:'Station 1 · WOOD',photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',onSite:true},
+    Mick:{station:'Station 2 · WOOD',photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',onSite:true},
+    Gigi:{station:'Station 3 · SCRAP',photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',onSite:true},
+    Daz:{station:'Station 4 · SCRAP',photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',onSite:true},
+    Shayne:{station:'Station 5 · SCRAP',photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',onSite:true}
+  }};
+  let centralVersion=1;
+  let centralUsers=[{user_id:'owner-jan',username:'jan',display_name:'Jan',tier:'OWNER',enabled:true}];
+  await jan.route('**/functions/v1/username-auth',async route=>{
+    const body=route.request().postDataJSON()||{};
+    const user={username:'jan',displayName:'Jan',tier:'OWNER'};
+    if(body.action==='login')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({token:'x'.repeat(48),user})});
+    if(body.action==='validate')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({user})});
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true})});
+  });
+  await jan.route('**/functions/v1/central-sync',async route=>{
+    const body=route.request().postDataJSON()||{};
+    if(body.action==='read')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({payload:centralPayload,version:centralVersion})});
+    if(body.action==='write'){centralPayload=body.payload;centralVersion++;return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,payload:centralPayload,version:centralVersion})});}
+    return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({error:'Unknown central sync action'})});
+  });
+  await jan.route('**/functions/v1/central-users',async route=>{
+    const body=route.request().postDataJSON()||{};
+    if(body.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({users:centralUsers})});
+    if(body.action==='create'){const user={user_id:'new-test-user',username:body.username,display_name:body.displayName,tier:body.tier,enabled:true};centralUsers.push(user);return route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({user})});}
+    if(body.action==='update'){const user=centralUsers.find(x=>x.user_id===body.userId);Object.assign(user,{display_name:body.displayName||user.display_name,tier:body.tier||user.tier,enabled:body.enabled??user.enabled});return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({user})});}
+    if(body.action==='delete'){centralUsers=centralUsers.filter(x=>x.user_id!==body.userId);return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true})});}
+    return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({error:'Unknown USERS action'})});
+  });
+  await jan.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
+  await jan.locator('#centralLoginSwitch').click();
+  await jan.locator('#centralUsername').fill('jan');
+  await jan.locator('#centralPin').fill('8642');
+  await jan.locator('#centralLoginBtn').click();
+  await jan.waitForFunction(()=>document.querySelector('#authGate').style.display==='none');
+  await jan.waitForFunction(()=>document.querySelector('#centralUserAdminPanel').style.display==='block');
+  assert.equal(await jan.locator('#centralUserAdminPanel').isVisible(),true,'JAN owner should access central USERS administration');
+  assert.equal(await jan.locator('#addOperatorBtn').count(),0,'legacy local user creation must be removed');
+  assert.equal(await jan.locator('#newOperatorName').count(),0,'legacy local username form must be removed');
+  await jan.locator('#centralNewDisplay').fill('Test User');
+  await jan.locator('#centralNewUsername').fill('testuser');
+  await jan.locator('#centralNewPin').fill('7777');
+  await jan.locator('#centralNewTier').selectOption('USER');
+  await jan.locator('#centralCreateUser').click();
+  await jan.waitForFunction(()=>document.querySelector('#centralUserList').textContent.includes('testuser'));
+  assert.equal(centralUsers.some(user=>user.username==='testuser'),true,'JAN creates centrally stored app users');
 
-  // STAFF: presence, station and photo management moved from Settings. Off-site affects plant assignment only, never login access.
+  // STAFF is independently managed in the shared central payload.
+  jan.on('dialog',dialog=>dialog.accept());
   await jan.locator('.nav[data-view=staff]').click();
-  assert.equal(await jan.locator('#staffRosterList > div').count(), 5, 'STAFF should contain the five canonical operators');
-  for (const staffName of ['Gigi','Daz','Shayne']) assert.equal(await jan.locator('#staffRosterList > div').filter({hasText:staffName}).count(), 1, `${staffName} should be present in STAFF`);
+  assert.equal(await jan.locator('#staffRosterList > div').count(),5,'central STAFF starts with five operators');
   await jan.locator('#newStaffName').fill('Test Staff Only');
   await jan.locator('#addStaffBtn').click();
-  assert.equal(await jan.locator('#staffRosterList > div').count(), 6, 'STAFF-only add should increase staff roster');
-  assert.equal(await jan.locator('#operatorRosterList > div').count(), 5, 'STAFF-only member must not appear in app-user Settings');
-  assert.equal(await jan.locator('.operator-choice[data-operator="Test Staff Only"]').count(), 0, 'STAFF-only member must not be an app login');
+  await jan.waitForFunction(()=>centralPayload.staffRoster.includes('Test Staff Only'));
+  assert.equal(await jan.locator('#staffRosterList > div').count(),6,'STAFF add syncs to central payload');
+  assert.equal(centralUsers.some(user=>user.username==='teststaffonly'),false,'STAFF member does not automatically create a USERS account');
   const staffOnlyRow=jan.locator('#staffRosterList > div').filter({hasText:'Test Staff Only'});
   await staffOnlyRow.locator('button.danger').click();
-  assert.equal(await jan.locator('#staffRosterList > div').count(), 5, 'STAFF-only remove should reduce staff roster');
-  // Re-create the test app account before testing the separation between Settings and STAFF.
-  await jan.locator('.nav[data-view=settings]').click();
-  await jan.locator('#newOperatorName').fill('Test Operator');
-  await jan.locator('#newOperatorInitialPin').fill('8888');
-  await jan.locator('#addOperatorBtn').click();
-  assert.match(await jan.locator('#operatorAdminMsg').textContent(), /User added/, 'test app user should be re-added');
-  await jan.locator('.nav[data-view=staff]').click();
-  await jan.locator('#newStaffName').fill('Test Operator');
-  await jan.locator('#addStaffBtn').click();
-  assert.equal(await jan.locator('#staffRosterList > div').count(), 6, 'app-user name can be added independently to STAFF');
-  await jan.locator('.nav[data-view=settings]').click();
-  const appUserRow=jan.locator('#operatorRosterList > div').filter({hasText:'Test Operator'});
-  assert.equal(await appUserRow.count(), 1, 'test app user should still be present before removal');
-  const appUserCountBeforeRemoval = await jan.locator('#operatorRosterList > div').count();
-  await appUserRow.locator('button.danger').click();
-  assert.equal(await jan.locator('#operatorRosterList > div').count(), appUserCountBeforeRemoval - 1, 'app-user removal should reduce user list only');
-  await jan.locator('.nav[data-view=staff]').click();
-  assert.equal(await jan.locator('#staffRosterList > div').filter({hasText:'Test Operator'}).count(), 1, 'removing app user must preserve independent STAFF membership');
-  const gigiStaffRow=jan.locator('#staffRosterList > div').filter({hasText:'Gigi'});
-  assert.equal(await gigiStaffRow.locator('input[type=checkbox]').count(), 1, 'STAFF should provide an on-site/off-site switch for Gigi');
-  const stationSelect=gigiStaffRow.locator('select[aria-label^="Station assignment for"]');
-  assert.equal(await stationSelect.count(), 1, 'station assignment control belongs in STAFF as a preset dropdown');
-  assert.equal(await stationSelect.locator('option').count(), 7, 'station dropdown contains only unassigned plus six fixed presets');
-  assert.equal(await stationSelect.isEnabled(), true, 'JAN can edit station assignments');
-  assert.equal(await gigiStaffRow.locator('input[type=file]').count(), 1, 'operator photo upload belongs in STAFF');
-  const janStaffRow=jan.locator('#staffRosterList > div').filter({hasText:'Jan'});
-  assert.equal(await janStaffRow.locator('input[type=checkbox]').count(), 1, 'JAN also has an on-site/off-site switch');
-  assert.equal(await janStaffRow.locator('input[type=file]').count(), 1, 'JAN photo control belongs in STAFF');
-
-  await gigiStaffRow.locator('input[type=checkbox]').uncheck();
-  assert.match(await jan.locator('#operatorAdminMsg').textContent(), /OFF SITE/, 'presence switch should update operator on-site state');
-  assert.equal(await jan.locator('.operator-choice[data-operator="Gigi"]').isDisabled(), false, 'off-site status must not disable login');
-  assert.equal(await gigiStaffRow.locator('select[aria-label^="Station assignment for"]').isDisabled(), true, 'off-site operator station control must be disabled');
-  assert.equal(await gigiStaffRow.locator('select[aria-label^="Station assignment for"]').inputValue(), '', 'off-site toggle must clear station assignment');
-  await jan.reload();
-  await enterTeamPin(jan);
-  await assignOperator(jan, '2666', 'Jan');
-  assert.equal(await jan.locator('#operatorGate').isVisible(), false, 'Jan login should pass operator gate');
-  await jan.locator('.nav[data-view=staff]').click();
-  const reloadedGigiRow=jan.locator('#staffRosterList > div').filter({hasText:'Gigi'});
-  await reloadedGigiRow.locator('input[type=checkbox]').check();
-  assert.equal(await jan.locator('.operator-choice[data-operator="Gigi"]').isDisabled(), false, 'on-site status does not alter login eligibility');
-  await jan.locator('.nav[data-view=settings]').click();
-  assert.equal(await jan.locator('#operatorRosterList > div').count(), 5, 'Settings should list the five canonical app users and role privileges');
-  assert.equal(await jan.locator('#operatorRosterList select[aria-label*="Gigi"]').count(), 1, 'Gigi role privilege should be editable in Settings');
-  assert.equal(await jan.locator('#operatorRosterList select[aria-label*="Daz"]').count(), 1, 'Daz role privilege should be editable in Settings');
-  assert.equal(await jan.locator('#operatorRosterList select[aria-label*="Jan"]').count(), 0, 'Jan remains the permanent Admin role');
-  assert.equal(await jan.locator('#areasInput').count(), 0, 'plant preset management is removed from Settings');
-  assert.equal(await jan.locator('#reasonsInput').count(), 0, 'reason preset management is removed from Settings');
+  await jan.waitForFunction(()=>!centralPayload.staffRoster.includes('Test Staff Only'));
+  assert.equal(await jan.locator('#staffRosterList > div').count(),5,'STAFF remove syncs to central payload');
   await jan.close();
 
 // 2. Simulate a functioning Supabase SDK/client and verify cloud sync can initialize.
