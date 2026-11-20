@@ -44,10 +44,14 @@ Deno.serve(async(req)=>{
  }
  if(action==="list-users"){return json({users:bank.users.filter((u:any)=>u.enabled!==false).map((u:any)=>({username:u.username,displayName:u.displayName||u.username,tier:u.tier}))});}
  if(action==="login"){
-   const username=String(body.username||"").trim(),pin=String(body.pin||"");
-   if(pin.length>8||!username)return json({error:"Invalid credentials"},401);
-   const user=bank.users.find((u:any)=>u.username.toLowerCase()===username.toLowerCase()&&u.enabled!==false);
-   if(!user||!await verifyPin(pin,user))return json({error:"Invalid username or PIN"},401);
+   const username=String(body.username||"").trim(),pin=String(body.pin||""),rateKey=username.toLowerCase();
+   if(pin.length>8||!username||!/^[0-9]{4,8}$/.test(pin))return json({error:"Invalid credentials"},401);
+   const cutoff=new Date(Date.now()-5*60*1000).toISOString();
+   const {count:failedCount,error:rateError}=await db.from("downtime_central_audit").select("id",{count:"exact",head:true}).eq("username",rateKey).eq("action","login-failed").gte("created_at",cutoff);
+   if(rateError)return json({error:"Login service temporarily unavailable"},503);
+   if((failedCount||0)>=5)return json({error:"Too many failed attempts. Try again in five minutes."},429);
+   const user=bank.users.find((u:any)=>u.username.toLowerCase()===rateKey&&u.enabled!==false);
+   if(!user||!await verifyPin(pin,user)){await db.from("downtime_central_audit").insert({username:rateKey,action:"login-failed",details:{}});return json({error:"Invalid username or PIN"},401);}
    const token=cryptoHex(crypto.getRandomValues(new Uint8Array(32))),tokenHash=await digest(token),expires=new Date(Date.now()+12*60*60*1000);
    const {error}=await db.from("downtime_central_sessions").insert({token_hash:tokenHash,username:user.username,tier:user.tier,expires_at:expires.toISOString()});
    if(error)return json({error:"Session creation failed"},500);
@@ -60,7 +64,7 @@ Deno.serve(async(req)=>{
  const currentUser=bank.users.find((u:any)=>u.username===session.username&&u.enabled!==false);
  if(!currentUser)return json({error:"Account disabled"},401);
  const tier=currentUser.tier,priv=bank.tiers[tier]||tierDefault[tier]||{};
- if(action==="get-state"){const publicBank={...bank,users:bank.users.map(safeUser)};const restrictedData={...(publicBank.appData||{})};if(!priv.canViewStaff){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.areas;delete restrictedData.reasons;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
+ if(action==="get-state"){const publicBank={...bank,users:bank.users.map(safeUser)};const restrictedData={...(publicBank.appData||{})};if(!priv.canViewStaff){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}if(!priv.canViewAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.areas;delete restrictedData.reasons;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
  if(action==="save-state"){
    if(!priv.canEditTracker)return json({error:"Permission denied"},403);
    const incoming=body?.appData;if(!incoming||typeof incoming!=="object"||Array.isArray(incoming))return json({error:"appData required"},400);
@@ -91,6 +95,7 @@ Deno.serve(async(req)=>{
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Version conflict"},409);
    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"user-save",details:{target:username,tier:newTier}});
+   await db.from("downtime_central_sessions").delete().eq("username",username);
    return json({ok:true,version:(row?.version||0)+1});
  }
  if(action==="user-delete"){
@@ -101,6 +106,7 @@ Deno.serve(async(req)=>{
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Version conflict"},409);
    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"user-delete",details:{target}});
+   await db.from("downtime_central_sessions").delete().eq("username",target);
    return json({ok:true,version:(row?.version||0)+1});
  }
  if(action==="staff-save"){
