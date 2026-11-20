@@ -45,7 +45,7 @@ Deno.serve(async(req)=>{
   }
   if(action==="create"){
     const username=String(body?.username||"").trim().toLowerCase(),displayName=String(body?.displayName||"").trim(),pin=String(body?.pin||""),tier=String(body?.tier||"");
-    if(!usernamePattern.test(username)||!displayName||displayName.length>80||!/^\d{4,8}$/.test(pin)||!tiers.includes(tier))return json({error:"Invalid username, display name, password, or tier"},400);
+    if(!usernamePattern.test(username)||!displayName||displayName.length>80||!/^\d{4,8}$/.test(pin)||!tiers.includes(tier))return json({error:"Invalid username, display name, PIN, or tier"},400);
     const passwordHash=await hashPassword(pin);
     const {data,error}=await admin.from("downtime_app_users").insert({username,display_name:displayName,password_hash:passwordHash,tier,enabled:true}).select("user_id,username,display_name,tier,enabled").single();
     if(error)return json({error:"User creation failed (username may already exist)"},409);
