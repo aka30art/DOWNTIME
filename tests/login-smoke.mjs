@@ -104,6 +104,14 @@ async function signIn(page,pin='2468'){
  assert.equal(await page.evaluate(()=>window.__downtimeRealtimePrivate),true,'central state topic is private');
 }
 
+async function openStaffSettings(page){
+ const menu=page.locator('.nav-menu');
+ if(!await menu.evaluate(node=>node.open))await menu.locator(':scope > summary').click();
+ await page.locator('.nav[data-view="settings"]').click();
+ await page.locator('[data-settings-open="staff"]').click();
+ await page.locator('#staffRosterList').waitFor({state:'visible'});
+}
+
 try{
  // Invalid credentials never unlock the tracker.
  const rejected=await openFor('OWNER');
@@ -119,7 +127,11 @@ try{
  await signIn(owner.page);
  assert.equal(await owner.page.locator('#authGate').isVisible(),false,'central login closes after authentication');
  await owner.page.locator('.nav-menu > summary').click();
- assert.equal(await owner.page.locator('.nav[data-view="staff"]').isVisible(),true,'OWNER can view STAFF after opening MENU');
+ assert.equal(await owner.page.locator('.nav[data-view="staff"]').count(),0,'STAFF is no longer a standalone navigation item');
+ assert.equal(await owner.page.locator('.nav[data-view="settings"]').isVisible(),true,'OWNER can open Settings');
+ await openStaffSettings(owner.page);
+ assert.equal(await owner.page.locator('#settingsPanelStaff').isVisible(),true,'OWNER can open the STAFF panel from Settings');
+ assert.equal(await owner.page.locator('#addStaffBtn').isEnabled(),true,'OWNER retains STAFF management privileges');
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').isVisible(),true,'OWNER can view reports');
  assert.equal(await owner.page.locator('.overview-link').isVisible(),true,'OWNER can view Plant Overview');
  assert.equal(await owner.page.locator('#addEntry').isDisabled(),false,'OWNER can edit tracker');
@@ -171,7 +183,7 @@ try{
  assert.equal(owner.getVersion(),3,'plant status and tracker edits must each advance the compare-and-swap version');
 
  // STAFF additions and station assignments must immediately appear in the already-open Overview iframe.
- await owner.page.locator('.nav[data-view="staff"]').click();
+ await openStaffSettings(owner.page);
  await owner.page.locator('#newStaffName').fill('Rita');
  await owner.page.locator('#addStaffBtn').click();
  const ritaStation=owner.page.locator('[aria-label="Station assignment for Rita"]');
@@ -213,7 +225,10 @@ try{
  await signIn(user.page);
  await user.page.locator('.nav-menu > summary').click();
  assert.equal(await user.page.locator('#addEntry').isDisabled(),true,'USER is read-only');
- assert.equal(await user.page.locator('.nav[data-view="staff"]').isVisible(),true,'USER can see STAFF information');
+ assert.equal(await user.page.locator('.nav[data-view="staff"]').count(),0,'STAFF is not a standalone USER navigation item');
+ await openStaffSettings(user.page);
+ assert.equal(await user.page.locator('#staffRosterList').isVisible(),true,'USER can view STAFF information inside Settings');
+ assert.equal(await user.page.locator('#addStaffBtn').isDisabled(),true,'USER cannot manage STAFF');
  assert.equal(await user.page.locator('.nav[data-view="reports"]').isVisible(),true,'USER can see reports');
  assert.equal(await user.page.locator('.overview-link').isVisible(),true,'USER can see Plant Overview');
  assert.notEqual(await user.page.locator('.weeklyKpis').evaluate(el=>getComputedStyle(el).display),'none','USER can see dashboards');
@@ -230,8 +245,8 @@ try{
  await signIn(supervisor.page);
  await supervisor.page.locator('.nav-menu > summary').click();
  assert.equal(await supervisor.page.locator('#addEntry').isDisabled(),false,'SUPERVISOR can edit tracker');
- assert.equal(await supervisor.page.locator('#newStaffName').isVisible().catch(()=>false),false,'STAFF editing is not exposed before selecting STAFF view');
- await supervisor.page.locator('.nav[data-view="staff"]').click();
+ assert.equal(await supervisor.page.locator('#newStaffName').isVisible().catch(()=>false),false,'STAFF editing is not exposed before selecting the Settings STAFF panel');
+ await openStaffSettings(supervisor.page);
  assert.equal(await supervisor.page.locator('#addStaffBtn').isEnabled(),false,'SUPERVISOR cannot add STAFF');
  await supervisor.context.close();
 
@@ -239,7 +254,9 @@ try{
  const spectator=await openFor('SPECTATOR','2468');
  await signIn(spectator.page);
  await spectator.page.locator('.nav-menu > summary').click();
- assert.equal(await spectator.page.locator('.nav[data-view="staff"]').isVisible(),false,'SPECTATOR cannot view STAFF');
+ assert.equal(await spectator.page.locator('.nav[data-view="staff"]').count(),0,'STAFF is not a standalone navigation item');
+ assert.equal(await spectator.page.locator('.nav[data-view="settings"]').isVisible(),false,'SPECTATOR cannot open Settings');
+ assert.equal(await spectator.page.locator('[data-settings-open="staff"]').isVisible(),false,'SPECTATOR cannot view STAFF');
  assert.equal(await spectator.page.locator('.nav[data-view="reports"]').isVisible(),false,'SPECTATOR cannot view reports');
  assert.equal(await spectator.page.locator('.overview-link').isVisible(),false,'SPECTATOR cannot view assignments overview');
  assert.equal(await spectator.page.locator('.weeklyKpis').evaluate(el=>getComputedStyle(el).display),'none','SPECTATOR cannot view dashboards');
