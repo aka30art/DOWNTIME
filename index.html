@@ -939,20 +939,24 @@ $('exportBtn').onclick=saveCloudReport;
 async function enforceArchiveLimit(){const limit=12;const {data,error}=await sb.from('downtime_reports').select('id,storage_path').order('created_at',{ascending:false});if(error)throw error;if(data.length<=limit)return;const old=data.slice(limit),paths=old.map(x=>x.storage_path);const {error:removeError}=await sb.storage.from('downtime-pdfs').remove(paths);if(removeError)throw removeError;const ids=old.map(x=>x.id);const {error:deleteError}=await sb.from('downtime_reports').delete().in('id',ids);if(deleteError)throw deleteError;}
 async function downloadCloudReport(path,name){const {data,error}=await sb.storage.from('downtime-pdfs').download(path);if(error){alert('Download failed: '+error.message);return}const url=URL.createObjectURL(data),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)}
 async function deleteCloudReport(id,path){if(!permission('canDeleteRecords'))return;if(!confirm('Delete this PDF report from the cloud archive?'))return;const {error:removeError}=await sb.storage.from('downtime-pdfs').remove([path]);if(removeError){alert('File delete failed: '+removeError.message);return}const {error}=await sb.from('downtime_reports').delete().eq('id',id);if(error){alert('Archive record delete failed: '+error.message);return}await renderArchive()}
-let reportPreviewObjectUrl=null,reportPreviewTrigger=null;
+let reportPreviewObjectUrl=null,reportPreviewTrigger=null,reportPreviewRequest=0;
 function closeReportPreview(){
+ ++reportPreviewRequest;
  const modal=$('reportPreviewModal'),frame=$('reportPreviewFrame');
  if(!modal)return;
  modal.classList.remove('show');modal.setAttribute('aria-hidden','true');
  if(frame){frame.removeAttribute('src');frame.hidden=true}
  if(reportPreviewObjectUrl){URL.revokeObjectURL(reportPreviewObjectUrl);reportPreviewObjectUrl=null}
- $('reportPreviewStatus').textContent='';reportPreviewTrigger?.focus?.();reportPreviewTrigger=null;
+ $('reportPreviewStatus').textContent='';
+ if(reportPreviewTrigger){reportPreviewTrigger.disabled=false;reportPreviewTrigger.focus?.()}
+ reportPreviewTrigger=null;
 }
 async function displayCloudReport(report,trigger){
  if(!permission('canViewReports')||!report?.storage_path)return;
  if(!sb)await legacyCloudClient();
  if(!sb){alert('Weekly report service is unavailable.');return}
  const modal=$('reportPreviewModal'),frame=$('reportPreviewFrame'),status=$('reportPreviewStatus');
+ const request=++reportPreviewRequest;
  const title='WEEK OF '+prettyDate(report.week_start);
  reportPreviewTrigger=trigger||document.activeElement;
  $('reportPreviewTitle').textContent=title;
@@ -962,12 +966,14 @@ async function displayCloudReport(report,trigger){
  try{
   const {data,error}=await sb.storage.from('downtime-pdfs').download(report.storage_path);
   if(error)throw error;
+  if(request!==reportPreviewRequest||!modal.classList.contains('show'))return;
   if(!(data instanceof Blob))throw new Error('The stored report could not be read as a PDF file.');
   if(reportPreviewObjectUrl)URL.revokeObjectURL(reportPreviewObjectUrl);
   reportPreviewObjectUrl=URL.createObjectURL(data);
   frame.src=reportPreviewObjectUrl;frame.hidden=false;
   status.textContent=report.file_name||title;
  }catch(error){
+  if(request!==reportPreviewRequest||!modal.classList.contains('show'))return;
   console.error('Weekly report preview failed.',error);
   status.textContent='Unable to display this report · '+(error?.message||'Please retry.');
  }finally{if(trigger)trigger.disabled=false}
