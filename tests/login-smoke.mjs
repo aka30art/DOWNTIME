@@ -118,7 +118,8 @@ try{
  const owner=await openFor('OWNER');
  await signIn(owner.page);
  assert.equal(await owner.page.locator('#authGate').isVisible(),false,'central login closes after authentication');
- assert.equal(await owner.page.locator('.nav[data-view="staff"]').isVisible(),true,'OWNER can view STAFF');
+ await owner.page.locator('.nav-menu > summary').click();
+ assert.equal(await owner.page.locator('.nav[data-view="staff"]').isVisible(),true,'OWNER can view STAFF after opening MENU');
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').isVisible(),true,'OWNER can view reports');
  assert.equal(await owner.page.locator('.overview-link').isVisible(),true,'OWNER can view Plant Overview');
  assert.equal(await owner.page.locator('#addEntry').isDisabled(),false,'OWNER can edit tracker');
@@ -210,6 +211,7 @@ try{
  // USER is fully informed but cannot edit or submit anything.
  const user=await openFor('USER','2468');
  await signIn(user.page);
+ await user.page.locator('.nav-menu > summary').click();
  assert.equal(await user.page.locator('#addEntry').isDisabled(),true,'USER is read-only');
  assert.equal(await user.page.locator('.nav[data-view="staff"]').isVisible(),true,'USER can see STAFF information');
  assert.equal(await user.page.locator('.nav[data-view="reports"]').isVisible(),true,'USER can see reports');
@@ -226,6 +228,7 @@ try{
  // SUPERVISOR can edit tracker data but not manage users or STAFF.
  const supervisor=await openFor('SUPERVISOR','2468');
  await signIn(supervisor.page);
+ await supervisor.page.locator('.nav-menu > summary').click();
  assert.equal(await supervisor.page.locator('#addEntry').isDisabled(),false,'SUPERVISOR can edit tracker');
  assert.equal(await supervisor.page.locator('#newStaffName').isVisible().catch(()=>false),false,'STAFF editing is not exposed before selecting STAFF view');
  await supervisor.page.locator('.nav[data-view="staff"]').click();
@@ -235,6 +238,7 @@ try{
  // SPECTATOR receives no staff/assignment/dashboard/report surfaces.
  const spectator=await openFor('SPECTATOR','2468');
  await signIn(spectator.page);
+ await spectator.page.locator('.nav-menu > summary').click();
  assert.equal(await spectator.page.locator('.nav[data-view="staff"]').isVisible(),false,'SPECTATOR cannot view STAFF');
  assert.equal(await spectator.page.locator('.nav[data-view="reports"]').isVisible(),false,'SPECTATOR cannot view reports');
  assert.equal(await spectator.page.locator('.overview-link').isVisible(),false,'SPECTATOR cannot view assignments overview');
