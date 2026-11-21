@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 const source = await readFile('index.html', 'utf8');
 // This is a static visual fixture: strip application scripts so no login,
 // cloud request, local storage write, or live-data action can occur in QA.
-const html = source.replace(/<script\\b[\\s\\S]*?<\\/script>/gi, '');
+const html = source.replace(/<script\b[\s\S]*?<\/script>/gi, '');
 const outputDir = 'artifacts/stage-1';
 await mkdir(outputDir, { recursive: true });
 
@@ -100,7 +100,7 @@ try {
     if (width <= 600) {
       assert.equal(result.stage1MediaActive, true, 'Stage 1 breakpoint should be active at ' + width + 'px');
       for (const element of result.containers) {
-        if (/^main#|^div\.shell|^div\.panel|^div\.fields|^div\.field/.test(element.selector)) {
+        if (/^main$|^div\.shell|^div\.panel|^div\.fields|^div\.field/.test(element.selector)) {
           assert.equal(element.minWidth, '0px',
             'Stage 1 min-width containment missing at ' + width + 'px: ' + JSON.stringify(element));
           assert.equal(element.boxSizing, 'border-box',
