@@ -31,6 +31,7 @@ assert.ok(tracker.includes("operatorReadOnly||!permission('canDeleteRecords')"),
 assert.ok(tracker.includes('if(previous?.recordId)item.recordId=previous.recordId'), 'editing a downtime record preserves its central identity');
 assert.ok(tracker.includes("station.disabled=!(permission('canManageAssignments')||permission('canManageStaff'))"), 'SUPERVISOR station assignment control is separated from STAFF administration');
 assert.ok(tracker.includes("saveCloudReport(){if(!permission('canExportReports'))return"), 'MANAGER can export weekly reports');
+assert.ok(tracker.includes("if(!permission('canExportReports'))el.querySelectorAll('[data-report-download]').forEach(b=>b.style.display='none')"), 'USER cannot export archived weekly reports');
 assert.ok(tracker.includes('id="supervisorReasonPanel"')&&tracker.includes('addSupervisorDowntimeReason'), 'SUPERVISOR can add downtime reasons from Settings');
 assert.ok(tracker.includes('state.quickReasons=[...state.quickReasons,value]'), 'new supervisor downtime reasons appear in entry shortcuts');
 assert.ok(tracker.includes("querySelectorAll('main input,main select,main textarea').forEach(el=>{el.disabled=operatorReadOnly})"), 'USER has all main data-entry controls disabled');
