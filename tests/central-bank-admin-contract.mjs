@@ -11,4 +11,6 @@ assert.ok(page.includes('"apikey":$("pubKey").value.trim()'),'admin requests sen
 assert.ok(page.includes('if(auth&&token)h["x-downtime-session"]=token'),'session token is attached only to authenticated admin API calls');
 assert.ok(page.includes('value="JAN" readonly'), 'bootstrap only exposes the fixed JAN root username');
 assert.ok(page.includes('ROOT OWNER · PROTECTED'), 'standalone admin UI protects the JAN root OWNER');
+assert.ok(page.includes('Access and Rights (JAN only)')&&page.includes('the permanent root OWNER'),
+  'standalone tier editor describes JAN-only authority and fixed OWNER rights');
 console.log('Central admin UI contract checks passed (static only).');

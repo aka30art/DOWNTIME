@@ -19,7 +19,7 @@ assert.ok(src.includes('if(!priv.canEditTracker)return json({error:"Permission d
 assert.ok(src.includes('action:"set-plant-status"'),'plant status changes are audited');
 assert.ok(src.includes('MANAGER:{canEditTracker:true'), 'MANAGER can create and edit operational records');
 assert.ok(src.includes('SUPERVISOR:{canEditTracker:true')&&src.includes('canManageAssignments:true'), 'SUPERVISOR can edit existing station assignments');
-assert.ok(src.includes('lockedRolePrivileges')&&src.includes('USER:{canEditTracker:false'), 'USER and SPECTATOR restrictions are server-locked');
+assert.ok(src.includes('lockedRolePrivileges')&&src.includes('OWNER:{canEditTracker:true'), 'the root OWNER permissions remain immutable on the server');
 assert.ok(src.includes('Object.fromEntries(tiers.map(tier=>[tier,{...tierDefault[tier],...(storedTiers[tier]||{})}]))')&&src.includes('Object.assign(b.tiers[tier],permissions)'), 'persisted tier payload is normalized to the approved fixed role baselines');
 assert.ok(src.includes('USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}'), 'USER has full visibility and no mutation privileges');
 assert.ok(src.includes('SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}'), 'SPECTATOR has restricted visibility and no mutation privileges');
@@ -34,8 +34,15 @@ assert.ok(src.includes('ADMIN:{canEditTracker:true')&&src.includes('canDeleteRec
 assert.ok(src.includes('SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true'),
   'SUPERVISOR can manage STAFF in the server tier defaults');
 const lockedRoles=src.slice(src.indexOf('const lockedRolePrivileges'),src.indexOf('function addStableRecordIds'));
-assert.ok(lockedRoles.includes('SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true'),
-  'SUPERVISOR can manage STAFF in the server-locked privilege matrix');
+assert.ok(lockedRoles.includes('OWNER:{canEditTracker:true'), 'JAN root OWNER permissions are fixed');
+assert.doesNotMatch(lockedRoles, /MANAGER:|SUPERVISOR:|USER:|SPECTATOR:/,
+  'non-root tiers are configurable by JAN rather than locked to hard-coded baselines');
+assert.ok(src.includes('String(currentUser.username||"").toUpperCase()!=="JAN"||tier!=="OWNER"'),
+  'tier rights changes are restricted to the JAN root OWNER identity');
+assert.ok(src.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&src.includes('typeof supplied[key]!=="boolean"'),
+  'tier rights updates validate the permission whitelist and boolean values');
+assert.ok(src.includes('action:"tiers-save",details:{tiers:tiers.filter(role=>role!=="OWNER")}'),
+  'tier rights changes are audited and exclude root OWNER permissions');
 
 assert.ok(src.includes('if(Array.isArray(bank.appData?.dailyTaskPresets))nextAppData.dailyTaskPresets=bank.appData.dailyTaskPresets;else delete nextAppData.dailyTaskPresets'),
   'non-settings roles can complete daily tasks but cannot edit the preset list');

@@ -31,12 +31,15 @@ for (const section of requiredTiles) {
     section + ' tile must identify the panel it opens'
   );
 }
-assert.equal((html.match(/data-settings-open="/g) || []).length, 6,
-  'hub must expose five configuration destinations plus STAFF');
-assert.equal((html.match(/data-settings-back>/g) || []).length, 6,
+assert.equal((html.match(/data-settings-open="/g) || []).length, 7,
+  'hub must expose six standard destinations plus the JAN-only Access and Rights destination');
+assert.equal((html.match(/data-settings-back>/g) || []).length, 7,
   'every settings panel must provide a back-to-settings control');
 assert.doesNotMatch(html, /data-view="staff"/, 'STAFF must no longer have a standalone navigation destination');
 assert.match(html, /id="settingsPanelStaff"[\s\S]*?id="staffRosterList"/, 'STAFF roster management must live inside its Settings panel');
+assert.match(html, /id="settingsOwnerAccess"[\s\S]*?data-settings-open="accessRights"/, 'Access and Rights lives in a separate JAN-only Settings area');
+assert.match(html, /id="settingsPanelAccessRights" class="settings-panel" hidden/, 'Access and Rights has its own hidden panel');
+assert.match(html, /id="accessRightsTierList"[\s\S]*?id="saveAccessRights"/, 'JAN has an individual tier rights editor and central save control');
 
 for (const id of [
   'centralUsersAdminLink', 'centralUsersManager', 'centralUsersManageList',
@@ -52,12 +55,12 @@ for (const id of [
 
 const accessMatch = html.match(/function settingsAccess\(section\)\{[^}]*\}/);
 assert.ok(accessMatch, 'settings section access must be permission-gated');
-const settingsAccess = new Function('permission',
+const settingsAccess = new Function('permission', 'isJanAccessAdmin',
   accessMatch[0] + '; return settingsAccess;'
 );
 const managerOnly = settingsAccess(name => ({
   canManageUsers: true, canManageSettings: false, canAddDowntimeReasons: false
-}[name] === true));
+}[name] === true), () => false);
 assert.equal(managerOnly('users'), true);
 assert.equal(managerOnly('areas'), false);
 assert.equal(managerOnly('reasons'), false);
@@ -67,7 +70,7 @@ assert.equal(managerOnly('dailyTasks'), false);
 
 const supervisorReasons = settingsAccess(name => ({
   canManageUsers: false, canManageSettings: false, canAddDowntimeReasons: true
-}[name] === true));
+}[name] === true), () => false);
 assert.equal(supervisorReasons('users'), false);
 assert.equal(supervisorReasons('areas'), false);
 assert.equal(supervisorReasons('reasons'), true);
@@ -77,7 +80,7 @@ assert.equal(supervisorReasons('dailyTasks'), false);
 
 const supervisorStaff = settingsAccess(name => ({
   canViewStaff: true, canManageStaff: true
-}[name] === true));
+}[name] === true), () => false);
 assert.equal(supervisorStaff('staff'), true, 'SUPERVISOR can access the STAFF panel');
 assert.equal(supervisorStaff('users'), false);
 assert.equal(supervisorStaff('areas'), false);
@@ -90,12 +93,14 @@ assert.ok(supervisorManageStaff, 'SUPERVISOR permission profile must exist');
 assert.match(supervisorManageStaff[0], /canManageStaff:true/,
   'SUPERVISOR must be granted STAFF management permission');
 
-const staffViewer = settingsAccess(name => name === 'canViewStaff');
+const staffViewer = settingsAccess(name => name === 'canViewStaff', () => false);
 assert.equal(staffViewer('staff'), true, 'STAFF visibility must preserve the existing staff-view privilege');
 assert.equal(staffViewer('users'), false);
 
-const fullAdmin = settingsAccess(() => true);
+const fullAdmin = settingsAccess(() => true, () => false);
 for (const section of requiredTiles) assert.equal(fullAdmin(section), true);
+assert.equal(fullAdmin('accessRights'), false, 'non-JAN admins cannot access tier rights even with every ordinary permission');
+assert.equal(settingsAccess(() => false, () => true)('accessRights'), true, 'JAN root OWNER can access Access and Rights');
 
 assert.match(html, /function showSettingsHub\(\)/, 'back navigation must return to the Settings hub');
 assert.match(html, /function openSettingsPanel\(section\)/, 'tile navigation must open dedicated panels');
