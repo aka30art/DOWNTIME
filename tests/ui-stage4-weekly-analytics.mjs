@@ -36,6 +36,15 @@ try {
     weekly.open = true;
 
     const values = {
+      topWeekDown:'04h 42m',
+      topWeekPct:'10.8%',
+      topWeekRunPct:'89.2%',
+      scheduled:'09h 00m',
+      net:'07h 45m',
+      downtime:'00h 31m',
+      running:'07h 14m',
+      downPct:'6.7%',
+      runPct:'93.3%',
       topCause:'Conveyor blockage',
       topCauseShare:'31.4%',
       weekChange:'−12.4%',
