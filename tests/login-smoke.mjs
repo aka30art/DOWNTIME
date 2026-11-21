@@ -25,7 +25,7 @@ const tiers={
 };
 function makeBank(){
  const profiles=Object.fromEntries(['Jan','Mick','Gigi','Daz','Shayne'].map((name,i)=>[name,{station:'Station '+(i+1)+' · WOOD',onSite:true,photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}]));
- return {appData:{weeks:{},areas:['Feeder'],reasons:['Blockage'],quickReasons:['Blockage'],archive:[],plantOn:true},users:[],tiers,staff:{roster:Object.keys(profiles),profiles},statsSource:{weeks:{}}};
+ return {appData:{weeks:{},areas:['Feeder'],reasons:['Blockage'],archive:[],plantOn:true,dailyTaskPresets:[]},users:[],tiers,staff:{roster:Object.keys(profiles),profiles},statsSource:{weeks:{}}};
 }
 async function openFor(tier,pin='2468'){
  const context=await browser.newContext();
@@ -182,6 +182,39 @@ try{
  assert.ok(owner.getBank().appData.areas.includes('Central Sync Test'),'central bank mock should retain the edited tracker setting');
  assert.equal(owner.getVersion(),3,'plant status and tracker edits must each advance the compare-and-swap version');
 
+ // Daily Tasks are preset in Settings, then checked independently for each operating day.
+ await owner.page.locator('[data-settings-back]').click();
+ await owner.page.locator('[data-settings-open="dailyTasks"]').click();
+ await owner.page.locator('#dailyTaskPresetInput').fill('Check guards and safety covers');
+ await owner.page.locator('#addDailyTaskPresetBtn').click();
+ await owner.page.locator('#dailyTaskPresetInput').fill('Inspect emergency stops');
+ await owner.page.locator('#addDailyTaskPresetBtn').click();
+ for(let attempt=0;attempt<40&&owner.getBank().appData.dailyTaskPresets?.length!==2;attempt++)await owner.page.waitForTimeout(100);
+ assert.deepEqual(owner.getBank().appData.dailyTaskPresets,['Check guards and safety covers','Inspect emergency stops'],'daily task presets sync to the central bank');
+ await owner.page.locator('.nav[data-view="weekly"]').click();
+ const daySetup=owner.page.locator('.day-setup');
+ if(!await daySetup.evaluate(node=>node.open))await daySetup.locator(':scope > summary').click();
+ await owner.page.locator('#openDailyTasks').click();
+ assert.equal(await owner.page.locator('#dailyTasksModal').isVisible(),true,'clipboard opens the Daily Tasks popup');
+ assert.equal(await owner.page.locator('#dailyTasksList input[type="checkbox"]').count(),2,'popup displays all preset tasks');
+ await owner.page.locator('[aria-label="Complete task: Check guards and safety covers"]').check();
+ for(let attempt=0;attempt<40&&!owner.getBank().appData.weeks[Object.keys(owner.getBank().appData.weeks)[0]]?.days?.[0]?.dailyTasksDone?.includes('Check guards and safety covers');attempt++)await owner.page.waitForTimeout(100);
+ const weekKey=Object.keys(owner.getBank().appData.weeks)[0];
+ assert.ok(owner.getBank().appData.weeks[weekKey].days[0].dailyTasksDone.includes('Check guards and safety covers'),'Monday task completion is written centrally');
+ assert.equal(owner.getBank().appData.weeks[weekKey].days[0].dailyTasksDone.includes('Inspect emergency stops'),false,'unchecked Monday tasks remain incomplete');
+ await owner.page.locator('#closeDailyTasks').click();
+ await owner.page.locator('#dayTabs [data-day="1"]').click();
+ await owner.page.locator('#openDailyTasks').click();
+ assert.equal(await owner.page.locator('[aria-label="Complete task: Check guards and safety covers"]').isChecked(),false,'Tuesday starts with an independent checklist');
+ assert.equal(await owner.page.locator('[aria-label="Complete task: Inspect emergency stops"]').isChecked(),false,'Tuesday does not inherit Monday completion');
+ await owner.page.locator('[aria-label="Complete task: Inspect emergency stops"]').check();
+ await owner.page.locator('#closeDailyTasks').click();
+ await owner.page.locator('#dayTabs [data-day="0"]').click();
+ await owner.page.locator('#openDailyTasks').click();
+ assert.equal(await owner.page.locator('[aria-label="Complete task: Check guards and safety covers"]').isChecked(),true,'Monday completion is retained after switching days');
+ assert.equal(await owner.page.locator('[aria-label="Complete task: Inspect emergency stops"]').isChecked(),false,'Monday completion does not inherit Tuesday changes');
+ await owner.page.locator('#closeDailyTasks').click();
+
  // STAFF additions and station assignments must immediately appear in the already-open Overview iframe.
  await openStaffSettings(owner.page);
  await owner.page.locator('#newStaffName').fill('Rita');
@@ -229,6 +262,7 @@ try{
  await openStaffSettings(user.page);
  assert.equal(await user.page.locator('#staffRosterList').isVisible(),true,'USER can view STAFF information inside Settings');
  assert.equal(await user.page.locator('#addStaffBtn').isDisabled(),true,'USER cannot manage STAFF');
+ assert.equal(await user.page.locator('[data-settings-open="dailyTasks"]').isVisible(),false,'USER cannot manage Daily Tasks presets');
  assert.equal(await user.page.locator('.nav[data-view="reports"]').isVisible(),true,'USER can see reports');
  assert.equal(await user.page.locator('.overview-link').isVisible(),true,'USER can see Plant Overview');
  assert.notEqual(await user.page.locator('.weeklyKpis').evaluate(el=>getComputedStyle(el).display),'none','USER can see dashboards');
@@ -248,6 +282,7 @@ try{
  assert.equal(await supervisor.page.locator('#newStaffName').isVisible().catch(()=>false),false,'STAFF editing is not exposed before selecting the Settings STAFF panel');
  await openStaffSettings(supervisor.page);
  assert.equal(await supervisor.page.locator('#addStaffBtn').isEnabled(),true,'SUPERVISOR can manage STAFF');
+ assert.equal(await supervisor.page.locator('[data-settings-open="dailyTasks"]').isVisible(),false,'SUPERVISOR can manage STAFF but not general Settings presets');
  assert.equal(await supervisor.page.locator('#newStaffName').isEnabled(),true,'SUPERVISOR can add staff names');
  await supervisor.page.locator('#newStaffName').fill('Supervisor QA');
  await supervisor.page.locator('#addStaffBtn').click();
