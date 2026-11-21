@@ -16,6 +16,14 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npx playwright install chromium
       - run: npm run test:smoke
+      - name: Upload Stage 4 expanded weekly analytics screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage-4-weekly-analytics-expanded-qa
+          path: artifacts/stage-4/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Upload Stage 3 expanded Day Setup screenshots
         if: always()
         uses: actions/upload-artifact@v4
