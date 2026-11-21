@@ -23,7 +23,7 @@ The API enforces permissions. Client-side visibility and disabled controls are u
 ## Authentication and sessions
 PINs are never stored in plaintext. The Edge Function verifies salted PBKDF2-HMAC-SHA256 hashes (150,000 iterations). Successful login returns a random opaque session token; only its SHA-256 hash is stored in `downtime_central_sessions`. Sessions expire after 12 hours and are revoked when a USER is changed or removed. Failed logins are audited and throttled per username.
 
-The browser must never access `downtime_central_bank` directly. All central reads and writes pass through the authenticated `central-bank` Edge Function. Bootstrap is allowed once, only while there is no enabled USER, and requires the server-side `DOWNTIME_BOOTSTRAP_CODE` secret.
+The browser must never access `downtime_central_bank` directly. All central reads and writes pass through the authenticated `central-bank` Edge Function. Bootstrap is allowed once, only while there is no enabled USER, and requires the one-time bootstrap code stored encrypted in Supabase Vault. Only the service role can retrieve it through a database function; browser roles cannot execute that function.
 
 ## Synchronisation and concurrency
 The main tracker loads the central payload after login, saves edits with a version compare-and-swap (CAS), and polls the central version for changes from other devices. A stale write is rejected with a conflict response; the client retains the local snapshot and requires refresh/reconciliation rather than overwriting a newer central version.
