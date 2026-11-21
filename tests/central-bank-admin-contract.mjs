@@ -7,5 +7,6 @@ assert.ok(page.includes('uploadToSignedUrl'),'private photo upload path');
 assert.ok(page.includes('version'),'version-aware requests');
 // The standalone admin page owns its fetch helper and must send the same opaque session header as the tracker adapter.
 assert.ok(page.includes('x-downtime-session'),'central API requests carry the authenticated session header');
+assert.ok(page.includes('"apikey":$("pubKey").value.trim()'),'admin requests send the project publishable key');
 assert.ok(page.includes('if(auth&&token)h["x-downtime-session"]=token'),'session token is attached only to authenticated admin API calls');
 console.log('Central admin UI contract checks passed (static only).');
