@@ -3,12 +3,13 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
-const requiredTiles = ['users', 'areas', 'reasons', 'schedule'];
+const requiredTiles = ['users', 'areas', 'reasons', 'schedule', 'staff'];
 const requiredPanels = {
   users: 'settingsPanelUsers',
   areas: 'settingsPanelAreas',
   reasons: 'settingsPanelReasons',
-  schedule: 'settingsPanelSchedule'
+  schedule: 'settingsPanelSchedule',
+  staff: 'settingsPanelStaff'
 };
 
 assert.match(html, /<div id="settingsHub" class="settings-hub">/, 'Settings must open on the new hub');
@@ -29,10 +30,12 @@ for (const section of requiredTiles) {
     section + ' tile must identify the panel it opens'
   );
 }
-assert.equal((html.match(/data-settings-open="/g) || []).length, 4,
-  'hub must expose exactly the four requested settings destinations');
-assert.equal((html.match(/data-settings-back>/g) || []).length, 4,
+assert.equal((html.match(/data-settings-open="/g) || []).length, 5,
+  'hub must expose the four configuration destinations plus STAFF');
+assert.equal((html.match(/data-settings-back>/g) || []).length, 5,
   'every settings panel must provide a back-to-settings control');
+assert.doesNotMatch(html, /data-view="staff"/, 'STAFF must no longer have a standalone navigation destination');
+assert.match(html, /id="settingsPanelStaff"[\s\S]*?id="staffRosterList"/, 'STAFF roster management must live inside its Settings panel');
 
 for (const id of [
   'centralUsersAdminLink', 'centralUsersManager', 'centralUsersManageList',
@@ -58,6 +61,7 @@ assert.equal(managerOnly('users'), true);
 assert.equal(managerOnly('areas'), false);
 assert.equal(managerOnly('reasons'), false);
 assert.equal(managerOnly('schedule'), false);
+assert.equal(managerOnly('staff'), false);
 
 const supervisorReasons = settingsAccess(name => ({
   canManageUsers: false, canManageSettings: false, canAddDowntimeReasons: true
@@ -66,6 +70,11 @@ assert.equal(supervisorReasons('users'), false);
 assert.equal(supervisorReasons('areas'), false);
 assert.equal(supervisorReasons('reasons'), true);
 assert.equal(supervisorReasons('schedule'), false);
+assert.equal(supervisorReasons('staff'), false);
+
+const staffViewer = settingsAccess(name => name === 'canViewStaff');
+assert.equal(staffViewer('staff'), true, 'STAFF visibility must preserve the existing staff-view privilege');
+assert.equal(staffViewer('users'), false);
 
 const fullAdmin = settingsAccess(() => true);
 for (const section of requiredTiles) assert.equal(fullAdmin(section), true);
