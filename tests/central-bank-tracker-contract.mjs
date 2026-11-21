@@ -32,6 +32,7 @@ assert.ok(tracker.includes('if(previous?.recordId)item.recordId=previous.recordI
 assert.ok(tracker.includes("station.disabled=!(permission('canManageAssignments')||permission('canManageStaff'))"), 'SUPERVISOR station assignment control is separated from STAFF administration');
 assert.ok(tracker.includes("saveCloudReport(){if(!permission('canExportReports'))return"), 'MANAGER can export weekly reports');
 assert.ok(tracker.includes('id="supervisorReasonPanel"')&&tracker.includes('addSupervisorDowntimeReason'), 'SUPERVISOR can add downtime reasons from Settings');
+assert.ok(tracker.includes('state.quickReasons=[...state.quickReasons,value]'), 'new supervisor downtime reasons appear in entry shortcuts');
 assert.ok(tracker.includes("querySelectorAll('main input,main select,main textarea').forEach(el=>{el.disabled=operatorReadOnly})"), 'USER has all main data-entry controls disabled');
 assert.ok(tracker.includes("deleteCloudReport(id,path){if(!permission('canDeleteRecords'))return"), 'report deletion respects limited delete permission');
 console.log('PASS: main tracker and Plant Overview are connected to the central data bank.');
