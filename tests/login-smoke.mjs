@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 
@@ -211,6 +211,10 @@ try{
  for(let attempt=0;attempt<30&&!owner.getBank().appData.weeks[weekKey]?.days?.[0]?.dailyTasksDone?.includes('Check guards and safety covers');attempt++)await owner.page.waitForTimeout(100);
  assert.ok(owner.getBank().appData.weeks[weekKey].days[0].dailyTasksDone?.includes('Check guards and safety covers'),'Monday task completion is written centrally');
  assert.equal(owner.getBank().appData.weeks[weekKey].days[0].dailyTasksDone?.includes('Inspect emergency stops')||false,false,'unchecked Monday tasks remain incomplete');
+ await owner.page.setViewportSize({width:390,height:844});
+ await mkdir(resolve('artifacts/stage-3'),{recursive:true});
+ await owner.page.locator('#dailyTasksModal').screenshot({path:resolve('artifacts/stage-3/daily-tasks-popup-390px.png')});
+ console.log('PASS: Daily Tasks presets and day-specific completions persist through central save-state');
  await owner.page.locator('#closeDailyTasks').click();
  await owner.page.locator('#dayTabs [data-day="1"]').click();
  await owner.page.locator('#openDailyTasks').click();
