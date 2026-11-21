@@ -1,12 +1,14 @@
 /* DOWNTIME Central Bank browser adapter — API only; no direct bank-table access. */
 (function(){
   const endpoint=(window.DOWNTIME_CENTRAL_API||"").trim();
+  const apiKey=(window.DOWNTIME_CENTRAL_API_KEY||"").trim();
   const SESSION_KEY="downtime.central.session.v1";
   let session=null;
   try{session=JSON.parse(sessionStorage.getItem(SESSION_KEY)||"null")}catch{}
   async function call(action,body={},token=session?.token){
     if(!endpoint)throw new Error("Central API endpoint is not configured.");
     const headers={"Content-Type":"application/json"};
+    if(apiKey)headers.apikey=apiKey;
     if(token)headers["x-downtime-session"]=token;
     const response=await fetch(endpoint,{method:"POST",headers,body:JSON.stringify({action,...body})});
     let result={};try{result=await response.json()}catch{}
