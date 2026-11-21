@@ -97,6 +97,9 @@ async function signIn(page,pin='2468'){
  await page.waitForFunction(()=>document.querySelector('#authGate').style.display==='none',{timeout:5000});
  await page.waitForFunction(()=>document.querySelector('#cloudStatus').textContent.includes('CENTRAL'),{timeout:5000});
  await page.waitForFunction(()=>window.__downtimeRealtimeSubscribed===true,{timeout:5000});
+ assert.equal(await page.locator('.nav[data-view="weekly"]').evaluate(el=>el.classList.contains('active')),true,'successful login always activates Weekly Sheet navigation');
+ assert.equal(await page.locator('#weekly').evaluate(el=>el.classList.contains('active')),true,'successful login always lands on the Weekly Sheet view');
+ assert.equal(await page.locator('.view.active').count(),1,'login leaves exactly one active view');
  assert.equal(await page.evaluate(()=>window.__downtimeRealtimeTopic),'downtime-central-state','client subscribes to the central state topic');
  assert.equal(await page.evaluate(()=>window.__downtimeRealtimePrivate),true,'central state topic is private');
 }
