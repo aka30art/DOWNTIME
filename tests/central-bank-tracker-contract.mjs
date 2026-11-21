@@ -28,6 +28,7 @@ assert.ok(tracker.includes("window.DowntimeCentral.saveUser(payload,centralVersi
 assert.ok(tracker.includes('ROOT · PROTECTED'), 'JAN root account is protected in the Settings user list');
 assert.ok(tracker.includes('lockedTierPermissions'), 'frontend locks USER/SPECTATOR/operational role permissions against stale central overrides');
 assert.ok(tracker.includes("operatorReadOnly||!permission('canDeleteRecords')"), 'MANAGER/SUPERVISOR cannot delete operational records in the UI');
+assert.ok(tracker.includes('if(previous?.recordId)item.recordId=previous.recordId'), 'editing a downtime record preserves its central identity');
 assert.ok(tracker.includes("station.disabled=!(permission('canManageAssignments')||permission('canManageStaff'))"), 'SUPERVISOR station assignment control is separated from STAFF administration');
 assert.ok(tracker.includes("saveCloudReport(){if(!permission('canExportReports'))return"), 'MANAGER can export weekly reports');
 console.log('PASS: main tracker and Plant Overview are connected to the central data bank.');
