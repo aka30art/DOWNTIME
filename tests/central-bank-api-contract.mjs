@@ -20,6 +20,7 @@ assert.ok(src.includes('action:"set-plant-status"'),'plant status changes are au
 assert.ok(src.includes('MANAGER:{canEditTracker:true'), 'MANAGER can create and edit operational records');
 assert.ok(src.includes('SUPERVISOR:{canEditTracker:true')&&src.includes('canManageAssignments:true'), 'SUPERVISOR can edit existing station assignments');
 assert.ok(src.includes('lockedRolePrivileges')&&src.includes('USER:{canEditTracker:false'), 'USER and SPECTATOR restrictions are server-locked');
+assert.ok(src.includes('Object.fromEntries(tiers.map(tier=>[tier,{...tierDefault[tier],...(storedTiers[tier]||{})}]))')&&src.includes('Object.assign(b.tiers[tier],permissions)'), 'persisted tier payload is normalized to the approved fixed role baselines');
 assert.ok(src.includes('USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}'), 'USER has full visibility and no mutation privileges');
 assert.ok(src.includes('SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}'), 'SPECTATOR has restricted visibility and no mutation privileges');
 assert.ok(src.includes('The root OWNER username is fixed as JAN'), 'bootstrap fixes the root account name as JAN');
