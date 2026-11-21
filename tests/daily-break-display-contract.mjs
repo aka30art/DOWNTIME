@@ -45,12 +45,16 @@ assert.equal(
   'the display must reflect updated custom presets'
 );
 
-const calcMatch = html.match(/function calc\(d\)\{[^}]*\}/);
-assert.ok(calcMatch, 'daily calculation function must exist');
-assert.match(calcMatch[0], /configuredBreakMinutes\(dayName\)/,
+const calcStart = html.indexOf('function calc(d){');
+const calcEnd = html.indexOf('\\nfunction configuredBreakMinutes', calcStart);
+assert.notEqual(calcStart, -1, 'daily calculation function must exist');
+assert.notEqual(calcEnd, -1, 'daily calculation function must be bounded before the break helper');
+const calcSource = html.slice(calcStart, calcEnd);
+assert.match(calcSource, /configuredBreakMinutes\\(dayName\\)/,
   'daily calculations must resolve the break from the configured weekday schedule');
+
 const calculateDay = new Function('mins', 'durationMinutes', 'configuredBreakMinutes',
-  `${calcMatch[0]}; return calc;`
+  `${calcSource}; return calc;`
 );
 const configuredFor = name => readBreak({ shiftSchedule: standard }, standard)(name);
 const calc = calculateDay(
