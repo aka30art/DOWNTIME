@@ -75,8 +75,8 @@ try {
       const textNode = [...topCause.childNodes].find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
       const wordFragments = [];
       if (textNode) {
-        let offset = 0;
         for (const word of textNode.textContent.matchAll(/\S+/g)) {
+          const range = document.createRange();
           range.setStart(textNode, word.index);
           range.setEnd(textNode, word.index + word[0].length);
           wordFragments.push({word:word[0],rectCount:range.getClientRects().length});
