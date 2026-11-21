@@ -16,6 +16,14 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npx playwright install chromium
       - run: npm run test:smoke
+      - name: Upload Stage 1 viewport screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage-1-mobile-containment-qa
+          path: artifacts/stage-1/
+          if-no-files-found: warn
+          retention-days: 7
 
   central-edge-typecheck:
     runs-on: ubuntu-24.04
