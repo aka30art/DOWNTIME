@@ -78,9 +78,9 @@ assert.match(html, /if\(b\.dataset\.view==='settings'\)\{showSettingsHub\(\)/,
   'main Settings navigation must return to the hub');
 
 for (const handler of [
-  "addAreaPresetBtn').onclick=addAreaPreset",
-  "addQuickReasonBtn').onclick=()=>addReasonPreset",
-  "addDowntimeReasonBtn').onclick=()=>addReasonPreset",
+  '$("addAreaPresetBtn").onclick=addAreaPreset',
+  '$("addQuickReasonBtn").onclick=()=>addReasonPreset',
+  '$("addDowntimeReasonBtn").onclick=()=>addReasonPreset',
   "saveShiftSchedule')?.addEventListener('click',applyScheduleToFutureDays)",
   "resetShiftSchedule')?.addEventListener('click'",
   "saveShiftPreset')?.addEventListener('click'",
