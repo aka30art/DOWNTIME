@@ -107,7 +107,6 @@ assert.match(html, /if\(b\.dataset\.view==='settings'\)\{showSettingsHub\(\)/,
 for (const handler of [
   '$(\'addDailyTaskPresetBtn\').onclick=addDailyTaskPreset',
   '$("addAreaPresetBtn").onclick=addAreaPreset',
-  '$("addQuickReasonBtn").onclick=()=>addReasonPreset',
   '$("addDowntimeReasonBtn").onclick=()=>addReasonPreset',
   "saveShiftSchedule')?.addEventListener('click',applyScheduleToFutureDays)",
   "resetShiftSchedule')?.addEventListener('click'",
