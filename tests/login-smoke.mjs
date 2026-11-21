@@ -19,7 +19,7 @@ const tiers={
  OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  MANAGER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
@@ -247,7 +247,15 @@ try{
  assert.equal(await supervisor.page.locator('#addEntry').isDisabled(),false,'SUPERVISOR can edit tracker');
  assert.equal(await supervisor.page.locator('#newStaffName').isVisible().catch(()=>false),false,'STAFF editing is not exposed before selecting the Settings STAFF panel');
  await openStaffSettings(supervisor.page);
- assert.equal(await supervisor.page.locator('#addStaffBtn').isEnabled(),false,'SUPERVISOR cannot add STAFF');
+ assert.equal(await supervisor.page.locator('#addStaffBtn').isEnabled(),true,'SUPERVISOR can manage STAFF');
+ assert.equal(await supervisor.page.locator('#newStaffName').isEnabled(),true,'SUPERVISOR can add staff names');
+ await supervisor.page.locator('#newStaffName').fill('Supervisor QA');
+ await supervisor.page.locator('#addStaffBtn').click();
+ assert.ok(supervisor.getBank().staff.roster.includes('Supervisor QA'),'SUPERVISOR staff changes sync to central roster');
+ const supervisorStation=supervisor.page.locator('[aria-label="Station assignment for Supervisor QA"]');
+ await supervisorStation.waitFor({state:'visible'});
+ assert.equal(await supervisorStation.isEnabled(),true,'SUPERVISOR can assign stations to staff');
+ assert.equal(await supervisor.page.locator('[aria-label="Supervisor QA on-site toggle"]').isEnabled(),true,'SUPERVISOR can change on-site presence');
  await supervisor.context.close();
 
  // SPECTATOR receives no staff/assignment/dashboard/report surfaces.
