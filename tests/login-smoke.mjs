@@ -40,11 +40,18 @@ async function openFor(tier,pin='2468'){
    subscribe(callback){window.__downtimeRealtimeSubscribed=true;callback?.('SUBSCRIBED');return this},
    unsubscribe(){return Promise.resolve('ok')}
   };
-  window.supabase={createClient:()=>({
+window.supabase={createClient:()=>({
    auth:{getSession:async()=>({data:{session:null}}),signInAnonymously:async()=>({data:{session:{access_token:'test-anonymous-session'}}})},
    realtime:{setAuth:async()=>{}},
    channel:(topic,options)=>{window.__downtimeRealtimeTopic=topic;window.__downtimeRealtimePrivate=options?.config?.private===true;return channel},
-   removeChannel:async()=>({status:'ok'})
+   removeChannel:async()=>({status:'ok'}),
+   from:table=>({
+    select(){return this},
+    order:async()=>({data:table==='downtime_reports'?[{id:'weekly-report-qa',week_start:'2026-11-16',file_name:'Downtime_2026-11-16_Weekly.pdf',file_size_bytes:18432,operators:{Monday:'Jan'},storage_path:'2026-11-16/weekly-report-qa.pdf'}]:[],error:null})
+   }),
+   storage:{from:bucket=>({
+    download:async path=>{window.__weeklyReportDownloads=window.__weeklyReportDownloads||[];window.__weeklyReportDownloads.push({bucket,path});return {data:new Blob(['%PDF-1.4\\nWeekly report preview fixture'],{type:'application/pdf'}),error:null}}
+   })}
   })};
  });
  let bank=makeBank(),version=1,token='central-session-'+tier;
@@ -126,7 +133,28 @@ try{
  const owner=await openFor('OWNER');
  await signIn(owner.page);
  assert.equal(await owner.page.locator('#authGate').isVisible(),false,'central login closes after authentication');
+
  await owner.page.locator('.nav-menu > summary').click();
+ assert.equal(await owner.page.locator('.nav[data-view="reports"]').textContent().then(value=>value.includes('WEEKLY Reports')),true,'navigation label is renamed to WEEKLY Reports');
+ await owner.page.locator('.nav[data-view="reports"]').click();
+ await owner.page.locator('[data-report-display="weekly-report-qa"]').waitFor({state:'visible',timeout:5000});
+ assert.equal(await owner.page.locator('#reports h2').textContent(),'WEEKLY REPORTS','reports section uses the new heading');
+ await owner.page.locator('[data-report-display="weekly-report-qa"]').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#reportPreviewModal')?.classList.contains('show')&&document.querySelector('#reportPreviewFrame')?.src.startsWith('blob:'),{timeout:5000});
+ assert.equal(await owner.page.locator('#reportPreviewTitle').textContent(),'WEEK OF 16 NOV 2026','Display opens the selected report, not the current tracker week');
+ assert.deepEqual(await owner.page.evaluate(()=>window.__weeklyReportDownloads),[{bucket:'downtime-pdfs',path:'2026-11-16/weekly-report-qa.pdf'}],'Display fetches only the selected report PDF from cloud storage');
+ await mkdir(resolve('artifacts/weekly-reports'),{recursive:true});
+ for(const width of [320,390,600,601,768,1280]){
+  await owner.page.setViewportSize({width,height:900});
+  const bounds=await owner.page.locator('.report-preview-modal').evaluate(el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,height:r.height,frameHeight:el.querySelector('iframe').getBoundingClientRect().height}});
+  assert.ok(bounds.left>=0&&bounds.right<=width+1,'weekly report preview stays within viewport width '+width);
+  assert.ok(bounds.frameHeight>200,'weekly report PDF viewer remains usable at '+width+'px');
+  await owner.page.screenshot({path:resolve('artifacts/weekly-reports/report-preview-'+width+'px.png')});
+ }
+ await owner.page.keyboard.press('Escape');
+ await owner.page.waitForFunction(()=>!document.querySelector('#reportPreviewModal')?.classList.contains('show'),{timeout:3000});
+ assert.equal(await owner.page.locator('#reportPreviewFrame').getAttribute('src'),null,'closing the preview releases its PDF object URL');
+ await owner.page.locator('.nav[data-view="weekly"]').click();
  assert.equal(await owner.page.locator('.nav[data-view="staff"]').count(),0,'STAFF is no longer a standalone navigation item');
  assert.equal(await owner.page.locator('.nav[data-view="settings"]').isVisible(),true,'OWNER can open Settings');
  await openStaffSettings(owner.page);
@@ -270,7 +298,16 @@ try{
  // USER is fully informed but cannot edit or submit anything.
  const user=await openFor('USER','2468');
  await signIn(user.page);
+
  await user.page.locator('.nav-menu > summary').click();
+ await user.page.locator('.nav[data-view="reports"]').click();
+ await user.page.locator('[data-report-display="weekly-report-qa"]').waitFor({state:'visible',timeout:5000});
+ assert.equal(await user.page.locator('[data-report-display="weekly-report-qa"]').isVisible(),true,'USER can display weekly reports with view permission');
+ assert.equal(await user.page.locator('[data-report-download="weekly-report-qa"]').isVisible(),false,'USER cannot download reports without export permission');
+ await user.page.locator('[data-report-display="weekly-report-qa"]').click();
+ await user.page.waitForFunction(()=>document.querySelector('#reportPreviewFrame')?.src.startsWith('blob:'),{timeout:5000});
+ await user.page.keyboard.press('Escape');
+ await user.page.waitForFunction(()=>!document.querySelector('#reportPreviewModal')?.classList.contains('show'),{timeout:3000});
  assert.equal(await user.page.locator('#addEntry').isDisabled(),true,'USER is read-only');
  assert.equal(await user.page.locator('.nav[data-view="staff"]').count(),0,'STAFF is not a standalone USER navigation item');
  await openStaffSettings(user.page);
