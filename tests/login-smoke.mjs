@@ -257,6 +257,7 @@ try{
  assert.equal(owner.getVersion(),versionBeforePlantAndTrackerEdits+2,'plant status and tracker edits must each advance the compare-and-swap version');
 
  // Daily Tasks are preset in Settings, then checked independently for each operating day.
+ const versionBeforeDailyTaskFlow=owner.getVersion();
  await owner.page.locator('#settingsPanelAreas [data-settings-back]').click();
  await owner.page.locator('[data-settings-open="dailyTasks"]').click();
  await owner.page.locator('#dailyTaskPresetInput').fill('Check guards and safety covers');
@@ -300,7 +301,7 @@ try{
  await owner.page.locator('#openDailyTasks').click();
  assert.equal(await owner.page.locator('[aria-label="Complete task: Check guards and safety covers"]').isChecked(),true,'Monday completion is retained after switching days');
  assert.equal(await owner.page.locator('[aria-label="Complete task: Inspect emergency stops"]').isChecked(),false,'Monday completion does not inherit Tuesday changes');
- assert.equal(owner.getVersion(),7,'daily task presets and two day-specific completions are versioned central writes');
+ assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+4,'daily task presets and two day-specific completions are versioned central writes');
  await owner.page.locator('#closeDailyTasks').click();
 
  // STAFF additions and station assignments must immediately appear in the already-open Overview iframe.
@@ -313,7 +314,7 @@ try{
  await ritaStation.selectOption('Station 6 · GENERAL');
  for(let attempt=0;attempt<40&&!owner.getBank().staff.profiles.Rita?.station;attempt++)await owner.page.waitForTimeout(100);
  assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','station assignment is saved centrally');
- assert.equal(owner.getVersion(),9,'daily task presets, day completions and STAFF operations all advance central version');
+ assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+6,'daily task presets, day completions and STAFF operations all advance central version');
  await owner.page.locator('.overview-link').click();
  const ritaCard=owner.page.frameLocator('#overviewFrame').locator('[data-opprofile="RITA"]');
  await ritaCard.waitFor({state:'visible',timeout:3000});
