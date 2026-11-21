@@ -276,7 +276,11 @@ body.overview-overlay-open{overflow:hidden}
 <div id="operatorGate" style="display:none"></div>
 <div id="spectatorView" style="display:none"></div>
 <div class="shell">
-<aside class="side"><div class="brand"><b>///</b> PLANT<br>DOWNTIME<br>TRACKER</div>
+<aside class="side">
+<div class="brand"><b>///</b> PLANT<br>DOWNTIME<br>TRACKER</div>
+<details class="nav-menu">
+<summary><span>MENU</span><span class="disclosure-chevron" aria-hidden="true">⌄</span></summary>
+<div class="nav-items">
 <button class="nav active" data-view="weekly">▦ &nbsp; Weekly Sheet</button>
 <button class="nav" data-view="reports">▤ &nbsp; PDF Reports</button>
 <button class="nav" data-view="staff">👥 &nbsp; STAFF</button>
@@ -284,35 +288,66 @@ body.overview-overlay-open{overflow:hidden}
 <a id="centralAdminNav" class="nav central-admin-nav" href="central-bank-admin.html" target="_blank" rel="noopener">▣ &nbsp; Central Data Bank Admin</a>
 <a class="nav overview-link" href="plant-overview-preview.html" aria-haspopup="dialog" aria-controls="overviewOverlay" aria-expanded="false">▦ &nbsp; Overview</a>
 <button id="logoutBtn" class="nav logout-nav" type="button" aria-label="Log out and return to USER login">↪ &nbsp; LOG OUT</button>
-<div class="sidefoot">75-minute daily break excluded from calculations.</div></aside>
+</div>
+<div class="menu-utilities">
+<div id="cloudStatus" class="menu-status">Cloud status · sign in required</div>
+<div id="lastSync" class="menu-sync">Last successful refresh · —</div>
+<button id="manualRefreshBtn" type="button" class="menu-action">↻ REFRESH DATA</button>
+<button id="plantOperatorToggle" type="button" class="menu-action" style="display:none">PLANT ON · GREEN</button>
+<button id="fullscreenBtn" type="button" class="menu-action" aria-pressed="false" title="Toggle full screen">⛶ FULL SCREEN</button>
+<div id="onDuty" class="pill menu-duty">OPERATOR ON DUTY · NOT ASSIGNED</div>
+</div>
+</details>
+<div class="sidefoot">75-minute daily break excluded from calculations.</div>
+</aside>
 <main>
-<div class="top"><div><h1>Plant Downtime Tracker</h1><div class="muted" id="subtitle">Weekly recording sheet · Monday–Saturday</div><div id="cloudStatus" class="muted" style="font-size:11px;margin-top:4px">Cloud status · sign in required</div><div id="lastSync" class="muted" style="font-size:10px;margin-top:3px">Last successful refresh · —</div><button id="manualRefreshBtn" type="button" style="margin-top:6px;padding:7px 10px;font-size:11px">↻ REFRESH DATA</button><button id="plantOperatorToggle" type="button" style="display:none;margin-top:6px;padding:8px 12px;font-weight:900;border-radius:9px">PLANT ON · GREEN</button><button id="fullscreenBtn" type="button" style="margin-top:6px;padding:7px 10px;font-size:11px" aria-pressed="false" title="Toggle full screen">⛶ FULL SCREEN</button><div id="onDuty" class="pill" style="display:inline-block;margin-top:6px;background:#403514;color:#ffd21b;font-weight:900;letter-spacing:.4px">OPERATOR ON DUTY · NOT ASSIGNED</div></div>
-<div class="weekbar"><button id="prevWeek" aria-label="Previous week">‹</button><div class="weeklabel" id="weekLabel"></div><button id="nextWeek" aria-label="Next week">›</button><button class="primary" id="exportBtn">⇩ Export Weekly PDF</button></div></div>
 <section id="weekly" class="view active">
 <div class="weeklyKpis">
 <div class="kpi"><span>WEEKLY DOWNTIME</span><strong id="topWeekDown">00h 00m</strong></div>
 <div class="kpi blue"><span>OVERALL DOWNTIME</span><strong id="topWeekPct">0.0%</strong></div>
 <div class="kpi blue"><span>OVERALL RUNNING</span><strong id="topWeekRunPct">0.0%</strong></div>
 </div>
-<div class="days" id="dayTabs"></div>
 <div class="layout">
 <div>
-<div class="panel"><h2 id="dayHeading">MONDAY</h2>
-<div class="fields">
+<div class="panel day-setup-panel">
+<details class="day-setup">
+<summary>
+<span class="day-setup-label">DAY SET UP</span>
+<strong id="dayHeading">MONDAY</strong>
+<span class="day-setup-hint">Shift settings</span>
+<span class="disclosure-chevron" aria-hidden="true">⌄</span>
+</summary>
+<div class="day-picker-wrap">
+<div class="days" id="dayTabs" aria-label="Select operating day"></div>
+</div>
+<div class="fields day-setup-fields">
 <div class="field"><label>Date implemented</label><input id="dayDate" type="date"></div>
-<div class="field"><label>Plant start</label><input id="plantStart" type="time" value="06:30"><button id="lockStartBtn" class="primary" type="button" style="width:100%;margin-top:6px">🔒 LOCK START</button><button id="unlockStartBtn" class="danger" type="button" style="display:none;width:100%;margin-top:6px">ADMIN UNLOCK START</button><small id="startLockStatus" class="muted"></small></div>
-<div class="field"><label>Plant stop</label><input id="plantStop" type="time" value="17:00"></div>
+<div class="field"><label>Plant start</label><input id="plantStart" type="time" value="06:30"></div>
+<div class="field"><label>Plant finish</label><input id="plantStop" type="time" value="17:00"></div>
 <div class="field"><label>Break excluded</label><input id="breakExcluded" value="" disabled></div>
+<div class="day-lock-actions">
+<div class="lock-action">
+<button id="lockStartBtn" class="primary" type="button">🔒 LOCK START</button>
+<button id="unlockStartBtn" class="danger" type="button" style="display:none">ADMIN UNLOCK START</button>
+<small id="startLockStatus" class="muted"></small>
 </div>
-
-<div class="panel" style="padding:10px;margin:10px 0"><h2 style="margin-bottom:8px">QUICK REASONS</h2><div class="presetrow" id="quickReasonButtons"></div><div class="muted" style="font-size:11px;margin-top:7px">Recent reasons first. Tap to start an entry.</div></div>
+</div>
+</div>
+</details>
+</div>
+<div class="panel downtime-entry-panel">
+<h2>Downtime entries</h2>
+<div class="presetrow" id="quickReasonButtons" hidden></div>
 <div class="tablewrap entrylistwrap"><table class="entrylisttable"><tbody id="entriesBody"></tbody></table></div>
-<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="add" id="addEntry" style="flex:1">＋ ADD DOWNTIME ENTRY</button><button id="undoBtn" class="danger" style="margin-top:12px">↶ UNDO LAST ACTION</button></div>
+<div class="entry-actions">
+<button class="add" id="addEntry">＋ ADD DOWNTIME ENTRY</button>
+<button id="undoBtn" class="danger">↶ UNDO LAST ACTION</button>
 </div>
-<div class="panel"><h2>Daily downtime records</h2><div class="muted" id="dayFootnote">Changes are saved automatically on this device.</div></div>
+<div class="muted day-footnote" id="dayFootnote" hidden role="status">Changes are saved automatically on this device.</div>
+</div>
 </div>
 <aside>
-<div class="panel"><h2>Daily summary</h2><div class="stats">
+<div class="panel daily-summary-panel"><h2>Daily summary</h2><div class="stats">
 <div class="stat"><small>Scheduled plant time</small><strong id="scheduled">—</strong></div>
 <div class="stat"><small>Break excluded</small><strong>01h 15m</strong></div>
 <div class="stat"><small>Net available time</small><strong id="net">—</strong></div>
@@ -322,10 +357,41 @@ body.overview-overlay-open{overflow:hidden}
 <div class="stat"><small>Running %</small><strong id="runPct">0.0%</strong></div>
 </div></div>
 </aside>
-<div class="panel weekly wide"><h2>Weekly summary · Monday–Saturday</h2><div class="tablewrap"><table><thead><tr><th>Day</th><th>Operator</th><th>Date implemented</th><th>Plant start</th><th>Plant stop</th><th>Downtime</th><th>Downtime %</th><th>Running %</th></tr></thead><tbody id="weekBody"></tbody></table></div></div>
-<div class="panel weekly wide"><h2>Weekly intelligence</h2><div class="stats"><div class="stat highlight"><small>Top downtime cause</small><strong id="topCause">—</strong></div><div class="stat"><small>Top cause share</small><strong id="topCauseShare">—</strong></div><div class="stat"><small>Compared with previous week</small><strong id="weekChange">—</strong></div><div class="stat"><small>Previous week downtime</small><strong id="prevWeekDown">—</strong></div></div><div id="weeklyInsight" class="muted" style="margin-top:10px">Insights update as entries are recorded.</div></div>
-<div class="panel weekly"><h2>Weekly total</h2><div class="stats"><div class="stat highlight"><small>Overall downtime</small><strong id="weekDown">00h 00m</strong></div><div class="stat"><small>Overall downtime %</small><strong id="weekPct">0.0%</strong></div><div class="stat"><small>Net available time</small><strong id="weekNet">00h 00m</strong></div><div class="stat"><small>Overall running %</small><strong id="weekRunPct">0.0%</strong></div></div></div>
-</div></section>
+<div class="panel weekly wide unified-weekly-panel">
+<details class="weekly-collapse">
+<summary><span class="weekly-title">Weekly summary · Monday–Saturday</span><span class="disclosure-chevron" aria-hidden="true">⌄</span></summary>
+<div class="weekly-collapse-content">
+<div class="weekbar weekly-controls">
+<button id="prevWeek" aria-label="Previous week">‹</button>
+<div class="weeklabel" id="weekLabel"></div>
+<button id="nextWeek" aria-label="Next week">›</button>
+<button class="primary" id="exportBtn">⇩ Export Weekly PDF</button>
+</div>
+<div class="tablewrap weekly-table-wrap"><table><thead><tr><th>Day</th><th>Operator</th><th>Date implemented</th><th>Plant start</th><th>Plant finish</th><th>Downtime</th><th>Downtime %</th><th>Running %</th></tr></thead><tbody id="weekBody"></tbody></table></div>
+<div class="weekly-analytics-subsection">
+<h3>Weekly intelligence</h3>
+<div class="stats">
+<div class="stat highlight"><small>Top downtime cause</small><strong id="topCause">—</strong></div>
+<div class="stat"><small>Top cause share</small><strong id="topCauseShare">—</strong></div>
+<div class="stat"><small>Compared with previous week</small><strong id="weekChange">—</strong></div>
+<div class="stat"><small>Previous week downtime</small><strong id="prevWeekDown">—</strong></div>
+</div>
+<div id="weeklyInsight" class="muted" style="margin-top:10px">Insights update as entries are recorded.</div>
+</div>
+<div class="weekly-analytics-subsection">
+<h3>Weekly total</h3>
+<div class="stats">
+<div class="stat highlight"><small>Overall downtime</small><strong id="weekDown">00h 00m</strong></div>
+<div class="stat"><small>Overall downtime %</small><strong id="weekPct">0.0%</strong></div>
+<div class="stat"><small>Net available time</small><strong id="weekNet">00h 00m</strong></div>
+<div class="stat"><small>Overall running %</small><strong id="weekRunPct">0.0%</strong></div>
+</div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</section>
 <section id="reports" class="view"><div class="panel"><h2>PDF Reports Archive</h2><div class="muted" style="margin-bottom:10px">Cloud archive · rolling retention · maximum 12 reports. Oldest report is automatically removed when the limit is exceeded.</div><div id="reportsList" class="empty">Loading cloud archive…</div></div></section>
 <section id="staff" class="view"><div class="panel"><h2>STAFF</h2><p class="muted">Full operator roster. Off-site operators cannot be assigned to the tracker.</p><div class="field" style="margin:12px 0"><label>Add staff member (no app login required)</label><input id="newStaffName" maxlength="30" placeholder="Staff name"><button id="addStaffBtn" class="primary" type="button" style="margin-top:8px">ADD STAFF MEMBER</button><div id="staffAdminMsg" class="muted"></div></div><div id="staffRosterList"></div></div></section><section id="settings" class="view">
 <div class="settings-shell">
@@ -510,8 +576,8 @@ document.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{selected=Numbe
 let d=day(),c=calc(d);$('dayHeading').textContent=DAYS[selected].toUpperCase()+' · '+prettyDate(d.date);$('dayDate').value=d.date;$('plantStart').value=d.start;$('plantStart').disabled=!!d.startLocked;$('lockStartBtn').disabled=!!d.startLocked;$('lockStartBtn').textContent=d.startLocked?'✓ START LOCKED':'🔒 LOCK START';$('startLockStatus').textContent=d.startLocked?'Permanent lock · '+(d.startLockedAt||'Locked'):'Start can be changed until locked';$('plantStop').value=d.stop;const breakExcluded=$('breakExcluded');if(breakExcluded){const breakMinutes=configuredBreakMinutes(DAYS[selected]);breakExcluded.value=breakMinutes+' '+(breakMinutes===1?'minute':'minutes')}const duty=$('onDuty');if(duty){const todayIndex=(today.getDay()+6)%7,todayWeekKey=iso(mondayOf(today)),todayOperator=todayIndex<6?state.weeks[todayWeekKey]?.days?.[todayIndex]?.operator:null;duty.textContent=todayIndex===6?'OPERATOR ON DUTY · SUNDAY (NO DAY SLOT)':'OPERATOR ON DUTY TODAY · '+(todayOperator||'NOT ASSIGNED');duty.style.color=todayOperator?'#ffd21b':'#f2a7a0';}
 $('entriesBody').innerHTML=d.entries.length?d.entries.map((e,i)=>'<tr class="entrycompact"><td colspan="5"><button class="entrytile" data-detail="'+i+'"><span class="entrynumber">#'+String(i+1).padStart(2,'02')+'</span><span class="entrymain"><b>'+safe(e.area)+'</b><small>'+safe(e.reason)+'</small></span><span class="entryduration">'+String(e.hours||0).padStart(2,'0')+':'+String(e.minutes||0).padStart(2,'0')+'</span><span class="entrychevron">›</span></button></td></tr>').join(''):'<tr><td colspan="5" class="empty">No downtime entries recorded for this day.</td></tr>';
 document.querySelectorAll('[data-detail]').forEach(b=>b.onclick=()=>openDetails(Number(b.dataset.detail)));
-$('scheduled').textContent=fmt(c.scheduled);$('net').textContent=fmt(c.net);$('downtime').textContent=fmt(c.down);$('running').textContent=fmt(c.run);$('downPct').textContent=pct(c.downPct);$('runPct').textContent=pct(c.runPct);$('dayFootnote').textContent=c.over?'Warning: recorded downtime exceeds net available plant time. Check the entries.':'Changes are saved automatically on this device.';
-let totals=week().days.map(calc),totalNet=totals.reduce((a,x)=>a+x.net,0),totalDown=totals.reduce((a,x)=>a+x.down,0),totalRun=Math.max(0,totalNet-totalDown);renderQuickReasons();renderWeeklyIntelligence();$("undoBtn").disabled=!state.undoAction;$("dayHeading").textContent=DAYS[selected].toUpperCase()+" · "+prettyDate(d.date)+" · OPERATOR: "+(d.operator||"NOT ASSIGNED");
+$('scheduled').textContent=fmt(c.scheduled);$('net').textContent=fmt(c.net);$('downtime').textContent=fmt(c.down);$('running').textContent=fmt(c.run);$('downPct').textContent=pct(c.downPct);$('runPct').textContent=pct(c.runPct);$('dayFootnote').textContent=c.over?'Warning: recorded downtime exceeds net available plant time. Check the entries.':'Changes sync automatically when the central connection is available.';$('dayFootnote').hidden=!c.over;
+let totals=week().days.map(calc),totalNet=totals.reduce((a,x)=>a+x.net,0),totalDown=totals.reduce((a,x)=>a+x.down,0),totalRun=Math.max(0,totalNet-totalDown);renderQuickReasons();renderWeeklyIntelligence();$("undoBtn").disabled=!state.undoAction;$("dayHeading").textContent=DAYS[selected].toUpperCase();
 $('weekBody').innerHTML=week().days.map((x,i)=>{let z=totals[i];return '<tr class="'+(i===selected?'current':'')+'"><td>'+DAYS[i]+'</td><td>'+safe(x.operator||'—')+'</td><td>'+prettyDate(x.date)+'</td><td>'+(x.start||'—')+'</td><td>'+(x.stop||'—')+'</td><td>'+fmt(z.down)+'</td><td>'+pct(z.downPct)+'</td><td>'+pct(z.runPct)+'</td></tr>'}).join('');
 $('topWeekDown').textContent=fmt(totalDown);$('topWeekPct').textContent=pct(totalNet?totalDown/totalNet*100:0);$('topWeekRunPct').textContent=pct(totalNet?totalRun/totalNet*100:0);$('weekDown').textContent=fmt(totalDown);$('weekNet').textContent=fmt(totalNet);$('weekPct').textContent=pct(totalNet?totalDown/totalNet*100:0);$('weekRunPct').textContent=pct(totalNet?totalRun/totalNet*100:0);
 enforceOperatorMode();
@@ -1000,3 +1066,111 @@ if(window.DowntimeCentral?.session?.token)resumeCentralSession();
 })();
 </script>
 </body></html>
+<style>
+
+/* UI migration · Stage 1: Preview Lab operating-screen structure, production IDs retained */
+.nav-menu{width:100%;min-width:0}
+.nav-menu>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#203747,#122633);font-size:14px;font-weight:950;letter-spacing:.6px;user-select:none}
+.nav-menu>summary::-webkit-details-marker,.day-setup>summary::-webkit-details-marker,.weekly-collapse>summary::-webkit-details-marker{display:none}
+.nav-menu[open]>summary{border-color:#6a8799;color:var(--yellow)}
+.nav-items{display:flex;flex-direction:column;gap:5px;padding-top:8px;min-width:0}
+.nav-items .nav{width:100%;min-width:0}
+.disclosure-chevron{font-size:21px;line-height:1;color:var(--yellow);transition:transform .18s ease;flex:0 0 auto}
+details[open]>summary .disclosure-chevron{transform:rotate(180deg)}
+.menu-utilities{display:grid;grid-template-columns:minmax(0,1fr);gap:7px;margin-top:10px;padding-top:10px;border-top:1px solid #294252;min-width:0}
+.menu-status,.menu-sync{min-width:0;color:var(--muted);font-size:11px;overflow-wrap:anywhere}
+.menu-action{width:100%;min-width:0;min-height:40px;padding:9px 10px;font-size:11px}
+.menu-duty{display:block;text-align:center;overflow-wrap:anywhere;white-space:normal;font-size:10px;line-height:1.3;padding:7px 9px}
+.weeklyKpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+.day-setup-panel{padding:14px 16px}
+.day-setup{width:100%}
+.day-setup>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:44px;position:relative;padding:0 30px 0 18px;user-select:none}
+.day-setup>summary:before{content:"";position:absolute;left:0;top:9px;width:7px;height:25px;background:var(--yellow);transform:skew(-25deg)}
+.day-setup-label{font-size:16px;font-weight:950;letter-spacing:.45px;color:var(--text)}
+.day-setup>summary strong{font-size:15px;color:var(--yellow);letter-spacing:.25px}
+.day-setup-hint{font-size:12px;color:var(--muted);margin-left:auto}
+.day-setup>summary .disclosure-chevron{position:absolute;right:0;top:10px}
+.day-picker-wrap{padding-top:12px;margin-top:10px;border-top:1px solid #294252}
+.day-picker-wrap .days{grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:0 0 12px}
+.day-picker-wrap .day{min-width:0;min-height:66px;padding:8px 5px;border-radius:9px;font-size:11px}
+.day-picker-wrap .day small{font-size:9px;margin-top:3px}
+.day-setup .fields{padding-top:12px;border-top:1px solid #294252;margin-top:0}
+.day-setup-fields{grid-template-columns:repeat(4,minmax(0,1fr));align-items:start;gap:9px}
+.day-setup .field{min-width:0;overflow:hidden}
+.day-setup .field input{box-sizing:border-box;max-width:100%;min-width:0}
+.day-setup .field small{display:block;overflow-wrap:anywhere;margin-top:4px}
+.day-lock-actions{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-top:2px}
+.lock-action{min-width:0;display:flex;flex-direction:column;gap:6px}
+.lock-action button{width:100%;min-height:44px;margin:0!important;white-space:normal;line-height:1.25}
+.lock-action small{min-height:1.1em;overflow-wrap:anywhere}
+.downtime-entry-panel{padding:15px 16px}
+.downtime-entry-panel>h2{margin-bottom:12px}
+.downtime-entry-panel .entrylistwrap{margin-top:0}
+.entry-actions{display:flex;gap:8px;align-items:stretch;margin-top:12px;flex-wrap:wrap}
+.entry-actions .add{flex:1 1 48%;min-width:0;margin:0}
+.entry-actions #undoBtn{flex:1 1 48%;min-width:0;margin:0}
+.day-footnote{font-size:11px;line-height:1.35;margin-top:9px}
+.weekly-collapse{width:100%}
+.weekly-collapse>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:38px;user-select:none}
+.weekly-title{font-size:18px;font-weight:850;letter-spacing:-.2px;color:var(--text)}
+.weekly-title:before{content:"";display:inline-block;width:7px;height:20px;background:var(--yellow);transform:skew(-25deg);margin-right:11px;vertical-align:-4px}
+.weekly-collapse-content{padding-top:13px}
+.weekly-controls{display:grid;grid-template-columns:40px minmax(0,1fr) 40px;gap:7px;margin:0 0 12px}
+.weekly-controls button{min-width:0;padding:9px 6px}
+.weekly-controls .weeklabel{min-width:0;padding:9px 5px;text-align:center;font-size:12px;white-space:nowrap;overflow:hidden}
+.weekly-controls #exportBtn{grid-column:1/-1;width:100%;padding:10px}
+.weekly-analytics-subsection{margin-top:14px;padding-top:14px;border-top:1px solid #294252}
+.weekly-analytics-subsection h3{font-size:15px;margin:0 0 10px}
+.weekly-collapse>summary:focus-visible,.day-setup>summary:focus-visible,.nav-menu>summary:focus-visible{outline:2px solid #58a9ff;outline-offset:3px;border-radius:7px}
+@media(max-width:1100px){.layout{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:800px){
+ .side{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;align-items:stretch;position:static;height:auto}
+ .brand{grid-column:1/-1;margin:0 8px 4px 4px}
+ .nav-menu{grid-column:1/-1}
+ .nav-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ .nav-items .nav{min-height:44px;padding:9px 7px;font-size:12px;white-space:normal;overflow-wrap:anywhere}
+ .nav-items .logout-nav{grid-column:1/-1}
+ .menu-utilities{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .menu-status,.menu-sync,.menu-duty{grid-column:1/-1}
+ .weekly-controls{margin-bottom:10px}
+ .day-setup-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .day-picker-wrap .days{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .day-lock-actions{grid-column:1/-1}
+}
+@media(max-width:600px){
+ main{padding:10px;width:100%;min-width:0}
+ .weeklyKpis{gap:6px;margin:8px 0 16px}
+ .kpi{padding:10px 8px;border-radius:11px;min-width:0}
+ .kpi span{font-size:9px;line-height:1.15;letter-spacing:.3px}
+ .kpi strong{font-size:18px;white-space:nowrap;letter-spacing:-.45px}
+ .day-setup-panel,.downtime-entry-panel{padding:12px}
+ .day-setup>summary{gap:7px;flex-wrap:wrap;min-height:46px;padding-right:26px}
+ .day-setup-label{font-size:14px}
+ .day-setup>summary strong{font-size:14px}
+ .day-setup-hint{display:none}
+ .day-setup .fields{margin-top:0;padding-top:11px}
+ .day-setup-fields{gap:10px}
+ .day-lock-actions{gap:8px}
+ .lock-action button{padding:10px 6px;font-size:12px;min-height:46px}
+ .day-picker-wrap .day{min-height:60px;padding:8px 2px}
+ .weekly-title{font-size:15px}
+ .weekly-title:before{height:17px;width:6px;margin-right:8px;vertical-align:-3px}
+ .weekly-collapse-content{padding-top:10px}
+ .daily-summary-panel{padding:12px}
+ .stats{gap:6px}
+ .stat{padding:10px;border-radius:9px}
+ .stats .stat strong{font-size:20px}
+ .entrytile{min-height:57px;padding:9px 10px}
+ .entrymain b{font-size:12px;line-height:1.25}
+ .entrymain small{font-size:10px;line-height:1.3}
+ .entryduration{padding:4px 6px;font-size:12px}
+ .entry-actions .add,.entry-actions #undoBtn{flex-basis:calc(50% - 4px);font-size:12px;letter-spacing:.1px}
+}
+@media(max-width:380px){
+ .nav-items .nav{font-size:11px;min-height:41px}
+ .day-setup-label,.day-setup>summary strong{font-size:13px}
+ .kpi strong{font-size:16px}
+ .entry-actions .add,.entry-actions #undoBtn{font-size:11px}
+}
+
+</style>
