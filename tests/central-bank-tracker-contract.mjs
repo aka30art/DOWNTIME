@@ -34,7 +34,7 @@ assert.ok(tracker.includes("saveCloudReport(){if(!permission('canExportReports')
 assert.ok(tracker.includes("if(!permission('canExportReports'))el.querySelectorAll('[data-report-download]').forEach(b=>b.style.display='none')"), 'USER cannot export archived weekly reports');
 assert.ok(tracker.includes('id="reasonPresetAdmin"')&&tracker.includes('REASON PRESETS'), 'all supported tiers use one shared reason preset panel');
 assert.ok(!tracker.includes('REASON PRESETS · OWNER / ADMIN')&&!tracker.includes('id="supervisorReasonPanel"'), 'the tier-specific reason preset panels are removed');
-assert.ok(tracker.includes('addQuickReasonBtn').match(/addQuickReasonBtn/)&&tracker.includes('$("addQuickReasonBtn").onclick=()=>addReasonPreset("quickReasons","newQuickReason")'), 'quick reason Add button is wired to the preset handler');
+assert.ok(tracker.includes('addQuickReasonBtn')&&tracker.includes('$("addQuickReasonBtn").onclick=()=>addReasonPreset("quickReasons","newQuickReason")'), 'quick reason Add button is wired to the preset handler');
 assert.ok(tracker.includes('$("addDowntimeReasonBtn").onclick=()=>addReasonPreset("reasons","newDowntimeReason")'), 'downtime reason Add button is wired to the preset handler');
 assert.ok(tracker.includes('function addReasonPreset(key,inputId)')&&tracker.includes('if(!persist())'), 'reason additions are validated and persisted centrally');
 assert.ok(tracker.includes('if(!permission(\'canManageSettings\'))return'), 'reason removals are restricted to settings administrators');
