@@ -173,7 +173,7 @@ try{
   const layout=await settingsGrid.evaluate(el=>{
    const cards=Array.from(el.querySelectorAll(':scope > [data-settings-open]'));
    const rects=Object.fromEntries(cards.map(card=>[card.dataset.settingsOpen,card.getBoundingClientRect()]));
-   return {columns:getComputedStyle(el).gridTemplateColumns.trim().split(/\\s+/).length,count:cards.length,staffTop:rects.staff?.top,dailyTasksTop:rects.dailyTasks?.top};
+   return {columns:getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length,count:cards.length,staffTop:rects.staff?.top,dailyTasksTop:rects.dailyTasks?.top};
   });
   assert.equal(layout.count,6,'all six Settings cards are inside the grid at '+width+'px');
   assert.equal(layout.columns,columns,'Settings grid has '+columns+' columns at '+width+'px');
