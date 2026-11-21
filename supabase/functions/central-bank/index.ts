@@ -25,6 +25,21 @@ const lockedRolePrivileges:Record<string,Record<string,boolean>>={
  USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
+function addStableRecordIds(weeks:any){
+ const copy=structuredClone(weeks||{});
+ for(const [weekKey,week] of Object.entries(copy) as [string,any][]){
+  const days=Array.isArray(week?.days)?week.days:[];
+  days.forEach((day:any,dayIndex:number)=>{
+   if(!Array.isArray(day?.entries))return;
+   day.entries=day.entries.map((entry:any,entryIndex:number)=>{
+    if(!entry||typeof entry!=="object"||Array.isArray(entry))return entry;
+    const recordId=typeof entry.recordId==="string"&&entry.recordId?entry.recordId:`legacy-${weekKey}-${dayIndex}-${entryIndex}`;
+    return {...entry,recordId};
+   });
+  });
+ }
+ return copy;
+}
 function normalizeBank(p:any){
  const b=p||{};
  b.appData=b.appData||{};
@@ -82,7 +97,7 @@ Deno.serve(async(req)=>{
  if(!currentUser)return json({error:"Account disabled"},401);
  const tier=currentUser.tier,storedPrivileges=bank.tiers[tier]||{},priv={...tierDefault[tier],...storedPrivileges};
  if(lockedRolePrivileges[tier])Object.assign(priv,lockedRolePrivileges[tier]);
- if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canViewStaff){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}if(!priv.canViewAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.areas;delete restrictedData.reasons;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
+ if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canDeleteRecords&&priv.canViewDashboards)restrictedData.weeks=addStableRecordIds(restrictedData.weeks||{});if(!priv.canViewStaff){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}if(!priv.canViewAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.areas;delete restrictedData.reasons;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
  if(action==="save-state"){
    if(!priv.canEditTracker)return json({error:"Permission denied"},403);
    const incoming=body?.appData;if(!incoming||typeof incoming!=="object"||Array.isArray(incoming))return json({error:"appData required"},400);
@@ -91,12 +106,15 @@ Deno.serve(async(req)=>{
      const oldWeeks=bank.appData?.weeks||{},newWeeks=incoming.weeks||{};
      for(const [weekKey,oldWeek] of Object.entries(oldWeeks) as [string,any][]){
        const newWeek=(newWeeks as any)[weekKey];
-       const oldDays=Array.isArray((oldWeek as any)?.days)?(oldWeek as any).days:[];
+       const oldDays=Array.isArray(oldWeek?.days)?oldWeek.days:[];
        const newDays=Array.isArray(newWeek?.days)?newWeek.days:[];
        for(let dayIndex=0;dayIndex<oldDays.length;dayIndex++){
          const oldEntries=Array.isArray(oldDays[dayIndex]?.entries)?oldDays[dayIndex].entries:[];
          const newEntries=Array.isArray(newDays[dayIndex]?.entries)?newDays[dayIndex].entries:[];
-         if(newEntries.length<oldEntries.length)return json({error:"This tier cannot delete operational records."},403);
+         for(let entryIndex=0;entryIndex<oldEntries.length;entryIndex++){
+           const entry=oldEntries[entryIndex]||{},recordId=typeof entry.recordId==="string"&&entry.recordId?entry.recordId:`legacy-${weekKey}-${dayIndex}-${entryIndex}`;
+           if(!newEntries.some((candidate:any)=>candidate?.recordId===recordId))return json({error:"This tier cannot delete operational records. Refresh and retain the original record."},403);
+         }
        }
      }
      const oldArchive=Array.isArray(bank.appData?.archive)?bank.appData.archive:[];
