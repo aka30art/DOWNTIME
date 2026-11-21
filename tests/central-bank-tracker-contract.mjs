@@ -32,8 +32,15 @@ assert.ok(tracker.includes('if(previous?.recordId)item.recordId=previous.recordI
 assert.ok(tracker.includes("station.disabled=!(permission('canManageAssignments')||permission('canManageStaff'))"), 'SUPERVISOR station assignment control is separated from STAFF administration');
 assert.ok(tracker.includes("saveCloudReport(){if(!permission('canExportReports'))return"), 'MANAGER can export weekly reports');
 assert.ok(tracker.includes("if(!permission('canExportReports'))el.querySelectorAll('[data-report-download]').forEach(b=>b.style.display='none')"), 'USER cannot export archived weekly reports');
-assert.ok(tracker.includes('id="supervisorReasonPanel"')&&tracker.includes('addSupervisorDowntimeReason'), 'SUPERVISOR can add downtime reasons from Settings');
-assert.ok(tracker.includes('state.quickReasons=[...state.quickReasons,value]'), 'new supervisor downtime reasons appear in entry shortcuts');
+assert.ok(tracker.includes('id="reasonPresetAdmin"')&&tracker.includes('REASON PRESETS'), 'all supported tiers use one shared reason preset panel');
+assert.ok(!tracker.includes('REASON PRESETS · OWNER / ADMIN')&&!tracker.includes('id="supervisorReasonPanel"'), 'the tier-specific reason preset panels are removed');
+assert.ok(tracker.includes('addQuickReasonBtn')&&tracker.includes('$("addQuickReasonBtn").onclick=()=>addReasonPreset("quickReasons","newQuickReason")'), 'quick reason Add button is wired to the preset handler');
+assert.ok(tracker.includes('$("addDowntimeReasonBtn").onclick=()=>addReasonPreset("reasons","newDowntimeReason")'), 'downtime reason Add button is wired to the preset handler');
+assert.ok(tracker.includes('function addReasonPreset(key,inputId)')&&tracker.includes('if(!persist())'), 'reason additions are validated and persisted centrally');
+assert.ok(tracker.includes('if(!permission(\'canManageSettings\'))return'), 'reason removals are restricted to settings administrators');
+assert.ok(tracker.includes('if(key==="reasons")state.quickReasons='), 'removing a downtime reason also removes its linked weekly shortcut');
+assert.ok(tracker.includes('box.style.display=canAddReasons?"block":"none"'), 'shared reason presets appear to roles with reason-add permission');
+assert.ok(tracker.includes('renderList("downtimeReasonAdminList",state.reasons||[],"reasons",canManage)'), 'only settings administrators receive reason removal controls');
 assert.ok(tracker.includes("querySelectorAll('main input,main select,main textarea').forEach(el=>{el.disabled=operatorReadOnly})"), 'USER has all main data-entry controls disabled');
 assert.ok(tracker.includes("deleteCloudReport(id,path){if(!permission('canDeleteRecords'))return"), 'report deletion respects limited delete permission');
 console.log('PASS: main tracker and Plant Overview are connected to the central data bank.');
