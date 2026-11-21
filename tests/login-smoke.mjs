@@ -110,7 +110,6 @@ try{
  assert.equal(owner.context.pages().length,1,'Overview does not create a browser tab or window');
  assert.equal(await overview.locator('#plantToggle').isVisible(),true,'OWNER retains plant toggle access in the embedded Overview');
  await overview.locator('#plantToggle').click();
- await owner.page.waitForFunction(()=>document.querySelector('#cloudStatus')?.textContent.includes('PLANT STATUS UPDATED')||true,{timeout:1000}).catch(()=>{});
  await owner.page.waitForTimeout(150);
  assert.equal(owner.getBank().appData.plantOn,false,'Embedded Overview plant toggle writes centrally');
  assert.ok(owner.actions.some(x=>x.action==='set-plant-status'),'Embedded Overview status change uses the central status action');
@@ -120,6 +119,13 @@ try{
  assert.equal(await owner.page.locator('.view.active').count(),1,'The underlying tracker view remains active');
  await owner.page.locator('.overview-link').click();
  assert.equal(await owner.page.locator('#overviewOverlay').isVisible(),true,'Overview can be reopened');
+ await overview.locator('#overviewFullscreen').focus();
+ await owner.page.keyboard.press('Escape');
+ await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
+ await owner.page.locator('.overview-link').click();
+ await owner.page.keyboard.press('Escape');
+ await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
+ await owner.page.locator('.overview-link').click();
  await owner.page.locator('#overviewClose').click();
  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
  assert.equal(owner.context.pages().length,1,'Closing overlay keeps the same app tab');
