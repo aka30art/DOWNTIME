@@ -6,19 +6,51 @@ const headers={"Access-Control-Allow-Origin":allowedOrigin,"Access-Control-Allow
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers});
 const tiers=["OWNER","ADMIN","MANAGER","SUPERVISOR","USER","SPECTATOR"];
 const tierDefault:Record<string,Record<string,boolean>>={
- OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- MANAGER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
+ OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
 const cryptoHex=(bytes:Uint8Array)=>Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 const digest=async(s:string)=>cryptoHex(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s))));
 async function hashPin(pin:string,salt:string){const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(pin),"PBKDF2",false,["deriveBits"]);return cryptoHex(new Uint8Array(await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode(salt),iterations:150000,hash:"SHA-256"},key,256)))}
 async function verifyPin(pin:string,user:any){return user?.pinSalt&&user?.pinHash&&await hashPin(pin,user.pinSalt)===user.pinHash}
 function safeUser(u:any){return {username:u.username,tier:u.tier,enabled:u.enabled!==false,displayName:u.displayName||u.username}}
-function normalizeBank(p:any){const b=p||{};b.appData=b.appData||{};b.users=Array.isArray(b.users)?b.users:[];b.tiers=b.tiers||structuredClone(tierDefault);b.staff=b.staff||{roster:[],profiles:{}};b.statsSource=b.statsSource||{weeks:b.appData.weeks||{}};return b}
+const lockedRolePrivileges:Record<string,Record<string,boolean>>={
+ OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
+};
+function addStableRecordIds(weeks:any){
+ const copy=structuredClone(weeks||{});
+ for(const [weekKey,week] of Object.entries(copy) as [string,any][]){
+  const days=Array.isArray(week?.days)?week.days:[];
+  days.forEach((day:any,dayIndex:number)=>{
+   if(!Array.isArray(day?.entries))return;
+   day.entries=day.entries.map((entry:any,entryIndex:number)=>{
+    if(!entry||typeof entry!=="object"||Array.isArray(entry))return entry;
+    const recordId=typeof entry.recordId==="string"&&entry.recordId?entry.recordId:`legacy-${weekKey}-${dayIndex}-${entryIndex}`;
+    return {...entry,recordId};
+   });
+  });
+ }
+ return copy;
+}
+function normalizeBank(p:any){
+ const b=p||{};
+ b.appData=b.appData||{};
+ b.users=Array.isArray(b.users)?b.users:[];
+ const storedTiers=b.tiers&&typeof b.tiers==="object"?b.tiers:{};
+ b.tiers=Object.fromEntries(tiers.map(tier=>[tier,{...tierDefault[tier],...(storedTiers[tier]||{})}]));
+ for(const [tier,permissions] of Object.entries(lockedRolePrivileges))Object.assign(b.tiers[tier],permissions);
+ b.staff=b.staff||{roster:[],profiles:{}};
+ b.statsSource=b.statsSource||{weeks:b.appData.weeks||{}};
+ return b;
+}
 Deno.serve(async(req)=>{
  if(req.method==="OPTIONS"){if(req.headers.get("origin")&&req.headers.get("origin")!==allowedOrigin)return new Response("Forbidden",{status:403});return new Response("ok",{headers})}
  if(req.headers.get("origin")&&req.headers.get("origin")!==allowedOrigin)return json({error:"Origin denied"},403);
@@ -32,9 +64,9 @@ Deno.serve(async(req)=>{
  let bank=normalizeBank(row?.payload);
  if(action==="bootstrap"){
    const {data:setupCode,error:setupCodeError}=await db.rpc("downtime_get_bootstrap_code");if(setupCodeError||typeof setupCode!=="string"||!setupCode)return json({error:"Bootstrap code is not configured in Supabase Vault"},503);if(typeof body.bootstrapCode!=="string"||body.bootstrapCode!==setupCode)return json({error:"Bootstrap code invalid"},401);
-   if(bank.users.some((u:any)=>u.enabled!==false))return json({error:"Bootstrap already completed"},409);
-   const username=String(body.username||"").trim().slice(0,32),pin=String(body.pin||"");
-   if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username)||!/^[0-9]{4,8}$/.test(pin))return json({error:"Username 2-32 characters; PIN 4-8 digits required"},400);
+   if(bank.users.length>0)return json({error:"Bootstrap already completed"},409);
+   const suppliedUsername=String(body.username||"").trim(),username="JAN",pin=String(body.pin||"");
+   if(suppliedUsername.toUpperCase()!=="JAN"||!/^[0-9]{4,8}$/.test(pin))return json({error:"The root OWNER username is fixed as JAN; PIN must be 4-8 digits"},400);
    const salt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));
    bank.users=[{username,displayName:username,tier:"OWNER",enabled:true,pinSalt:salt,pinHash:await hashPin(pin,salt)}];
    const {data:bootWrite,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",row?.version||0).select("id").maybeSingle();
@@ -63,16 +95,61 @@ Deno.serve(async(req)=>{
  if(!session)return json({error:"Session expired. Sign in again."},401);
  const currentUser=bank.users.find((u:any)=>u.username===session.username&&u.enabled!==false);
  if(!currentUser)return json({error:"Account disabled"},401);
- const tier=currentUser.tier,priv=bank.tiers[tier]||tierDefault[tier]||{};
- if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canViewStaff){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}if(!priv.canViewAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.areas;delete restrictedData.reasons;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
+ const tier=currentUser.tier,storedPrivileges=bank.tiers[tier]||{},priv={...tierDefault[tier],...storedPrivileges};
+ if(lockedRolePrivileges[tier])Object.assign(priv,lockedRolePrivileges[tier]);
+ if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canDeleteRecords&&priv.canViewDashboards)restrictedData.weeks=addStableRecordIds(restrictedData.weeks||{});if(!priv.canViewStaff){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}if(!priv.canViewAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.areas;delete restrictedData.reasons;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
  if(action==="save-state"){
    if(!priv.canEditTracker)return json({error:"Permission denied"},403);
    const incoming=body?.appData;if(!incoming||typeof incoming!=="object"||Array.isArray(incoming))return json({error:"appData required"},400);
    const nextAppData={...incoming};
-   if(!priv.canManageSettings){for(const field of ["areas","reasons","quickReasons"]){if(field in (bank.appData||{}))nextAppData[field]=bank.appData[field];}}
-   if(!priv.canManageStaff){nextAppData.operatorProfiles=bank.appData?.operatorProfiles||bank.staff?.profiles||{};nextAppData.staffRoster=bank.appData?.staffRoster||bank.staff?.roster||[];}
-   else{bank.staff.profiles=nextAppData.operatorProfiles||bank.staff.profiles||{};bank.staff.roster=Array.isArray(nextAppData.staffRoster)?nextAppData.staffRoster:(bank.staff.roster||[]);}
-   if(!priv.canViewReports)nextAppData.archive=bank.appData?.archive||[];
+   if(!priv.canDeleteRecords){
+     const oldWeeks=bank.appData?.weeks||{},newWeeks=incoming.weeks||{};
+     for(const [weekKey,oldWeek] of Object.entries(oldWeeks) as [string,any][]){
+       const newWeek=(newWeeks as any)[weekKey];
+       const oldDays=Array.isArray(oldWeek?.days)?oldWeek.days:[];
+       const newDays=Array.isArray(newWeek?.days)?newWeek.days:[];
+       for(let dayIndex=0;dayIndex<oldDays.length;dayIndex++){
+         const oldEntries=Array.isArray(oldDays[dayIndex]?.entries)?oldDays[dayIndex].entries:[];
+         const newEntries=Array.isArray(newDays[dayIndex]?.entries)?newDays[dayIndex].entries:[];
+         for(let entryIndex=0;entryIndex<oldEntries.length;entryIndex++){
+           const entry=oldEntries[entryIndex]||{},recordId=typeof entry.recordId==="string"&&entry.recordId?entry.recordId:`legacy-${weekKey}-${dayIndex}-${entryIndex}`;
+           if(!newEntries.some((candidate:any)=>candidate?.recordId===recordId))return json({error:"This tier cannot delete operational records. Refresh and retain the original record."},403);
+         }
+       }
+     }
+     const oldArchive=Array.isArray(bank.appData?.archive)?bank.appData.archive:[];
+     const newArchive=Array.isArray(incoming.archive)?incoming.archive:[];
+     if(newArchive.length<oldArchive.length)return json({error:"This tier cannot delete archived records."},403);
+   }
+   if(!priv.canManageSettings){
+     if("areas" in (bank.appData||{}))nextAppData.areas=bank.appData.areas;
+     for(const field of ["reasons","quickReasons"]){
+       if(!priv.canAddDowntimeReasons){if(field in (bank.appData||{}))nextAppData[field]=bank.appData[field];continue;}
+       const existing=Array.isArray(bank.appData?.[field])?bank.appData[field]:[];
+       const incomingValues=Array.isArray(incoming[field])?incoming[field]:existing;
+       const additions=incomingValues.filter((value:any)=>typeof value==="string"&&value.trim()&&!existing.some((old:any)=>String(old).trim().toLowerCase()===value.trim().toLowerCase()));
+       nextAppData[field]=[...existing,...additions].slice(0,250);
+     }
+   }
+   if(!priv.canManageStaff){
+     const currentProfiles=bank.staff?.profiles||bank.appData?.operatorProfiles||{};
+     nextAppData.operatorProfiles=structuredClone(currentProfiles);
+     nextAppData.staffRoster=bank.appData?.staffRoster||bank.staff?.roster||[];
+     if(priv.canManageAssignments){
+       for(const [name,incomingProfile] of Object.entries((incoming.operatorProfiles||{}) as Record<string,any>)){
+         if(!Object.prototype.hasOwnProperty.call(currentProfiles,name)||!incomingProfile||typeof incomingProfile!=="object")continue;
+         const existing={...(currentProfiles as any)[name]};
+         if("station" in incomingProfile)existing.station=String(incomingProfile.station||"").slice(0,100);
+         else if("assignedStation" in incomingProfile)existing.assignedStation=String(incomingProfile.assignedStation||"").slice(0,100);
+         (nextAppData.operatorProfiles as any)[name]=existing;
+       }
+     }
+     bank.staff.profiles=nextAppData.operatorProfiles;
+   }else{
+     bank.staff.profiles=nextAppData.operatorProfiles||bank.staff.profiles||{};
+     bank.staff.roster=Array.isArray(nextAppData.staffRoster)?nextAppData.staffRoster:(bank.staff.roster||[]);
+   }
+   if(!priv.canViewReports||!priv.canDeleteRecords)nextAppData.archive=bank.appData?.archive||[];
    bank.appData=nextAppData;bank.statsSource={weeks:nextAppData.weeks||{}};
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Version conflict; refresh before saving"},409);
@@ -87,21 +164,31 @@ Deno.serve(async(req)=>{
    const username=String(body.username||"").trim(),displayName=String(body.displayName||username).trim(),newTier=String(body.tier||"USER"),pin=String(body.pin||"");
    if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username)||!tiers.includes(newTier))return json({error:"Invalid user/tier"},400);
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
-   if(newTier==="OWNER"&&tier!=="OWNER")return json({error:"Only OWNER can assign OWNER tier"},403);if(idx>=0&&bank.users[idx].tier==="OWNER"&&tier!=="OWNER")return json({error:"Only OWNER can modify OWNER account"},403);
-   let user=idx>=0?bank.users[idx]:{username};
+   const isRootName=username.toUpperCase()==="JAN";
+   const existing=idx>=0?bank.users[idx]:null;
+   if(isRootName){
+     if(tier!=="OWNER")return json({error:"JAN is protected. Only the OWNER may update JAN credentials."},403);
+     if(!existing||existing.tier!=="OWNER"||newTier!=="OWNER"||body.enabled===false)return json({error:"JAN is the immutable root OWNER and cannot be created, demoted or disabled."},400);
+   }else{
+     if(newTier==="OWNER")return json({error:"JAN is the only OWNER account. Additional OWNER accounts are prohibited."},403);
+     if(existing?.tier==="OWNER")return json({error:"The root OWNER account is protected."},403);
+   }
+   let user=existing||{username};
    user.username=username;user.displayName=displayName;user.tier=newTier;user.enabled=body.enabled!==false;
    if(pin){if(!/^[0-9]{4,8}$/.test(pin))return json({error:"PIN must be 4-8 digits"},400);user.pinSalt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));user.pinHash=await hashPin(pin,user.pinSalt)}
    if(idx>=0)bank.users[idx]=user;else{if(!pin)return json({error:"PIN required for new user"},400);bank.users.push(user)}
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Version conflict"},409);
    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"user-save",details:{target:username,tier:newTier}});
-   await db.from("downtime_central_sessions").delete().eq("username",username);
+   await db.from("downtime_central_sessions").delete().eq("username",existing?.username||username);
    return json({ok:true,version:(row?.version||0)+1});
  }
  if(action==="user-delete"){
    if(!priv.canManageUsers)return json({error:"Permission denied"},403);
-   const target=String(body.username||"");if(target===currentUser.username)return json({error:"Cannot delete your own account"},400);
-   const victim=bank.users.find((u:any)=>u.username===target);if(victim?.tier==="OWNER"&&tier!=="OWNER")return json({error:"OWNER only"},403);
+   const target=String(body.username||"").trim();
+   if(!target)return json({error:"Username required"},400);
+   if(target.toUpperCase()==="JAN"||bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="OWNER"))return json({error:"The JAN root OWNER account cannot be deleted or removed."},403);
+   if(target.toLowerCase()===currentUser.username.toLowerCase())return json({error:"Cannot delete your own account"},400);
    bank.users=bank.users.filter((u:any)=>u.username!==target);
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Version conflict"},409);

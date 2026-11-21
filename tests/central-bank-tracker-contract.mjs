@@ -23,4 +23,17 @@ assert.match(overview,/centralCall\('set-plant-status'/,'Overview status button 
 assert.match(api,/action==="set-plant-status"/,'server implements central plant status updates');
 assert.match(api,/if\(!priv\.canEditTracker\)return json\(\{error:"Permission denied"\},403\)/,'server enforces tracker edit tier');
 assert.match(client,/async setPlantStatus\(plantOn,version\)/,'browser adapter exposes plant status action');
+assert.ok(tracker.includes('id="centralUsersManager"')&&tracker.includes('saveCentralUserSettings'), 'OWNER/ADMIN have central USER create/edit controls inside Settings');
+assert.ok(tracker.includes("window.DowntimeCentral.saveUser(payload,centralVersion)")&&tracker.includes("window.DowntimeCentral.deleteUser(user.username,centralVersion)"), 'Settings user operations use the central API and version checks');
+assert.ok(tracker.includes('ROOT · PROTECTED'), 'JAN root account is protected in the Settings user list');
+assert.ok(tracker.includes('lockedTierPermissions'), 'frontend locks USER/SPECTATOR/operational role permissions against stale central overrides');
+assert.ok(tracker.includes("operatorReadOnly||!permission('canDeleteRecords')"), 'MANAGER/SUPERVISOR cannot delete operational records in the UI');
+assert.ok(tracker.includes('if(previous?.recordId)item.recordId=previous.recordId'), 'editing a downtime record preserves its central identity');
+assert.ok(tracker.includes("station.disabled=!(permission('canManageAssignments')||permission('canManageStaff'))"), 'SUPERVISOR station assignment control is separated from STAFF administration');
+assert.ok(tracker.includes("saveCloudReport(){if(!permission('canExportReports'))return"), 'MANAGER can export weekly reports');
+assert.ok(tracker.includes("if(!permission('canExportReports'))el.querySelectorAll('[data-report-download]').forEach(b=>b.style.display='none')"), 'USER cannot export archived weekly reports');
+assert.ok(tracker.includes('id="supervisorReasonPanel"')&&tracker.includes('addSupervisorDowntimeReason'), 'SUPERVISOR can add downtime reasons from Settings');
+assert.ok(tracker.includes('state.quickReasons=[...state.quickReasons,value]'), 'new supervisor downtime reasons appear in entry shortcuts');
+assert.ok(tracker.includes("querySelectorAll('main input,main select,main textarea').forEach(el=>{el.disabled=operatorReadOnly})"), 'USER has all main data-entry controls disabled');
+assert.ok(tracker.includes("deleteCloudReport(id,path){if(!permission('canDeleteRecords'))return"), 'report deletion respects limited delete permission');
 console.log('PASS: main tracker and Plant Overview are connected to the central data bank.');

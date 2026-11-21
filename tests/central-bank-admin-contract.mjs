@@ -9,4 +9,6 @@ assert.ok(page.includes('version'),'version-aware requests');
 assert.ok(page.includes('x-downtime-session'),'central API requests carry the authenticated session header');
 assert.ok(page.includes('"apikey":$("pubKey").value.trim()'),'admin requests send the project publishable key');
 assert.ok(page.includes('if(auth&&token)h["x-downtime-session"]=token'),'session token is attached only to authenticated admin API calls');
+assert.ok(page.includes('value="JAN" readonly'), 'bootstrap only exposes the fixed JAN root username');
+assert.ok(page.includes('ROOT OWNER · PROTECTED'), 'standalone admin UI protects the JAN root OWNER');
 console.log('Central admin UI contract checks passed (static only).');
