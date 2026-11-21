@@ -69,6 +69,9 @@ try {
       const table = tableWrap.querySelector('table');
       const intelligence = document.querySelectorAll('.weekly-analytics-subsection');
       const ids = ['prevWeek','weekLabel','nextWeek','exportBtn','weeklyInsight','weekDown','weekPct','weekNet','weekRunPct'];
+      const weekLabel = document.getElementById('weekLabel');
+      const weekLabelStyle = getComputedStyle(weekLabel);
+      const weekLabelMetric = {text:weekLabel.textContent.trim(),whiteSpace:weekLabelStyle.whiteSpace,scrollWidth:weekLabel.scrollWidth,clientWidth:weekLabel.clientWidth};
       const topCause = document.getElementById('topCause');
       const topCauseStyle = getComputedStyle(topCause);
       const topCauseText = topCause.textContent.trim();
@@ -97,6 +100,7 @@ try {
         overflowX:getComputedStyle(tableWrap).overflowX,rows:table.querySelectorAll('tbody tr').length,
         intelligenceCount:intelligence.length,intelligenceVisible:[...intelligence].every(el=>el.getClientRects().length>0),
         topCauseMetric,
+        weekLabelMetric,
         controls
       };
     });
@@ -110,6 +114,9 @@ try {
     assert.equal(result.topCauseMetric.whiteSpace,'normal','Top downtime cause must wrap instead of clipping at '+width+'px');
     assert.ok(result.topCauseMetric.scrollWidth<=result.topCauseMetric.clientWidth+1,'Top downtime cause text overflows its card at '+width+'px: '+JSON.stringify(result.topCauseMetric));
     assert.ok(result.topCauseMetric.wordFragments.every(fragment=>fragment.rectCount===1),'Top downtime cause word split across lines at '+width+'px: '+JSON.stringify(result.topCauseMetric));
+    assert.ok(result.weekLabelMetric.text.includes('21 Nov 2026'),'Weekly date range text missing at '+width+'px');
+    assert.ok(result.weekLabelMetric.scrollWidth<=result.weekLabelMetric.clientWidth+1,'Weekly date range label clips at '+width+'px: '+JSON.stringify(result.weekLabelMetric));
+    if(width<=420) assert.equal(result.weekLabelMetric.whiteSpace,'normal','Narrow weekly date range should wrap at '+width+'px');
     assert.equal(result.overflowX,'auto','Weekly table wrapper should scroll internally at '+width+'px');
     assert.ok(result.tableWrap.left>=-1&&result.tableWrap.right<=width+1,'Weekly table wrapper exceeds viewport at '+width+'px: '+JSON.stringify(result.tableWrap));
     if (width <= 800) assert.ok(result.tableScrollWidth > result.tableClientWidth + 1,'Narrow weekly report should scroll internally at '+width+'px');
