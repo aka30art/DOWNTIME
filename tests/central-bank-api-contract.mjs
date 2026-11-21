@@ -9,7 +9,7 @@ assert.ok(src.includes('eq("id",1).eq("version"'),'singleton version compare-and
 assert.ok(src.includes('login-failed'),'failed login attempts are audited');
 assert.ok(src.includes('failedCount||0)>=5'),'server enforces a five-attempt account lock');
 assert.ok(src.includes('Try again in five minutes.'),'server lockout window is communicated');
-assert.ok(src.includes('await db.from("downtime_central_sessions").delete().eq("username",username)'),'updating a USER revokes their active sessions');
+assert.ok(src.includes('await db.from("downtime_central_sessions").delete().eq("username",existing?.username||username)'), 'updating a USER revokes their prior active sessions');
 assert.ok(src.includes('await db.from("downtime_central_sessions").delete().eq("username",target)'),'deleting a USER revokes their active sessions');
 assert.ok(src.includes('priv.canManageUsers?bank.users.map(safeUser):[safeUser(currentUser)]'),'ordinary users cannot enumerate other USER accounts');
 assert.ok(src.includes('if(!priv.canViewAssignments)'),'assignment redaction is enforced server-side');
@@ -17,4 +17,14 @@ assert.ok(src.includes('if(!priv.canViewDashboards)'),'dashboard redaction is en
 assert.ok(src.includes('if(!priv.canViewReports)delete restrictedData.archive'),'report redaction is enforced server-side');
 assert.ok(src.includes('if(!priv.canEditTracker)return json({error:"Permission denied"},403)'),'plant status and tracker writes are tier gated');
 assert.ok(src.includes('action:"set-plant-status"'),'plant status changes are audited');
+assert.ok(src.includes('MANAGER:{canEditTracker:true'), 'MANAGER can create and edit operational records');
+assert.ok(src.includes('SUPERVISOR:{canEditTracker:true')&&src.includes('canManageAssignments:true'), 'SUPERVISOR can edit existing station assignments');
+assert.ok(src.includes('lockedRolePrivileges')&&src.includes('USER:{canEditTracker:false'), 'USER and SPECTATOR restrictions are server-locked');
+assert.ok(src.includes('USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}'), 'USER has full visibility and no mutation privileges');
+assert.ok(src.includes('SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}'), 'SPECTATOR has restricted visibility and no mutation privileges');
+assert.ok(src.includes('The root OWNER username is fixed as JAN'), 'bootstrap fixes the root account name as JAN');
+assert.ok(src.includes('Additional OWNER accounts are prohibited'), 'no secondary OWNER accounts can be created');
+assert.ok(src.includes('The JAN root OWNER account cannot be deleted or removed.'), 'JAN root account cannot be deleted');
+assert.ok(src.includes('newEntries.length<oldEntries.length'), 'server blocks manager/supervisor deletion of operational entries');
+assert.ok(src.includes('!priv.canViewReports||!priv.canDeleteRecords'), 'server preserves archive records for non-deleting roles');
 console.log('Central API security contract checks passed (static source checks).');
