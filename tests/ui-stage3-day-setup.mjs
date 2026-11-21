@@ -17,7 +17,9 @@ try {
       if (node) node.style.setProperty('display', 'none', 'important');
     }
     const setup = document.querySelector('details.day-setup');
-    if (!setup) throw new Error('Day Setup details element missing');
+    if (!setup) throw new Error('Day to Day details element missing');
+    if (!document.getElementById('openDailyTasks')) throw new Error('Daily Tasks clipboard button missing');
+    if (document.querySelector('.day-setup-label')?.textContent !== 'DAY TO DAY') throw new Error('Day header must read DAY TO DAY');
     setup.open = true;
     document.getElementById('dayHeading').textContent = 'MONDAY';
     // Populate the otherwise script-generated day picker with a visual-only fixture.
@@ -40,15 +42,17 @@ try {
       const rect=e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,height:r.height};};
       return {viewport:innerWidth,docWidth:document.documentElement.scrollWidth,panel:rect(panel),summary:rect(summary),fields:rect(fields),inputs:inputs.map(rect),lock:rect(lock),expanded:details.open,columns:getComputedStyle(fields).gridTemplateColumns,dayTabCount:dayTabs.length,dayTabsVisible:[...dayTabs].every(e=>e.getClientRects().length)};
     });
-    assert.equal(m.expanded,true,'Day Setup must be expanded in Stage 3 QA at '+width+'px');
-    assert.ok(m.panel.width>0&&m.summary.height>0&&m.fields.height>0,'Day Setup not rendered '+width);
+    assert.equal(m.expanded,true,'Day to Day must be expanded in Stage 3 QA at '+width+'px');
+    assert.ok(m.panel.width>0&&m.summary.height>0&&m.fields.height>0,'Day to Day not rendered '+width);
     assert.equal(m.dayTabCount,6,'Expected six day selector fixture buttons at '+width+'px');
     assert.equal(m.dayTabsVisible,true,'Day selector buttons must be visible at '+width+'px');
     assert.ok(m.docWidth<=width+1,'Horizontal overflow '+width+'px '+JSON.stringify(m));
     for(const box of [...m.inputs,m.lock]) assert.ok(box.width>0&&box.left>=-1&&box.right<=width+1,'Control crosses viewport '+width+'px '+JSON.stringify(box));
     if(width<=520) assert.ok(m.columns.split(' ').length>=2,'Mobile field grid expected two columns at '+width+'px');
     await page.screenshot({path:outputDir+'/day-setup-expanded-'+width+'px.png',fullPage:true,animations:'disabled'});
-    console.log('PASS: Stage 3 expanded Day Setup at '+width+'px');
+    const clipboard=await page.locator('#openDailyTasks').boundingBox();
+    assert.ok(clipboard&&clipboard.width>0&&clipboard.x>=0&&clipboard.x+clipboard.width<=width+1,'Daily Tasks clipboard button must fit at '+width+'px');
+    console.log('PASS: Stage 3 expanded Day to Day at '+width+'px');
   }
-  console.log('Stage 3 expanded Day Setup screenshots saved to '+outputDir);
+  console.log('Stage 3 expanded Day to Day screenshots saved to '+outputDir);
 } finally { await browser.close(); }

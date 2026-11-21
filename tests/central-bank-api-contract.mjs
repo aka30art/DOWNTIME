@@ -37,4 +37,9 @@ const lockedRoles=src.slice(src.indexOf('const lockedRolePrivileges'),src.indexO
 assert.ok(lockedRoles.includes('SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true'),
   'SUPERVISOR can manage STAFF in the server-locked privilege matrix');
 
+assert.ok(src.includes('if(Array.isArray(bank.appData?.dailyTaskPresets))nextAppData.dailyTaskPresets=bank.appData.dailyTaskPresets;else delete nextAppData.dailyTaskPresets'),
+  'non-settings roles can complete daily tasks but cannot edit the preset list');
+assert.ok(src.includes('delete nextAppData.quickReasons;delete nextAppData.recentReasons'),
+  'legacy quick reason shortcut data is removed during the next central save');
+
 console.log('Central API security contract checks passed (static source checks).');

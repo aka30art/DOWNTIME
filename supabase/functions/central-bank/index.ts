@@ -123,7 +123,9 @@ Deno.serve(async(req)=>{
    }
    if(!priv.canManageSettings){
      if("areas" in (bank.appData||{}))nextAppData.areas=bank.appData.areas;
-     for(const field of ["reasons","quickReasons"]){
+     if(Array.isArray(bank.appData?.dailyTaskPresets))nextAppData.dailyTaskPresets=bank.appData.dailyTaskPresets;else delete nextAppData.dailyTaskPresets;
+     delete nextAppData.quickReasons;delete nextAppData.recentReasons;
+     for(const field of ["reasons"]){
        if(!priv.canAddDowntimeReasons){if(field in (bank.appData||{}))nextAppData[field]=bank.appData[field];continue;}
        const existing=Array.isArray(bank.appData?.[field])?bank.appData[field]:[];
        const incomingValues=Array.isArray(incoming[field])?incoming[field]:existing;

@@ -3,12 +3,13 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
-const requiredTiles = ['users', 'areas', 'reasons', 'schedule', 'staff'];
+const requiredTiles = ['users', 'areas', 'reasons', 'schedule', 'dailyTasks', 'staff'];
 const requiredPanels = {
   users: 'settingsPanelUsers',
   areas: 'settingsPanelAreas',
   reasons: 'settingsPanelReasons',
   schedule: 'settingsPanelSchedule',
+  dailyTasks: 'settingsPanelDailyTasks',
   staff: 'settingsPanelStaff'
 };
 
@@ -30,9 +31,9 @@ for (const section of requiredTiles) {
     section + ' tile must identify the panel it opens'
   );
 }
-assert.equal((html.match(/data-settings-open="/g) || []).length, 5,
-  'hub must expose the four configuration destinations plus STAFF');
-assert.equal((html.match(/data-settings-back>/g) || []).length, 5,
+assert.equal((html.match(/data-settings-open="/g) || []).length, 6,
+  'hub must expose five configuration destinations plus STAFF');
+assert.equal((html.match(/data-settings-back>/g) || []).length, 6,
   'every settings panel must provide a back-to-settings control');
 assert.doesNotMatch(html, /data-view="staff"/, 'STAFF must no longer have a standalone navigation destination');
 assert.match(html, /id="settingsPanelStaff"[\s\S]*?id="staffRosterList"/, 'STAFF roster management must live inside its Settings panel');
@@ -41,8 +42,8 @@ for (const id of [
   'centralUsersAdminLink', 'centralUsersManager', 'centralUsersManageList',
   'centralAccountSave', 'operatorAdminPanel', 'areaPresetAdmin',
   'areaPresetAdminList', 'addAreaPresetBtn', 'reasonPresetAdmin',
-  'quickReasonAdminList', 'downtimeReasonAdminList', 'addQuickReasonBtn',
-  'addDowntimeReasonBtn', 'shiftScheduleAdmin', 'shiftScheduleEditor',
+  'downtimeReasonAdminList', 'addDowntimeReasonBtn', 'dailyTaskPresetInput',
+  'addDailyTaskPresetBtn', 'dailyTaskPresetList', 'shiftScheduleAdmin', 'shiftScheduleEditor',
   'saveShiftSchedule', 'resetShiftSchedule', 'saveShiftPreset', 'applyShiftPreset'
 ]) {
   assert.equal((html.match(new RegExp('id="' + id + '"', 'g')) || []).length, 1,
@@ -62,6 +63,7 @@ assert.equal(managerOnly('areas'), false);
 assert.equal(managerOnly('reasons'), false);
 assert.equal(managerOnly('schedule'), false);
 assert.equal(managerOnly('staff'), false);
+assert.equal(managerOnly('dailyTasks'), false);
 
 const supervisorReasons = settingsAccess(name => ({
   canManageUsers: false, canManageSettings: false, canAddDowntimeReasons: true
@@ -71,6 +73,7 @@ assert.equal(supervisorReasons('areas'), false);
 assert.equal(supervisorReasons('reasons'), true);
 assert.equal(supervisorReasons('schedule'), false);
 assert.equal(supervisorReasons('staff'), false);
+assert.equal(supervisorReasons('dailyTasks'), false);
 
 const supervisorStaff = settingsAccess(name => ({
   canViewStaff: true, canManageStaff: true
@@ -80,6 +83,7 @@ assert.equal(supervisorStaff('users'), false);
 assert.equal(supervisorStaff('areas'), false);
 assert.equal(supervisorStaff('schedule'), false);
 assert.equal(supervisorStaff('reasons'), false);
+assert.equal(supervisorStaff('dailyTasks'), false);
 
 const supervisorManageStaff = html.match(/SUPERVISOR:\{[^}]*\}/);
 assert.ok(supervisorManageStaff, 'SUPERVISOR permission profile must exist');
@@ -101,8 +105,8 @@ assert.match(html, /if\(b\.dataset\.view==='settings'\)\{showSettingsHub\(\)/,
   'main Settings navigation must return to the hub');
 
 for (const handler of [
+  '$(\'addDailyTaskPresetBtn\').onclick=addDailyTaskPreset',
   '$("addAreaPresetBtn").onclick=addAreaPreset',
-  '$("addQuickReasonBtn").onclick=()=>addReasonPreset',
   '$("addDowntimeReasonBtn").onclick=()=>addReasonPreset',
   "saveShiftSchedule')?.addEventListener('click',applyScheduleToFutureDays)",
   "resetShiftSchedule')?.addEventListener('click'",
@@ -117,4 +121,7 @@ assert.match(html, /@media\(max-width:650px\)\{\.settings-card-grid\{grid-templa
 assert.match(html, /settings-accent-yellow/, 'DOWNTIME yellow accent must be present');
 assert.match(html, /settings-accent-blue/, 'DOWNTIME blue accent must be present');
 
-console.log('PASS: Settings hub navigation, section permissions, original controls and responsive styling');
+assert.doesNotMatch(html, /quickReasonAdminList|addQuickReasonBtn|quickReasonButtons/, 'quick reason shortcuts and their Settings controls must be removed');
+assert.match(html, /data-settings-open="dailyTasks"[\s\S]*?DAILY TASKS/, 'Daily Tasks must be available from Settings');
+assert.match(html, /aria-label="Open Daily Tasks"/, 'Day to Day includes the clipboard trigger');
+console.log('PASS: Settings hub navigation, Daily Tasks permissions, reason presets and responsive styling');

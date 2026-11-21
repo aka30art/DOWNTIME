@@ -123,18 +123,21 @@ try {
   }
   assert.equal(await page.locator('.nav-items #logoutBtn').evaluate(node => getComputedStyle(node).display !== 'none'), true);
 
-  // Day tabs and fields are retained inside the Day Set Up disclosure.
+  // Day tabs and fields are retained inside the Day to Day disclosure.
   const daySetup = page.locator('.day-setup');
-  assert.equal(await daySetup.evaluate(node => node.open), false, 'Day Set Up must start collapsed');
+  assert.equal(await daySetup.evaluate(node => node.open), false, 'Day to Day must start collapsed');
   await daySetup.locator(':scope > summary').click();
   assert.equal(await page.locator('#dayTabs .day').count(), 6, 'All six day selectors remain available when expanded');
   for (const id of ['dayDate', 'plantStart', 'plantStop', 'breakExcluded', 'lockStartBtn', 'unlockStartBtn', 'startLockStatus']) {
     assert.equal(await page.locator('#' + id).count(), 1, 'Day setup control missing: ' + id);
   }
 
-  // Quick Reasons remain in the DOM for existing settings/data logic but are not shown.
-  assert.equal(await page.locator('#quickReasonButtons').evaluate(node => node.hidden), true);
-  assert.equal(await page.locator('#quickReasonButtons').isVisible(), false);
+  // Quick reason shortcut chips are removed; standard downtime reason presets remain in entry form.
+  assert.equal(await page.locator('#quickReasonButtons').count(), 0);
+  assert.equal(await page.locator('#addQuickReasonBtn').count(), 0);
+  assert.equal(await page.locator('#reasonButtons').count(), 1);
+  assert.equal(await page.locator('#openDailyTasks').count(), 1);
+  assert.equal(await page.locator('.day-setup-label').textContent(), 'DAY TO DAY');
   assert.equal(await page.locator('text=Daily downtime records').count(), 0, 'Legacy Daily downtime records panel must be removed from the screen');
 
   // Weekly table, intelligence and total are consolidated into one disclosure.
@@ -155,7 +158,7 @@ try {
   assert.equal(await page.locator('#dayTabs').evaluate(node => node.closest('.day-setup') !== null), true);
   assert.equal(await page.locator('#entriesBody').evaluate(node => node.closest('.downtime-entry-panel') !== null), true);
   assert.equal(await page.locator('#scheduled').evaluate(node => node.closest('.daily-summary-panel') !== null), true);
-  console.log('PASS: Stage 1 menu, Day Set Up, downtime entries, daily summary and unified weekly disclosure contracts.');
+  console.log('PASS: Stage 1 menu, Day to Day, downtime entries, daily summary and unified weekly disclosure contracts.');
 } finally {
   await browser.close();
 }
