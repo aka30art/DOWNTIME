@@ -217,6 +217,7 @@ try{
  assert.equal(await owner.page.locator('#overviewFrame').count(),1,'Overview is embedded rather than opened in a new tab');
  assert.equal(owner.context.pages().length,1,'Overview does not create a browser tab or window');
  assert.equal(await overview.locator('#plantToggle').isVisible(),true,'OWNER retains plant toggle access in the embedded Overview');
+ const versionBeforePlantAndTrackerEdits=owner.getVersion();
  await overview.locator('#plantToggle').click();
  await owner.page.waitForTimeout(150);
  assert.equal(owner.getBank().appData.plantOn,false,'Embedded Overview plant toggle writes centrally');
@@ -253,7 +254,7 @@ try{
  for(let i=0;i<30&&!owner.actions.some(x=>x.action==='save-state');i++)await owner.page.waitForTimeout(100);
  assert.ok(owner.actions.some(x=>x.action==='save-state'),'tracker changes must write through central save-state API');
  assert.ok(owner.getBank().appData.areas.includes('Central Sync Test'),'central bank mock should retain the edited tracker setting');
- assert.equal(owner.getVersion(),3,'plant status and tracker edits must each advance the compare-and-swap version');
+ assert.equal(owner.getVersion(),versionBeforePlantAndTrackerEdits+2,'plant status and tracker edits must each advance the compare-and-swap version');
 
  // Daily Tasks are preset in Settings, then checked independently for each operating day.
  await owner.page.locator('#settingsPanelAreas [data-settings-back]').click();
