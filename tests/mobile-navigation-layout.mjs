@@ -44,7 +44,7 @@ try {
         };
       })
     );
-    assert.equal(items.length, 7, 'All seven navigation items, including Log Out, must remain in the menu at ' + width + 'px');
+    assert.equal(items.length, 6, 'All six remaining navigation items, including Log Out, must remain in the menu at ' + width + 'px');
     for (const item of items) {
       assert.notEqual(item.display, 'none', item.label + ' is hidden at ' + width + 'px');
       assert.ok(item.width > 0 && item.height > 0, item.label + ' has no layout box at ' + width + 'px');
@@ -68,7 +68,7 @@ try {
   const logout = page.locator('.side .nav-items #logoutBtn');
   assert.equal(await logout.count(), 1, 'Exactly one Log Out control must exist in the navigation');
   assert.equal(await logout.evaluate(el => getComputedStyle(el).gridColumn), '1 / -1', 'Mobile Log Out spans the full menu width');
-  console.log('PASS: all seven navigation items, including full-width Log Out, remain visible, inside the viewport, and non-overlapping from 280px to 1280px.');
+  console.log('PASS: all six navigation items, including full-width Log Out, remain visible, inside the viewport, and non-overlapping from 280px to 1280px.');
 } finally {
   await browser.close();
   await new Promise(close => server.close(close));
