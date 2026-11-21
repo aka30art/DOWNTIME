@@ -196,7 +196,9 @@ try{
  await owner.page.locator('.nav[data-view="weekly"]').click();
  const daySetup=owner.page.locator('.day-setup');
  if(!await daySetup.evaluate(node=>node.open))await daySetup.locator(':scope > summary').click();
+ await owner.page.locator('#dayTabs [data-day="0"]').click();
  await owner.page.locator('#openDailyTasks').click();
+ assert.equal((await owner.page.locator('#dailyTasksDay').textContent()).trim().startsWith('MONDAY ·'),true,'the task fixture is explicitly operating on Monday');
  assert.equal(await owner.page.locator('#dailyTasksModal').isVisible(),true,'clipboard opens the Daily Tasks popup');
  assert.equal(await owner.page.locator('#dailyTasksList input[type="checkbox"]').count(),2,'popup displays all preset tasks');
  await owner.page.locator('[aria-label="Complete task: Check guards and safety covers"]').check();
