@@ -56,7 +56,7 @@ assert.ok(calcSource.includes('configuredBreakMinutes(dayName)'),
 const calculateDay = new Function('mins', 'durationMinutes', 'configuredBreakMinutes',
   `${calcSource}; return calc;`
 );
-const configuredFor = name => readBreak({ shiftSchedule: standard }, standard)(name);
+const configuredFor = name => readBreak(name);
 const calc = calculateDay(
   value => { if (!value || !/^\d{2}:\d{2}$/.test(value)) return null; const [h, m] = value.split(':').map(Number); return h * 60 + m; },
   entry => Math.max(0, (Number(entry.hours) || 0) * 60 + (Number(entry.minutes) || 0)),
