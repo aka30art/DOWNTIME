@@ -62,8 +62,10 @@ try {
         });
       const tables = [...document.querySelectorAll('.tablewrap')]
         .filter(visible).map(wrapper => ({
+          selector: wrapper.className,
           width: wrapper.clientWidth,
           scrollWidth: wrapper.scrollWidth,
+          tableWidth: wrapper.querySelector('table')?.getBoundingClientRect().width ?? 0,
           overflowX: getComputedStyle(wrapper).overflowX,
           maxWidth: getComputedStyle(wrapper).maxWidth,
           hasTable: !!wrapper.querySelector('table')
@@ -114,10 +116,21 @@ try {
           'Stage 1 control box-sizing missing at ' + width + 'px: ' + JSON.stringify(control));
       }
       for (const table of result.tables) {
-        assert.equal(table.overflowX, 'auto',
-          'Table wrapper must scroll internally at ' + width + 'px: ' + JSON.stringify(table));
         assert.equal(table.maxWidth, '100%',
           'Table wrapper must be constrained at ' + width + 'px: ' + JSON.stringify(table));
+        if (String(table.selector).split(' ').includes('entrylistwrap')) {
+          // This existing wrapper intentionally uses visible overflow because its
+          // rows are converted into compact, full-width mobile cards.
+          assert.equal(table.overflowX, 'visible',
+            'Entry cards must retain their existing mobile presentation at ' + width + 'px: ' + JSON.stringify(table));
+          assert.ok(table.tableWidth <= table.width + 1 && table.scrollWidth <= table.width + 1,
+            'Entry-card table must fit without horizontal scrolling at ' + width + 'px: ' + JSON.stringify(table));
+        } else {
+          assert.equal(table.overflowX, 'auto',
+            'Wide report tables must scroll internally at ' + width + 'px: ' + JSON.stringify(table));
+          assert.ok(table.scrollWidth >= table.width,
+            'Report table wrapper scroll metrics are invalid at ' + width + 'px: ' + JSON.stringify(table));
+        }
       }
     } else {
       assert.equal(result.stage1MediaActive, false, 'Stage 1 mobile breakpoint must be inactive at ' + width + 'px');
