@@ -183,7 +183,7 @@ try{
  assert.equal(owner.getVersion(),3,'plant status and tracker edits must each advance the compare-and-swap version');
 
  // Daily Tasks are preset in Settings, then checked independently for each operating day.
- await owner.page.locator('[data-settings-back]').click();
+ await owner.page.locator('#settingsPanelDailyTasks [data-settings-back]').click();
  await owner.page.locator('[data-settings-open="dailyTasks"]').click();
  await owner.page.locator('#dailyTaskPresetInput').fill('Check guards and safety covers');
  await owner.page.locator('#addDailyTaskPresetBtn').click();
