@@ -210,6 +210,18 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
    fullscreenBtn.setAttribute('aria-pressed',String(active));
    fullscreenBtn.textContent=active?'⛶ EXIT FULL SCREEN':'⛶ FULL SCREEN';
  });
+ if(window.parent!==window){
+   document.body.classList.add('embedded-overview');
+   document.getElementById('exitOverview')?.addEventListener('click',event=>{
+     event.preventDefault();
+     window.parent.postMessage({type:'DOWNTIME_OVERVIEW_CLOSE'},location.origin);
+   });
+   document.addEventListener('keydown',event=>{
+     if(event.key!=='Escape')return;
+     if(document.querySelector('.photo-lightbox.open'))return;
+     window.parent.postMessage({type:'DOWNTIME_OVERVIEW_CLOSE'},location.origin);
+   });
+ }
  if(testMode){plantConnected=true;plantPayload={plantOn:true,operatorProfiles:{},weeks:{}};note.textContent='CONTROL ACCESS · TEST MODE';renderLiveStats(plantPayload);}
  render();
  if(!testMode)connectPlantStatus();
