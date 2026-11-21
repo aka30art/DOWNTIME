@@ -639,7 +639,6 @@ function applyTierVisibility(){
  if(usersAdmin)usersAdmin.style.display=permission('canManageUsers')?'':'none';
  document.body.classList.toggle('central-spectator',spectator);
  if(reportsView)reportsView.style.display=spectator||!permission('canViewReports')?'none':'';
- if(staffView)staffView.style.display=spectator||!permission('canViewStaff')?'none':'';
  if(settingsView)settingsView.style.display=spectator?'none':'';
  if(onDuty)onDuty.style.display=spectator||!permission('canViewAssignments')?'none':'';
  if(exportButton)exportButton.style.display=spectator||!permission('canViewReports')?'none':'';
