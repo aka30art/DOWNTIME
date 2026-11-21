@@ -69,6 +69,9 @@ try {
       const table = tableWrap.querySelector('table');
       const intelligence = document.querySelectorAll('.weekly-analytics-subsection');
       const ids = ['prevWeek','weekLabel','nextWeek','exportBtn','weeklyInsight','weekDown','weekPct','weekNet','weekRunPct'];
+      const topCause = document.getElementById('topCause');
+      const topCauseStyle = getComputedStyle(topCause);
+      const topCauseMetric = {whiteSpace:topCauseStyle.whiteSpace,scrollWidth:topCause.scrollWidth,clientWidth:topCause.clientWidth};
       const controls = ids.map(id => {
         const el=document.getElementById(id);
         const r=el.getBoundingClientRect();
@@ -82,6 +85,7 @@ try {
         tableWrap:rect(tableWrap),tableClientWidth:tableWrap.clientWidth,tableScrollWidth:tableWrap.scrollWidth,tableRect:rect(table),
         overflowX:getComputedStyle(tableWrap).overflowX,rows:table.querySelectorAll('tbody tr').length,
         intelligenceCount:intelligence.length,intelligenceVisible:[...intelligence].every(el=>el.getClientRects().length>0),
+        topCauseMetric,
         controls
       };
     });
@@ -92,6 +96,8 @@ try {
     assert.equal(result.rows,6,'Expected six weekly fixture rows at '+width+'px');
     assert.equal(result.intelligenceCount,2,'Weekly intelligence and total must remain consolidated at '+width+'px');
     assert.equal(result.intelligenceVisible,true,'Weekly analytics subsections should be visible at '+width+'px');
+    assert.equal(result.topCauseMetric.whiteSpace,'normal','Top downtime cause must wrap instead of clipping at '+width+'px');
+    assert.ok(result.topCauseMetric.scrollWidth<=result.topCauseMetric.clientWidth+1,'Top downtime cause text overflows its card at '+width+'px: '+JSON.stringify(result.topCauseMetric));
     assert.equal(result.overflowX,'auto','Weekly table wrapper should scroll internally at '+width+'px');
     assert.ok(result.tableWrap.left>=-1&&result.tableWrap.right<=width+1,'Weekly table wrapper exceeds viewport at '+width+'px: '+JSON.stringify(result.tableWrap));
     if (width <= 800) assert.ok(result.tableScrollWidth > result.tableClientWidth + 1,'Narrow weekly report should scroll internally at '+width+'px');
