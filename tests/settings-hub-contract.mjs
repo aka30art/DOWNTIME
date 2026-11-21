@@ -123,6 +123,26 @@ assert.match(html, /@media\(max-width:650px\)\{\.settings-card-grid\{grid-templa
 assert.match(html, /settings-accent-yellow/, 'DOWNTIME yellow accent must be present');
 assert.match(html, /settings-accent-blue/, 'DOWNTIME blue accent must be present');
 
+const settingsGridStart = html.indexOf('<div class="settings-card-grid">');
+const settingsGridEnd = html.indexOf('</div>', settingsGridStart);
+const staffCardPosition = html.indexOf('data-settings-open="staff"', settingsGridStart);
+assert.ok(settingsGridStart >= 0 && staffCardPosition > settingsGridStart && staffCardPosition < settingsGridEnd,
+  'STAFF must be the sixth card inside the Settings grid');
+assert.equal((html.slice(settingsGridStart, settingsGridEnd).match(/data-settings-open="/g) || []).length, 6,
+  'all six Settings destinations must be direct grid cards');
+
+assert.match(html, /id="areaPresetAdminMsg"[^>]*role="status"/,
+  'AREA PRESETS must have a dedicated accessible status message');
+assert.match(html, /function renderAreaPresetSettings\(\)[\s\S]*?Array\.isArray\(state\.areas\)/,
+  'AREA PRESETS admin list must render the configured state.areas array');
+assert.match(html, /if\(section==='areas'\)renderAreaPresetSettings\(\)/,
+  'opening AREA PRESETS must populate the list');
+assert.match(html, /function addAreaPreset\(\)[\s\S]*?renderAreaPresetSettings\(\)/,
+  'adding an area must refresh the area list, not the downtime-reason list');
+assert.match(html, /Remove area \"\+value/,
+  'each configured area must have a named remove action');
+
+
 assert.doesNotMatch(html, /quickReasonAdminList|addQuickReasonBtn|quickReasonButtons/, 'quick reason shortcuts and their Settings controls must be removed');
 assert.match(html, /data-settings-open="dailyTasks"[\s\S]*?DAILY TASKS/, 'Daily Tasks must be available from Settings');
 assert.match(html, /aria-label="Open Daily Tasks"/, 'Day to Day includes the clipboard trigger');
