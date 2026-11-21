@@ -495,6 +495,8 @@ function addSupervisorDowntimeReason(){
  state.reasons=Array.isArray(state.reasons)?state.reasons:[];
  if(state.reasons.some(reason=>String(reason).trim().toLowerCase()===value.toLowerCase())){$('supervisorReasonStatus').textContent='That downtime reason already exists.';return}
  state.reasons=[...state.reasons,value];
+ state.quickReasons=Array.isArray(state.quickReasons)?state.quickReasons:[];
+ if(!state.quickReasons.some(reason=>String(reason).trim().toLowerCase()===value.toLowerCase()))state.quickReasons=[...state.quickReasons,value];
  if(!persist()){$('supervisorReasonStatus').textContent='Could not save this reason.';return}
  input.value='';renderQuickReasons();
  $('supervisorReasonStatus').textContent='Added centrally: '+value;
