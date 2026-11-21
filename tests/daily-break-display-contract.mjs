@@ -46,11 +46,11 @@ assert.equal(
 );
 
 const calcStart = html.indexOf('function calc(d){');
-const calcEnd = html.indexOf('\\nfunction configuredBreakMinutes', calcStart);
+const calcEnd = html.indexOf('function configuredBreakMinutes', calcStart);
 assert.notEqual(calcStart, -1, 'daily calculation function must exist');
 assert.notEqual(calcEnd, -1, 'daily calculation function must be bounded before the break helper');
 const calcSource = html.slice(calcStart, calcEnd);
-assert.match(calcSource, /configuredBreakMinutes\\(dayName\\)/,
+assert.ok(calcSource.includes('configuredBreakMinutes(dayName)'),
   'daily calculations must resolve the break from the configured weekday schedule');
 
 const calculateDay = new Function('mins', 'durationMinutes', 'configuredBreakMinutes',
