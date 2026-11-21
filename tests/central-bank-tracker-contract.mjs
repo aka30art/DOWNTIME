@@ -8,6 +8,7 @@ const api=await readFile('supabase/functions/central-bank/index.ts','utf8');
 
 assert.match(tracker,/window\.DOWNTIME_CENTRAL_API=.*functions\/v1\/central-bank/,'tracker configures central API');
 assert.match(tracker,/src="central-bank-client\.js"/,'tracker loads central browser adapter');
+assert.ok(tracker.indexOf('DOWNTIME_CENTRAL_API_KEY') < tracker.indexOf('src="central-bank-client.js"'),'publishable API key is configured before the adapter loads');
 assert.match(tracker,/DowntimeCentral\.listUsers\(\)/,'login choices are centrally sourced');
 assert.match(tracker,/DowntimeCentral\.login\(username,pin\)/,'user PINs are verified centrally');
 assert.match(tracker,/DowntimeCentral\.state\(\)/,'tracker state is loaded from central bank');
@@ -17,6 +18,7 @@ assert.doesNotMatch(tracker,/downtime_shared_state/,'main tracker has no legacy 
 assert.doesNotMatch(overview,/downtime_shared_state/,'Plant Overview has no legacy shared-state access');
 assert.match(overview,/sessionStorage\.getItem\('downtime\.central\.session\.v1'\)/,'Overview inherits authenticated tab session');
 assert.match(overview,/centralCall\('get-state'\)/,'Overview reads central state');
+assert.match(overview,/apikey':CENTRAL_API_KEY/,'Overview sends the publishable API key');
 assert.match(overview,/centralCall\('set-plant-status'/,'Overview status button uses central action');
 assert.match(api,/action==="set-plant-status"/,'server implements central plant status updates');
 assert.match(api,/if\(!priv\.canEditTracker\)return json\(\{error:"Permission denied"\},403\)/,'server enforces tracker edit tier');
