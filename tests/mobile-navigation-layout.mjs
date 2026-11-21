@@ -23,10 +23,12 @@ try {
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
     await page.locator('.side').evaluate(side => {
+      const menu = side.querySelector('.nav-menu');
+      if (menu) menu.open = true;
       const admin = side.querySelector('#centralAdminNav');
       if (admin) admin.style.setProperty('display', 'flex', 'important');
     });
-    const items = await page.locator('.side > .nav').evaluateAll(nodes =>
+    const items = await page.locator('.side .nav-items > .nav').evaluateAll(nodes =>
       nodes.map(node => {
         const rect = node.getBoundingClientRect();
         const style = getComputedStyle(node);
@@ -61,9 +63,9 @@ try {
   }
 
   await page.setViewportSize({ width: 390, height: 900 });
-  const mobileColumns = await page.locator('.side').evaluate(side => getComputedStyle(side).gridTemplateColumns);
-  assert.ok(mobileColumns.split(' ').length >= 2, 'Mobile menu must expose at least two explicit grid columns');
-  const logout = page.locator('.side #logoutBtn');
+  const mobileColumns = await page.locator('.side .nav-items').evaluate(menu => getComputedStyle(menu).gridTemplateColumns);
+  assert.ok(mobileColumns.split(' ').length >= 2, 'Expanded mobile menu must expose at least two explicit grid columns');
+  const logout = page.locator('.side .nav-items #logoutBtn');
   assert.equal(await logout.count(), 1, 'Exactly one Log Out control must exist in the navigation');
   assert.equal(await logout.evaluate(el => getComputedStyle(el).gridColumn), '1 / -1', 'Mobile Log Out spans the full menu width');
   console.log('PASS: all seven navigation items, including full-width Log Out, remain visible, inside the viewport, and non-overlapping from 280px to 1280px.');
