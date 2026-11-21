@@ -194,8 +194,13 @@ try{
  assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="6"]').textContent(),'UNASSIGNED','previous station assignment is cleared live');
  await owner.page.locator('#overviewClose').click();
  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
- await owner.page.locator('#logoutBtn').click();
+ assert.equal(await owner.page.locator('.side #logoutBtn').isVisible(),true,'Log Out is available in the top navigation');
+ assert.equal(await owner.page.locator('.top #logoutBtn').count(),0,'Log Out is no longer duplicated in the content header');
+ await owner.page.locator('.side #logoutBtn').click();
  await owner.page.waitForFunction(()=>document.querySelector('#authGate').style.display!=='none');
+ await owner.page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
+ assert.equal(await owner.page.locator('#authGate h2').textContent(),'DOWNTIME · CENTRAL LOGIN','Log Out returns OWNER to the central USER login screen');
+ assert.ok(owner.actions.some(x=>x.action==='logout'),'Log Out calls the central logout endpoint');
  await owner.context.close();
 
  // USER is fully informed but cannot edit or submit anything.
@@ -206,6 +211,12 @@ try{
  assert.equal(await user.page.locator('.nav[data-view="reports"]').isVisible(),true,'USER can see reports');
  assert.equal(await user.page.locator('.overview-link').isVisible(),true,'USER can see Plant Overview');
  assert.notEqual(await user.page.locator('.weeklyKpis').evaluate(el=>getComputedStyle(el).display),'none','USER can see dashboards');
+ assert.equal(await user.page.locator('.side #logoutBtn').isVisible(),true,'USER has Log Out in the top navigation');
+ await user.page.locator('.side #logoutBtn').click();
+ await user.page.waitForFunction(()=>document.querySelector('#authGate').style.display!=='none');
+ await user.page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
+ assert.equal(await user.page.locator('#authGate h2').textContent(),'DOWNTIME · CENTRAL LOGIN','USER is returned to the central login screen');
+ assert.ok(user.actions.some(x=>x.action==='logout'),'USER sign-out invalidates the central session');
  await user.context.close();
 
  // SUPERVISOR can edit tracker data but not manage users or STAFF.
