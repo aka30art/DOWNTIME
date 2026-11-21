@@ -72,6 +72,20 @@ assert.equal(supervisorReasons('reasons'), true);
 assert.equal(supervisorReasons('schedule'), false);
 assert.equal(supervisorReasons('staff'), false);
 
+const supervisorStaff = settingsAccess(name => ({
+  canViewStaff: true, canManageStaff: true
+}[name] === true));
+assert.equal(supervisorStaff('staff'), true, 'SUPERVISOR can access the STAFF panel');
+assert.equal(supervisorStaff('users'), false);
+assert.equal(supervisorStaff('areas'), false);
+assert.equal(supervisorStaff('schedule'), false);
+assert.equal(supervisorStaff('reasons'), false);
+
+const supervisorManageStaff = html.match(/SUPERVISOR:\\{[^}]*\\}/);
+assert.ok(supervisorManageStaff, 'SUPERVISOR permission profile must exist');
+assert.match(supervisorManageStaff[0], /canManageStaff:true/,
+  'SUPERVISOR must be granted STAFF management permission');
+
 const staffViewer = settingsAccess(name => name === 'canViewStaff');
 assert.equal(staffViewer('staff'), true, 'STAFF visibility must preserve the existing staff-view privilege');
 assert.equal(staffViewer('users'), false);
