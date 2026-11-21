@@ -259,7 +259,7 @@ body.overview-overlay-open{overflow:hidden}
 
 /* SETTINGS HUB — icon navigation and dedicated admin panels */
 .settings-shell{width:100%;max-width:1100px;margin:0 auto}.settings-hub{padding:2px 0 18px}.settings-hub-heading{padding:10px 2px 17px}.settings-eyebrow,.settings-detail-tag{font-size:10px;font-weight:900;letter-spacing:1.35px;color:#76baff}.settings-hub-heading h2{font-size:24px;font-weight:950;letter-spacing:-.5px;margin:5px 0 5px}.settings-hub-heading p{margin:0;font-size:13px}.settings-card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:stretch}.settings-card{appearance:none;position:relative;display:flex;align-items:center;gap:14px;width:100%;min-width:0;min-height:112px;padding:17px 16px;text-align:left;border:1px solid #2e4c61;border-radius:15px;background:linear-gradient(145deg,#172e3e,#0c1d29);box-shadow:0 9px 24px #0002,inset 0 1px 0 #ffffff08;transition:border-color .16s,transform .16s,background .16s,box-shadow .16s}.settings-card:hover{transform:translateY(-2px);border-color:#4c7692;box-shadow:0 12px 28px #0003}.settings-card:focus-visible{outline:2px solid #55a9ff;outline-offset:3px}.settings-card-icon{width:52px;height:52px;flex:0 0 52px;display:grid;place-items:center;border-radius:13px;background:#173d5c;border:1px solid #2b6590;color:#70bbff}.settings-card-icon svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.settings-card-copy{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}.settings-card-copy strong{font-size:14px;line-height:1.2;font-weight:950;letter-spacing:.25px;color:#f4f7fa}.settings-card-copy small{font-size:11px;line-height:1.35;color:#afc1cd}.settings-card-copy em{font-size:9px;font-style:normal;font-weight:900;letter-spacing:.85px;color:#6e9ab9;margin-top:3px}.settings-card-arrow{font-size:27px;line-height:1;color:#8ba9bb;font-weight:400}.settings-accent-yellow .settings-card-icon{background:#3e3418;border-color:#806a20;color:#ffd12a}.settings-accent-yellow .settings-card-copy em{color:#e3bd43}.settings-accent-cyan .settings-card-icon{background:#153b42;border-color:#246875;color:#69d9e8}.settings-accent-cyan .settings-card-copy em{color:#65c3d0}.settings-accent-violet .settings-card-icon{background:#302a48;border-color:#5b4f87;color:#b5a5ff}.settings-accent-violet .settings-card-copy em{color:#a99bdc}.settings-detail-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 12px;flex-wrap:wrap}.settings-back{display:inline-flex;align-items:center;gap:8px;border-color:#35556b;background:linear-gradient(180deg,#1b3547,#102331);padding:9px 12px;color:#e7eff4;font-size:11px;font-weight:900;letter-spacing:.3px}.settings-back:first-letter{color:#ffc928}.settings-content-panel{border-color:#2d4a5e}.settings-content-panel>h2{font-size:18px;margin-bottom:5px}.settings-content-panel>p{margin:0 0 14px;font-size:12px}.settings-empty{padding:18px;border:1px dashed #385568;border-radius:12px;text-align:center}.settings-hub-footnote{display:flex;align-items:center;gap:9px;margin:17px 2px 0;padding-top:13px;border-top:1px solid #243c4c;color:#8da4b3;font-size:11px}.settings-footnote-mark{display:inline-block;width:7px;height:7px;flex:0 0 7px;background:#ffc928;border-radius:50%;box-shadow:0 0 0 4px #ffc92818}.settings-panel[hidden],.settings-hub[hidden]{display:none!important}#settingsAreasAdminControls{display:block}#settingsPanelAreas #areaPresetAdmin{margin-top:0!important;border-top:0!important;padding-top:0!important}#settingsPanelSchedule #shiftScheduleAdmin{margin-top:0!important;padding:0!important;border-top:0!important}#settingsPanelReasons #reasonPresetAdmin{margin-top:0!important;padding-top:0!important;border-top:0!important}#settingsPanelReasons #reasonPresetAdmin>h3{display:none}#settingsPanelSchedule #shiftScheduleAdmin>h3,#settingsPanelSchedule #shiftScheduleAdmin>p{display:none}
-@media(max-width:1050px){.settings-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:1050px){.settings-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.settings-card-grid{grid-template-columns:1fr;gap:9px}.settings-card{min-height:91px;padding:13px 12px;border-radius:12px;gap:12px}.settings-card-icon{width:46px;height:46px;flex-basis:46px}.settings-card-copy strong{font-size:13px}.settings-card-copy small{font-size:10px}.settings-hub-heading h2{font-size:21px}.settings-detail-head{align-items:flex-start}.settings-detail-tag{padding:10px 2px}}
+@media(max-width:1050px){.settings-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.settings-card-grid{grid-template-columns:1fr;gap:9px}.settings-card{min-height:91px;padding:13px 12px;border-radius:12px;gap:12px}.settings-card-icon{width:46px;height:46px;flex-basis:46px}.settings-card-copy strong{font-size:13px}.settings-card-copy small{font-size:10px}.settings-hub-heading h2{font-size:21px}.settings-detail-head{align-items:flex-start}.settings-detail-tag{padding:10px 2px}}
 
 /* UI migration · Stage 4: unified weekly analytics hierarchy */
 .weekly-collapse-content{display:grid;gap:13px}
@@ -570,8 +570,8 @@ body.overview-overlay-open{overflow:hidden}
         <span class="settings-card-copy"><strong>SHIFT &amp; BREAKTIME</strong><small>Daily shift times and break presets</small><em>OPERATING SCHEDULE</em></span>
         <span class="settings-card-arrow" aria-hidden="true">›</span>
       </button>
+          <button class="settings-card settings-accent-blue" type="button" data-settings-open="staff" aria-controls="settingsPanelStaff" aria-expanded="false"><span class="settings-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2 20v-1.2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4V20"/><circle cx="17.5" cy="8.5" r="2.4"/><path d="M18 15h1a3 3 0 0 1 3 3v2"/></svg></span><span class="settings-card-copy"><strong>STAFF</strong><small>Roster, presence and station assignments</small><em>STAFF MANAGEMENT</em></span><span class="settings-card-arrow" aria-hidden="true">›</span></button>
     </div>
-    <button class="settings-card settings-accent-blue" type="button" data-settings-open="staff" aria-controls="settingsPanelStaff" aria-expanded="false"><span class="settings-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2 20v-1.2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4V20"/><circle cx="17.5" cy="8.5" r="2.4"/><path d="M18 15h1a3 3 0 0 1 3 3v2"/></svg></span><span class="settings-card-copy"><strong>STAFF</strong><small>Roster, presence and station assignments</small><em>STAFF MANAGEMENT</em></span><span class="settings-card-arrow" aria-hidden="true">›</span></button>
     <p id="settingsHubEmpty" class="settings-empty muted" hidden>No settings sections are available for this account.</p>
     <div class="settings-hub-footnote"><span class="settings-footnote-mark"></span> Changes remain subject to your assigned DOWNTIME privileges.</div>
   </div>
@@ -591,7 +591,7 @@ body.overview-overlay-open{overflow:hidden}
     <div class="settings-detail-head"><button class="settings-back" type="button" data-settings-back>‹ <span>BACK TO SETTINGS</span></button><div class="settings-detail-tag">PLANT CONFIGURATION</div></div>
     <div class="panel settings-content-panel">
       <h2>AREA PRESETS</h2><p class="muted">Configure the plant areas available when recording a downtime entry.</p>
-      <div id="settingsAreasAdminControls"><div id="areaPresetAdmin" style="margin-top:16px;border-top:1px solid #334b5c;padding-top:14px"><h3 style="margin:0 0 10px">AREA PRESETS · ENTRY FORM</h3><div class="field"><label>Areas · plant location buttons on downtime entry</label><div id="areaPresetAdminList" class="presetrow"></div><div style="display:flex;gap:6px;margin-top:8px"><input id="newAreaPreset" placeholder="Add plant area" maxlength="60"><button id="addAreaPresetBtn" type="button">ADD</button></div></div></div></div>
+      <div id="settingsAreasAdminControls"><div id="areaPresetAdmin" style="margin-top:16px;border-top:1px solid #334b5c;padding-top:14px"><h3 style="margin:0 0 10px">AREA PRESETS · ENTRY FORM</h3><div class="field"><label>Areas · plant location buttons on downtime entry</label><div id="areaPresetAdminList" class="presetrow"></div><div id="areaPresetAdminMsg" class="muted" role="status" aria-live="polite" style="margin-top:6px"></div><div style="display:flex;gap:6px;margin-top:8px"><input id="newAreaPreset" placeholder="Add plant area" maxlength="60"><button id="addAreaPresetBtn" type="button">ADD</button></div></div></div></div>
     </div>
   </div>
 
@@ -809,7 +809,7 @@ window.addEventListener('message',event=>{
 function settingsAccess(section){if(section==='users')return permission('canManageUsers')||permission('canManageSettings');if(section==='areas'||section==='schedule'||section==='dailyTasks')return permission('canManageSettings');if(section==='staff')return permission('canViewStaff');if(section==='reasons')return permission('canManageSettings')||permission('canAddDowntimeReasons');return false}
 function renderSettingsHub(){const access={users:settingsAccess('users'),areas:settingsAccess('areas'),reasons:settingsAccess('reasons'),schedule:settingsAccess('schedule'),dailyTasks:settingsAccess('dailyTasks'),staff:settingsAccess('staff')};document.querySelectorAll('[data-settings-open]').forEach(button=>{const key=button.dataset.settingsOpen;button.hidden=!access[key]});const areasControls=$('settingsAreasAdminControls');if(areasControls)areasControls.style.display=permission('canManageSettings')?'block':'none';const empty=$('settingsHubEmpty');if(empty)empty.hidden=Object.values(access).some(Boolean);const openPanel=document.querySelector('.settings-panel:not([hidden])');if(openPanel){const section=({settingsPanelUsers:'users',settingsPanelAreas:'areas',settingsPanelReasons:'reasons',settingsPanelSchedule:'schedule',settingsPanelDailyTasks:'dailyTasks',settingsPanelStaff:'staff'})[openPanel.id];if(!section||!settingsAccess(section))showSettingsHub()}}
 function showSettingsHub(){const hub=$('settingsHub');if(hub)hub.hidden=false;document.querySelectorAll('.settings-panel').forEach(panel=>panel.hidden=true);document.querySelectorAll('[data-settings-open]').forEach(button=>button.setAttribute('aria-expanded','false'));$('subtitle').textContent='Settings hub · Administration and configuration'}
-function openSettingsPanel(section){if(!settingsAccess(section))return;const ids={users:'settingsPanelUsers',areas:'settingsPanelAreas',reasons:'settingsPanelReasons',schedule:'settingsPanelSchedule',dailyTasks:'settingsPanelDailyTasks',staff:'settingsPanelStaff'};const titles={users:'Users',areas:'Area Presets',reasons:'Reason Presets',schedule:'Shift & Breaktime Schedule',dailyTasks:'Daily Tasks',staff:'Staff'};const panel=$(ids[section]);if(!panel)return;const hub=$('settingsHub');if(hub)hub.hidden=true;document.querySelectorAll('.settings-panel').forEach(item=>item.hidden=item!==panel);document.querySelectorAll('[data-settings-open]').forEach(button=>button.setAttribute('aria-expanded',String(button.dataset.settingsOpen===section)));$('subtitle').textContent='Settings · '+titles[section];}
+function openSettingsPanel(section){if(!settingsAccess(section))return;const ids={users:'settingsPanelUsers',areas:'settingsPanelAreas',reasons:'settingsPanelReasons',schedule:'settingsPanelSchedule',dailyTasks:'settingsPanelDailyTasks',staff:'settingsPanelStaff'};const titles={users:'Users',areas:'Area Presets',reasons:'Reason Presets',schedule:'Shift & Breaktime Schedule',dailyTasks:'Daily Tasks',staff:'Staff'};const panel=$(ids[section]);if(!panel)return;const hub=$('settingsHub');if(hub)hub.hidden=true;document.querySelectorAll('.settings-panel').forEach(item=>item.hidden=item!==panel);document.querySelectorAll('[data-settings-open]').forEach(button=>button.setAttribute('aria-expanded',String(button.dataset.settingsOpen===section)));$('subtitle').textContent='Settings · '+titles[section];if(section==='areas')renderAreaPresetSettings();}
 document.querySelectorAll('[data-settings-open]').forEach(button=>button.addEventListener('click',()=>openSettingsPanel(button.dataset.settingsOpen)));
 document.querySelectorAll('[data-settings-back]').forEach(button=>button.addEventListener('click',showSettingsHub));
 document.querySelectorAll('.nav').forEach(b=>b.onclick=e=>{if(b.classList.contains('overview-link')){e.preventDefault();openPlantOverview();return;}document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===b.dataset.view));if(b.dataset.view==='settings'){showSettingsHub();renderSettingsHub();$('subtitle').textContent='Settings hub · Administration and configuration'}else $('subtitle').textContent=b.dataset.view==='weekly'?'Weekly recording sheet · Monday–Saturday':b.dataset.view==='reports'?'Weekly reports archive':b.dataset.view==='settings'?'Manage users and settings':'Manage users and settings';if(b.dataset.view==='reports')renderArchive();if(b.dataset.view==='settings'){renderOperatorRosterAdmin();renderReasonPresetSettings();renderShiftSchedule();renderDailyTaskSettings();enforceOperatorMode();renderSettingsHub()}});
@@ -1161,7 +1161,75 @@ function addReasonPreset(key,inputId){
  input.value="";renderReasonPresetSettings();$("reasonPresetAdminMsg").textContent="Added "+value+".";
 }
 $("addDowntimeReasonBtn").onclick=()=>addReasonPreset("reasons","newDowntimeReason");
-function addAreaPreset(){if(!isAdmin())return;const input=$("newAreaPreset"),value=input.value.trim();if(!value)return;if((state.areas||[]).some(v=>String(v).trim().toLowerCase()===value.toLowerCase())){$("reasonPresetAdminMsg").textContent="That area already exists.";return}state.areas=[...(state.areas||[]),value];input.value="";persist();renderReasonPresetSettings();$("reasonPresetAdminMsg").textContent="Added area "+value+"."}
+function renderAreaPresetSettings(){
+ const box=$("areaPresetAdmin"),el=$("areaPresetAdminList"),message=$("areaPresetAdminMsg");
+ if(!box||!el)return;
+ const canManage=permission('canManageSettings');
+ box.style.display=canManage?"block":"none";
+ el.replaceChildren();
+ const areas=Array.isArray(state.areas)?state.areas:[];
+ areas.forEach((value,index)=>{
+  const chip=document.createElement("span");
+  chip.dataset.areaPreset=String(value);
+  chip.style.cssText="display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #35516a;border-radius:8px;margin:3px";
+  const label=document.createElement("span");
+  label.dataset.areaName="true";
+  label.textContent=String(value);
+  chip.appendChild(label);
+  if(canManage){
+   const remove=document.createElement("button");
+   remove.type="button";
+   remove.textContent="×";
+   remove.title="Remove area "+value;
+   remove.setAttribute("aria-label","Remove area "+value);
+   remove.style.cssText="padding:2px 6px;color:#ff9b8e";
+   remove.onclick=()=>{
+    if(!permission('canManageSettings'))return;
+    const previous=Array.isArray(state.areas)?state.areas.slice():[];
+    state.areas=previous.filter((item,i)=>i!==index);
+    if(!persist()){
+     state.areas=previous;
+     if(message)message.textContent="Unable to save the removal. Check your central connection.";
+     return;
+    }
+    renderAreaPresetSettings();
+    if($("entryModal")?.classList.contains("show"))renderPresets();
+    if(message)message.textContent="Removed "+value+".";
+   };
+   chip.appendChild(remove);
+  }
+  el.appendChild(chip);
+ });
+ if(!areas.length){
+  const empty=document.createElement("span");
+  empty.className="muted";
+  empty.textContent="No areas configured yet.";
+  el.appendChild(empty);
+ }
+}
+function addAreaPreset(){
+ if(!permission('canManageSettings'))return;
+ const input=$("newAreaPreset"),message=$("areaPresetAdminMsg");
+ const value=String(input?.value||"").trim();
+ if(!value)return;
+ if(value.length>60){if(message)message.textContent="Area must be 60 characters or fewer.";return}
+ state.areas=Array.isArray(state.areas)?state.areas:[];
+ if(state.areas.some(v=>String(v).trim().toLowerCase()===value.toLowerCase())){
+  if(message)message.textContent="That area already exists.";
+  return;
+ }
+ const previous=state.areas.slice();
+ state.areas=[...previous,value];
+ if(!persist()){
+  state.areas=previous;
+  if(message)message.textContent="Unable to save the area. Check your central connection.";
+  return;
+ }
+ if(input)input.value="";
+ renderAreaPresetSettings();
+ if($("entryModal")?.classList.contains("show"))renderPresets();
+ if(message)message.textContent="Added area "+value+".";
+}
 $("addAreaPresetBtn").onclick=addAreaPreset;
 const pendingOperatorPhotoOriginals={};
 const OPERATOR_PHOTO_DB='downtime-operator-originals';

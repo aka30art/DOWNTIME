@@ -2,7 +2,7 @@ name: DOWNTIME CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, 'fix/**']
 permissions:
   contents: read
 jobs:
@@ -15,6 +15,7 @@ jobs:
           node-version: 22
       - run: npm install --no-audit --no-fund
       - run: npx playwright install chromium
+# Settings QA is exercised in Playwright: desktop/tablet/mobile card grid, shared area presets, and central add/remove persistence.
       - run: npm run test:smoke
       - name: Upload Stage 4 expanded weekly analytics screenshots
         if: always()
@@ -46,6 +47,14 @@ jobs:
         with:
           name: weekly-reports-preview-qa
           path: artifacts/weekly-reports/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Upload Settings hub desktop and area preset QA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: settings-hub-layout-qa
+          path: artifacts/settings-hub/
           if-no-files-found: warn
           retention-days: 7
 
