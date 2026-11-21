@@ -31,7 +31,7 @@ try {
         const rect = node.getBoundingClientRect();
         const style = getComputedStyle(node);
         return {
-          label: node.textContent.trim().replace(/\\s+/g, ' '),
+          label: node.textContent.trim().replace(/\s+/g, ' '),
           left: rect.left,
           right: rect.right,
           top: rect.top,
@@ -60,6 +60,7 @@ try {
     }
   }
 
+  await page.setViewportSize({ width: 390, height: 900 });
   const mobileColumns = await page.locator('.side').evaluate(side => getComputedStyle(side).gridTemplateColumns);
   assert.ok(mobileColumns.split(' ').length >= 2, 'Mobile menu must expose at least two explicit grid columns');
   console.log('PASS: six navigation items remain visible, inside the viewport, and non-overlapping from 280px to 1280px.');
