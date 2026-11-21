@@ -28,4 +28,6 @@ assert.ok(src.includes('Additional OWNER accounts are prohibited'), 'no secondar
 assert.ok(src.includes('The JAN root OWNER account cannot be deleted or removed.'), 'JAN root account cannot be deleted');
 assert.ok(src.includes('addStableRecordIds')&&src.includes('candidate?.recordId===recordId'), 'server issues stable record identifiers and blocks manager/supervisor deletion');
 assert.ok(src.includes('!priv.canViewReports||!priv.canDeleteRecords'), 'server preserves archive records for non-deleting roles');
+assert.ok(src.includes('canAddDowntimeReasons:true')&&src.includes('existing.some((old:any)=>String(old).trim().toLowerCase()===value.trim().toLowerCase())'), 'SUPERVISOR can only append new downtime reason presets');
+assert.ok(src.includes('ADMIN:{canEditTracker:true')&&src.includes('canDeleteRecords:false'), 'ADMIN deletion is limited by default and not equivalent to root OWNER');
 console.log('Central API security contract checks passed (static source checks).');
