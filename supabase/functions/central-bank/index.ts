@@ -32,7 +32,7 @@ Deno.serve(async(req)=>{
  let bank=normalizeBank(row?.payload);
  if(action==="bootstrap"){
    const {data:setupCode,error:setupCodeError}=await db.rpc("downtime_get_bootstrap_code");if(setupCodeError||typeof setupCode!=="string"||!setupCode)return json({error:"Bootstrap code is not configured in Supabase Vault"},503);if(typeof body.bootstrapCode!=="string"||body.bootstrapCode!==setupCode)return json({error:"Bootstrap code invalid"},401);
-   if(bank.users.some((u:any)=>u.enabled!==false))return json({error:"Bootstrap already completed"},409);
+   if(bank.users.length>0)return json({error:"Bootstrap already completed"},409);
    const suppliedUsername=String(body.username||"").trim(),username="JAN",pin=String(body.pin||"");
    if(suppliedUsername.toUpperCase()!=="JAN"||!/^[0-9]{4,8}$/.test(pin))return json({error:"The root OWNER username is fixed as JAN; PIN must be 4-8 digits"},400);
    const salt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));
@@ -111,7 +111,7 @@ Deno.serve(async(req)=>{
      bank.staff.profiles=nextAppData.operatorProfiles||bank.staff.profiles||{};
      bank.staff.roster=Array.isArray(nextAppData.staffRoster)?nextAppData.staffRoster:(bank.staff.roster||[]);
    }
-   if(!priv.canViewReports)nextAppData.archive=bank.appData?.archive||[];
+   if(!priv.canViewReports||!priv.canDeleteRecords)nextAppData.archive=bank.appData?.archive||[];
    bank.appData=nextAppData;bank.statsSource={weeks:nextAppData.weeks||{}};
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Version conflict; refresh before saving"},409);
@@ -142,7 +142,7 @@ Deno.serve(async(req)=>{
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Version conflict"},409);
    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"user-save",details:{target:username,tier:newTier}});
-   await db.from("downtime_central_sessions").delete().eq("username",username);
+   await db.from("downtime_central_sessions").delete().eq("username",existing?.username||username);
    return json({ok:true,version:(row?.version||0)+1});
  }
  if(action==="user-delete"){
