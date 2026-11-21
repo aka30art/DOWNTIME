@@ -3,7 +3,7 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const source = await readFile('index.html', 'utf8');
-assert.match(source, /UI migration · Stage 4: Weekly analytics consolidation/);
+assert.match(source, /UI migration · Stage 4: unified weekly analytics hierarchy/);
 const html = source.replace(/<script\b[\s\S]*?<\/script>/gi, '');
 const outputDir = 'artifacts/stage-4';
 await mkdir(outputDir, { recursive: true });
