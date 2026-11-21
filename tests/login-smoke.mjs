@@ -141,7 +141,7 @@ try{
  assert.equal(await owner.page.locator('#reports h2').textContent(),'WEEKLY REPORTS','reports section uses the new heading');
  await owner.page.locator('[data-report-display="weekly-report-qa"]').click();
  await owner.page.waitForFunction(()=>document.querySelector('#reportPreviewModal')?.classList.contains('show')&&document.querySelector('#reportPreviewFrame')?.src.startsWith('blob:'),{timeout:5000});
- assert.equal(await owner.page.locator('#reportPreviewTitle').textContent(),'WEEK OF 16 NOV 2026','Display opens the selected report, not the current tracker week');
+ assert.equal(await owner.page.locator('#reportPreviewTitle').textContent(),'WEEK OF 16/11/2026','Display opens the selected report, not the current tracker week');
  assert.deepEqual(await owner.page.evaluate(()=>window.__weeklyReportDownloads),[{bucket:'downtime-pdfs',path:'2026-11-16/weekly-report-qa.pdf'}],'Display fetches only the selected report PDF from cloud storage');
  await mkdir(resolve('artifacts/weekly-reports'),{recursive:true});
  for(const width of [320,390,600,601,768,1280]){
