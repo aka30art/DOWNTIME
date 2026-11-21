@@ -26,6 +26,6 @@ assert.ok(src.includes('SPECTATOR:{canEditTracker:false,canManageUsers:false,can
 assert.ok(src.includes('The root OWNER username is fixed as JAN'), 'bootstrap fixes the root account name as JAN');
 assert.ok(src.includes('Additional OWNER accounts are prohibited'), 'no secondary OWNER accounts can be created');
 assert.ok(src.includes('The JAN root OWNER account cannot be deleted or removed.'), 'JAN root account cannot be deleted');
-assert.ok(src.includes('newEntries.length<oldEntries.length'), 'server blocks manager/supervisor deletion of operational entries');
+assert.ok(src.includes('addStableRecordIds')&&src.includes('candidate?.recordId===recordId'), 'server issues stable record identifiers and blocks manager/supervisor deletion');
 assert.ok(src.includes('!priv.canViewReports||!priv.canDeleteRecords'), 'server preserves archive records for non-deleting roles');
 console.log('Central API security contract checks passed (static source checks).');
