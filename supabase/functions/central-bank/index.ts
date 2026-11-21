@@ -6,12 +6,12 @@ const headers={"Access-Control-Allow-Origin":allowedOrigin,"Access-Control-Allow
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers});
 const tiers=["OWNER","ADMIN","MANAGER","SUPERVISOR","USER","SPECTATOR"];
 const tierDefault:Record<string,Record<string,boolean>>={
- OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
+ MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
 const cryptoHex=(bytes:Uint8Array)=>Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 const digest=async(s:string)=>cryptoHex(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s))));
@@ -67,8 +67,8 @@ Deno.serve(async(req)=>{
  const lockedRolePrivileges:Record<string,Record<string,boolean>>={
   MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
   SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
-  USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
-  SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
+  USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+  SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
  };
  if(lockedRolePrivileges[tier])Object.assign(priv,lockedRolePrivileges[tier]);
  if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canViewStaff){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}if(!priv.canViewAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.areas;delete restrictedData.reasons;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
@@ -76,6 +76,22 @@ Deno.serve(async(req)=>{
    if(!priv.canEditTracker)return json({error:"Permission denied"},403);
    const incoming=body?.appData;if(!incoming||typeof incoming!=="object"||Array.isArray(incoming))return json({error:"appData required"},400);
    const nextAppData={...incoming};
+   if(!priv.canDeleteRecords){
+     const oldWeeks=bank.appData?.weeks||{},newWeeks=incoming.weeks||{};
+     for(const [weekKey,oldWeek] of Object.entries(oldWeeks) as [string,any][]){
+       const newWeek=(newWeeks as any)[weekKey];
+       const oldDays=Array.isArray((oldWeek as any)?.days)?(oldWeek as any).days:[];
+       const newDays=Array.isArray(newWeek?.days)?newWeek.days:[];
+       for(let dayIndex=0;dayIndex<oldDays.length;dayIndex++){
+         const oldEntries=Array.isArray(oldDays[dayIndex]?.entries)?oldDays[dayIndex].entries:[];
+         const newEntries=Array.isArray(newDays[dayIndex]?.entries)?newDays[dayIndex].entries:[];
+         if(newEntries.length<oldEntries.length)return json({error:"This tier cannot delete operational records."},403);
+       }
+     }
+     const oldArchive=Array.isArray(bank.appData?.archive)?bank.appData.archive:[];
+     const newArchive=Array.isArray(incoming.archive)?incoming.archive:[];
+     if(newArchive.length<oldArchive.length)return json({error:"This tier cannot delete archived records."},403);
+   }
    if(!priv.canManageSettings){for(const field of ["areas","reasons","quickReasons"]){if(field in (bank.appData||{}))nextAppData[field]=bank.appData[field];}}
    if(!priv.canManageStaff){
      const currentProfiles=bank.staff?.profiles||bank.appData?.operatorProfiles||{};
