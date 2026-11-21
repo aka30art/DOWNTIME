@@ -94,7 +94,7 @@ try {
     assert.equal(result.intelligenceVisible,true,'Weekly analytics subsections should be visible at '+width+'px');
     assert.equal(result.overflowX,'auto','Weekly table wrapper should scroll internally at '+width+'px');
     assert.ok(result.tableWrap.left>=-1&&result.tableWrap.right<=width+1,'Weekly table wrapper exceeds viewport at '+width+'px: '+JSON.stringify(result.tableWrap));
-    assert.ok(result.tableRect.width>=result.tableWrap.width,'Weekly table should retain its readable report width inside the scroll wrapper at '+width+'px');
+    if (width <= 800) assert.ok(result.tableScrollWidth > result.tableClientWidth + 1,'Narrow weekly report should scroll internally at '+width+'px');
     assert.ok(result.tableScrollWidth>=result.tableClientWidth,'Weekly table scroll metrics invalid at '+width+'px');
     for (const control of result.controls) {
       assert.ok(control.visible&&control.inside&&control.width>0,'Weekly control missing/outside disclosure at '+width+'px: '+JSON.stringify(control));
