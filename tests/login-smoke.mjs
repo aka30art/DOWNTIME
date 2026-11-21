@@ -31,6 +31,22 @@ async function openFor(tier,pin='2468'){
  const context=await browser.newContext();
  const page=await context.newPage();
  page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>{
+  const realtime={handler:null};
+  window.__downtimeRealtimeMock=realtime;
+  window.__downtimeEmitBroadcast=message=>realtime.handler?.(message);
+  const channel={
+   on(type,filter,callback){if(type==='broadcast'&&filter?.event==='central_state_changed')realtime.handler=callback;return this},
+   subscribe(callback){window.__downtimeRealtimeSubscribed=true;callback?.('SUBSCRIBED');return this},
+   unsubscribe(){return Promise.resolve('ok')}
+  };
+  window.supabase={createClient:()=>({
+   auth:{getSession:async()=>({data:{session:null}}),signInAnonymously:async()=>({data:{session:{access_token:'test-anonymous-session'}}})},
+   realtime:{setAuth:async()=>{}},
+   channel:(topic,options)=>{window.__downtimeRealtimeTopic=topic;window.__downtimeRealtimePrivate=options?.config?.private===true;return channel},
+   removeChannel:async()=>({status:'ok'})
+  })};
+ });
  let bank=makeBank(),version=1,token='central-session-'+tier;
  const actions=[];
  await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank',async route=>{
@@ -71,7 +87,7 @@ async function openFor(tier,pin='2468'){
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
- return {context,page,actions,getBank:()=>bank,getVersion:()=>version};
+ return {context,page,actions,getBank:()=>bank,getVersion:()=>version,setVersion:value=>{version=value}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
 async function signIn(page,pin='2468'){
@@ -80,6 +96,9 @@ async function signIn(page,pin='2468'){
  await page.locator('#unlockBtn').click();
  await page.waitForFunction(()=>document.querySelector('#authGate').style.display==='none',{timeout:5000});
  await page.waitForFunction(()=>document.querySelector('#cloudStatus').textContent.includes('CENTRAL'),{timeout:5000});
+ await page.waitForFunction(()=>window.__downtimeRealtimeSubscribed===true,{timeout:5000});
+ assert.equal(await page.evaluate(()=>window.__downtimeRealtimeTopic),'downtime-central-state','client subscribes to the central state topic');
+ assert.equal(await page.evaluate(()=>window.__downtimeRealtimePrivate),true,'central state topic is private');
 }
 
 try{
@@ -145,6 +164,36 @@ try{
  assert.ok(owner.actions.some(x=>x.action==='save-state'),'tracker changes must write through central save-state API');
  assert.ok(owner.getBank().appData.areas.includes('Central Sync Test'),'central bank mock should retain the edited tracker setting');
  assert.equal(owner.getVersion(),3,'plant status and tracker edits must each advance the compare-and-swap version');
+
+ // STAFF additions and station assignments must immediately appear in the already-open Overview iframe.
+ await owner.page.locator('.nav[data-view="staff"]').click();
+ await owner.page.locator('#newStaffName').fill('Rita');
+ await owner.page.locator('#addStaffBtn').click();
+ const ritaStation=owner.page.locator('[aria-label="Station assignment for Rita"]');
+ await ritaStation.waitFor({state:'visible'});
+ assert.equal(await ritaStation.inputValue(),'','new STAFF member starts unassigned');
+ await ritaStation.selectOption('Station 6 · GENERAL');
+ for(let attempt=0;attempt<40&&!owner.getBank().staff.profiles.Rita?.station;attempt++)await owner.page.waitForTimeout(100);
+ assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','station assignment is saved centrally');
+ assert.equal(owner.getVersion(),5,'STAFF create and station assignment each advance central version');
+ await owner.page.locator('.overview-link').click();
+ const ritaCard=owner.page.frameLocator('#overviewFrame').locator('[data-opprofile="RITA"]');
+ await ritaCard.waitFor({state:'visible',timeout:3000});
+ assert.equal(await ritaCard.locator('.name').textContent(),'RITA','new STAFF card is created dynamically');
+ assert.equal(await ritaCard.locator('.station').textContent(),'Station 6 · GENERAL','Overview immediately shows the assigned station');
+ assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="6"]').textContent(),'RITA','station blueprint updates immediately');
+
+ // Simulate a change from another device: the private Realtime invalidation causes a fresh, permission-checked read.
+ owner.getBank().staff.profiles.Rita.station='Station 5 · GENERAL';
+ owner.getBank().appData.operatorProfiles.Rita.station='Station 5 · GENERAL';
+ const externalVersion=owner.getVersion()+1;
+ owner.setVersion(externalVersion);
+ await owner.page.evaluate(version=>window.__downtimeEmitBroadcast({payload:{version,updated_at:new Date().toISOString()}}),externalVersion);
+ await owner.page.waitForFunction(()=>document.querySelector('#overviewFrame')?.contentWindow?.document?.querySelector('[data-opprofile="RITA"] .station')?.textContent==='Station 5 · GENERAL',{timeout:3000});
+ assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="5"]').textContent(),'SHAYNE, RITA','remote station reassignment propagates to the station blueprint');
+ assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="6"]').textContent(),'UNASSIGNED','previous station assignment is cleared live');
+ await owner.page.locator('#overviewClose').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
  await owner.page.locator('#logoutBtn').click();
  await owner.page.waitForFunction(()=>document.querySelector('#authGate').style.display!=='none');
  await owner.context.close();
