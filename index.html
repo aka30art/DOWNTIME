@@ -494,20 +494,57 @@ function populateOperatorGate(){renderOperatorChoices();}
 
 let spectatorAccessCode='',spectatorRefreshing=false,spectatorRefreshTimer=null;
 async function refreshSpectator(){if(!spectatorMode||!spectatorClient||!spectatorAccessCode||spectatorRefreshing)return;spectatorRefreshing=true;try{const wasLive=spectatorConnection.startsWith('LIVE'),previousPlantOn=state?.plantOn;const result=await spectatorClient.functions.invoke('spectator-read',{body:{access_code:spectatorAccessCode}});if(result.error||!result.data?.payload)throw new Error(result.error?.message||'Spectator refresh failed');const incoming=result.data.payload;const changed=wasLive&&typeof previousPlantOn==='boolean'&&typeof incoming.plantOn==='boolean'&&previousPlantOn!==incoming.plantOn;state=incoming;spectatorUpdatedAt=result.data.updated_at||null;spectatorConnection='LIVE · UPDATED';renderSpectator();if(changed)showPlantTransitionAlert(incoming.plantOn,result.data.updated_at)}catch(e){spectatorConnection='CONNECTION LOST';renderSpectator();console.warn('Spectator refresh failed.',e)}finally{spectatorRefreshing=false}}
-function renderReasonPresetSettings(){const box=$("reasonPresetAdmin");if(!box)return;box.style.display=isAdmin()?"block":"none";const renderList=(id,arr,key)=>{const el=$(id);if(!el)return;el.innerHTML="";(arr||[]).forEach((value,index)=>{const chip=document.createElement("span");chip.style.cssText="display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #35516a;border-radius:8px;margin:3px";const label=document.createElement("span");label.textContent=value;const remove=document.createElement("button");remove.type="button";remove.textContent="×";remove.title="Remove "+value;remove.style.cssText="padding:2px 6px;color:#ff9b8e";remove.onclick=()=>{if(!isAdmin())return;state[key]=(state[key]||[]).filter((v,i)=>i!==index);persist();renderReasonPresetSettings();renderQuickReasons();$("reasonPresetAdminMsg").textContent="Removed "+value+".";};chip.append(label,remove);el.appendChild(chip)});if(!arr?.length){const empty=document.createElement("span");empty.className="muted";empty.textContent="No items configured.";el.appendChild(empty)}};renderList("areaPresetAdminList",state.areas||[],"areas");renderList("quickReasonAdminList",state.quickReasons||[],"quickReasons");renderList("downtimeReasonAdminList",state.reasons||[],"reasons")}
-function addSupervisorDowntimeReason(){
- if(!permission('canAddDowntimeReasons')||permission('canManageSettings'))return;
- const input=$('supervisorNewReason'),value=input?.value.trim();
- if(!value)return;
- state.reasons=Array.isArray(state.reasons)?state.reasons:[];
- if(state.reasons.some(reason=>String(reason).trim().toLowerCase()===value.toLowerCase())){$('supervisorReasonStatus').textContent='That downtime reason already exists.';return}
- state.reasons=[...state.reasons,value];
- state.quickReasons=Array.isArray(state.quickReasons)?state.quickReasons:[];
- if(!state.quickReasons.some(reason=>String(reason).trim().toLowerCase()===value.toLowerCase()))state.quickReasons=[...state.quickReasons,value];
- if(!persist()){$('supervisorReasonStatus').textContent='Could not save this reason.';return}
- input.value='';renderQuickReasons();
- $('supervisorReasonStatus').textContent='Added centrally: '+value;
+function renderReasonPresetSettings(){
+ const box=$("reasonPresetAdmin");if(!box)return;
+ const canManage=permission('canManageSettings'),canAddReasons=canManage||permission('canAddDowntimeReasons');
+ box.style.display=canAddReasons?"block":"none";
+ const quickManager=$('quickReasonManager');if(quickManager)quickManager.style.display=canManage?'block':'none';
+ const supervisorHelp=$('supervisorReasonHelp');if(supervisorHelp)supervisorHelp.style.display=!canManage&&permission('canAddDowntimeReasons')?'block':'none';
+ const renderList=(id,arr,key,allowRemove)=>{
+  const el=$(id);if(!el)return;el.replaceChildren();
+  (Array.isArray(arr)?arr:[]).forEach((value,index)=>{
+   const chip=document.createElement("span");chip.style.cssText="display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #35516a;border-radius:8px;margin:3px";
+   const label=document.createElement("span");label.textContent=value;chip.appendChild(label);
+   if(allowRemove){
+    const remove=document.createElement("button");remove.type="button";remove.textContent="×";remove.title="Remove "+value;remove.setAttribute("aria-label","Remove "+value);remove.style.cssText="padding:2px 6px;color:#ff9b8e";
+    remove.onclick=()=>{
+     if(!permission('canManageSettings'))return;
+     state[key]=(Array.isArray(state[key])?state[key]:[]).filter((item,i)=>i!==index);
+     if(key==="reasons")state.quickReasons=(Array.isArray(state.quickReasons)?state.quickReasons:[]).filter(item=>String(item).trim().toLowerCase()!==String(value).trim().toLowerCase());
+     if(!persist()){$("reasonPresetAdminMsg").textContent="Unable to save the removal. Check your central connection.";return}
+     renderReasonPresetSettings();renderQuickReasons();
+     $("reasonPresetAdminMsg").textContent="Removed "+value+".";
+    };
+    chip.appendChild(remove);
+   }
+   el.appendChild(chip);
+  });
+  if(!(Array.isArray(arr)?arr:[]).length){const empty=document.createElement("span");empty.className="muted";empty.textContent="No items configured.";el.appendChild(empty)}
+ };
+ renderList("areaPresetAdminList",state.areas||[],"areas",canManage);
+ if(canManage)renderList("quickReasonAdminList",state.quickReasons||[],"quickReasons",true);
+ renderList("downtimeReasonAdminList",state.reasons||[],"reasons",canManage);
 }
+function addReasonPreset(key,inputId){
+ const canManage=permission('canManageSettings'),canAddReasons=canManage||permission('canAddDowntimeReasons');
+ if(key==="quickReasons"&&!canManage)return;
+ if(key==="reasons"&&!canAddReasons)return;
+ const input=$(inputId),value=String(input?.value||"").trim();
+ if(!value)return;
+ if(value.length>60){$("reasonPresetAdminMsg").textContent="Reason must be 60 characters or fewer.";return}
+ state[key]=Array.isArray(state[key])?state[key]:[];
+ if(state[key].some(item=>String(item).trim().toLowerCase()===value.toLowerCase())){$("reasonPresetAdminMsg").textContent="That reason already exists.";return}
+ state[key]=[...state[key],value];
+ if(key==="reasons"){
+  state.quickReasons=Array.isArray(state.quickReasons)?state.quickReasons:[];
+  if(!state.quickReasons.some(item=>String(item).trim().toLowerCase()===value.toLowerCase()))state.quickReasons=[...state.quickReasons,value];
+ }
+ if(!persist()){$("reasonPresetAdminMsg").textContent="Unable to save the reason. Check your central connection.";return}
+ input.value="";renderReasonPresetSettings();renderQuickReasons();
+ $("reasonPresetAdminMsg").textContent="Added "+value+".";
+}
+$("addQuickReasonBtn").onclick=()=>addReasonPreset("quickReasons","newQuickReason");
+$("addDowntimeReasonBtn").onclick=()=>addReasonPreset("reasons","newDowntimeReason");
 function addAreaPreset(){if(!isAdmin())return;const input=$("newAreaPreset"),value=input.value.trim();if(!value)return;if((state.areas||[]).some(v=>String(v).trim().toLowerCase()===value.toLowerCase())){$("reasonPresetAdminMsg").textContent="That area already exists.";return}state.areas=[...(state.areas||[]),value];input.value="";persist();renderReasonPresetSettings();$("reasonPresetAdminMsg").textContent="Added area "+value+"."}
 $("addAreaPresetBtn").onclick=addAreaPreset;
 const pendingOperatorPhotoOriginals={};
@@ -625,7 +662,6 @@ $('manualRefreshBtn').onclick=manualRefresh;
 $('centralAccountSave')?.addEventListener('click',saveCentralUserSettings);
 $('centralAccountCancel')?.addEventListener('click',()=>{resetCentralUserForm();$('centralUsersStatus').textContent='Edit cancelled.'});
 $('centralUsersRefresh')?.addEventListener('click',()=>refreshCentralUserSettings().catch(error=>{$('centralUsersStatus').textContent=error.message||'Refresh failed.'}));
-$('supervisorAddReasonBtn')?.addEventListener('click',addSupervisorDowntimeReason);
 async function cloudInit(){cloudStatus('Connecting to central data bank…');const result=await window.DowntimeCentral.state();centralBankPayload=result.payload||{};centralVersion=Number(result.version)||0;centralUser=result.user||centralUser;activeOperator=centralUser?.username||activeOperator;state=centralAppData(centralBankPayload);localStorage.setItem(STORE,JSON.stringify(state));centralReady=true;cloudReady=true;cloudSyncFailed=false;const last=$('lastSync');if(last)last.textContent='Last successful refresh · '+new Date().toLocaleString('en-GB');render();enforceOperatorMode();applyTierVisibility();renderCentralUserSettings();cloudStatus('CENTRAL · synced');startManagementPolling();return true}
 function syncCloud(){if(!centralReady||operatorReadOnly||spectatorMode||cloudSyncFailed)return;const snapshot=JSON.parse(JSON.stringify(state));centralPendingWrites++;cloudWrite=cloudWrite.then(async()=>{if(!centralReady||cloudSyncFailed){centralPendingWrites=Math.max(0,centralPendingWrites-1);return}cloudBusy=true;try{const result=await window.DowntimeCentral.saveTracker(snapshot,centralVersion);centralVersion=Number(result.version)||centralVersion;centralBankPayload=centralBankPayload||{};centralBankPayload.appData=snapshot;centralBankPayload.staff=centralBankPayload.staff||{};centralBankPayload.staff.profiles=snapshot.operatorProfiles||centralBankPayload.staff.profiles||{};centralBankPayload.staff.roster=snapshot.staffRoster||centralBankPayload.staff.roster||[];cloudSyncFailed=false;cloudStatus('CENTRAL · synced')}catch(error){cloudSyncFailed=true;cloudStatus('CENTRAL SYNC FAILED · '+(error.message||'Refresh required'));console.warn('Central tracker save failed; local snapshot retained.',error)}finally{cloudBusy=false;centralPendingWrites=Math.max(0,centralPendingWrites-1)}}).catch(error=>{cloudBusy=false;cloudSyncFailed=true;centralPendingWrites=Math.max(0,centralPendingWrites-1);cloudStatus('CENTRAL SYNC FAILED · '+(error.message||'Refresh required'))})}
 function renderSpectator(){
