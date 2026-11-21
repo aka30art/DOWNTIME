@@ -158,7 +158,7 @@ try {
   assert.equal(await page.locator('#dayTabs').evaluate(node => node.closest('.day-setup') !== null), true);
   assert.equal(await page.locator('#entriesBody').evaluate(node => node.closest('.downtime-entry-panel') !== null), true);
   assert.equal(await page.locator('#scheduled').evaluate(node => node.closest('.daily-summary-panel') !== null), true);
-  console.log('PASS: Stage 1 menu, Day Set Up, downtime entries, daily summary and unified weekly disclosure contracts.');
+  console.log('PASS: Stage 1 menu, Day to Day, downtime entries, daily summary and unified weekly disclosure contracts.');
 } finally {
   await browser.close();
 }
