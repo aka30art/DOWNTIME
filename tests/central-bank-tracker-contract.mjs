@@ -23,4 +23,11 @@ assert.match(overview,/centralCall\('set-plant-status'/,'Overview status button 
 assert.match(api,/action==="set-plant-status"/,'server implements central plant status updates');
 assert.match(api,/if\(!priv\.canEditTracker\)return json\(\{error:"Permission denied"\},403\)/,'server enforces tracker edit tier');
 assert.match(client,/async setPlantStatus\(plantOn,version\)/,'browser adapter exposes plant status action');
+assert.ok(tracker.includes('id="centralUsersManager"')&&tracker.includes('saveCentralUserSettings'), 'OWNER/ADMIN have central USER create/edit controls inside Settings');
+assert.ok(tracker.includes("window.DowntimeCentral.saveUser(payload,centralVersion)")&&tracker.includes("window.DowntimeCentral.deleteUser(user.username,centralVersion)"), 'Settings user operations use the central API and version checks');
+assert.ok(tracker.includes('ROOT · PROTECTED'), 'JAN root account is protected in the Settings user list');
+assert.ok(tracker.includes('lockedTierPermissions'), 'frontend locks USER/SPECTATOR/operational role permissions against stale central overrides');
+assert.ok(tracker.includes("operatorReadOnly||!permission('canDeleteRecords')"), 'MANAGER/SUPERVISOR cannot delete operational records in the UI');
+assert.ok(tracker.includes("station.disabled=!(permission('canManageAssignments')||permission('canManageStaff'))"), 'SUPERVISOR station assignment control is separated from STAFF administration');
+assert.ok(tracker.includes("saveCloudReport(){if(!permission('canExportReports'))return"), 'MANAGER can export weekly reports');
 console.log('PASS: main tracker and Plant Overview are connected to the central data bank.');
