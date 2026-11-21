@@ -534,6 +534,12 @@ function notifyOverviewFrame(version=centralVersion,updatedAt=null){
  if(!frame?.contentWindow)return;
  frame.contentWindow.postMessage({type:'DOWNTIME_CENTRAL_STATE_CHANGED',version:Number(version)||0,updatedAt:updatedAt||null},location.origin);
 }
+function flushCentralRealtimeRefresh(){
+ if(!centralRealtimeRefreshQueued||cloudBusy||centralPendingWrites>0||centralRealtimeRefreshBusy)return;
+ centralRealtimeRefreshQueued=false;
+ const nextVersion=centralRealtimeVersion;
+ queueMicrotask(()=>refreshCentralFromRealtime(nextVersion,null));
+}
 async function refreshCentralFromRealtime(version=0,updatedAt=null){
  const incomingVersion=Number(version)||0;
  if(incomingVersion>centralRealtimeVersion)centralRealtimeVersion=incomingVersion;
@@ -549,11 +555,7 @@ async function refreshCentralFromRealtime(version=0,updatedAt=null){
   else console.warn('Central Realtime refresh failed.',error);
  }finally{
   centralRealtimeRefreshBusy=false;
-  if(centralRealtimeRefreshQueued&&!cloudBusy&&centralPendingWrites===0){
-   centralRealtimeRefreshQueued=false;
-   const nextVersion=centralRealtimeVersion;
-   queueMicrotask(()=>refreshCentralFromRealtime(nextVersion,null));
-  }
+  flushCentralRealtimeRefresh();
  }
 }
 async function startCentralRealtimeSync(client){
@@ -752,7 +754,7 @@ $('centralAccountSave')?.addEventListener('click',saveCentralUserSettings);
 $('centralAccountCancel')?.addEventListener('click',()=>{resetCentralUserForm();$('centralUsersStatus').textContent='Edit cancelled.'});
 $('centralUsersRefresh')?.addEventListener('click',()=>refreshCentralUserSettings().catch(error=>{$('centralUsersStatus').textContent=error.message||'Refresh failed.'}));
 async function cloudInit(){cloudStatus('Connecting to central data bank…');const result=await window.DowntimeCentral.state();centralBankPayload=result.payload||{};centralVersion=Number(result.version)||0;centralUser=result.user||centralUser;activeOperator=centralUser?.username||activeOperator;state=centralAppData(centralBankPayload);localStorage.setItem(STORE,JSON.stringify(state));centralReady=true;cloudReady=true;cloudSyncFailed=false;const last=$('lastSync');if(last)last.textContent='Last successful refresh · '+new Date().toLocaleString('en-GB');render();enforceOperatorMode();applyTierVisibility();renderCentralUserSettings();cloudStatus('CENTRAL · synced');startManagementPolling();return true}
-function syncCloud(){if(!centralReady||operatorReadOnly||spectatorMode||cloudSyncFailed)return;const snapshot=JSON.parse(JSON.stringify(state));centralPendingWrites++;cloudWrite=cloudWrite.then(async()=>{if(!centralReady||cloudSyncFailed){centralPendingWrites=Math.max(0,centralPendingWrites-1);return}cloudBusy=true;try{const result=await window.DowntimeCentral.saveTracker(snapshot,centralVersion);centralVersion=Number(result.version)||centralVersion;centralBankPayload=centralBankPayload||{};centralBankPayload.appData=snapshot;centralBankPayload.staff=centralBankPayload.staff||{};centralBankPayload.staff.profiles=snapshot.operatorProfiles||centralBankPayload.staff.profiles||{};centralBankPayload.staff.roster=snapshot.staffRoster||centralBankPayload.staff.roster||[];cloudSyncFailed=false;cloudStatus('CENTRAL · synced');notifyOverviewFrame(centralVersion,result.updatedAt)}catch(error){cloudSyncFailed=true;cloudStatus('CENTRAL SYNC FAILED · '+(error.message||'Refresh required'));console.warn('Central tracker save failed; local snapshot retained.',error)}finally{cloudBusy=false;centralPendingWrites=Math.max(0,centralPendingWrites-1)}}).catch(error=>{cloudBusy=false;cloudSyncFailed=true;centralPendingWrites=Math.max(0,centralPendingWrites-1);cloudStatus('CENTRAL SYNC FAILED · '+(error.message||'Refresh required'))})}
+function syncCloud(){if(!centralReady||operatorReadOnly||spectatorMode||cloudSyncFailed)return;const snapshot=JSON.parse(JSON.stringify(state));centralPendingWrites++;cloudWrite=cloudWrite.then(async()=>{if(!centralReady||cloudSyncFailed){centralPendingWrites=Math.max(0,centralPendingWrites-1);return}cloudBusy=true;try{const result=await window.DowntimeCentral.saveTracker(snapshot,centralVersion);centralVersion=Number(result.version)||centralVersion;centralBankPayload=centralBankPayload||{};centralBankPayload.appData=snapshot;centralBankPayload.staff=centralBankPayload.staff||{};centralBankPayload.staff.profiles=snapshot.operatorProfiles||centralBankPayload.staff.profiles||{};centralBankPayload.staff.roster=snapshot.staffRoster||centralBankPayload.staff.roster||[];cloudSyncFailed=false;cloudStatus('CENTRAL · synced');notifyOverviewFrame(centralVersion,result.updatedAt)}catch(error){cloudSyncFailed=true;cloudStatus('CENTRAL SYNC FAILED · '+(error.message||'Refresh required'));console.warn('Central tracker save failed; local snapshot retained.',error)}finally{cloudBusy=false;centralPendingWrites=Math.max(0,centralPendingWrites-1);flushCentralRealtimeRefresh()}}).catch(error=>{cloudBusy=false;cloudSyncFailed=true;centralPendingWrites=Math.max(0,centralPendingWrites-1);flushCentralRealtimeRefresh();cloudStatus('CENTRAL SYNC FAILED · '+(error.message||'Refresh required'))})}
 function renderSpectator(){
  const container=$('spectatorView');if(!container)return;
  const currentWeek=iso(mondayOf(today)),weekData=state?.weeks?.[currentWeek],todayIndex=(today.getDay()+6)%7;
