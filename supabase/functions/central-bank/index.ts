@@ -31,7 +31,7 @@ Deno.serve(async(req)=>{
  if(loadErr)return json({error:"Central data bank unavailable"},500);
  let bank=normalizeBank(row?.payload);
  if(action==="bootstrap"){
-   const setupCode=Deno.env.get("DOWNTIME_BOOTSTRAP_CODE");if(!setupCode||typeof body.bootstrapCode!=="string"||body.bootstrapCode!==setupCode)return json({error:"Bootstrap code invalid or not configured"},401);
+   const {data:setupCode,error:setupCodeError}=await db.rpc("downtime_get_bootstrap_code");if(setupCodeError||typeof setupCode!=="string"||!setupCode)return json({error:"Bootstrap code is not configured in Supabase Vault"},503);if(typeof body.bootstrapCode!=="string"||body.bootstrapCode!==setupCode)return json({error:"Bootstrap code invalid"},401);
    if(bank.users.some((u:any)=>u.enabled!==false))return json({error:"Bootstrap already completed"},409);
    const username=String(body.username||"").trim().slice(0,32),pin=String(body.pin||"");
    if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username)||!/^[0-9]{4,8}$/.test(pin))return json({error:"Username 2-32 characters; PIN 4-8 digits required"},400);
