@@ -199,13 +199,14 @@ try{
  await owner.page.locator('#openDailyTasks').click();
  assert.equal(await owner.page.locator('#dailyTasksModal').isVisible(),true,'clipboard opens the Daily Tasks popup');
  assert.equal(await owner.page.locator('#dailyTasksList input[type="checkbox"]').count(),2,'popup displays all preset tasks');
- const savesBeforeMondayCheck=owner.actions.filter(x=>x.action==='save-state').length;
  await owner.page.locator('[aria-label="Complete task: Check guards and safety covers"]').check();
  await owner.page.waitForFunction(()=>document.querySelector('[aria-label="Complete task: Check guards and safety covers"]')?.checked===true,{timeout:3000});
- for(let attempt=0;attempt<40&&owner.actions.filter(x=>x.action==='save-state').length===savesBeforeMondayCheck;attempt++)await owner.page.waitForTimeout(100);
+ const includesMondayTask=()=>owner.actions.some(x=>x.action==='save-state'&&Object.values(x.body.appData.weeks||{}).some(w=>w.days?.[0]?.dailyTasksDone?.includes('Check guards and safety covers')));
+ for(let attempt=0;attempt<60&&!includesMondayTask();attempt++)await owner.page.waitForTimeout(100);
  const mondayWrite=[...owner.actions].reverse().find(x=>x.action==='save-state'&&Object.values(x.body.appData.weeks||{}).some(w=>w.days?.[0]?.dailyTasksDone?.includes('Check guards and safety covers')));
- assert.ok(mondayWrite,'Monday task completion is included in a central save-state request');
+ assert.ok(mondayWrite,'Monday task completion is included in a central save-state request after earlier queued writes finish');
  const weekKey=Object.keys(owner.getBank().appData.weeks)[0];
+ for(let attempt=0;attempt<30&&!owner.getBank().appData.weeks[weekKey]?.days?.[0]?.dailyTasksDone?.includes('Check guards and safety covers');attempt++)await owner.page.waitForTimeout(100);
  assert.ok(owner.getBank().appData.weeks[weekKey].days[0].dailyTasksDone?.includes('Check guards and safety covers'),'Monday task completion is written centrally');
  assert.equal(owner.getBank().appData.weeks[weekKey].days[0].dailyTasksDone?.includes('Inspect emergency stops')||false,false,'unchecked Monday tasks remain incomplete');
  await owner.page.locator('#closeDailyTasks').click();
