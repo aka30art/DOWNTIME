@@ -4,7 +4,7 @@ import { chromium } from 'playwright';
 
 const source = await readFile('index.html', 'utf8');
 assert.match(source, /UI migration · Stage 3: Day Setup visual refinement/);
-const html = source.replace(/<script\\b[\\s\\S]*?<\\/script>/gi, '');
+const html = source.replace(/<script\b[\s\S]*?<\/script>/gi, '');
 const outputDir = 'artifacts/stage-3';
 await mkdir(outputDir, { recursive: true });
 const browser = await chromium.launch({ headless: true });
