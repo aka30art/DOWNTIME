@@ -27,7 +27,7 @@ function makeBank(){
  const profiles=Object.fromEntries(['Jan','Mick','Gigi','Daz','Shayne'].map((name,i)=>[name,{station:'Station '+(i+1)+' · WOOD',onSite:true,photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}]));
  return {appData:{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360','Other'],reasons:['Blockage'],archive:[],plantOn:true,dailyTaskPresets:[]},users:[],tiers,staff:{roster:Object.keys(profiles),profiles},statsSource:{weeks:{}}};
 }
-async function openFor(tier,pin='2468'){
+async function openFor(tier,pin='2468',username='JAN'){
  const context=await browser.newContext();
  const page=await context.newPage();
  page.on('pageerror',e=>errors.push(e.message));
@@ -54,16 +54,16 @@ window.supabase={createClient:()=>({
    })}
   })};
  });
- let bank=makeBank(),version=1,token='central-session-'+tier;
+ let bank=makeBank(),version=1,token='central-session-'+username;
  const actions=[];
  await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank',async route=>{
   const req=route.request().postDataJSON(),action=req.action;
   actions.push({action,body:req});
   const ok=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
-  if(action==='list-users')return ok({users:[{username:'JAN',displayName:'Jan',tier},{username:'MICK',displayName:'Mick',tier:'USER'}]});
+  if(action==='list-users')return ok({users:[{username:'JAN',displayName:'Jan',tier:'OWNER'},{username:'MICK',displayName:'Mick',tier:username==='MICK'?tier:'USER'}]});
   if(action==='login'){
-   if(req.username!=='JAN'||req.pin!==pin)return ok({error:'Invalid username or PIN'},401);
-   return ok({token,expiresAt:new Date(Date.now()+3600000).toISOString(),user:{username:'JAN',displayName:'Jan',tier}});
+   if(req.username!==username||req.pin!==pin)return ok({error:'Invalid username or PIN'},401);
+   return ok({token,expiresAt:new Date(Date.now()+3600000).toISOString(),user:{username,displayName:username==='JAN'?'Jan':'Mick',tier}});
   }
   if(action==='get-state'){
    const copy=JSON.parse(JSON.stringify(bank));
@@ -72,7 +72,7 @@ window.supabase={createClient:()=>({
     delete copy.appData.operatorProfiles;
     delete copy.appData.archive;
    }
-   return ok({payload:copy,user:{username:'JAN',displayName:'Jan',tier},version,updatedAt:new Date().toISOString()});
+   return ok({payload:copy,user:{username,displayName:username==='JAN'?'Jan':'Mick',tier},version,updatedAt:new Date().toISOString()});
   }
   if(action==='save-state'){
    if(!tiers[tier].canEditTracker)return ok({error:'Permission denied'},403);
@@ -81,6 +81,12 @@ window.supabase={createClient:()=>({
    if(tiers[tier].canManageStaff){bank.staff.profiles=req.appData.operatorProfiles||bank.staff.profiles;bank.staff.roster=req.appData.staffRoster||bank.staff.roster}
    version++;
    return ok({version,updatedAt:new Date().toISOString()});
+  }
+  if(action==='tiers-save'){
+   if(username!=='JAN'||tier!=='OWNER')return ok({error:'Only JAN can change tier rights'},403);
+   if(Number(req.version)!==version)return ok({error:'Version conflict'},409);
+   bank.tiers=req.tiers;version++;
+   return ok({ok:true,version});
   }
   if(action==='set-plant-status'){
    if(!tiers[tier].canEditTracker)return ok({error:'Permission denied'},403);
@@ -97,8 +103,8 @@ window.supabase={createClient:()=>({
  return {context,page,actions,getBank:()=>bank,getVersion:()=>version,setVersion:value=>{version=value}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
-async function signIn(page,pin='2468'){
- await page.locator('#centralUsername').selectOption('JAN');
+async function signIn(page,pin='2468',username='JAN'){
+ await page.locator('#centralUsername').selectOption(username);
  await pinpad(page,pin);
  await page.locator('#unlockBtn').click();
  await page.waitForFunction(()=>document.querySelector('#authGate').style.display==='none',{timeout:5000});
@@ -181,6 +187,26 @@ try{
   await owner.page.screenshot({path:resolve('artifacts/settings-hub/settings-'+width+'px.png')});
  }
  await owner.page.setViewportSize({width:1280,height:900});
+ const accessRightsTile=owner.page.locator('[data-settings-open="accessRights"]');
+ assert.equal(await accessRightsTile.isVisible(),true,'JAN root OWNER sees the dedicated ACCESS AND RIGHTS Settings destination');
+ await accessRightsTile.click();
+ assert.equal(await owner.page.locator('#settingsPanelAccessRights').isVisible(),true,'JAN opens the dedicated tier rights editor');
+ assert.equal(await owner.page.locator('#accessRightsTierList [data-access-tier-card]').count(),5,'JAN can configure all five non-root tiers');
+ assert.equal(await owner.page.locator('#accessRightsTierList [data-access-tier="OWNER"]').count(),0,'root OWNER rights are never editable');
+ const adminDeleteRight=owner.page.locator('[data-access-tier="ADMIN"][data-access-right="canDeleteRecords"]');
+ assert.equal(await adminDeleteRight.isChecked(),false,'ADMIN delete-record permission starts disabled');
+ await adminDeleteRight.check();
+ await owner.page.locator('#saveAccessRights').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#accessRightsStatus')?.textContent.includes('saved centrally'),{timeout:5000});
+ assert.equal(owner.getBank().tiers.ADMIN.canDeleteRecords,true,'JAN saves tier rights to central state');
+ assert.ok(owner.actions.some(item=>item.action==='tiers-save'),'tier rights are saved through the central API');
+ await owner.page.screenshot({path:resolve('artifacts/settings-hub/access-rights-1280px.png')});
+ await owner.page.locator('#settingsPanelAccessRights [data-settings-back]').click();
+ const nonJanAdmin=await openFor('ADMIN','2468','MICK');
+ await signIn(nonJanAdmin.page,'2468','MICK');
+ await openSettingsHub(nonJanAdmin.page);
+ assert.equal(await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'non-JAN ADMIN cannot see Access and Rights');
+ await nonJanAdmin.context.close();
  await owner.page.locator('[data-settings-open="areas"]').click();
  await owner.page.locator('#areaPresetAdminList [data-area-name]').first().waitFor({state:'visible',timeout:5000});
  const configuredAreas=['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360','Other'];

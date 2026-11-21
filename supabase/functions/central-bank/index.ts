@@ -19,11 +19,7 @@ async function hashPin(pin:string,salt:string){const key=await crypto.subtle.imp
 async function verifyPin(pin:string,user:any){return user?.pinSalt&&user?.pinHash&&await hashPin(pin,user.pinSalt)===user.pinHash}
 function safeUser(u:any){return {username:u.username,tier:u.tier,enabled:u.enabled!==false,displayName:u.displayName||u.username}}
 const lockedRolePrivileges:Record<string,Record<string,boolean>>={
- OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true,canManageSettings:false,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
+ OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}
 };
 function addStableRecordIds(weeks:any){
  const copy=structuredClone(weeks||{});
@@ -237,11 +233,25 @@ Deno.serve(async(req)=>{
    return json({version:(row?.version||0)+1,updatedAt:new Date().toISOString()});
  }
  if(action==="tiers-save"){
-   if(tier!=="OWNER")return json({error:"OWNER only"},403);
-   const proposed=body.tiers;if(!proposed||typeof proposed!=="object")return json({error:"Tiers required"},400);
-   bank.tiers=proposed;
+   if(String(currentUser.username||"").toUpperCase()!=="JAN"||tier!=="OWNER")return json({error:"Only the JAN root administrator can change tier access and rights"},403);
+   const proposed=body.tiers;if(!proposed||typeof proposed!=="object"||Array.isArray(proposed))return json({error:"Tiers required"},400);
+   const permissionKeys=Object.keys(tierDefault.OWNER),nextTiers:Record<string,Record<string,boolean>>={...bank.tiers,OWNER:{...tierDefault.OWNER}};
+   for(const role of tiers){
+     if(role==="OWNER")continue;
+     const supplied=proposed[role];
+     if(!supplied||typeof supplied!=="object"||Array.isArray(supplied))return json({error:"Missing permission profile for "+role},400);
+     if(Object.keys(supplied).some(key=>!permissionKeys.includes(key)))return json({error:"Unknown permission key for "+role},400);
+     const next:Record<string,boolean>={...tierDefault[role],...(bank.tiers[role]||{})};
+     for(const key of permissionKeys){
+       if(typeof supplied[key]!=="boolean")return json({error:"Permission values must be boolean ("+role+"."+key+")"},400);
+       next[key]=supplied[key];
+     }
+     nextTiers[role]=next;
+   }
+   bank.tiers=nextTiers;
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Version conflict"},409);
+   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"tiers-save",details:{tiers:tiers.filter(role=>role!=="OWNER")}});
    return json({ok:true,version:(row?.version||0)+1});
  }
  if(action==="logout"){await db.from("downtime_central_sessions").delete().eq("token_hash",tokenHash);return json({ok:true});}
