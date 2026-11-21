@@ -30,6 +30,8 @@ assert.match(display, /frame\.src=reportPreviewObjectUrl/,
 const close = html.slice(html.indexOf('function closeReportPreview(){'), html.indexOf('async function displayCloudReport'));
 assert.match(close, /URL\.revokeObjectURL/,
   'closing the popup must release its PDF object URL');
+assert.match(close, /\+\+reportPreviewRequest/,
+  'closing the popup must invalidate an in-flight report download');
 assert.match(html, /event\.key==='Escape'.*reportPreviewModal/s,
   'Escape must close the report preview');
 assert.match(html, /event\.target===\$\('reportPreviewModal'\).*closeReportPreview/s,
