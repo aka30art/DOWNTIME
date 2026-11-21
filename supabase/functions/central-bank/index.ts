@@ -7,7 +7,7 @@ const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,
 const tiers=["OWNER","ADMIN","MANAGER","SUPERVISOR","USER","SPECTATOR"];
 const tierDefault:Record<string,Record<string,boolean>>={
  OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
@@ -65,8 +65,8 @@ Deno.serve(async(req)=>{
  if(!currentUser)return json({error:"Account disabled"},401);
  const tier=currentUser.tier,storedPrivileges=bank.tiers[tier]||{},priv={...tierDefault[tier],...storedPrivileges};
  const lockedRolePrivileges:Record<string,Record<string,boolean>>={
-  MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
-  SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+  MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+  SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
   USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
   SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
  };
