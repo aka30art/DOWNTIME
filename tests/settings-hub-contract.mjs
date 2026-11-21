@@ -114,8 +114,10 @@ for (const handler of [
   "applyShiftPreset')?.addEventListener('click'"
 ]) assert.ok(html.includes(handler), 'existing handler must be preserved: ' + handler);
 
-assert.match(html, /\.settings-card-grid\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/,
-  'desktop hub must use a two-column card grid');
+assert.match(html, /\.settings-card-grid\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\);gap:12px;align-items:stretch\}/,
+  'wide desktop hub must use a balanced three-column grid');
+assert.match(html, /@media\(max-width:1050px\)\{\.settings-card-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/,
+  'medium desktop and tablet hub must use two columns');
 assert.match(html, /@media\(max-width:650px\)\{\.settings-card-grid\{grid-template-columns:1fr/,
   'settings cards must stack on mobile');
 assert.match(html, /settings-accent-yellow/, 'DOWNTIME yellow accent must be present');
