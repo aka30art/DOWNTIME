@@ -31,7 +31,7 @@ for (const section of requiredTiles) {
 }
 assert.equal((html.match(/data-settings-open="/g) || []).length, 4,
   'hub must expose exactly the four requested settings destinations');
-assert.equal((html.match(/data-settings-back/g) || []).length, 4,
+assert.equal((html.match(/data-settings-back>/g) || []).length, 4,
   'every settings panel must provide a back-to-settings control');
 
 for (const id of [
