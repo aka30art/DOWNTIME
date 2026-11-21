@@ -365,6 +365,16 @@ body.overview-overlay-open{overflow:hidden}
   .tablewrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .modal{box-sizing:border-box;max-width:100%;width:100%}
 }
+
+.report-preview-backdrop{z-index:30;padding:18px}
+.report-preview-modal{width:min(1180px,100%);max-width:1180px;height:min(92dvh,960px);max-height:92dvh;display:flex;flex-direction:column;gap:12px;padding:16px;overflow:hidden}
+.report-preview-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex:0 0 auto}
+.report-preview-header h2{margin:4px 0 2px;color:#ffd000}
+.report-preview-header p{margin:0;font-size:12px}
+.report-preview-frame{display:block;width:100%;flex:1 1 auto;min-height:0;border:1px solid #344d60;border-radius:10px;background:#fff}
+.report-preview-frame[hidden]{display:none}
+.reportdisplay{padding:7px 10px;font-size:11px;border-radius:8px}
+@media(max-width:600px){.report-preview-backdrop{padding:8px;align-items:center}.report-preview-modal{height:94dvh;max-height:94dvh;padding:12px;border-radius:14px}.report-preview-header h2{font-size:18px}.report-preview-frame{border-radius:7px}}
 </style><style>
 .day-setup-panel{position:relative}
 .day-setup>summary{padding-right:82px}
@@ -414,7 +424,7 @@ body.overview-overlay-open{overflow:hidden}
 <summary><span>MENU</span><span class="disclosure-chevron" aria-hidden="true">⌄</span></summary>
 <div class="nav-items">
 <button class="nav active" data-view="weekly">▦ &nbsp; Weekly Sheet</button>
-<button class="nav" data-view="reports">▤ &nbsp; PDF Reports</button>
+<button class="nav" data-view="reports">▤ &nbsp; WEEKLY Reports</button>
 
 <button class="nav" data-view="settings">⚙ &nbsp; Settings</button>
 <a id="centralAdminNav" class="nav central-admin-nav" href="central-bank-admin.html" target="_blank" rel="noopener">▣ &nbsp; Central Data Bank Admin</a>
@@ -525,7 +535,7 @@ body.overview-overlay-open{overflow:hidden}
 </div>
 </div>
 </section>
-<section id="reports" class="view"><div class="panel"><h2>PDF Reports Archive</h2><div class="muted" style="margin-bottom:10px">Cloud archive · rolling retention · maximum 12 reports. Oldest report is automatically removed when the limit is exceeded.</div><div id="reportsList" class="empty">Loading cloud archive…</div></div></section>
+<section id="reports" class="view"><div class="panel"><h2>WEEKLY REPORTS</h2><div class="muted" style="margin-bottom:10px">Cloud archive · rolling retention · maximum 12 reports. Oldest report is automatically removed when the limit is exceeded.</div><div id="reportsList" class="empty">Loading cloud archive…</div></div></section>
 <section id="settings" class="view">
 <div class="settings-shell">
   <div id="settingsHub" class="settings-hub">
@@ -639,6 +649,15 @@ body.overview-overlay-open{overflow:hidden}
     <div id="dailyTasksList" class="daily-tasks-list"></div>
     <div id="dailyTasksEmpty" class="daily-tasks-empty" hidden>No daily tasks have been preset yet. An administrator can create the checklist in Settings.</div>
     <div class="modalfoot"><button id="closeDailyTasks" class="primary" type="button">DONE</button></div>
+  </div>
+</div>
+<div class="modalback report-preview-backdrop" id="reportPreviewModal" aria-hidden="true">
+  <div class="modal report-preview-modal" role="dialog" aria-modal="true" aria-labelledby="reportPreviewTitle">
+    <div class="report-preview-header">
+      <div><div class="daily-tasks-eyebrow">DOWNTIME · WEEKLY REPORTS</div><h2 id="reportPreviewTitle">WEEKLY REPORT</h2><p id="reportPreviewStatus" class="muted" role="status">Loading selected report…</p></div>
+      <button id="closeReportPreview" class="daily-tasks-x" type="button" aria-label="Close weekly report preview">✕</button>
+    </div>
+    <iframe id="reportPreviewFrame" class="report-preview-frame" title="Selected weekly PDF report" hidden></iframe>
   </div>
 </div>
 <script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';</script>
@@ -793,7 +812,7 @@ function showSettingsHub(){const hub=$('settingsHub');if(hub)hub.hidden=false;do
 function openSettingsPanel(section){if(!settingsAccess(section))return;const ids={users:'settingsPanelUsers',areas:'settingsPanelAreas',reasons:'settingsPanelReasons',schedule:'settingsPanelSchedule',dailyTasks:'settingsPanelDailyTasks',staff:'settingsPanelStaff'};const titles={users:'Users',areas:'Area Presets',reasons:'Reason Presets',schedule:'Shift & Breaktime Schedule',dailyTasks:'Daily Tasks',staff:'Staff'};const panel=$(ids[section]);if(!panel)return;const hub=$('settingsHub');if(hub)hub.hidden=true;document.querySelectorAll('.settings-panel').forEach(item=>item.hidden=item!==panel);document.querySelectorAll('[data-settings-open]').forEach(button=>button.setAttribute('aria-expanded',String(button.dataset.settingsOpen===section)));$('subtitle').textContent='Settings · '+titles[section];}
 document.querySelectorAll('[data-settings-open]').forEach(button=>button.addEventListener('click',()=>openSettingsPanel(button.dataset.settingsOpen)));
 document.querySelectorAll('[data-settings-back]').forEach(button=>button.addEventListener('click',showSettingsHub));
-document.querySelectorAll('.nav').forEach(b=>b.onclick=e=>{if(b.classList.contains('overview-link')){e.preventDefault();openPlantOverview();return;}document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===b.dataset.view));if(b.dataset.view==='settings'){showSettingsHub();renderSettingsHub();$('subtitle').textContent='Settings hub · Administration and configuration'}else $('subtitle').textContent=b.dataset.view==='weekly'?'Weekly recording sheet · Monday–Saturday':b.dataset.view==='reports'?'Previously exported weekly reports':b.dataset.view==='settings'?'Manage users and settings':'Manage users and settings';if(b.dataset.view==='reports')renderArchive();if(b.dataset.view==='settings'){renderOperatorRosterAdmin();renderReasonPresetSettings();renderShiftSchedule();renderDailyTaskSettings();enforceOperatorMode();renderSettingsHub()}});
+document.querySelectorAll('.nav').forEach(b=>b.onclick=e=>{if(b.classList.contains('overview-link')){e.preventDefault();openPlantOverview();return;}document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===b.dataset.view));if(b.dataset.view==='settings'){showSettingsHub();renderSettingsHub();$('subtitle').textContent='Settings hub · Administration and configuration'}else $('subtitle').textContent=b.dataset.view==='weekly'?'Weekly recording sheet · Monday–Saturday':b.dataset.view==='reports'?'Weekly reports archive':b.dataset.view==='settings'?'Manage users and settings':'Manage users and settings';if(b.dataset.view==='reports')renderArchive();if(b.dataset.view==='settings'){renderOperatorRosterAdmin();renderReasonPresetSettings();renderShiftSchedule();renderDailyTaskSettings();enforceOperatorMode();renderSettingsHub()}});
 
 
 function reportData(){let w=week(),days=w.days.map((d,i)=>({name:DAYS[i],...d,calc:calc(d)})),net=days.reduce((a,d)=>a+d.calc.net,0),down=days.reduce((a,d)=>a+d.calc.down,0),causes={};days.forEach(d=>d.entries.forEach(e=>{causes[e.reason]=(causes[e.reason]||0)+durationMinutes(e)}));let top=Object.entries(causes).sort((a,b)=>b[1]-a[1]),prev=state.weeks[iso(plus(weekStart,-7))],prevDown=prev?prev.days.reduce((a,d)=>a+calc(d).down,0):null;return {week:key(),created:new Date().toISOString(),days,totalNet:net,totalDown:down,totalPct:net?down/net*100:0,totalRun:Math.max(0,net-down),totalRunPct:net?Math.max(0,net-down)/net*100:0,topCauses:top,prevDown,weekDelta:prevDown===null?null:down-prevDown}}
@@ -920,7 +939,57 @@ $('exportBtn').onclick=saveCloudReport;
 async function enforceArchiveLimit(){const limit=12;const {data,error}=await sb.from('downtime_reports').select('id,storage_path').order('created_at',{ascending:false});if(error)throw error;if(data.length<=limit)return;const old=data.slice(limit),paths=old.map(x=>x.storage_path);const {error:removeError}=await sb.storage.from('downtime-pdfs').remove(paths);if(removeError)throw removeError;const ids=old.map(x=>x.id);const {error:deleteError}=await sb.from('downtime_reports').delete().in('id',ids);if(deleteError)throw deleteError;}
 async function downloadCloudReport(path,name){const {data,error}=await sb.storage.from('downtime-pdfs').download(path);if(error){alert('Download failed: '+error.message);return}const url=URL.createObjectURL(data),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)}
 async function deleteCloudReport(id,path){if(!permission('canDeleteRecords'))return;if(!confirm('Delete this PDF report from the cloud archive?'))return;const {error:removeError}=await sb.storage.from('downtime-pdfs').remove([path]);if(removeError){alert('File delete failed: '+removeError.message);return}const {error}=await sb.from('downtime_reports').delete().eq('id',id);if(error){alert('Archive record delete failed: '+error.message);return}await renderArchive()}
-async function renderArchive(){const el=$('reportsList');el.innerHTML='Loading cloud archive…';if(!cloudReady){renderLocalArchive();return}if(!sb)await legacyCloudClient();if(!sb){el.textContent='Shared PDF archive is currently unavailable.';return}const {data,error}=await sb.from('downtime_reports').select('*').order('created_at',{ascending:false});if(error){el.textContent='Cloud archive error: '+error.message;return}if(!data.length){el.innerHTML='<div class="empty">No PDF reports saved yet.</div>';return}el.innerHTML=data.map(r=>'<div class="reportitem"><div><b>Week of '+prettyDate(r.week_start)+'</b><div class="muted">'+safe(r.file_name)+' · '+Math.round((r.file_size_bytes||0)/1024)+' KB · '+safe(Object.values(r.operators||{}).filter(x=>x!=='Not assigned').join(', ')||'No operators listed')+'</div></div><div class="reportactions"><button class="primary" data-report-download="'+safe(r.id)+'">DOWNLOAD</button><button class="danger reportdelete" data-report-delete="'+safe(r.id)+'">DELETE</button></div></div>').join('');el.querySelectorAll('[data-report-download]').forEach(b=>b.onclick=()=>{let r=data.find(x=>x.id===b.dataset.reportDownload);if(r)downloadCloudReport(r.storage_path,r.file_name)});el.querySelectorAll('[data-report-delete]').forEach(b=>b.onclick=()=>{if(!permission('canDeleteRecords'))return;let r=data.find(x=>x.id===b.dataset.reportDelete);if(r)deleteCloudReport(r.id,r.storage_path)});if(!permission('canDeleteRecords'))el.querySelectorAll('.reportdelete').forEach(b=>b.style.display='none');if(!permission('canExportReports'))el.querySelectorAll('[data-report-download]').forEach(b=>b.style.display='none')}
+let reportPreviewObjectUrl=null,reportPreviewTrigger=null;
+function closeReportPreview(){
+ const modal=$('reportPreviewModal'),frame=$('reportPreviewFrame');
+ if(!modal)return;
+ modal.classList.remove('show');modal.setAttribute('aria-hidden','true');
+ if(frame){frame.removeAttribute('src');frame.hidden=true}
+ if(reportPreviewObjectUrl){URL.revokeObjectURL(reportPreviewObjectUrl);reportPreviewObjectUrl=null}
+ $('reportPreviewStatus').textContent='';reportPreviewTrigger?.focus?.();reportPreviewTrigger=null;
+}
+async function displayCloudReport(report,trigger){
+ if(!permission('canViewReports')||!report?.storage_path)return;
+ if(!sb)await legacyCloudClient();
+ if(!sb){alert('Weekly report service is unavailable.');return}
+ const modal=$('reportPreviewModal'),frame=$('reportPreviewFrame'),status=$('reportPreviewStatus');
+ const title='WEEK OF '+prettyDate(report.week_start);
+ reportPreviewTrigger=trigger||document.activeElement;
+ $('reportPreviewTitle').textContent=title;
+ status.textContent='Loading selected weekly report…';frame.hidden=true;
+ modal.classList.add('show');modal.setAttribute('aria-hidden','false');$('closeReportPreview').focus();
+ if(trigger)trigger.disabled=true;
+ try{
+  const {data,error}=await sb.storage.from('downtime-pdfs').download(report.storage_path);
+  if(error)throw error;
+  if(!(data instanceof Blob))throw new Error('The stored report could not be read as a PDF file.');
+  if(reportPreviewObjectUrl)URL.revokeObjectURL(reportPreviewObjectUrl);
+  reportPreviewObjectUrl=URL.createObjectURL(data);
+  frame.src=reportPreviewObjectUrl;frame.hidden=false;
+  status.textContent=report.file_name||title;
+ }catch(error){
+  console.error('Weekly report preview failed.',error);
+  status.textContent='Unable to display this report · '+(error?.message||'Please retry.');
+ }finally{if(trigger)trigger.disabled=false}
+}
+$('closeReportPreview').onclick=closeReportPreview;
+$('reportPreviewModal').addEventListener('click',event=>{if(event.target===$('reportPreviewModal'))closeReportPreview()});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('reportPreviewModal').classList.contains('show')){event.preventDefault();closeReportPreview()}});
+async function renderArchive(){
+ const el=$('reportsList');el.innerHTML='Loading cloud archive…';
+ if(!cloudReady){renderLocalArchive();return}
+ if(!sb)await legacyCloudClient();
+ if(!sb){el.textContent='Shared weekly reports are currently unavailable.';return}
+ const {data,error}=await sb.from('downtime_reports').select('*').order('created_at',{ascending:false});
+ if(error){el.textContent='Cloud archive error: '+error.message;return}
+ if(!data.length){el.innerHTML='<div class="empty">No weekly reports saved yet.</div>';return}
+ el.innerHTML=data.map(r=>'<div class="reportitem"><div><b>Week of '+prettyDate(r.week_start)+'</b><div class="muted">'+safe(r.file_name)+' · '+Math.round((r.file_size_bytes||0)/1024)+' KB · '+safe(Object.values(r.operators||{}).filter(x=>x!=='Not assigned').join(', ')||'No operators listed')+'</div></div><div class="reportactions"><button type="button" class="secondary reportdisplay" data-report-display="'+safe(r.id)+'" aria-label="Display weekly report for week of '+safe(prettyDate(r.week_start))+'">DISPLAY</button><button class="primary" data-report-download="'+safe(r.id)+'">DOWNLOAD</button><button class="danger reportdelete" data-report-delete="'+safe(r.id)+'">DELETE</button></div></div>').join('');
+ el.querySelectorAll('[data-report-display]').forEach(button=>button.onclick=()=>{const report=data.find(item=>String(item.id)===button.dataset.reportDisplay);if(report)displayCloudReport(report,button)});
+ el.querySelectorAll('[data-report-download]').forEach(button=>button.onclick=()=>{if(!permission('canExportReports'))return;const report=data.find(item=>String(item.id)===button.dataset.reportDownload);if(report)downloadCloudReport(report.storage_path,report.file_name)});
+ el.querySelectorAll('[data-report-delete]').forEach(button=>button.onclick=()=>{if(!permission('canDeleteRecords'))return;const report=data.find(item=>String(item.id)===button.dataset.reportDelete);if(report)deleteCloudReport(report.id,report.storage_path)});
+ if(!permission('canDeleteRecords'))el.querySelectorAll('.reportdelete').forEach(button=>button.style.display='none');
+ if(!permission('canExportReports'))el.querySelectorAll('[data-report-download]').forEach(button=>button.style.display='none');
+}
 $('cancelReset').onclick=()=>$('resetModal').classList.remove('show');
 $('cancelReset').onclick=()=>$('resetModal').classList.remove('show');
 function renderLocalArchive(){let a=state.archive||[];$('reportsList').innerHTML=a.length?a.map((r,i)=>'<div class="reportitem"><div><b>Week of '+prettyDate(r.week)+'</b><div class="muted">'+fmt(r.totalDown)+' downtime · '+r.totalPct.toFixed(1)+'%</div></div><div class="reportactions"><span class="pill">Archived</span><button class="danger reportdelete" data-archive-delete="'+i+'" aria-label="Delete archived report">DELETE</button></div></div>').join(''):'No archived reports yet.';if(!permission('canDeleteRecords'))document.querySelectorAll('.reportdelete').forEach(b=>b.style.display='none');document.querySelectorAll('[data-archive-delete]').forEach(b=>b.onclick=()=>{if(!permission('canDeleteRecords'))return;let i=Number(b.dataset.archiveDelete);if(confirm('Delete this archived report permanently?')){state.archive.splice(i,1);persist();renderArchive()}})}
