@@ -81,7 +81,7 @@ assert.equal(supervisorStaff('areas'), false);
 assert.equal(supervisorStaff('schedule'), false);
 assert.equal(supervisorStaff('reasons'), false);
 
-const supervisorManageStaff = html.match(/SUPERVISOR:\\{[^}]*\\}/);
+const supervisorManageStaff = html.match(/SUPERVISOR:\{[^}]*\}/);
 assert.ok(supervisorManageStaff, 'SUPERVISOR permission profile must exist');
 assert.match(supervisorManageStaff[0], /canManageStaff:true/,
   'SUPERVISOR must be granted STAFF management permission');
