@@ -71,7 +71,20 @@ try {
       const ids = ['prevWeek','weekLabel','nextWeek','exportBtn','weeklyInsight','weekDown','weekPct','weekNet','weekRunPct'];
       const topCause = document.getElementById('topCause');
       const topCauseStyle = getComputedStyle(topCause);
-      const topCauseMetric = {whiteSpace:topCauseStyle.whiteSpace,scrollWidth:topCause.scrollWidth,clientWidth:topCause.clientWidth};
+      const topCauseText = topCause.textContent.trim();
+      const textNode = [...topCause.childNodes].find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+      const wordFragments = [];
+      if (textNode) {
+        let offset = 0;
+        for (const word of textNode.textContent.matchAll(/\\S+/g)) {
+          const range = document.createRange();
+          range.setStart(textNode, word.index);
+          range.setEnd(textNode, word.index + word[0].length);
+          wordFragments.push({word:word[0],rectCount:range.getClientRects().length});
+          offset += word[0].length;
+        }
+      }
+      const topCauseMetric = {whiteSpace:topCauseStyle.whiteSpace,scrollWidth:topCause.scrollWidth,clientWidth:topCause.clientWidth,topCauseText,wordFragments,fontSize:topCauseStyle.fontSize};
       const controls = ids.map(id => {
         const el=document.getElementById(id);
         const r=el.getBoundingClientRect();
@@ -98,6 +111,7 @@ try {
     assert.equal(result.intelligenceVisible,true,'Weekly analytics subsections should be visible at '+width+'px');
     assert.equal(result.topCauseMetric.whiteSpace,'normal','Top downtime cause must wrap instead of clipping at '+width+'px');
     assert.ok(result.topCauseMetric.scrollWidth<=result.topCauseMetric.clientWidth+1,'Top downtime cause text overflows its card at '+width+'px: '+JSON.stringify(result.topCauseMetric));
+    assert.ok(result.topCauseMetric.wordFragments.every(fragment=>fragment.rectCount===1),'Top downtime cause word split across lines at '+width+'px: '+JSON.stringify(result.topCauseMetric));
     assert.equal(result.overflowX,'auto','Weekly table wrapper should scroll internally at '+width+'px');
     assert.ok(result.tableWrap.left>=-1&&result.tableWrap.right<=width+1,'Weekly table wrapper exceeds viewport at '+width+'px: '+JSON.stringify(result.tableWrap));
     if (width <= 800) assert.ok(result.tableScrollWidth > result.tableClientWidth + 1,'Narrow weekly report should scroll internally at '+width+'px');
