@@ -116,7 +116,8 @@ try {
   const menu = page.locator('.nav-menu');
   assert.equal(await menu.evaluate(node => node.open), false, 'Menu must start collapsed');
   await menu.locator(':scope > summary').click();
-  assert.equal(await page.locator('.nav-items > .nav').count(), 7, 'All original navigation choices remain');
+  assert.equal(await page.locator('.nav-items > .nav').count(), 6, 'All remaining navigation choices stay in the main menu after STAFF moves into Settings');
+  assert.equal(await page.locator('[data-settings-open="staff"]').count(), 1, 'STAFF remains available as a Settings destination');
   for (const id of ['cloudStatus', 'lastSync', 'manualRefreshBtn', 'plantOperatorToggle', 'fullscreenBtn', 'onDuty']) {
     assert.equal(await page.locator('#' + id).count(), 1, 'Retained utility control missing: ' + id);
   }

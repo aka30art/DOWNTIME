@@ -45,6 +45,34 @@ assert.equal(
   'the display must reflect updated custom presets'
 );
 
+const calcStart = html.indexOf('function calc(d){');
+const calcEnd = html.indexOf('function configuredBreakMinutes', calcStart);
+assert.notEqual(calcStart, -1, 'daily calculation function must exist');
+assert.notEqual(calcEnd, -1, 'daily calculation function must be bounded before the break helper');
+const calcSource = html.slice(calcStart, calcEnd);
+assert.ok(calcSource.includes('configuredBreakMinutes(dayName)'),
+  'daily calculations must resolve the break from the configured weekday schedule');
+
+const calculateDay = new Function('mins', 'durationMinutes', 'configuredBreakMinutes',
+  `${calcSource}; return calc;`
+);
+const configuredFor = name => readBreak(name);
+const calc = calculateDay(
+  value => { if (!value || !/^\d{2}:\d{2}$/.test(value)) return null; const [h, m] = value.split(':').map(Number); return h * 60 + m; },
+  entry => Math.max(0, (Number(entry.hours) || 0) * 60 + (Number(entry.minutes) || 0)),
+  configuredFor
+);
+const saturday = calc({ date: '2026-11-21', start: '07:30', stop: '13:10', breakMinutes: 75, entries: [{ hours: 0, minutes: 7 }] });
+assert.equal(saturday.scheduled, 340, 'Saturday scheduled duration must be calculated from its shift times');
+assert.equal(saturday.breakDeduction, 20, 'Saturday must use its configured 20-minute break, not 75 minutes');
+assert.equal(saturday.net, 320, 'Saturday net available time must deduct 20 minutes');
+assert.equal(saturday.down, 7, 'recorded downtime must be retained');
+assert.equal(saturday.run, 313, 'actual running time must use net available time less downtime');
+assert.equal(saturday.downPct, 7 / 320 * 100, 'downtime percentage must use net available time');
+assert.equal(saturday.runPct, 313 / 320 * 100, 'running percentage must use net available time');
+assert.match(html, /\$\('breakExcludedStat'\)\.textContent=fmt\(c\.breakDeduction\)/,
+  'Daily Summary must display the exact break deduction used by the calculation');
+
 const renderStart = html.indexOf('function render(){');
 const renderEnd = html.indexOf('let detailIndex=-1;', renderStart);
 assert.notEqual(renderStart, -1, 'daily render function must exist');
