@@ -118,7 +118,8 @@ try{
  const owner=await openFor('OWNER');
  await signIn(owner.page);
  assert.equal(await owner.page.locator('#authGate').isVisible(),false,'central login closes after authentication');
- assert.equal(await owner.page.locator('.nav[data-view="staff"]').isVisible(),true,'OWNER can view STAFF');
+ await owner.page.locator('.nav-menu > summary').click();
+ assert.equal(await owner.page.locator('.nav[data-view="staff"]').isVisible(),true,'OWNER can view STAFF after opening MENU');
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').isVisible(),true,'OWNER can view reports');
  assert.equal(await owner.page.locator('.overview-link').isVisible(),true,'OWNER can view Plant Overview');
  assert.equal(await owner.page.locator('#addEntry').isDisabled(),false,'OWNER can edit tracker');
