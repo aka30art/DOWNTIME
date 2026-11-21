@@ -499,7 +499,103 @@ async function ensurePdfLibraries(){
  }
  return pdfLibrariesPromise;
 }
-async function buildReportPDF(data){await ensurePdfLibraries();const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});const endDate=iso(plus(parseWeek(data.week),5));pdf.setFillColor(8,20,30);pdf.rect(0,0,297,210,'F');pdf.setTextColor(255,204,0);pdf.setFont('helvetica','bold');pdf.setFontSize(19);pdf.text('WEEKLY PLANT DOWNTIME REPORT',14,17);pdf.setTextColor(225,235,242);pdf.setFontSize(10);pdf.text('Week: '+prettyDate(data.week)+' – '+prettyDate(endDate),14,25);pdf.text('Generated: '+new Date().toLocaleString('en-GB'),14,31);pdf.setFontSize(9);pdf.text('Break deduction: 75 minutes per working day',14,38);let rows=data.days.map(d=>[d.name,prettyDate(d.date),d.operator||'Not assigned',d.start||'—',d.stop||'—',fmt(d.calc.net),fmt(d.calc.down),fmt(d.calc.run),pct(d.calc.downPct),pct(d.calc.runPct)]);pdf.autoTable({startY:45,head:[['Day','Date','Operator','Start','Stop','Net time','Downtime','Running','Down %','Run %']],body:rows,theme:'grid',styles:{fontSize:8,cellPadding:2,textColor:[235,240,245],fillColor:[17,35,49],lineColor:[45,70,88]},headStyles:{fillColor:[38,57,72],textColor:[255,205,0],fontStyle:'bold'},alternateRowStyles:{fillColor:[12,26,37]},margin:{left:14,right:14}});let y=pdf.lastAutoTable.finalY+10;pdf.setTextColor(255,204,0);pdf.setFontSize(11);pdf.text('WEEK TOTAL',14,y);pdf.setTextColor(240,245,248);pdf.setFontSize(9);pdf.text('Net available: '+fmt(data.totalNet)+'   Downtime: '+fmt(data.totalDown)+' ('+pct(data.totalPct)+')   Running: '+fmt(data.totalRun)+' ('+pct(data.totalRunPct)+')',14,y+7);y+=17;pdf.setTextColor(255,204,0);pdf.setFontSize(11);pdf.text('DOWNTIME BREAKDOWN',14,y);pdf.setTextColor(240,245,248);pdf.setFontSize(9);let causes=data.topCauses||[];pdf.text(causes.length?causes.slice(0,5).map((x,i)=>(i+1)+'. '+x[0]+' — '+fmt(x[1])+' ('+(data.totalDown?(x[1]/data.totalDown*100).toFixed(1):0)+'%)').join('   |   '):'No downtime reasons recorded',14,y+7,{maxWidth:268});y+=17;pdf.setTextColor(255,204,0);pdf.text('WEEK-OVER-WEEK COMPARISON',14,y);pdf.setTextColor(240,245,248);pdf.setFontSize(9);pdf.text(data.prevDown===null?'Previous week unavailable':('Previous week downtime: '+fmt(data.prevDown)+'   Change: '+(data.weekDelta>0?'+':'')+fmt(data.weekDelta)+'   '+(data.weekDelta>0?'INCREASE':data.weekDelta<0?'DECREASE':'UNCHANGED')),14,y+7);return pdf.output('blob');}async function saveCloudReport(){if(!permission('canExportReports'))return;if(!cloudReady){alert('Central data is not connected.');return}if(!sb)await legacyCloudClient();if(!sb){alert('PDF archive service is unavailable.');return}const btn=$('exportBtn');btn.disabled=true;btn.textContent='SAVING PDF…';try{const data=reportData(),blob=await buildReportPDF(data),fileName='Downtime_'+data.week+'_Weekly.pdf',path=data.week+'/'+Date.now()+'_'+fileName;const {error:uploadError}=await sb.storage.from('downtime-pdfs').upload(path,blob,{contentType:'application/pdf',upsert:false});if(uploadError)throw uploadError;const operators=Object.fromEntries(data.days.map(d=>[d.name,d.operator||'Not assigned']));const {error:insertError}=await sb.from('downtime_reports').insert({week_start:data.week,operators,file_name:fileName,storage_path:path,file_size_bytes:blob.size});if(insertError){await sb.storage.from('downtime-pdfs').remove([path]);throw insertError}await enforceArchiveLimit();await renderArchive();alert('Weekly PDF saved to the shared cloud archive.')}catch(e){console.error(e);alert('PDF archive save failed: '+(e.message||e))}finally{btn.disabled=false;btn.textContent='⇩ SAVE WEEKLY PDF TO CLOUD';}}
+async function buildReportPDF(data){
+ await ensurePdfLibraries();
+ const {jsPDF}=window.jspdf;
+ const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+ const pageWidth=210,margin=14,contentWidth=pageWidth-margin*2;
+ const ink=[31,43,54],muted=[105,117,128],line=[224,229,233],soft=[246,248,250],accent=[235,184,0];
+ const endDate=iso(plus(parseWeek(data.week),5));
+ pdf.setProperties({title:'Weekly Plant Downtime Report - '+data.week,subject:'Plant downtime and running performance',author:'DOWNTIME'});
+ pdf.setFillColor(255,255,255);pdf.rect(0,0,pageWidth,297,'F');
+ pdf.setFillColor(...accent);pdf.rect(margin,12,10,2.2,'F');
+ pdf.setTextColor(...ink);pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.text('DOWNTIME  /  OPERATIONS',margin,20);
+ pdf.setTextColor(...muted);pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.text('WEEKLY PERFORMANCE REPORT',pageWidth-margin,20,{align:'right'});
+ pdf.setDrawColor(...line);pdf.setLineWidth(.25);pdf.line(margin,24,pageWidth-margin,24);
+ pdf.setTextColor(...ink);pdf.setFont('helvetica','bold');pdf.setFontSize(18);pdf.text('Plant Downtime Report',margin,37);
+ pdf.setTextColor(...muted);pdf.setFont('helvetica','normal');pdf.setFontSize(9);
+ pdf.text(prettyDate(data.week)+' - '+prettyDate(endDate),margin,44);
+ pdf.setFontSize(7.5);pdf.text('Generated '+new Date().toLocaleString('en-GB')+'  |  75-minute daily break deduction applied',margin,50);
+ const cards=[
+  ['NET AVAILABLE',fmt(data.totalNet)],
+  ['DOWNTIME',fmt(data.totalDown)],
+  ['RUNNING',fmt(data.totalRun)],
+  ['DOWNTIME RATE',pct(data.totalPct)]
+ ];
+ const cardGap=3,cardWidth=(contentWidth-cardGap*3)/4,cardY=57,cardH=22;
+ cards.forEach((card,i)=>{
+  const x=margin+i*(cardWidth+cardGap);
+  pdf.setFillColor(...soft);pdf.setDrawColor(...line);pdf.roundedRect(x,cardY,cardWidth,cardH,1.5,1.5,'FD');
+  pdf.setTextColor(...muted);pdf.setFont('helvetica','bold');pdf.setFontSize(6.4);pdf.text(card[0],x+3,cardY+6);
+  pdf.setTextColor(...ink);pdf.setFont('helvetica','bold');pdf.setFontSize(card[1].length>10?9:11);pdf.text(card[1],x+3,cardY+15,{maxWidth:cardWidth-6});
+ });
+ const section=(title,y,subtitle='')=>{
+  pdf.setTextColor(...ink);pdf.setFont('helvetica','bold');pdf.setFontSize(9);pdf.text(title,margin,y);
+  if(subtitle){pdf.setTextColor(...muted);pdf.setFont('helvetica','normal');pdf.setFontSize(7);pdf.text(subtitle,pageWidth-margin,y,{align:'right'});}
+ };
+ section('DAILY PERFORMANCE',88,'Monday - Saturday');
+ const rows=data.days.map(d=>[
+  String(d.name||'').toUpperCase()+'\n'+prettyDate(d.date),
+  d.operator||'Not assigned',
+  (d.start||'—')+' - '+(d.stop||'—'),
+  fmt(d.calc.net),
+  fmt(d.calc.down),
+  fmt(d.calc.run),
+  'Down '+pct(d.calc.downPct)+'\nRun '+pct(d.calc.runPct)
+ ]);
+ pdf.autoTable({
+  startY:92,margin:{left:margin,right:margin},
+  head:[['DAY / DATE','OPERATOR','SHIFT','NET','DOWNTIME','RUNNING','PERFORMANCE']],
+  body:rows,
+  foot:[['WEEK TOTAL','','',fmt(data.totalNet),fmt(data.totalDown),fmt(data.totalRun),'Down '+pct(data.totalPct)+'\nRun '+pct(data.totalRunPct)]],
+  theme:'grid',
+  styles:{font:'helvetica',fontSize:7.1,cellPadding:2.1,textColor:ink,lineColor:line,lineWidth:.15,overflow:'linebreak',valign:'middle'},
+  headStyles:{fillColor:ink,textColor:[255,255,255],fontStyle:'bold',fontSize:6.6,cellPadding:2.4,lineColor:ink},
+  alternateRowStyles:{fillColor:[250,251,252]},
+  footStyles:{fillColor:[239,243,246],textColor:ink,fontStyle:'bold',lineColor:line},
+  columnStyles:{
+   0:{cellWidth:20},1:{cellWidth:29},2:{cellWidth:28,halign:'center'},
+   3:{cellWidth:21,halign:'right'},4:{cellWidth:23,halign:'right'},
+   5:{cellWidth:23,halign:'right'},6:{cellWidth:38,halign:'left'}
+  },
+  rowPageBreak:'avoid',showFoot:'lastPage'
+ });
+ let y=pdf.lastAutoTable.finalY+11;
+ if(y>255){pdf.addPage();y=22;}
+ section('DOWNTIME REASONS',y,'Top recorded causes');
+ const causes=(data.topCauses||[]).slice(0,5);
+ const causeRows=causes.length?causes.map(([reason,minutes])=>[
+  reason,fmt(minutes),data.totalDown?(minutes/data.totalDown*100).toFixed(1)+'%':'0.0%'
+ ]):[['No downtime reasons recorded','—','—']];
+ pdf.autoTable({
+  startY:y+4,margin:{left:margin,right:margin},
+  head:[['REASON','TIME LOST','SHARE OF TOTAL']],
+  body:causeRows,
+  theme:'grid',
+  styles:{font:'helvetica',fontSize:7.4,cellPadding:2.1,textColor:ink,lineColor:line,lineWidth:.15},
+  headStyles:{fillColor:[239,243,246],textColor:ink,fontStyle:'bold',fontSize:6.8,lineColor:line},
+  alternateRowStyles:{fillColor:[250,251,252]},
+  columnStyles:{0:{cellWidth:112},1:{cellWidth:35,halign:'right'},2:{cellWidth:35,halign:'right'}}
+ });
+ y=pdf.lastAutoTable.finalY+10;
+ if(y>260){pdf.addPage();y=22;}
+ pdf.setFillColor(...soft);pdf.setDrawColor(...line);pdf.roundedRect(margin,y,contentWidth,26,1.5,1.5,'FD');
+ pdf.setTextColor(...ink);pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.text('WEEK-ON-WEEK COMPARISON',margin+4,y+7);
+ pdf.setTextColor(...muted);pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);
+ const comparison=data.prevDown===null
+  ?'Previous week comparison is unavailable.'
+  :'Previous week downtime: '+fmt(data.prevDown)+'   |   Change: '+(data.weekDelta>0?'+':'')+fmt(data.weekDelta)+'   |   '+(data.weekDelta>0?'INCREASE':data.weekDelta<0?'DECREASE':'UNCHANGED');
+ pdf.text(comparison,margin+4,y+16,{maxWidth:contentWidth-8});
+ const pageCount=pdf.getNumberOfPages();
+ for(let page=1;page<=pageCount;page++){
+  pdf.setPage(page);
+  pdf.setDrawColor(...line);pdf.setLineWidth(.2);pdf.line(margin,284,pageWidth-margin,284);
+  pdf.setTextColor(...muted);pdf.setFont('helvetica','normal');pdf.setFontSize(6.8);
+  pdf.text('DOWNTIME  /  WEEKLY OPERATIONS REPORT',margin,289);
+  pdf.text('Page '+page+' of '+pageCount,pageWidth-margin,289,{align:'right'});
+ }
+ return pdf.output('blob');
+}async function saveCloudReport(){if(!permission('canExportReports'))return;if(!cloudReady){alert('Central data is not connected.');return}if(!sb)await legacyCloudClient();if(!sb){alert('PDF archive service is unavailable.');return}const btn=$('exportBtn');btn.disabled=true;btn.textContent='SAVING PDF…';try{const data=reportData(),blob=await buildReportPDF(data),fileName='Downtime_'+data.week+'_Weekly.pdf',path=data.week+'/'+Date.now()+'_'+fileName;const {error:uploadError}=await sb.storage.from('downtime-pdfs').upload(path,blob,{contentType:'application/pdf',upsert:false});if(uploadError)throw uploadError;const operators=Object.fromEntries(data.days.map(d=>[d.name,d.operator||'Not assigned']));const {error:insertError}=await sb.from('downtime_reports').insert({week_start:data.week,operators,file_name:fileName,storage_path:path,file_size_bytes:blob.size});if(insertError){await sb.storage.from('downtime-pdfs').remove([path]);throw insertError}await enforceArchiveLimit();await renderArchive();alert('Weekly PDF saved to the shared cloud archive.')}catch(e){console.error(e);alert('PDF archive save failed: '+(e.message||e))}finally{btn.disabled=false;btn.textContent='⇩ SAVE WEEKLY PDF TO CLOUD';}}
 $('exportBtn').onclick=saveCloudReport;
 async function enforceArchiveLimit(){const limit=12;const {data,error}=await sb.from('downtime_reports').select('id,storage_path').order('created_at',{ascending:false});if(error)throw error;if(data.length<=limit)return;const old=data.slice(limit),paths=old.map(x=>x.storage_path);const {error:removeError}=await sb.storage.from('downtime-pdfs').remove(paths);if(removeError)throw removeError;const ids=old.map(x=>x.id);const {error:deleteError}=await sb.from('downtime_reports').delete().in('id',ids);if(deleteError)throw deleteError;}
 async function downloadCloudReport(path,name){const {data,error}=await sb.storage.from('downtime-pdfs').download(path);if(error){alert('Download failed: '+error.message);return}const url=URL.createObjectURL(data),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)}
