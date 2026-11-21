@@ -45,16 +45,16 @@ assert.equal(
   'the display must reflect updated custom presets'
 );
 
-const calcMatch = html.match(/function calc\\(d\\)\\{[^}]*\\}/);
+const calcMatch = html.match(/function calc\(d\)\{[^}]*\}/);
 assert.ok(calcMatch, 'daily calculation function must exist');
-assert.match(calcMatch[0], /configuredBreakMinutes\\(dayName\\)/,
+assert.match(calcMatch[0], /configuredBreakMinutes\(dayName\)/,
   'daily calculations must resolve the break from the configured weekday schedule');
 const calculateDay = new Function('mins', 'durationMinutes', 'configuredBreakMinutes',
   `${calcMatch[0]}; return calc;`
 );
 const configuredFor = name => readBreak({ shiftSchedule: standard }, standard)(name);
 const calc = calculateDay(
-  value => { if (!value || !/^\\d{2}:\\d{2}$/.test(value)) return null; const [h, m] = value.split(':').map(Number); return h * 60 + m; },
+  value => { if (!value || !/^\d{2}:\d{2}$/.test(value)) return null; const [h, m] = value.split(':').map(Number); return h * 60 + m; },
   entry => Math.max(0, (Number(entry.hours) || 0) * 60 + (Number(entry.minutes) || 0)),
   configuredFor
 );
@@ -66,6 +66,8 @@ assert.equal(saturday.down, 7, 'recorded downtime must be retained');
 assert.equal(saturday.run, 313, 'actual running time must use net available time less downtime');
 assert.equal(saturday.downPct, 7 / 320 * 100, 'downtime percentage must use net available time');
 assert.equal(saturday.runPct, 313 / 320 * 100, 'running percentage must use net available time');
+assert.match(html, /\$\('breakExcludedStat'\)\.textContent=fmt\(c\.breakDeduction\)/,
+  'Daily Summary must display the exact break deduction used by the calculation');
 
 const renderStart = html.indexOf('function render(){');
 const renderEnd = html.indexOf('let detailIndex=-1;', renderStart);
