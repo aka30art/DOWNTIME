@@ -6,12 +6,12 @@ const headers={"Access-Control-Allow-Origin":allowedOrigin,"Access-Control-Allow
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers});
 const tiers=["OWNER","ADMIN","MANAGER","SUPERVISOR","USER","SPECTATOR"];
 const tierDefault:Record<string,Record<string,boolean>>={
- OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
+ OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
 const cryptoHex=(bytes:Uint8Array)=>Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 const digest=async(s:string)=>cryptoHex(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s))));
@@ -20,10 +20,10 @@ async function verifyPin(pin:string,user:any){return user?.pinSalt&&user?.pinHas
 function safeUser(u:any){return {username:u.username,tier:u.tier,enabled:u.enabled!==false,displayName:u.displayName||u.username}}
 const lockedRolePrivileges:Record<string,Record<string,boolean>>={
  OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
+ MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
 function addStableRecordIds(weeks:any){
  const copy=structuredClone(weeks||{});
@@ -121,7 +121,16 @@ Deno.serve(async(req)=>{
      const newArchive=Array.isArray(incoming.archive)?incoming.archive:[];
      if(newArchive.length<oldArchive.length)return json({error:"This tier cannot delete archived records."},403);
    }
-   if(!priv.canManageSettings){for(const field of ["areas","reasons","quickReasons"]){if(field in (bank.appData||{}))nextAppData[field]=bank.appData[field];}}
+   if(!priv.canManageSettings){
+     if("areas" in (bank.appData||{}))nextAppData.areas=bank.appData.areas;
+     for(const field of ["reasons","quickReasons"]){
+       if(!priv.canAddDowntimeReasons){if(field in (bank.appData||{}))nextAppData[field]=bank.appData[field];continue;}
+       const existing=Array.isArray(bank.appData?.[field])?bank.appData[field]:[];
+       const incomingValues=Array.isArray(incoming[field])?incoming[field]:existing;
+       const additions=incomingValues.filter((value:any)=>typeof value==="string"&&value.trim()&&!existing.some((old:any)=>String(old).trim().toLowerCase()===value.trim().toLowerCase()));
+       nextAppData[field]=[...existing,...additions].slice(0,250);
+     }
+   }
    if(!priv.canManageStaff){
      const currentProfiles=bank.staff?.profiles||bank.appData?.operatorProfiles||{};
      nextAppData.operatorProfiles=structuredClone(currentProfiles);
