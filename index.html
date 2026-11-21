@@ -527,7 +527,58 @@ function loadSupabaseClient(){
  });
 }
 let cloudReady=false,cloudBusy=false,cloudSyncFailed=false,cloudWrite=Promise.resolve();
+let centralRealtimeChannel=null,centralRealtimeClient=null,centralRealtimeRefreshBusy=false,centralRealtimeRefreshQueued=false,centralRealtimeVersion=0;
 function cloudStatus(msg){const el=$('cloudStatus');if(el)el.textContent=msg}
+function notifyOverviewFrame(version=centralVersion,updatedAt=null){
+ const frame=$('overviewFrame');
+ if(!frame?.contentWindow)return;
+ frame.contentWindow.postMessage({type:'DOWNTIME_CENTRAL_STATE_CHANGED',version:Number(version)||0,updatedAt:updatedAt||null},location.origin);
+}
+async function refreshCentralFromRealtime(version=0,updatedAt=null){
+ const incomingVersion=Number(version)||0;
+ if(incomingVersion>centralRealtimeVersion)centralRealtimeVersion=incomingVersion;
+ if(incomingVersion)notifyOverviewFrame(incomingVersion,updatedAt);
+ if(!centralReady||(incomingVersion&&incomingVersion<=Number(centralVersion||0)))return;
+ if(cloudBusy||centralPendingWrites>0||centralRealtimeRefreshBusy){centralRealtimeRefreshQueued=true;return}
+ centralRealtimeRefreshBusy=true;
+ try{
+  const result=await window.DowntimeCentral.state();
+  if(Number(result.version)>Number(centralVersion||0))applyIncomingCloudPayload(result.payload,'CENTRAL · LIVE UPDATE',result.updatedAt,result.version,result.user);
+ }catch(error){
+  if(error.status===401||/session expired/i.test(error.message||''))cloudStatus('CENTRAL SESSION EXPIRED · SIGN IN AGAIN');
+  else console.warn('Central Realtime refresh failed.',error);
+ }finally{
+  centralRealtimeRefreshBusy=false;
+  if(centralRealtimeRefreshQueued&&!cloudBusy&&centralPendingWrites===0){
+   centralRealtimeRefreshQueued=false;
+   const nextVersion=centralRealtimeVersion;
+   queueMicrotask(()=>refreshCentralFromRealtime(nextVersion,null));
+  }
+ }
+}
+async function startCentralRealtimeSync(client){
+ if(!client?.channel||centralRealtimeChannel)return;
+ try{
+  if(client.realtime?.setAuth)await client.realtime.setAuth();
+  centralRealtimeClient=client;
+  const channel=client.channel('downtime-central-state',{config:{private:true}});
+  channel.on('broadcast',{event:'central_state_changed'},message=>{
+   const signal=message?.payload&&typeof message.payload==='object'?message.payload:(message||{});
+   refreshCentralFromRealtime(signal.version,signal.updated_at||signal.updatedAt||null).catch(error=>console.warn('Central Realtime event failed.',error));
+  });
+  centralRealtimeChannel=channel;
+  channel.subscribe((status,error)=>{
+   if(status==='SUBSCRIBED'){
+    if(centralRealtimeVersion>centralVersion)refreshCentralFromRealtime(centralRealtimeVersion,null);
+   }else if(error)console.warn('Central Realtime subscription unavailable; polling fallback remains active.',error);
+  });
+ }catch(error){centralRealtimeChannel=null;centralRealtimeClient=null;console.warn('Unable to start central Realtime subscription; polling fallback remains active.',error)}
+}
+function stopCentralRealtimeSync(){
+ const channel=centralRealtimeChannel,client=centralRealtimeClient;
+ centralRealtimeChannel=null;centralRealtimeClient=null;centralRealtimeRefreshQueued=false;centralRealtimeVersion=0;
+ if(channel&&client?.removeChannel)client.removeChannel(channel).catch(error=>console.warn('Central Realtime channel cleanup failed.',error));
+}
 function populateOperatorGate(){renderOperatorChoices();}
 
 let spectatorAccessCode='',spectatorRefreshing=false,spectatorRefreshTimer=null;
@@ -596,13 +647,13 @@ const station=document.createElement('select');station.setAttribute('aria-label'
 })}
 $('addStaffBtn').onclick=()=>{if(!permission('canManageStaff'))return;const field=$('newStaffName'),name=field.value.trim();if(!name){$('staffAdminMsg').textContent='Enter a staff member name.';return}if(staffRoster().some(n=>n.toLowerCase()===name.toLowerCase())){$('staffAdminMsg').textContent='That staff member is already listed.';return}state.staffRoster=[...staffRoster(),name];state.operatorProfiles[name]=Object.assign({},state.operatorProfiles[name]||{},{onSite:true});persist();field.value='';$('staffAdminMsg').textContent=name+' added to STAFF.';renderOperatorRosterAdmin()};$('unlockStartBtn').onclick=()=>{if(!isAdmin()||!day().startLocked)return;if(!confirm('Unlock start time for '+DAYS[selected]+'?'))return;day().startLocked=false;day().startLockedAt=null;persist();render();enforceOperatorMode();$('operatorAdminMsg').textContent='Start unlocked by '+activeOperator+'.'};document.querySelectorAll('[data-pinpad]').forEach(pad=>{const input=$(pad.dataset.pinpad);if(!input)return;input.readOnly=true;pad.querySelectorAll('[data-key]').forEach(btn=>btn.onclick=()=>{const key=btn.dataset.key;if(key==='clear')input.value='';else if(key==='back')input.value=input.value.slice(0,-1);else if(input.value.length<input.maxLength)input.value+=key;});});
 async function loadCentralUsers(){const select=$('centralUsername');if(select)select.innerHTML='<option value="">Loading central USERS…</option>';try{const result=await window.DowntimeCentral.listUsers();centralUsers=Array.isArray(result.users)?result.users:[];renderOperatorChoices();if(!centralUsers.length)$('authMsg').textContent='No central USERS exist yet. Initialize the first OWNER in Central Data Bank.';else $('authMsg').textContent='Select your account and enter your PIN.';return centralUsers}catch(error){centralUsers=[];renderOperatorChoices();$('authMsg').textContent='CENTRAL LOGIN UNAVAILABLE · '+(error.message||'Central service is not reachable.');throw error}}
-async function legacyCloudClient(){const client=await loadSupabaseClient();if(!client)return null;try{const current=await client.auth.getSession();if(!current?.data?.session){const auth=await client.auth.signInAnonymously();if(auth.error)throw auth.error}}catch(error){console.warn('Ancillary report/evidence cloud session unavailable.',error)}return client}
+async function legacyCloudClient(){const client=await loadSupabaseClient();if(!client)return null;try{const current=await client.auth.getSession();if(!current?.data?.session){const auth=await client.auth.signInAnonymously();if(auth.error)throw auth.error}await startCentralRealtimeSync(client)}catch(error){console.warn('Ancillary report/evidence cloud session unavailable.',error)}return client}
 function showCentralApp(){$('authGate').style.display='none';$('operatorGate').style.display='none';const shell=document.querySelector('.shell');if(shell)shell.style.display='';selected=(today.getDay()+6)%7;if(selected>5)selected=0;render();enforceOperatorMode();applyTierVisibility()}
 async function unlockTracker(){const pin=$('teamPin').value,username=$('centralUsername').value;if(Date.now()<centralPinLockUntil){$('authMsg').textContent='Too many attempts. Try again in 30 seconds.';return}if(!username||!pin){$('authMsg').textContent='Select a USER and enter the PIN.';return}if(pin.length<4||pin.length>8||!/^[0-9]{4,8}$/.test(pin)){$('authMsg').textContent='PIN must contain 4–8 digits.';return}$('unlockBtn').disabled=true;$('authMsg').textContent='Verifying central account…';try{centralUser=await window.DowntimeCentral.login(username,pin);activeOperator=centralUser.username;await cloudInit();if(!centralReady)throw new Error('Central state could not be loaded.');centralPinAttempts=0;$('teamPin').value='';showCentralApp();cloudStatus('CENTRAL · connected');legacyCloudClient().catch(()=>null)}catch(error){centralPinAttempts++;$('teamPin').value='';$('authMsg').textContent=error.message||'Central sign-in failed.';if(centralPinAttempts>=5){centralPinLockUntil=Date.now()+30000;centralPinAttempts=0;$('authMsg').textContent='Too many sign-in attempts. Locked for 30 seconds.'}}finally{$('unlockBtn').disabled=false}}
 async function resumeCentralSession(){if(!window.DowntimeCentral.session?.token)return;try{centralUser=window.DowntimeCentral.session.user;activeOperator=centralUser?.username||'';await cloudInit();if(centralReady){showCentralApp();legacyCloudClient().catch(()=>null)}}catch(error){console.warn('Stored central session could not be resumed.',error);await window.DowntimeCentral.logout().catch(()=>{});centralUser=null;activeOperator='';loadCentralUsers().catch(()=>{})}}
 $('unlockBtn').onclick=unlockTracker;$('teamPin').addEventListener('keydown',e=>{if(e.key==='Enter')unlockTracker()});
 $('refreshAppBtn').onclick=()=>{loadCentralUsers().catch(()=>{})};
-$('logoutBtn')?.addEventListener('click',async()=>{try{await window.DowntimeCentral.logout()}finally{if(managementPollTimer)clearInterval(managementPollTimer);centralReady=false;cloudReady=false;centralUser=null;centralBankPayload=null;activeOperator='';operatorReadOnly=false;$('authGate').style.display='grid';const shell=document.querySelector('.shell');if(shell)shell.style.display='';$('teamPin').value='';loadCentralUsers().catch(()=>{})}});
+$('logoutBtn')?.addEventListener('click',async()=>{try{stopCentralRealtimeSync();await window.DowntimeCentral.logout()}finally{if(managementPollTimer)clearInterval(managementPollTimer);centralReady=false;cloudReady=false;centralUser=null;centralBankPayload=null;activeOperator='';operatorReadOnly=false;$('authGate').style.display='grid';const shell=document.querySelector('.shell');if(shell)shell.style.display='';$('teamPin').value='';loadCentralUsers().catch(()=>{})}});
 function managementRole(){return ['MANAGER','ADMIN','OWNER'].includes(privilegeFor(activeOperator))}
 function managementEntryKey(dayKey,entry){return dayKey+'|'+JSON.stringify({area:entry.area||'',reason:entry.reason||'',hours:Number(entry.hours)||0,minutes:Number(entry.minutes)||0})}
 function addedEntries(previous,next){const added=[];for(const [weekKey,weekData] of Object.entries(next?.weeks||{})){const oldWeek=previous?.weeks?.[weekKey];(weekData?.days||[]).forEach((d,dayIndex)=>{const oldDay=oldWeek?.days?.[dayIndex],oldCounts={};(oldDay?.entries||[]).forEach(e=>{const k=managementEntryKey(weekKey+'-'+dayIndex,e);oldCounts[k]=(oldCounts[k]||0)+1});(d.entries||[]).forEach(e=>{const k=managementEntryKey(weekKey+'-'+dayIndex,e);if(oldCounts[k])oldCounts[k]--;else added.push({weekKey,dayIndex,entry:e})})})}return added}
@@ -692,7 +743,7 @@ async function saveCentralUserSettings(){
  }catch(error){$('centralUsersStatus').textContent=error.message||'Unable to save USER account.'}
  finally{button.disabled=false}
 }
-function applyIncomingCloudPayload(payload,status,updatedAt=null,version=centralVersion,remoteUser=null){if(!payload)return;const previous=state,incoming=centralAppData(payload);const additions=cloudReady&&managementRole()?addedEntries(previous,incoming):[];const plantChanged=cloudReady&&managementRole()&&typeof previous?.plantOn==='boolean'&&typeof incoming?.plantOn==='boolean'&&previous.plantOn!==incoming.plantOn;centralBankPayload=payload;if(remoteUser){centralUser=remoteUser;activeOperator=remoteUser.username}state=incoming;centralVersion=Number(version)||centralVersion;localStorage.setItem(STORE,JSON.stringify(state));const last=$('lastSync');if(last)last.textContent='Last successful refresh · '+new Date().toLocaleString('en-GB');render();enforceOperatorMode();applyTierVisibility();renderCentralUserSettings();cloudStatus(status);if(plantChanged)showPlantTransitionAlert(incoming.plantOn,updatedAt);if(additions.length){additions.slice(0,5).forEach(item=>{item.dayName=DAYS[item.dayIndex];showManagementToast(item)});if(additions.length>5)showManagementToast({entry:{area:(additions.length-5)+' more new downtime records',reason:'',hours:0,minutes:0},dayName:'Updates'})}}
+function applyIncomingCloudPayload(payload,status,updatedAt=null,version=centralVersion,remoteUser=null){if(!payload)return;const previous=state,incoming=centralAppData(payload);const additions=cloudReady&&managementRole()?addedEntries(previous,incoming):[];const plantChanged=cloudReady&&managementRole()&&typeof previous?.plantOn==='boolean'&&typeof incoming?.plantOn==='boolean'&&previous.plantOn!==incoming.plantOn;centralBankPayload=payload;if(remoteUser){centralUser=remoteUser;activeOperator=remoteUser.username}state=incoming;centralVersion=Number(version)||centralVersion;localStorage.setItem(STORE,JSON.stringify(state));const last=$('lastSync');if(last)last.textContent='Last successful refresh · '+new Date().toLocaleString('en-GB');render();enforceOperatorMode();applyTierVisibility();renderCentralUserSettings();cloudStatus(status);notifyOverviewFrame(centralVersion,updatedAt);if(plantChanged)showPlantTransitionAlert(incoming.plantOn,updatedAt);if(additions.length){additions.slice(0,5).forEach(item=>{item.dayName=DAYS[item.dayIndex];showManagementToast(item)});if(additions.length>5)showManagementToast({entry:{area:(additions.length-5)+' more new downtime records',reason:'',hours:0,minutes:0},dayName:'Updates'})}}
 let managementPollTimer=null,managementPollBusy=false;
 function startManagementPolling(){if(managementPollTimer)clearInterval(managementPollTimer);managementPollTimer=setInterval(async()=>{if(!centralReady||cloudSyncFailed||managementPollBusy||cloudBusy||centralPendingWrites>0)return;managementPollBusy=true;try{const result=await window.DowntimeCentral.state();if(Number(result.version)>centralVersion)applyIncomingCloudPayload(result.payload,'CENTRAL · remote update',result.updatedAt,result.version,result.user)}catch(error){if(error.status===401||/session expired/i.test(error.message||''))cloudStatus('CENTRAL SESSION EXPIRED · SIGN IN AGAIN');else console.warn('Central update polling failed.',error)}finally{managementPollBusy=false}},5000)}
 async function manualRefresh(){const btn=$('manualRefreshBtn');if(!centralReady){cloudStatus('REFRESH FAILED · CENTRAL SESSION NOT CONNECTED');return}if(cloudBusy||centralPendingWrites>0){cloudStatus('REFRESH PAUSED · CENTRAL SAVE IN PROGRESS');return}if(cloudSyncFailed&&!confirm('A local change has not synced. Refreshing will discard that unsynced change and load the central copy. Continue?'))return;if(btn){btn.disabled=true;btn.textContent='↻ REFRESHING…'}try{await cloudWrite;const result=await window.DowntimeCentral.state();applyIncomingCloudPayload(result.payload,'CENTRAL · MANUAL REFRESH COMPLETE',result.updatedAt,result.version,result.user);cloudSyncFailed=false;const last=$('lastSync');if(last)last.textContent='Last successful refresh · '+new Date().toLocaleString('en-GB')}catch(error){cloudStatus('REFRESH FAILED · '+(error.message||'Check central connection'));console.warn('Central manual refresh failed.',error)}finally{if(btn){btn.disabled=false;btn.textContent='↻ REFRESH DATA'}}}
@@ -701,7 +752,7 @@ $('centralAccountSave')?.addEventListener('click',saveCentralUserSettings);
 $('centralAccountCancel')?.addEventListener('click',()=>{resetCentralUserForm();$('centralUsersStatus').textContent='Edit cancelled.'});
 $('centralUsersRefresh')?.addEventListener('click',()=>refreshCentralUserSettings().catch(error=>{$('centralUsersStatus').textContent=error.message||'Refresh failed.'}));
 async function cloudInit(){cloudStatus('Connecting to central data bank…');const result=await window.DowntimeCentral.state();centralBankPayload=result.payload||{};centralVersion=Number(result.version)||0;centralUser=result.user||centralUser;activeOperator=centralUser?.username||activeOperator;state=centralAppData(centralBankPayload);localStorage.setItem(STORE,JSON.stringify(state));centralReady=true;cloudReady=true;cloudSyncFailed=false;const last=$('lastSync');if(last)last.textContent='Last successful refresh · '+new Date().toLocaleString('en-GB');render();enforceOperatorMode();applyTierVisibility();renderCentralUserSettings();cloudStatus('CENTRAL · synced');startManagementPolling();return true}
-function syncCloud(){if(!centralReady||operatorReadOnly||spectatorMode||cloudSyncFailed)return;const snapshot=JSON.parse(JSON.stringify(state));centralPendingWrites++;cloudWrite=cloudWrite.then(async()=>{if(!centralReady||cloudSyncFailed){centralPendingWrites=Math.max(0,centralPendingWrites-1);return}cloudBusy=true;try{const result=await window.DowntimeCentral.saveTracker(snapshot,centralVersion);centralVersion=Number(result.version)||centralVersion;centralBankPayload=centralBankPayload||{};centralBankPayload.appData=snapshot;centralBankPayload.staff=centralBankPayload.staff||{};centralBankPayload.staff.profiles=snapshot.operatorProfiles||centralBankPayload.staff.profiles||{};centralBankPayload.staff.roster=snapshot.staffRoster||centralBankPayload.staff.roster||[];cloudSyncFailed=false;cloudStatus('CENTRAL · synced')}catch(error){cloudSyncFailed=true;cloudStatus('CENTRAL SYNC FAILED · '+(error.message||'Refresh required'));console.warn('Central tracker save failed; local snapshot retained.',error)}finally{cloudBusy=false;centralPendingWrites=Math.max(0,centralPendingWrites-1)}}).catch(error=>{cloudBusy=false;cloudSyncFailed=true;centralPendingWrites=Math.max(0,centralPendingWrites-1);cloudStatus('CENTRAL SYNC FAILED · '+(error.message||'Refresh required'))})}
+function syncCloud(){if(!centralReady||operatorReadOnly||spectatorMode||cloudSyncFailed)return;const snapshot=JSON.parse(JSON.stringify(state));centralPendingWrites++;cloudWrite=cloudWrite.then(async()=>{if(!centralReady||cloudSyncFailed){centralPendingWrites=Math.max(0,centralPendingWrites-1);return}cloudBusy=true;try{const result=await window.DowntimeCentral.saveTracker(snapshot,centralVersion);centralVersion=Number(result.version)||centralVersion;centralBankPayload=centralBankPayload||{};centralBankPayload.appData=snapshot;centralBankPayload.staff=centralBankPayload.staff||{};centralBankPayload.staff.profiles=snapshot.operatorProfiles||centralBankPayload.staff.profiles||{};centralBankPayload.staff.roster=snapshot.staffRoster||centralBankPayload.staff.roster||[];cloudSyncFailed=false;cloudStatus('CENTRAL · synced');notifyOverviewFrame(centralVersion,result.updatedAt)}catch(error){cloudSyncFailed=true;cloudStatus('CENTRAL SYNC FAILED · '+(error.message||'Refresh required'));console.warn('Central tracker save failed; local snapshot retained.',error)}finally{cloudBusy=false;centralPendingWrites=Math.max(0,centralPendingWrites-1)}}).catch(error=>{cloudBusy=false;cloudSyncFailed=true;centralPendingWrites=Math.max(0,centralPendingWrites-1);cloudStatus('CENTRAL SYNC FAILED · '+(error.message||'Refresh required'))})}
 function renderSpectator(){
  const container=$('spectatorView');if(!container)return;
  const currentWeek=iso(mondayOf(today)),weekData=state?.weeks?.[currentWeek],todayIndex=(today.getDay()+6)%7;
