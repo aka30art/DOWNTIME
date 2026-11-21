@@ -33,7 +33,8 @@ assert.ok(src.includes('ADMIN:{canEditTracker:true')&&src.includes('canDeleteRec
 
 assert.ok(src.includes('SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true'),
   'SUPERVISOR can manage STAFF in the server tier defaults');
-assert.ok(src.includes('SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true',),
+const lockedRoles=src.slice(src.indexOf('const lockedRolePrivileges'),src.indexOf('function addStableRecordIds'));
+assert.ok(lockedRoles.includes('SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true'),
   'SUPERVISOR can manage STAFF in the server-locked privilege matrix');
 
 console.log('Central API security contract checks passed (static source checks).');
