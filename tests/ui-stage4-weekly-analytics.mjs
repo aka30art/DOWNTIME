@@ -76,12 +76,10 @@ try {
       const wordFragments = [];
       if (textNode) {
         let offset = 0;
-        for (const word of textNode.textContent.matchAll(/\\S+/g)) {
-          const range = document.createRange();
+        for (const word of textNode.textContent.matchAll(/\S+/g)) {
           range.setStart(textNode, word.index);
           range.setEnd(textNode, word.index + word[0].length);
           wordFragments.push({word:word[0],rectCount:range.getClientRects().length});
-          offset += word[0].length;
         }
       }
       const topCauseMetric = {whiteSpace:topCauseStyle.whiteSpace,scrollWidth:topCause.scrollWidth,clientWidth:topCause.clientWidth,topCauseText,wordFragments,fontSize:topCauseStyle.fontSize};
