@@ -31,7 +31,7 @@ assert.ok(tracker.includes("operatorReadOnly||!permission('canDeleteRecords')"),
 assert.ok(tracker.includes('if(previous?.recordId)item.recordId=previous.recordId'), 'editing a downtime record preserves its central identity');
 assert.ok(tracker.includes("station.disabled=!(permission('canManageAssignments')||permission('canManageStaff'))"), 'SUPERVISOR station assignment control is separated from STAFF administration');
 assert.ok(tracker.includes("saveCloudReport(){if(!permission('canExportReports'))return"), 'MANAGER can export weekly reports');
-assert.ok(tracker.includes("if(!permission('canExportReports'))el.querySelectorAll('[data-report-download]').forEach(b=>b.style.display='none')"), 'USER cannot export archived weekly reports');
+assert.match(tracker,/if\(!permission\('canExportReports'\)\)el\.querySelectorAll\('\[data-report-download\]'\)\.forEach\(button=>button\.style\.display='none'\)/, 'USER cannot export archived weekly reports while retaining report-view access');
 assert.ok(tracker.includes('id="reasonPresetAdmin"')&&tracker.includes('REASON PRESETS'), 'all supported tiers use one shared downtime reason preset panel');
 assert.ok(!tracker.includes('quickReasonButtons')&&!tracker.includes('quickReasonAdminList')&&!tracker.includes('addQuickReasonBtn'), 'quick reason shortcut chips and Settings entries are removed');
 assert.ok(tracker.includes('$("addDowntimeReasonBtn").onclick=()=>addReasonPreset("reasons","newDowntimeReason")'), 'downtime reason Add button remains wired to the entry preset handler');
