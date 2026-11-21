@@ -248,6 +248,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .overview-overlay-frame{display:block;flex:1 1 auto;width:100%;height:calc(100dvh - 48px);min-height:0;border:0;background:#07131c}
 body.overview-overlay-open{overflow:hidden}
 @media(max-width:600px){.overview-overlay-head{height:44px;min-height:44px;padding:5px 8px 5px 12px}.overview-overlay-title{font-size:10px;letter-spacing:.7px}.overview-overlay-close{padding:7px 10px;font-size:11px}.overview-overlay-frame{height:calc(100dvh - 44px)}}
+/* CENTRAL DATA BANK MENU LINK — match native nav controls */
+.central-admin-nav{display:block;color:var(--text);text-decoration:none;background:linear-gradient(180deg,#243b4c,#152734);border:1px solid #334b5d;border-radius:9px;transition:filter .15s,transform .15s,border-color .15s}
+.central-admin-nav:hover{filter:brightness(1.18);border-color:#648398}
+.central-admin-nav:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
 </style></head>
 <body><div id="authGate"><div class="authbox"><h2>DOWNTIME · CENTRAL LOGIN</h2><p class="muted">Select your central USER account and enter your PIN.</p><label for="centralUsername">USERNAME</label><select id="centralUsername" class="input" aria-label="Central username"><option value="">Loading central USERS…</option></select><input id="teamPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="4–8 digit PIN" aria-label="Central account PIN"><div class="pinpad" data-pinpad="teamPin"><div class="pinpad-grid"><button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="clear">CLEAR</button><button type="button" data-key="0">0</button><button type="button" data-key="back">⌫</button></div></div><button id="unlockBtn" class="primary">SIGN IN</button><button type="button" id="refreshAppBtn" class="quiet" style="width:100%;margin-top:8px">REFRESH USER LIST</button><div id="authMsg" role="status" aria-live="polite"></div><p class="muted" style="font-size:12px;margin-top:12px">OWNER setup and account administration: <a href="central-bank-admin.html" target="_blank" rel="noopener">Central Data Bank</a></p></div></div>
 <div id="operatorGate" style="display:none"></div>
@@ -258,7 +262,7 @@ body.overview-overlay-open{overflow:hidden}
 <button class="nav" data-view="reports">▤ &nbsp; PDF Reports</button>
 <button class="nav" data-view="staff">👥 &nbsp; STAFF</button>
 <button class="nav" data-view="settings">⚙ &nbsp; Settings</button>
-<a id="centralAdminNav" class="nav" href="central-bank-admin.html" target="_blank" rel="noopener">▣ &nbsp; Central Data Bank Admin</a>
+<a id="centralAdminNav" class="nav central-admin-nav" href="central-bank-admin.html" target="_blank" rel="noopener">▣ &nbsp; Central Data Bank Admin</a>
 <a class="nav overview-link" href="plant-overview-preview.html" aria-haspopup="dialog" aria-controls="overviewOverlay" aria-expanded="false">▦ &nbsp; Overview</a>
 <div class="sidefoot">75-minute daily break excluded from calculations.</div></aside>
 <main>
