@@ -5,7 +5,7 @@ Function: `central-bank` in `supabase/functions/central-bank/index.ts`.
 The function is designed to be deployed with `verify_jwt=false` because it validates its own opaque session header for protected actions. The database bank, session and audit tables remain service-role-only.
 
 ## Actions
-- `bootstrap`: one-time OWNER creation guarded by the server-side `DOWNTIME_BOOTSTRAP_CODE` secret. It refuses to run once an enabled account exists and uses central row version CAS.
+- `bootstrap`: one-time OWNER creation guarded by the encrypted `downtime_bootstrap_code` Supabase Vault secret, retrieved by a service-role-only SQL function. It refuses to run once an enabled account exists and uses central row version CAS. It refuses to run once an enabled account exists and uses central row version CAS.
 - `list-users`: returns enabled login choices only (username, display name and tier); it never returns PIN hash or salt fields.
 - `login`: validates username and PIN using PBKDF2-HMAC-SHA256 (150,000 iterations, per-user random salt); creates a random 256-bit opaque session token, stores only its SHA-256 hash, and expires the session after 12 hours. Failed attempts are recorded and throttled after five attempts for a username in five minutes.
 - `get-state`: returns the payload according to the caller's tier. It strips PIN secrets and filters user lists, STAFF data, assignments, dashboards and reports according to server-side privileges.
