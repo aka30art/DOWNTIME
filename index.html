@@ -365,7 +365,45 @@ body.overview-overlay-open{overflow:hidden}
   .tablewrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .modal{box-sizing:border-box;max-width:100%;width:100%}
 }
-</style></head>
+</style><style>
+.day-setup-panel{position:relative}
+.day-setup>summary{padding-right:82px}
+.day-tasks-trigger{position:absolute;z-index:3;right:38px;top:7px;width:32px;height:32px;min-height:32px;padding:5px;display:grid;place-items:center;background:#122a39;border:1px solid #3b5a6e;border-radius:8px;color:#ffd21b}
+.day-tasks-trigger:hover{border-color:#ffd21b;background:#1b3545}
+.day-tasks-trigger svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.daily-task-add{display:flex;gap:8px;align-items:stretch}
+.daily-task-add input{flex:1;min-width:0}
+.daily-task-preset-list{display:grid;gap:7px;margin-top:12px}
+.daily-task-preset-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#0a1a25;border:1px solid #2b4658;border-radius:9px}
+.daily-task-preset-row span{min-width:0;overflow-wrap:anywhere}
+.daily-task-preset-row button{flex:0 0 auto;padding:7px 9px;font-size:10px}
+.daily-tasks-modal{max-width:560px}
+.daily-tasks-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.daily-tasks-eyebrow{font-size:10px;font-weight:900;letter-spacing:1.1px;color:#8ca8b8}
+.daily-tasks-header h2{margin:4px 0 3px;color:var(--yellow);font-size:22px}
+.daily-tasks-header p{margin:0;font-size:12px}
+.daily-tasks-x{width:34px;height:34px;min-height:34px;padding:5px;flex:0 0 auto}
+.daily-tasks-progress{display:grid;gap:8px;margin:15px 0 12px;color:#a9bdca;font-size:10px;font-weight:900;letter-spacing:.65px}
+.daily-tasks-progress-track{height:6px;background:#263d4d;border-radius:8px;overflow:hidden}
+.daily-tasks-progress-track span{display:block;height:100%;width:0;background:linear-gradient(90deg,#20a66a,#69d69b);border-radius:8px;transition:width .15s}
+.daily-tasks-list{display:grid;gap:8px;max-height:min(52dvh,430px);overflow-y:auto;padding:2px 2px 3px}
+.daily-task-item{display:flex;align-items:center;gap:12px;min-width:0;padding:12px;background:#0b1c28;border:1px solid #2e495b;border-radius:10px;cursor:pointer}
+.daily-task-item input{width:20px;height:20px;flex:0 0 20px;margin:0;accent-color:#32b978}
+.daily-task-item span{min-width:0;overflow-wrap:anywhere;font-size:14px;font-weight:700}
+.daily-task-item.is-complete{border-color:#286949;background:#10291f}
+.daily-task-item.is-complete span{color:#9db5a7;text-decoration:line-through}
+.daily-tasks-empty{padding:18px 12px;text-align:center;background:#0a1a25;border:1px dashed #355064;border-radius:10px;color:#a9bdca;font-size:13px;line-height:1.5}
+@media(max-width:600px){
+ .day-setup>summary{padding-right:76px}
+ .day-tasks-trigger{right:34px;top:7px;width:31px;height:31px}
+ .daily-task-add{align-items:stretch}
+ .daily-task-add button{padding:8px 9px;font-size:11px}
+ .daily-tasks-modal{padding:15px}
+ .daily-task-item{padding:11px}
+ .daily-task-item span{font-size:13px}
+}
+</style>
+</head>
 <body><div id="authGate"><div class="authbox"><h2>DOWNTIME · CENTRAL LOGIN</h2><p class="muted">Select your central USER account and enter your PIN.</p><label for="centralUsername">USERNAME</label><select id="centralUsername" class="input" aria-label="Central username"><option value="">Loading central USERS…</option></select><input id="teamPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="4–8 digit PIN" aria-label="Central account PIN"><div class="pinpad" data-pinpad="teamPin"><div class="pinpad-grid"><button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="clear">CLEAR</button><button type="button" data-key="0">0</button><button type="button" data-key="back">⌫</button></div></div><button id="unlockBtn" class="primary">SIGN IN</button><button type="button" id="refreshAppBtn" class="quiet" style="width:100%;margin-top:8px">REFRESH USER LIST</button><div id="authMsg" role="status" aria-live="polite"></div><p class="muted" style="font-size:12px;margin-top:12px">OWNER setup and account administration: <a href="central-bank-admin.html" target="_blank" rel="noopener">Central Data Bank</a></p></div></div>
 <div id="operatorGate" style="display:none"></div>
 <div id="spectatorView" style="display:none"></div>
@@ -405,9 +443,10 @@ body.overview-overlay-open{overflow:hidden}
 <div class="layout">
 <div>
 <div class="panel day-setup-panel">
+<button id="openDailyTasks" class="day-tasks-trigger" type="button" title="Daily Tasks" aria-label="Open Daily Tasks"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5h6a2 2 0 0 1 2 2V20H7V6.5a2 2 0 0 1 2-2Z"/><path d="M9 4.5V3h6v1.5M10 10h4M10 13.5h4M10 17h4"/></svg></button>
 <details class="day-setup">
 <summary>
-<span class="day-setup-label">DAY SET UP</span>
+<span class="day-setup-label">DAY TO DAY</span>
 <strong id="dayHeading">MONDAY</strong>
 <span class="day-setup-hint">Shift settings</span>
 <span class="disclosure-chevron" aria-hidden="true">⌄</span>
@@ -432,7 +471,6 @@ body.overview-overlay-open{overflow:hidden}
 </div>
 <div class="panel downtime-entry-panel">
 <h2>Downtime entries</h2>
-<div class="presetrow" id="quickReasonButtons" hidden></div>
 <div class="tablewrap entrylistwrap"><table class="entrylisttable"><tbody id="entriesBody"></tbody></table></div>
 <div class="entry-actions">
 <button class="add" id="addEntry">＋ ADD DOWNTIME ENTRY</button>
@@ -509,7 +547,12 @@ body.overview-overlay-open{overflow:hidden}
       </button>
       <button class="settings-card settings-accent-cyan" type="button" data-settings-open="reasons" aria-controls="settingsPanelReasons" aria-expanded="false">
         <span class="settings-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><path d="m3 6 1.2 1.2L6.5 5M3 12l1.2 1.2L6.5 11M3 18l1.2 1.2L6.5 17"/></svg></span>
-        <span class="settings-card-copy"><strong>REASON PRESETS</strong><small>Downtime reasons and quick shortcuts</small><em>DOWNTIME LIBRARY</em></span>
+        <span class="settings-card-copy"><strong>REASON PRESETS</strong><small>Downtime reasons for entry forms</small><em>DOWNTIME LIBRARY</em></span>
+        <span class="settings-card-arrow" aria-hidden="true">›</span>
+      </button>
+            <button class="settings-card settings-accent-green" type="button" data-settings-open="dailyTasks" aria-controls="settingsPanelDailyTasks" aria-expanded="false">
+        <span class="settings-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 4.5h8a2 2 0 0 1 2 2V21H6V6.5a2 2 0 0 1 2-2Z"/><path d="M9 4.5V3h6v1.5M9.5 10l1.4 1.4 3-3M9.5 15l1.4 1.4 3-3"/></svg></span>
+        <span class="settings-card-copy"><strong>DAILY TASKS</strong><small>Preset the daily operational to-do list</small><em>DAILY CHECKLIST</em></span>
         <span class="settings-card-arrow" aria-hidden="true">›</span>
       </button>
       <button class="settings-card settings-accent-violet" type="button" data-settings-open="schedule" aria-controls="settingsPanelSchedule" aria-expanded="false">
@@ -545,15 +588,23 @@ body.overview-overlay-open{overflow:hidden}
   <div id="settingsPanelReasons" class="settings-panel" hidden>
     <div class="settings-detail-head"><button class="settings-back" type="button" data-settings-back>‹ <span>BACK TO SETTINGS</span></button><div class="settings-detail-tag">DOWNTIME LIBRARY</div></div>
     <div class="panel settings-content-panel">
-      <h2>REASON PRESETS</h2><p class="muted">Manage the downtime reason library and quick-entry shortcuts.</p>
+      <h2>REASON PRESETS</h2><p class="muted">Manage the standard downtime reasons available when recording an entry.</p>
       <div id="reasonPresetAdmin" style="display:none;margin:16px 0;padding-top:14px;border-top:1px solid #334b5c">
-<h3 style="margin:0 0 10px">REASON PRESETS</h3>
-<div id="quickReasonManager" style="display:none">
-<div class="field"><label>Quick reasons · shortcut buttons on Weekly Sheet</label><div id="quickReasonAdminList" class="presetrow"></div><div style="display:flex;gap:6px;margin-top:8px"><input id="newQuickReason" placeholder="Add quick reason" maxlength="60"><button id="addQuickReasonBtn" type="button">ADD QUICK REASON</button></div></div>
-</div>
-<div class="field" style="margin-top:14px"><label>Downtime reasons · entry form presets and shift shortcuts</label><div id="downtimeReasonAdminList" class="presetrow"></div><div style="display:flex;gap:6px;margin-top:8px"><input id="newDowntimeReason" placeholder="Add downtime reason" maxlength="60"><button id="addDowntimeReasonBtn" class="primary" type="button">ADD REASON</button></div><p id="supervisorReasonHelp" class="muted" style="display:none;margin:8px 0 0">SUPERVISOR can add downtime reasons. Existing presets are protected from removal.</p></div>
+<h3 style="margin:0 0 10px">DOWNTIME REASONS</h3>
+<div class="field" style="margin-top:14px"><label>Downtime reasons · entry form presets</label><div id="downtimeReasonAdminList" class="presetrow"></div><div style="display:flex;gap:6px;margin-top:8px"><input id="newDowntimeReason" placeholder="Add downtime reason" maxlength="60"><button id="addDowntimeReasonBtn" class="primary" type="button">ADD REASON</button></div><p id="supervisorReasonHelp" class="muted" style="display:none;margin:8px 0 0">SUPERVISOR can add downtime reasons. Existing presets are protected from removal.</p></div>
 <div id="reasonPresetAdminMsg" class="muted" role="status" style="margin-top:8px;min-height:20px"></div>
 </div>
+    </div>
+  </div>
+
+  <div id="settingsPanelDailyTasks" class="settings-panel" hidden>
+    <div class="settings-detail-head"><button class="settings-back" type="button" data-settings-back>‹ <span>BACK TO SETTINGS</span></button><div class="settings-detail-tag">DAILY CHECKLIST</div></div>
+    <div class="panel settings-content-panel">
+      <h2>DAILY TASKS</h2>
+      <p class="muted">Create the standard daily to-do list. These tasks appear in the clipboard popup on Day to Day. Completion is recorded separately for each operating day.</p>
+      <div class="field" style="margin-top:14px"><label for="dailyTaskPresetInput">New daily task</label><div class="daily-task-add"><input id="dailyTaskPresetInput" maxlength="100" placeholder="Enter a daily task"><button id="addDailyTaskPresetBtn" class="primary" type="button">ADD TASK</button></div></div>
+      <div id="dailyTaskPresetMsg" class="muted" role="status" style="margin-top:8px;min-height:20px"></div>
+      <div id="dailyTaskPresetList" class="daily-task-preset-list" aria-live="polite"></div>
     </div>
   </div>
 
@@ -581,6 +632,15 @@ body.overview-overlay-open{overflow:hidden}
 <div class="field photo-field" style="margin-top:14px"><label>PHOTO EVIDENCE (OPTIONAL · 24 HOURS)</label><input id="photoInput" type="file" accept="image/*" style="display:none"><input id="photoCameraInput" type="file" accept="image/*" capture="environment" style="display:none"><div style="display:flex;flex-wrap:wrap;gap:8px"><button type="button" id="photoChoose" class="secondary">🖼️ CHOOSE PHOTO / FILE</button><button type="button" id="photoCamera" class="secondary">📷 TAKE PHOTO</button></div><div id="photoStatus" style="font-size:12px;margin-top:8px">No photo attached</div><div id="photoPreviewWrap" style="display:none;margin-top:8px"><img id="photoPreview" alt="Photo evidence preview" style="max-width:100%;max-height:220px;border-radius:12px;object-fit:contain"><button type="button" id="photoRemove" class="danger" style="margin-top:8px">REMOVE PHOTO</button></div></div>
 <div class="modalfoot"><button id="cancelEntry">CANCEL</button><button class="primary" id="saveEntry">SAVE ENTRY</button></div></div></div>
 <div class="modalback" id="resetModal"><div class="modal"><h2>Export and reset this week?</h2><p>This will generate the weekly PDF, save a report record in this browser, and clear the active weekly sheet for the next week. Make sure you download and retain the PDF.</p><div class="modalfoot"><button id="cancelReset">CANCEL</button><button class="primary" id="confirmReset">EXPORT &amp; RESET</button></div></div></div>
+<div class="modalback" id="dailyTasksModal" aria-hidden="true">
+  <div class="modal daily-tasks-modal" role="dialog" aria-modal="true" aria-labelledby="dailyTasksTitle">
+    <div class="daily-tasks-header"><div><div class="daily-tasks-eyebrow">DOWNTIME · DAILY CHECKLIST</div><h2 id="dailyTasksTitle">DAILY TASKS</h2><p id="dailyTasksDay" class="muted">MONDAY · —</p></div><button id="closeDailyTasksX" type="button" class="daily-tasks-x" aria-label="Close Daily Tasks">✕</button></div>
+    <div class="daily-tasks-progress"><span id="dailyTasksProgressText">0 / 0 COMPLETE</span><div class="daily-tasks-progress-track"><span id="dailyTasksProgressFill"></span></div></div>
+    <div id="dailyTasksList" class="daily-tasks-list"></div>
+    <div id="dailyTasksEmpty" class="daily-tasks-empty" hidden>No daily tasks have been preset yet. An administrator can create the checklist in Settings.</div>
+    <div class="modalfoot"><button id="closeDailyTasks" class="primary" type="button">DONE</button></div>
+  </div>
+</div>
 <script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';</script>
 <script src="central-bank-client.js"></script>
 <script>
@@ -594,7 +654,7 @@ const iso=d=>{let x=new Date(d);return [x.getFullYear(),String(x.getMonth()+1).p
 const plus=(d,n)=>{let x=new Date(d);x.setDate(x.getDate()+n);return x};
 const parseWeek=k=>new Date(k+'T12:00:00');
 let weekStart=mondayOf(today),selected=0,entryDraft={area:'',reason:''},editing=-1;
-let state=load();state.shiftSchedule=state.shiftSchedule||scheduleDefaults();state.shiftPresets=state.shiftPresets||[];if(typeof state.plantOn!=="boolean")state.plantOn=true;state.recentReasons=state.recentReasons||[];state.undoAction=state.undoAction||null;if(!Array.isArray(state.quickReasons))state.quickReasons=[...(state.reasons||[])];
+let state=load();state.shiftSchedule=state.shiftSchedule||scheduleDefaults();state.shiftPresets=state.shiftPresets||[];state.dailyTaskPresets=Array.isArray(state.dailyTaskPresets)?state.dailyTaskPresets:[];if(typeof state.plantOn!=="boolean")state.plantOn=true;state.undoAction=state.undoAction||null;delete state.quickReasons;delete state.recentReasons;
 let centralUsers=[],centralUser=null,centralBankPayload=null,centralVersion=0,centralReady=false,centralPendingWrites=0,centralPinAttempts=0,centralPinLockUntil=0;
 let activeOperator='',operatorReadOnly=false,operatorAdmin=false;
 const USER_TIERS=['OWNER','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR'];
@@ -627,7 +687,7 @@ const resetConfirm=$('confirmReset');if(resetConfirm)resetConfirm.disabled=opera
 const supervisorPanel=$('supervisorReasonPanel');if(supervisorPanel)supervisorPanel.style.display=permission('canAddDowntimeReasons')&&!permission('canManageSettings')?'block':'none';
 }
 function renderOperatorChoices(){const select=$('centralUsername');if(!select)return;const selected=select.value;select.innerHTML='<option value="">Select USER…</option>'+centralUsers.map(u=>'<option value="'+safe(u.username)+'">'+safe(u.displayName||u.username)+' · '+safe(u.tier)+'</option>').join('');if(centralUsers.some(u=>u.username===selected))select.value=selected;}
-function centralAppData(payload){const bank=payload||{},app={...(bank.appData||{})};app.operatorProfiles=bank.staff?.profiles||app.operatorProfiles||{};app.staffRoster=Array.isArray(bank.staff?.roster)?bank.staff.roster:(Array.isArray(app.staffRoster)?app.staffRoster:['Jan','Mick','Gigi','Daz','Shayne']);if(!app.weeks||typeof app.weeks!=='object')app.weeks={};if(!Array.isArray(app.areas))app.areas=['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360'];if(!Array.isArray(app.reasons))app.reasons=['Mick (diesel, filter, etc)','Blockage','Repair/Maintenance','Unknown'];if(!Array.isArray(app.quickReasons))app.quickReasons=[...app.reasons];if(!Array.isArray(app.archive))app.archive=[];return app}
+function centralAppData(payload){const bank=payload||{},app={...(bank.appData||{})};app.operatorProfiles=bank.staff?.profiles||app.operatorProfiles||{};app.staffRoster=Array.isArray(bank.staff?.roster)?bank.staff.roster:(Array.isArray(app.staffRoster)?app.staffRoster:['Jan','Mick','Gigi','Daz','Shayne']);if(!app.weeks||typeof app.weeks!=='object')app.weeks={};if(!Array.isArray(app.areas))app.areas=['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360'];if(!Array.isArray(app.reasons))app.reasons=['Mick (diesel, filter, etc)','Blockage','Repair/Maintenance','Unknown'];if(!Array.isArray(app.dailyTaskPresets))app.dailyTaskPresets=[];delete app.quickReasons;delete app.recentReasons;if(!Array.isArray(app.archive))app.archive=[];return app}
 function applyTierVisibility(){
  const spectator=privilegeFor(activeOperator)==='SPECTATOR'||!permission('canViewDashboards');
  const reportsNav=document.querySelector('.nav[data-view="reports"]'),settingsNav=document.querySelector('.nav[data-view="settings"]'),overview=document.querySelector('.overview-link'),admin=$('centralAdminNav'),usersAdmin=$('centralUsersAdminLink');
@@ -653,9 +713,9 @@ function captureUndo(){state.undoAction={week:key(),day:selected,entries:JSON.pa
 function undoLast(){let u=state.undoAction;if(!u){alert("Nothing to undo yet.");return}if(u.week!==key()){alert("Last action is in another week. Navigate there to undo.");return}if(!confirm("Undo the last downtime change for "+DAYS[u.day]+"?"))return;selected=u.day;week().days[selected].entries=JSON.parse(JSON.stringify(u.entries));state.undoAction=null;persist();render()}
 $("undoBtn").onclick=undoLast;
 function key(){return iso(weekStart)}
-function blankDay(d){const name=DAYS[(d.getDay()+6)%7],cfg=name?(state.shiftSchedule?.[name]||STANDARD_SHIFT[name]):null;return {date:iso(d),start:cfg?.start||'',stop:cfg?.stop||'',machineStart:cfg?.machine||'',breakMinutes:cfg?(Number(cfg.break1)||0)+(Number(cfg.break2)||0):0,startLocked:false,entries:[]}}
+function blankDay(d){const name=DAYS[(d.getDay()+6)%7],cfg=name?(state.shiftSchedule?.[name]||STANDARD_SHIFT[name]):null;return {date:iso(d),start:cfg?.start||'',stop:cfg?.stop||'',machineStart:cfg?.machine||'',breakMinutes:cfg?(Number(cfg.break1)||0)+(Number(cfg.break2)||0):0,startLocked:false,entries:[],dailyTasksDone:[]}}
 function week(){if(!state.weeks[key()])state.weeks[key()]={days:DAYS.map((_,i)=>blankDay(plus(weekStart,i)))};return state.weeks[key()]}
-function day(){return week().days[selected]}
+function day(){const current=week().days[selected];if(!Array.isArray(current.dailyTasksDone))current.dailyTasksDone=[];return current}
 function mins(t){if(!t||!/^\d{2}:\d{2}$/.test(t))return null;let [h,m]=t.split(':').map(Number);if(h>23||m>59)return null;return h*60+m}
 function durationMinutes(e){return Math.max(0,(Number(e.hours)||0)*60+(Number(e.minutes)||0))}
 function calc(d){const s=mins(d.start),e=mins(d.stop),scheduled=s===null||e===null?0:e-s+(e<=s?1440:0);const weekday=d.date?new Date(d.date+'T12:00:00').getDay():1;const dayName=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][weekday];const breakDeduction=configuredBreakMinutes(dayName);const net=Math.max(0,scheduled-breakDeduction);const down=(d.entries||[]).reduce((a,x)=>a+durationMinutes(x),0);const run=Math.max(0,net-down);return {scheduled,breakDeduction,net,down,run,downPct:net?down/net*100:0,runPct:net?run/net*100:0,over:down>net}}
@@ -672,7 +732,7 @@ let d=day(),c=calc(d);$('dayHeading').textContent=DAYS[selected].toUpperCase()+'
 $('entriesBody').innerHTML=d.entries.length?d.entries.map((e,i)=>'<tr class="entrycompact"><td colspan="5"><button class="entrytile" data-detail="'+i+'"><span class="entrynumber">#'+String(i+1).padStart(2,'02')+'</span><span class="entrymain"><b>'+safe(e.area)+'</b><small>'+safe(e.reason)+'</small></span><span class="entryduration">'+String(e.hours||0).padStart(2,'0')+':'+String(e.minutes||0).padStart(2,'0')+'</span><span class="entrychevron">›</span></button></td></tr>').join(''):'<tr><td colspan="5" class="empty">No downtime entries recorded for this day.</td></tr>';
 document.querySelectorAll('[data-detail]').forEach(b=>b.onclick=()=>openDetails(Number(b.dataset.detail)));
 $('scheduled').textContent=fmt(c.scheduled);$('breakExcludedStat').textContent=fmt(c.breakDeduction);$('net').textContent=fmt(c.net);$('downtime').textContent=fmt(c.down);$('running').textContent=fmt(c.run);$('downPct').textContent=pct(c.downPct);$('runPct').textContent=pct(c.runPct);$('dayFootnote').textContent=c.over?'Warning: recorded downtime exceeds net available plant time. Check the entries.':'Changes sync automatically when the central connection is available.';$('dayFootnote').hidden=!c.over;
-let totals=week().days.map(calc),totalNet=totals.reduce((a,x)=>a+x.net,0),totalDown=totals.reduce((a,x)=>a+x.down,0),totalRun=Math.max(0,totalNet-totalDown);renderQuickReasons();renderWeeklyIntelligence();$("undoBtn").disabled=!state.undoAction;$("dayHeading").textContent=DAYS[selected].toUpperCase();
+let totals=week().days.map(calc),totalNet=totals.reduce((a,x)=>a+x.net,0),totalDown=totals.reduce((a,x)=>a+x.down,0),totalRun=Math.max(0,totalNet-totalDown);renderWeeklyIntelligence();$("undoBtn").disabled=!state.undoAction;$("dayHeading").textContent=DAYS[selected].toUpperCase();
 $('weekBody').innerHTML=week().days.map((x,i)=>{let z=totals[i];return '<tr class="'+(i===selected?'current':'')+'"><td>'+DAYS[i]+'</td><td>'+safe(x.operator||'—')+'</td><td>'+prettyDate(x.date)+'</td><td>'+(x.start||'—')+'</td><td>'+(x.stop||'—')+'</td><td>'+fmt(z.down)+'</td><td>'+pct(z.downPct)+'</td><td>'+pct(z.runPct)+'</td></tr>'}).join('');
 $('topWeekDown').textContent=fmt(totalDown);$('topWeekPct').textContent=pct(totalNet?totalDown/totalNet*100:0);$('topWeekRunPct').textContent=pct(totalNet?totalRun/totalNet*100:0);$('weekDown').textContent=fmt(totalDown);$('weekNet').textContent=fmt(totalNet);$('weekPct').textContent=pct(totalNet?totalDown/totalNet*100:0);$('weekRunPct').textContent=pct(totalNet?totalRun/totalNet*100:0);
 enforceOperatorMode();
@@ -682,10 +742,9 @@ function openDetails(i){detailIndex=i;let e=day().entries[i];if(!e)return;$('det
 $('closeDetails').onclick=()=>$('detailsModal').classList.remove('show');
 $('detailEdit').onclick=()=>{if(operatorReadOnly)return;$('detailsModal').classList.remove('show');openEntry(detailIndex)};
 $('detailDelete').onclick=()=>{if(operatorReadOnly)return;if(detailIndex>=0&&confirm('Delete this downtime entry?')){captureUndo();day().entries.splice(detailIndex,1);persist();$('detailsModal').classList.remove('show');render()}};
-function openEntry(i=-1,quickReason=""){if(operatorReadOnly)return;editing=i;entryDraft={area:i>=0?day().entries[i].area:'',reason:i>=0?day().entries[i].reason:quickReason};let e=i>=0?day().entries[i]:{hours:0,minutes:0};$('areaManual').value=entryDraft.area;$('reasonManual').value=entryDraft.reason;$('durationHours').value=e.hours||0;$('durationMinutes').value=e.minutes||0;photoReset();if(i>=0&&e.attachmentId){photoExisting={attachmentId:e.attachmentId,expiresAt:e.photoExpiresAt};photoEntryKey=e.photoEntryKey;photoStatus(e.photoExpiresAt&&Date.now()>=Date.parse(e.photoExpiresAt)?'Photo expired':'Photo attached · expires in 24 hours');if(!e.photoExpiresAt||Date.now()<Date.parse(e.photoExpiresAt)){photoView(e.attachmentId).then(u=>photoShowPreview(u)).catch(()=>photoStatus('Photo unavailable'))}}renderPresets();$('entryModal').classList.add('show')}
+function openEntry(i=-1){if(operatorReadOnly)return;editing=i;entryDraft={area:i>=0?day().entries[i].area:'',reason:i>=0?day().entries[i].reason:''};let e=i>=0?day().entries[i]:{hours:0,minutes:0};$('areaManual').value=entryDraft.area;$('reasonManual').value=entryDraft.reason;$('durationHours').value=e.hours||0;$('durationMinutes').value=e.minutes||0;photoReset();if(i>=0&&e.attachmentId){photoExisting={attachmentId:e.attachmentId,expiresAt:e.photoExpiresAt};photoEntryKey=e.photoEntryKey;photoStatus(e.photoExpiresAt&&Date.now()>=Date.parse(e.photoExpiresAt)?'Photo expired':'Photo attached · expires in 24 hours');if(!e.photoExpiresAt||Date.now()<Date.parse(e.photoExpiresAt)){photoView(e.attachmentId).then(u=>photoShowPreview(u)).catch(()=>photoStatus('Photo unavailable'))}}renderPresets();$('entryModal').classList.add('show')}
 function renderPresets(){[['areaButtons',state.areas,'area'],['reasonButtons',state.reasons,'reason']].forEach(([id,items,type])=>{$(id).innerHTML=(items||[]).map(v=>'<button type="button" class="'+(entryDraft[type]===v?'chosen':'')+'" data-preset="'+safe(v)+'">'+safe(v)+'</button>').join('')||'<span class="muted">No presets configured yet.</span>';$(id).querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{entryDraft[type]=b.dataset.preset;$(type==='area'?'areaManual':'reasonManual').value=b.dataset.preset;renderPresets()})})}
 function closeEntry(){$('entryModal').classList.remove('show');photoClearPreview()}
-function renderQuickReasons(){const el=$("quickReasonButtons");if(!el)return;const items=[...(state.recentReasons||[]).slice(0,4),...(state.quickReasons||[])].filter((v,i,a)=>a.indexOf(v)===i);el.innerHTML=items.map(v=>'<button type="button" data-quickreason="'+safe(v)+'">'+safe(v)+'</button>').join("")||'<span class="muted">Set quick reasons in Settings.</span>';el.querySelectorAll("[data-quickreason]").forEach(b=>b.onclick=()=>openEntry(-1,b.dataset.quickreason))}
 function renderWeeklyIntelligence(){const totals=week().days.map(calc),down=totals.reduce((sum,c)=>sum+c.down,0),causes={};week().days.forEach(d=>d.entries.forEach(e=>{const r=e.reason||"Unknown";causes[r]=(causes[r]||0)+durationMinutes(e)}));const ranked=Object.entries(causes).sort((a,b)=>b[1]-a[1]),top=ranked[0];$("topCause").textContent=top?top[0]:"—";$("topCauseShare").textContent=top&&down?(top[1]/down*100).toFixed(1)+"%":"—";const prev=state.weeks[iso(plus(weekStart,-7))],prevDown=prev?prev.days.reduce((sum,d)=>sum+calc(d).down,0):null;$("prevWeekDown").textContent=prev?fmt(prevDown):"No data";if(prev){const delta=down-prevDown;$("weekChange").textContent=(delta>0?"+":"")+fmt(delta);$("weekChange").style.color=delta>0?"#ff907b":delta<0?"#ffd21b":"var(--text)"}else $("weekChange").textContent="—";const best=totals.map((c,i)=>({i,c})).sort((a,b)=>b.c.runPct-a.c.runPct)[0],worst=totals.map((c,i)=>({i,c})).sort((a,b)=>b.c.down-a.c.down)[0];$("weeklyInsight").textContent=top?"Top cause: "+top[0]+" accounts for "+(top[1]/Math.max(1,down)*100).toFixed(1)+"% of downtime. "+(prev?"Downtime "+(down>prevDown?"increased by ":"decreased by ")+fmt(Math.abs(down-prevDown))+" versus last week. ":"No previous-week comparison. ")+"Best running day: "+DAYS[best.i]+" ("+pct(best.c.runPct)+"). Highest downtime: "+DAYS[worst.i]+" ("+fmt(worst.c.down)+").":"No downtime causes logged yet."}
 $('addEntry').onclick=()=>{if(!operatorReadOnly)openEntry()};$('cancelEntry').onclick=closeEntry;
 // PHOTO EVIDENCE — optional, private signed-upload workflow (24h expiry)
@@ -705,7 +764,7 @@ async function handlePhotoChange(input){const file=input.files?.[0];if(!file)ret
 $('photoRemove').onclick=async()=>{if(photoUploading)return;if(photoExisting?.attachmentId){try{await fetch(PHOTO_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},body:JSON.stringify({action:'delete',attachmentId:photoExisting.attachmentId})})}catch{}}photoDraft=null;photoExisting=null;photoRemoved=true;photoClearPreview();photoStatus('Photo removed')};
 async function photoView(id){const r=await fetch(PHOTO_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},body:JSON.stringify({action:'view',attachmentId:id})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Photo unavailable');return d.url}
 function photoDetails(e){const box=$('detailPhotoBox'),content=$('detailPhotoContent');box.style.display='none';content.innerHTML='';if(!e?.attachmentId)return;if(e.photoExpiresAt&&Date.now()>=Date.parse(e.photoExpiresAt)){box.style.display='block';content.textContent='Photo expired';return}box.style.display='block';const b=document.createElement('button');b.textContent='VIEW PHOTO';b.onclick=async()=>{content.textContent='Loading…';try{const u=await photoView(e.attachmentId),img=document.createElement('img');img.src=u;img.alt='Downtime photo evidence';img.style.cssText='max-width:100%;max-height:360px;border-radius:12px';content.replaceChildren(img)}catch(err){content.textContent=err.message.includes('expired')?'Photo expired':'Photo unavailable'}};content.append(b)}
-$('saveEntry').onclick=()=>{if(operatorReadOnly)return;let area=$('areaManual').value.trim(),reason=$('reasonManual').value.trim(),h=Number($('durationHours').value),m=Number($('durationMinutes').value);if(!area||!reason){alert('Enter or select both a plant area and a downtime reason.');return}if(!Number.isInteger(h)||!Number.isInteger(m)||h<0||m<0||m>59||h>999){alert('Enter a valid duration in hours and minutes.');return}if(photoUploading){alert('Wait for the photo upload to finish, or remove the photo before saving.');return}let previous=editing>=0?day().entries[editing]:null;let item={area,reason,hours:h,minutes:m};if(previous?.recordId)item.recordId=previous.recordId;if(previous?.entryKey)item.entryKey=previous.entryKey;if(photoDraft){item.attachmentId=photoDraft.attachmentId;item.photoExpiresAt=photoDraft.expiresAt;item.photoEntryKey=photoDraft.entryKey}else if(photoExisting){item.attachmentId=photoExisting.attachmentId;item.photoExpiresAt=photoExisting.expiresAt;item.photoEntryKey=photoEntryKey||previous?.photoEntryKey}else if(previous?.attachmentId&&!photoRemoved){item.attachmentId=previous.attachmentId;item.photoExpiresAt=previous.photoExpiresAt;item.photoEntryKey=previous.photoEntryKey}state.areas=Array.isArray(state.areas)?state.areas:[];if(!state.areas.some(existing=>String(existing).trim().toLowerCase()===area.toLowerCase()))state.areas.push(area);let entries=day().entries;captureUndo();if(editing<0)entries.push(item);else entries[editing]=item;state.recentReasons=[reason,...(state.recentReasons||[]).filter(x=>x!==reason)].slice(0,5);persist();closeEntry();photoReset();render()};
+$('saveEntry').onclick=()=>{if(operatorReadOnly)return;let area=$('areaManual').value.trim(),reason=$('reasonManual').value.trim(),h=Number($('durationHours').value),m=Number($('durationMinutes').value);if(!area||!reason){alert('Enter or select both a plant area and a downtime reason.');return}if(!Number.isInteger(h)||!Number.isInteger(m)||h<0||m<0||m>59||h>999){alert('Enter a valid duration in hours and minutes.');return}if(photoUploading){alert('Wait for the photo upload to finish, or remove the photo before saving.');return}let previous=editing>=0?day().entries[editing]:null;let item={area,reason,hours:h,minutes:m};if(previous?.recordId)item.recordId=previous.recordId;if(previous?.entryKey)item.entryKey=previous.entryKey;if(photoDraft){item.attachmentId=photoDraft.attachmentId;item.photoExpiresAt=photoDraft.expiresAt;item.photoEntryKey=photoDraft.entryKey}else if(photoExisting){item.attachmentId=photoExisting.attachmentId;item.photoExpiresAt=photoExisting.expiresAt;item.photoEntryKey=photoEntryKey||previous?.photoEntryKey}else if(previous?.attachmentId&&!photoRemoved){item.attachmentId=previous.attachmentId;item.photoExpiresAt=previous.photoExpiresAt;item.photoEntryKey=previous.photoEntryKey}state.areas=Array.isArray(state.areas)?state.areas:[];if(!state.areas.some(existing=>String(existing).trim().toLowerCase()===area.toLowerCase()))state.areas.push(area);let entries=day().entries;captureUndo();if(editing<0)entries.push(item);else entries[editing]=item;persist();closeEntry();photoReset();render()};
 
 $('dayDate').onchange=e=>{if(operatorReadOnly)return;day().date=e.target.value;persist();render()};$('plantStart').onchange=e=>{if(operatorReadOnly)return;if(day().startLocked){e.target.value=day().start;return}day().start=e.target.value;persist();render()};$('lockStartBtn').onclick=()=>{if(operatorReadOnly||day().startLocked)return;if(!day().start){alert('Set the plant start time first.');return}if(!confirm('Lock Plant Start at '+day().start+' permanently for '+DAYS[selected]+'? It cannot be changed after locking.'))return;day().startLocked=true;day().startLockedAt=new Date().toLocaleString('en-GB');persist();render()};$('plantStop').onchange=e=>{if(operatorReadOnly)return;day().stop=e.target.value;persist();render()};
 $('prevWeek').onclick=()=>{weekStart=plus(weekStart,-7);selected=0;render()};$('nextWeek').onclick=()=>{weekStart=plus(weekStart,7);selected=0;render()};
@@ -728,13 +787,13 @@ window.addEventListener('message',event=>{
  if(event.origin!==location.origin||event.source!==overviewFrame?.contentWindow)return;
  if(event.data?.type==='DOWNTIME_OVERVIEW_CLOSE')closePlantOverview();
 });
-function settingsAccess(section){if(section==='users')return permission('canManageUsers')||permission('canManageSettings');if(section==='areas'||section==='schedule')return permission('canManageSettings');if(section==='staff')return permission('canViewStaff');if(section==='reasons')return permission('canManageSettings')||permission('canAddDowntimeReasons');return false}
-function renderSettingsHub(){const access={users:settingsAccess('users'),areas:settingsAccess('areas'),reasons:settingsAccess('reasons'),schedule:settingsAccess('schedule'),staff:settingsAccess('staff')};document.querySelectorAll('[data-settings-open]').forEach(button=>{const key=button.dataset.settingsOpen;button.hidden=!access[key]});const areasControls=$('settingsAreasAdminControls');if(areasControls)areasControls.style.display=permission('canManageSettings')?'block':'none';const empty=$('settingsHubEmpty');if(empty)empty.hidden=Object.values(access).some(Boolean);const openPanel=document.querySelector('.settings-panel:not([hidden])');if(openPanel){const section=({settingsPanelUsers:'users',settingsPanelAreas:'areas',settingsPanelReasons:'reasons',settingsPanelSchedule:'schedule',settingsPanelStaff:'staff'})[openPanel.id];if(!section||!settingsAccess(section))showSettingsHub()}}
+function settingsAccess(section){if(section==='users')return permission('canManageUsers')||permission('canManageSettings');if(section==='areas'||section==='schedule'||section==='dailyTasks')return permission('canManageSettings');if(section==='staff')return permission('canViewStaff');if(section==='reasons')return permission('canManageSettings')||permission('canAddDowntimeReasons');return false}
+function renderSettingsHub(){const access={users:settingsAccess('users'),areas:settingsAccess('areas'),reasons:settingsAccess('reasons'),schedule:settingsAccess('schedule'),dailyTasks:settingsAccess('dailyTasks'),staff:settingsAccess('staff')};document.querySelectorAll('[data-settings-open]').forEach(button=>{const key=button.dataset.settingsOpen;button.hidden=!access[key]});const areasControls=$('settingsAreasAdminControls');if(areasControls)areasControls.style.display=permission('canManageSettings')?'block':'none';const empty=$('settingsHubEmpty');if(empty)empty.hidden=Object.values(access).some(Boolean);const openPanel=document.querySelector('.settings-panel:not([hidden])');if(openPanel){const section=({settingsPanelUsers:'users',settingsPanelAreas:'areas',settingsPanelReasons:'reasons',settingsPanelSchedule:'schedule',settingsPanelDailyTasks:'dailyTasks',settingsPanelStaff:'staff'})[openPanel.id];if(!section||!settingsAccess(section))showSettingsHub()}}
 function showSettingsHub(){const hub=$('settingsHub');if(hub)hub.hidden=false;document.querySelectorAll('.settings-panel').forEach(panel=>panel.hidden=true);document.querySelectorAll('[data-settings-open]').forEach(button=>button.setAttribute('aria-expanded','false'));$('subtitle').textContent='Settings hub · Administration and configuration'}
-function openSettingsPanel(section){if(!settingsAccess(section))return;const ids={users:'settingsPanelUsers',areas:'settingsPanelAreas',reasons:'settingsPanelReasons',schedule:'settingsPanelSchedule',staff:'settingsPanelStaff'};const titles={users:'Users',areas:'Area Presets',reasons:'Reason Presets',schedule:'Shift & Breaktime Schedule',staff:'Staff'};const panel=$(ids[section]);if(!panel)return;const hub=$('settingsHub');if(hub)hub.hidden=true;document.querySelectorAll('.settings-panel').forEach(item=>item.hidden=item!==panel);document.querySelectorAll('[data-settings-open]').forEach(button=>button.setAttribute('aria-expanded',String(button.dataset.settingsOpen===section)));$('subtitle').textContent='Settings · '+titles[section];}
+function openSettingsPanel(section){if(!settingsAccess(section))return;const ids={users:'settingsPanelUsers',areas:'settingsPanelAreas',reasons:'settingsPanelReasons',schedule:'settingsPanelSchedule',dailyTasks:'settingsPanelDailyTasks',staff:'settingsPanelStaff'};const titles={users:'Users',areas:'Area Presets',reasons:'Reason Presets',schedule:'Shift & Breaktime Schedule',dailyTasks:'Daily Tasks',staff:'Staff'};const panel=$(ids[section]);if(!panel)return;const hub=$('settingsHub');if(hub)hub.hidden=true;document.querySelectorAll('.settings-panel').forEach(item=>item.hidden=item!==panel);document.querySelectorAll('[data-settings-open]').forEach(button=>button.setAttribute('aria-expanded',String(button.dataset.settingsOpen===section)));$('subtitle').textContent='Settings · '+titles[section];}
 document.querySelectorAll('[data-settings-open]').forEach(button=>button.addEventListener('click',()=>openSettingsPanel(button.dataset.settingsOpen)));
 document.querySelectorAll('[data-settings-back]').forEach(button=>button.addEventListener('click',showSettingsHub));
-document.querySelectorAll('.nav').forEach(b=>b.onclick=e=>{if(b.classList.contains('overview-link')){e.preventDefault();openPlantOverview();return;}document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===b.dataset.view));if(b.dataset.view==='settings'){showSettingsHub();renderSettingsHub();$('subtitle').textContent='Settings hub · Administration and configuration'}else $('subtitle').textContent=b.dataset.view==='weekly'?'Weekly recording sheet · Monday–Saturday':b.dataset.view==='reports'?'Previously exported weekly reports':b.dataset.view==='settings'?'Manage users and settings':'Manage users and settings';if(b.dataset.view==='reports')renderArchive();if(b.dataset.view==='settings'){renderOperatorRosterAdmin();renderReasonPresetSettings();renderShiftSchedule();enforceOperatorMode();renderSettingsHub()}});
+document.querySelectorAll('.nav').forEach(b=>b.onclick=e=>{if(b.classList.contains('overview-link')){e.preventDefault();openPlantOverview();return;}document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===b.dataset.view));if(b.dataset.view==='settings'){showSettingsHub();renderSettingsHub();$('subtitle').textContent='Settings hub · Administration and configuration'}else $('subtitle').textContent=b.dataset.view==='weekly'?'Weekly recording sheet · Monday–Saturday':b.dataset.view==='reports'?'Previously exported weekly reports':b.dataset.view==='settings'?'Manage users and settings':'Manage users and settings';if(b.dataset.view==='reports')renderArchive();if(b.dataset.view==='settings'){renderOperatorRosterAdmin();renderReasonPresetSettings();renderShiftSchedule();renderDailyTaskSettings();enforceOperatorMode();renderSettingsHub()}});
 
 
 function reportData(){let w=week(),days=w.days.map((d,i)=>({name:DAYS[i],...d,calc:calc(d)})),net=days.reduce((a,d)=>a+d.calc.net,0),down=days.reduce((a,d)=>a+d.calc.down,0),causes={};days.forEach(d=>d.entries.forEach(e=>{causes[e.reason]=(causes[e.reason]||0)+durationMinutes(e)}));let top=Object.entries(causes).sort((a,b)=>b[1]-a[1]),prev=state.weeks[iso(plus(weekStart,-7))],prevDown=prev?prev.days.reduce((a,d)=>a+calc(d).down,0):null;return {week:key(),created:new Date().toISOString(),days,totalNet:net,totalDown:down,totalPct:net?down/net*100:0,totalRun:Math.max(0,net-down),totalRunPct:net?Math.max(0,net-down)/net*100:0,topCauses:top,prevDown,weekDelta:prevDown===null?null:down-prevDown}}
@@ -952,56 +1011,80 @@ $('resetShiftSchedule')?.addEventListener('click',()=>{if(!permission('canManage
 $('saveShiftPreset')?.addEventListener('click',()=>{if(!permission('canManageSettings'))return;const name=$('shiftPresetName').value.trim();if(!name){$('shiftScheduleStatus').textContent='Enter a preset name first.';return}const cfg=readShiftSchedule();state.shiftPresets.push({name,config:cfg});persist();renderShiftSchedule();$('shiftScheduleStatus').textContent='Preset saved.'});
 $('applyShiftPreset')?.addEventListener('click',()=>{if(!permission('canManageSettings'))return;const i=Number($('shiftPresetSelect').value),p=state.shiftPresets[i];if(!p)return;state.shiftSchedule=JSON.parse(JSON.stringify(p.config));persist();renderShiftSchedule();$('shiftScheduleStatus').textContent='Preset applied.'});
 
+function renderDailyTaskSettings(){
+ const list=$('dailyTaskPresetList');if(!list)return;list.replaceChildren();
+ const tasks=Array.isArray(state.dailyTaskPresets)?state.dailyTaskPresets:[];
+ if(!tasks.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='No daily tasks configured yet.';list.appendChild(empty);return}
+ tasks.forEach((task,index)=>{
+  const row=document.createElement('div');row.className='daily-task-preset-row';
+  const name=document.createElement('span');name.textContent=task;row.appendChild(name);
+  const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='REMOVE';remove.setAttribute('aria-label','Remove daily task '+task);
+  remove.onclick=()=>{if(!permission('canManageSettings'))return;state.dailyTaskPresets=state.dailyTaskPresets.filter((item,i)=>i!==index);Object.values(state.weeks||{}).forEach(w=>(w?.days||[]).forEach(d=>{d.dailyTasksDone=(Array.isArray(d.dailyTasksDone)?d.dailyTasksDone:[]).filter(value=>value!==task)}));if(!persist()){$('dailyTaskPresetMsg').textContent='Unable to save the change. Check your central connection.';return}renderDailyTaskSettings();$('dailyTaskPresetMsg').textContent='Removed '+task+'.'};
+  row.appendChild(remove);list.appendChild(row);
+ });
+}
+function addDailyTaskPreset(){
+ if(!permission('canManageSettings'))return;
+ const input=$('dailyTaskPresetInput'),task=String(input?.value||'').trim();
+ if(!task)return;
+ if(task.length>100){$('dailyTaskPresetMsg').textContent='Daily tasks must be 100 characters or fewer.';return}
+ state.dailyTaskPresets=Array.isArray(state.dailyTaskPresets)?state.dailyTaskPresets:[];
+ if(state.dailyTaskPresets.some(value=>String(value).trim().toLowerCase()===task.toLowerCase())){$('dailyTaskPresetMsg').textContent='That daily task already exists.';return}
+ state.dailyTaskPresets=[...state.dailyTaskPresets,task];
+ if(!persist()){$('dailyTaskPresetMsg').textContent='Unable to save the task. Check your central connection.';return}
+ input.value='';renderDailyTaskSettings();$('dailyTaskPresetMsg').textContent='Added '+task+'.';
+}
+function renderDailyTasksPopup(){
+ const tasks=Array.isArray(state.dailyTaskPresets)?state.dailyTaskPresets:[],completed=Array.isArray(day().dailyTasksDone)?day().dailyTasksDone:[];
+ const list=$('dailyTasksList'),empty=$('dailyTasksEmpty');list.replaceChildren();
+ $('dailyTasksDay').textContent=DAYS[selected].toUpperCase()+' · '+prettyDate(day().date);
+ $('dailyTasksProgressText').textContent=completed.filter(value=>tasks.includes(value)).length+' / '+tasks.length+' COMPLETE';
+ $('dailyTasksProgressFill').style.width=(tasks.length?completed.filter(value=>tasks.includes(value)).length/tasks.length*100:0)+'%';
+ empty.hidden=tasks.length>0;
+ tasks.forEach(task=>{
+  const label=document.createElement('label');label.className='daily-task-item'+(completed.includes(task)?' is-complete':'');
+  const check=document.createElement('input');check.type='checkbox';check.checked=completed.includes(task);check.disabled=!permission('canEditTracker');check.setAttribute('aria-label','Complete task: '+task);
+  const text=document.createElement('span');text.textContent=task;label.append(check,text);list.appendChild(label);
+  check.onchange=()=>{if(!permission('canEditTracker'))return;const done=new Set(Array.isArray(day().dailyTasksDone)?day().dailyTasksDone:[]);if(check.checked)done.add(task);else done.delete(task);day().dailyTasksDone=[...done];if(!persist()){$('dailyTasksProgressText').textContent='Unable to save task completion';return}renderDailyTasksPopup()};
+ });
+}
+function openDailyTasks(){renderDailyTasksPopup();const modal=$('dailyTasksModal');modal.classList.add('show');modal.setAttribute('aria-hidden','false');$('closeDailyTasks').focus()}
+function closeDailyTasks(){const modal=$('dailyTasksModal');modal.classList.remove('show');modal.setAttribute('aria-hidden','true');$('openDailyTasks').focus()}
+$('addDailyTaskPresetBtn').onclick=addDailyTaskPreset;
+$('dailyTaskPresetInput').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();addDailyTaskPreset()}});
+$('openDailyTasks').onclick=openDailyTasks;
+$('closeDailyTasks').onclick=closeDailyTasks;$('closeDailyTasksX').onclick=closeDailyTasks;
+$('dailyTasksModal').addEventListener('click',event=>{if(event.target===$('dailyTasksModal'))closeDailyTasks()});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('dailyTasksModal').classList.contains('show'))closeDailyTasks()});
 function renderReasonPresetSettings(){
  const box=$("reasonPresetAdmin");if(!box)return;
  const canManage=permission('canManageSettings'),canAddReasons=canManage||permission('canAddDowntimeReasons');
  box.style.display=canAddReasons?"block":"none";
- const quickManager=$('quickReasonManager');if(quickManager)quickManager.style.display=canManage?'block':'none';
  const supervisorHelp=$('supervisorReasonHelp');if(supervisorHelp)supervisorHelp.style.display=!canManage&&permission('canAddDowntimeReasons')?'block':'none';
- const renderList=(id,arr,key,allowRemove)=>{
-  const el=$(id);if(!el)return;el.replaceChildren();
-  (Array.isArray(arr)?arr:[]).forEach((value,index)=>{
-   const chip=document.createElement("span");chip.style.cssText="display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #35516a;border-radius:8px;margin:3px";
-   const label=document.createElement("span");label.textContent=value;chip.appendChild(label);
-   if(allowRemove){
-    const remove=document.createElement("button");remove.type="button";remove.textContent="×";remove.title="Remove "+value;remove.setAttribute("aria-label","Remove "+value);remove.style.cssText="padding:2px 6px;color:#ff9b8e";
-    remove.onclick=()=>{
-     if(!permission('canManageSettings'))return;
-     state[key]=(Array.isArray(state[key])?state[key]:[]).filter((item,i)=>i!==index);
-     if(key==="reasons")state.quickReasons=(Array.isArray(state.quickReasons)?state.quickReasons:[]).filter(item=>String(item).trim().toLowerCase()!==String(value).trim().toLowerCase());
-     if(!persist()){$("reasonPresetAdminMsg").textContent="Unable to save the removal. Check your central connection.";return}
-     renderReasonPresetSettings();renderQuickReasons();
-     $("reasonPresetAdminMsg").textContent="Removed "+value+".";
-    };
-    chip.appendChild(remove);
-   }
-   el.appendChild(chip);
-  });
-  if(!(Array.isArray(arr)?arr:[]).length){const empty=document.createElement("span");empty.className="muted";empty.textContent="No items configured.";el.appendChild(empty)}
- };
- renderList("areaPresetAdminList",state.areas||[],"areas",canManage);
- if(canManage)renderList("quickReasonAdminList",state.quickReasons||[],"quickReasons",true);
- renderList("downtimeReasonAdminList",state.reasons||[],"reasons",canManage);
+ const el=$("downtimeReasonAdminList");if(!el)return;el.replaceChildren();
+ (Array.isArray(state.reasons)?state.reasons:[]).forEach((value,index)=>{
+  const chip=document.createElement("span");chip.style.cssText="display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #35516a;border-radius:8px;margin:3px";
+  const label=document.createElement("span");label.textContent=value;chip.appendChild(label);
+  if(canManage){
+   const remove=document.createElement("button");remove.type="button";remove.textContent="×";remove.title="Remove "+value;remove.setAttribute("aria-label","Remove "+value);remove.style.cssText="padding:2px 6px;color:#ff9b8e";
+   remove.onclick=()=>{if(!permission('canManageSettings'))return;state.reasons=(Array.isArray(state.reasons)?state.reasons:[]).filter((item,i)=>i!==index);if(!persist()){$("reasonPresetAdminMsg").textContent="Unable to save the removal. Check your central connection.";return}renderReasonPresetSettings();$("reasonPresetAdminMsg").textContent="Removed "+value+"."};
+   chip.appendChild(remove);
+  }
+  el.appendChild(chip);
+ });
+ if(!state.reasons.length){const empty=document.createElement("span");empty.className="muted";empty.textContent="No items configured.";el.appendChild(empty)}
 }
 function addReasonPreset(key,inputId){
  const canManage=permission('canManageSettings'),canAddReasons=canManage||permission('canAddDowntimeReasons');
- if(key==="quickReasons"&&!canManage)return;
- if(key==="reasons"&&!canAddReasons)return;
- const input=$(inputId),value=String(input?.value||"").trim();
- if(!value)return;
+ if(key!=="reasons"||!canAddReasons)return;
+ const input=$(inputId),value=String(input?.value||"").trim();if(!value)return;
  if(value.length>60){$("reasonPresetAdminMsg").textContent="Reason must be 60 characters or fewer.";return}
- state[key]=Array.isArray(state[key])?state[key]:[];
- if(state[key].some(item=>String(item).trim().toLowerCase()===value.toLowerCase())){$("reasonPresetAdminMsg").textContent="That reason already exists.";return}
- state[key]=[...state[key],value];
- if(key==="reasons"){
-  state.quickReasons=Array.isArray(state.quickReasons)?state.quickReasons:[];
-  if(!state.quickReasons.some(item=>String(item).trim().toLowerCase()===value.toLowerCase()))state.quickReasons=[...state.quickReasons,value];
- }
+ state.reasons=Array.isArray(state.reasons)?state.reasons:[];
+ if(state.reasons.some(item=>String(item).trim().toLowerCase()===value.toLowerCase())){$("reasonPresetAdminMsg").textContent="That reason already exists.";return}
+ state.reasons=[...state.reasons,value];
  if(!persist()){$("reasonPresetAdminMsg").textContent="Unable to save the reason. Check your central connection.";return}
- input.value="";renderReasonPresetSettings();renderQuickReasons();
- $("reasonPresetAdminMsg").textContent="Added "+value+".";
+ input.value="";renderReasonPresetSettings();$("reasonPresetAdminMsg").textContent="Added "+value+".";
 }
-$("addQuickReasonBtn").onclick=()=>addReasonPreset("quickReasons","newQuickReason");
 $("addDowntimeReasonBtn").onclick=()=>addReasonPreset("reasons","newDowntimeReason");
 function addAreaPreset(){if(!isAdmin())return;const input=$("newAreaPreset"),value=input.value.trim();if(!value)return;if((state.areas||[]).some(v=>String(v).trim().toLowerCase()===value.toLowerCase())){$("reasonPresetAdminMsg").textContent="That area already exists.";return}state.areas=[...(state.areas||[]),value];input.value="";persist();renderReasonPresetSettings();$("reasonPresetAdminMsg").textContent="Added area "+value+"."}
 $("addAreaPresetBtn").onclick=addAreaPreset;
