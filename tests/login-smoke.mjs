@@ -25,7 +25,7 @@ const tiers={
 };
 function makeBank(){
  const profiles=Object.fromEntries(['Jan','Mick','Gigi','Daz','Shayne'].map((name,i)=>[name,{station:'Station '+(i+1)+' · WOOD',onSite:true,photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}]));
- return {appData:{weeks:{},areas:['Feeder'],reasons:['Blockage'],archive:[],plantOn:true,dailyTaskPresets:[]},users:[],tiers,staff:{roster:Object.keys(profiles),profiles},statsSource:{weeks:{}}};
+ return {appData:{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360','Other'],reasons:['Blockage'],archive:[],plantOn:true,dailyTaskPresets:[]},users:[],tiers,staff:{roster:Object.keys(profiles),profiles},statsSource:{weeks:{}}};
 }
 async function openFor(tier,pin='2468'){
  const context=await browser.newContext();
@@ -119,6 +119,13 @@ async function openStaffSettings(page){
  await page.locator('#staffRosterList').waitFor({state:'visible'});
 }
 
+async function openSettingsHub(page){
+ const menu=page.locator('.nav-menu');
+ if(!await menu.evaluate(node=>node.open))await menu.locator(':scope > summary').click();
+ await page.locator('.nav[data-view="settings"]').click();
+ await page.locator('#settingsHub').waitFor({state:'visible'});
+}
+
 try{
  // Invalid credentials never unlock the tracker.
  const rejected=await openFor('OWNER');
@@ -158,7 +165,44 @@ try{
  await owner.page.locator('.nav[data-view="weekly"]').click();
  assert.equal(await owner.page.locator('.nav[data-view="staff"]').count(),0,'STAFF is no longer a standalone navigation item');
  assert.equal(await owner.page.locator('.nav[data-view="settings"]').isVisible(),true,'OWNER can open Settings');
- await openStaffSettings(owner.page);
+ await openSettingsHub(owner.page);
+ await mkdir(resolve('artifacts/settings-hub'),{recursive:true});
+ const settingsGrid=owner.page.locator('.settings-card-grid');
+ for(const [width,columns] of [[1280,3],[1000,2],[600,1]]){
+  await owner.page.setViewportSize({width,height:900});
+  const layout=await settingsGrid.evaluate(el=>{
+   const cards=Array.from(el.querySelectorAll(':scope > [data-settings-open]'));
+   const rects=Object.fromEntries(cards.map(card=>[card.dataset.settingsOpen,card.getBoundingClientRect()]));
+   return {columns:getComputedStyle(el).gridTemplateColumns.trim().split(/\\s+/).length,count:cards.length,staffTop:rects.staff?.top,dailyTasksTop:rects.dailyTasks?.top};
+  });
+  assert.equal(layout.count,6,'all six Settings cards are inside the grid at '+width+'px');
+  assert.equal(layout.columns,columns,'Settings grid has '+columns+' columns at '+width+'px');
+  if(width===1280)assert.ok(Math.abs(layout.staffTop-layout.dailyTasksTop)<2,'STAFF occupies the sixth grid position alongside the other cards');
+  await owner.page.screenshot({path:resolve('artifacts/settings-hub/settings-'+width+'px.png')});
+ }
+ await owner.page.setViewportSize({width:1280,height:900});
+ await owner.page.locator('[data-settings-open="areas"]').click();
+ await owner.page.locator('#areaPresetAdminList [data-area-name]').first().waitFor({state:'visible',timeout:5000});
+ const configuredAreas=['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360','Other'];
+ assert.deepEqual(await owner.page.locator('#areaPresetAdminList [data-area-name]').allTextContents(),configuredAreas,
+  'AREA PRESETS displays the same centrally configured area values as the entry form');
+ await owner.page.screenshot({path:resolve('artifacts/settings-hub/area-presets-1280px.png')});
+ await owner.page.locator('#newAreaPreset').fill('QA Test Bay');
+ await owner.page.locator('#addAreaPresetBtn').click();
+ await owner.page.locator('#areaPresetAdminList [data-area-preset="QA Test Bay"]').waitFor({state:'visible',timeout:3000});
+ for(let attempt=0;attempt<40&&!owner.getBank().appData.areas.includes('QA Test Bay');attempt++)await owner.page.waitForTimeout(50);
+ assert.ok(owner.getBank().appData.areas.includes('QA Test Bay'),'new AREA PRESET is saved through the central state');
+ await owner.page.locator('#areaPresetAdminList button[aria-label="Remove area QA Test Bay"]').click();
+ await owner.page.waitForFunction(()=>!document.querySelector('#areaPresetAdminList [data-area-preset="QA Test Bay"]'),{timeout:3000});
+ for(let attempt=0;attempt<40&&owner.getBank().appData.areas.includes('QA Test Bay');attempt++)await owner.page.waitForTimeout(50);
+ assert.equal(owner.getBank().appData.areas.includes('QA Test Bay'),false,'removed AREA PRESET is saved through the central state');
+ await owner.page.locator('.nav[data-view="weekly"]').click();
+ await owner.page.locator('#addEntry').click();
+ assert.deepEqual(await owner.page.locator('#areaButtons [data-preset]').evaluateAll(nodes=>nodes.map(node=>node.dataset.preset)),configuredAreas,
+  'ADD DOWNTIME ENTRY uses the same area presets shown in Settings');
+ await owner.page.locator('#cancelEntry').click();
+ await openSettingsHub(owner.page);
+ await owner.page.locator('[data-settings-open="staff"]').click();
  assert.equal(await owner.page.locator('#settingsPanelStaff').isVisible(),true,'OWNER can open the STAFF panel from Settings');
  assert.equal(await owner.page.locator('#addStaffBtn').isEnabled(),true,'OWNER retains STAFF management privileges');
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').isVisible(),true,'OWNER can view reports');
