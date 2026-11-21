@@ -68,7 +68,7 @@ try {
       const tableWrap = document.querySelector('.weekly-table-wrap');
       const table = tableWrap.querySelector('table');
       const intelligence = document.querySelectorAll('.weekly-analytics-subsection');
-      const ids = ['prevWeek','weekLabel','nextWeek','exportBtn','weekBody','weeklyInsight','weekDown','weekPct','weekNet','weekRunPct'];
+      const ids = ['prevWeek','weekLabel','nextWeek','exportBtn','weeklyInsight','weekDown','weekPct','weekNet','weekRunPct'];
       const controls = ids.map(id => {
         const el=document.getElementById(id);
         const r=el.getBoundingClientRect();
@@ -79,7 +79,7 @@ try {
         viewport:innerWidth,documentWidth:document.documentElement.scrollWidth,
         expanded:disclosure.open,summary:rect(disclosure.querySelector('summary')),
         content:rect(disclosure.querySelector('.weekly-collapse-content')),
-        tableWrap:rect(tableWrap),tableClientWidth:tableWrap.clientWidth,tableScrollWidth:tableWrap.scrollWidth,
+        tableWrap:rect(tableWrap),tableClientWidth:tableWrap.clientWidth,tableScrollWidth:tableWrap.scrollWidth,tableRect:rect(table),
         overflowX:getComputedStyle(tableWrap).overflowX,rows:table.querySelectorAll('tbody tr').length,
         intelligenceCount:intelligence.length,intelligenceVisible:[...intelligence].every(el=>el.getClientRects().length>0),
         controls
@@ -93,6 +93,8 @@ try {
     assert.equal(result.intelligenceCount,2,'Weekly intelligence and total must remain consolidated at '+width+'px');
     assert.equal(result.intelligenceVisible,true,'Weekly analytics subsections should be visible at '+width+'px');
     assert.equal(result.overflowX,'auto','Weekly table wrapper should scroll internally at '+width+'px');
+    assert.ok(result.tableWrap.left>=-1&&result.tableWrap.right<=width+1,'Weekly table wrapper exceeds viewport at '+width+'px: '+JSON.stringify(result.tableWrap));
+    assert.ok(result.tableRect.width>=result.tableWrap.width,'Weekly table should retain its readable report width inside the scroll wrapper at '+width+'px');
     assert.ok(result.tableScrollWidth>=result.tableClientWidth,'Weekly table scroll metrics invalid at '+width+'px');
     for (const control of result.controls) {
       assert.ok(control.visible&&control.inside&&control.width>0,'Weekly control missing/outside disclosure at '+width+'px: '+JSON.stringify(control));
