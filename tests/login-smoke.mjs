@@ -427,8 +427,13 @@ try{
  await owner.page.locator('#addStaffBtn').click();
  assert.equal(await owner.page.locator('#staffModalBackdrop').isVisible(),true,'Add New Member opens the modal');
  assert.equal(await owner.page.locator('#smName').inputValue(),'','new STAFF profile template is blank');
+ assert.equal(await owner.page.locator('#smOnPlant').isChecked(),true,'new profile defaults ON PLANT');
  await owner.page.locator('#smName').fill('Rita');
  await owner.page.locator('#smStation').selectOption('Station 6 · GENERAL');
+ await owner.page.locator('#smOnPlant').uncheck();
+ assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'OFF PLANT disables station selection');
+ await owner.page.locator('#smOnPlant').check();
+ assert.equal(await owner.page.locator('#smStation').isEnabled(),true,'ON PLANT restores station selection when unlocked');
  await owner.page.locator('#smLock').check();
  assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'locked station cannot be edited');
  await owner.page.locator('#smLock').uncheck();
