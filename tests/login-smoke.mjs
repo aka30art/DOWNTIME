@@ -490,6 +490,12 @@ try{
   await owner.page.evaluate(async({snapshot,version})=>window.DowntimeCentral.saveTracker(snapshot,version),{snapshot:attemptedReassignment,version:owner.getVersion()});
   assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','locked station resists ordinary tracker save attempts');
   assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,true,'ordinary tracker saves cannot clear station lock');
+  // Settings and tracker APIs must both reject station changes until the lock is explicitly cleared.
+  const attemptedSettings=JSON.parse(JSON.stringify(owner.getBank().appData));
+  attemptedSettings.operatorProfiles.Rita.station='Station 4 · SCRAP';
+  await owner.page.evaluate(async({snapshot,version})=>window.DowntimeCentral.saveSettings(snapshot,version),{snapshot:attemptedSettings,version:owner.getVersion()});
+  assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','locked station resists a direct save-settings reassignment');
+  assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,true,'save-settings cannot silently unlock a locked station');
   await openStaffSettings(owner.page);
   await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
   assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'locked station is disabled when profile reopens');
