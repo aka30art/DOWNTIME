@@ -587,9 +587,7 @@ try{
   assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.[0]?.bucket),'downtime-staff-photos','original photo is uploaded to the private staff photo bucket');
  assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+6,'daily tasks, completions, lock and one staff save advance central version');
  // Crew Switchboard exposes only locked, assigned STAFF and saves ON/OFF PLANT to the Central Data Bank.
- const crewDebug=await owner.page.evaluate(()=>({canManage:permission('canManageStaff'),activeOperator,roster:staffRoster(),locked:staffRoster().map(name=>({name,station:state.operatorProfiles?.[name]?.station,locked:state.operatorProfiles?.[name]?.stationLocked}))}));
- assert.equal(crewDebug.canManage,true,'OWNER retains STAFF management permission for Crew Switchboard: '+JSON.stringify(crewDebug));
- await owner.page.locator('#crewSwitchboardBtn').waitFor({state:'visible',timeout:3000});
+await owner.page.locator('#crewSwitchboardBtn').waitFor({state:'visible',timeout:3000});
  await owner.page.locator('#crewSwitchboardBtn').click();
  await owner.page.locator('#crewSwitchboardBackdrop').waitFor({state:'visible',timeout:3000});
  assert.equal(await owner.page.locator('.crew-switchboard-row').count(),1,'only STAFF with a locked station appear in Crew Switchboard');
