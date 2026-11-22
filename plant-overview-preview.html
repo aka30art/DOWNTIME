@@ -102,24 +102,67 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
    photoBox.dataset.photoPath='';
    if(photoBox.querySelector('img'))photoBox.replaceChildren(createOperatorAvatar());
  }
+ function stationConfigFor(payload){
+   const appData=payload?.appData||payload||{};
+   const defaults=[
+     {id:'station-1',name:'Station 1',category:'WOOD',active:true,aliases:[]},
+     {id:'station-2',name:'Station 2',category:'WOOD',active:true,aliases:[]},
+     {id:'station-3',name:'Station 3',category:'SCRAP',active:true,aliases:[]},
+     {id:'station-4',name:'Station 4',category:'SCRAP',active:true,aliases:[]},
+     {id:'station-5',name:'Station 5',category:'GENERAL',active:true,aliases:[]},
+     {id:'station-6',name:'Station 6',category:'GENERAL',active:true,aliases:[]}
+   ];
+   const source=Array.isArray(appData.stationConfig)&&appData.stationConfig.length?appData.stationConfig:defaults;
+   return source.map((station,index)=>({id:String(station?.id||'station-'+(index+1)),name:String(station?.name||'Station '+(index+1)),category:String(station?.category||'GENERAL').toUpperCase(),active:station?.active!==false,aliases:Array.isArray(station?.aliases)?station.aliases:[]}));
+ }
+ function stationConfigLabel(station){return String(station?.name||'Station')+' · '+String(station?.category||'GENERAL')}
+ function resolveProfileStation(profile,stations){
+   const raw=String(profile?.station||profile?.assignedStation||'').trim();if(!raw)return null;
+   const matched=stations.find(station=>stationConfigLabel(station)===raw||String(station.name||'').trim()===raw||(Array.isArray(station.aliases)&&station.aliases.includes(raw)));
+   if(matched)return matched;
+   const legacy=raw.match(/^Station\\s*0?([1-6])(?:\\s|$)/i);
+   return legacy?stations.find(station=>station.id==='station-'+legacy[1])||null:null;
+ }
+ function renderStationBlueprint(stations,names,profiles){
+   const host=document.querySelector('.blueprintbays');if(!host)return;
+   const lane=host.querySelector('.blueprintlane')?.cloneNode(true);
+   host.replaceChildren();
+   const groups={GENERAL:[],SCRAP:[],WOOD:[]};
+   stations.forEach(station=>{const category=String(station.category||'GENERAL').toUpperCase(),key=category==='WOOD'?'WOOD':category==='SCRAP'?'SCRAP':'GENERAL';groups[key].push(station)});
+   const visibleGroups=['GENERAL','SCRAP','WOOD'].filter(key=>groups[key].length);
+   host.style.gridTemplateColumns='repeat('+Math.max(1,Math.min(3,visibleGroups.length))+',minmax(0,1fr))';
+   visibleGroups.forEach(key=>{
+     const column=document.createElement('div');column.className='blueprintbay';
+     groups[key].forEach(station=>{
+       const bay=document.createElement('div');bay.className='stationbay '+key.toLowerCase();
+       const title=document.createElement('strong');title.textContent=station.name.toUpperCase();
+       const category=document.createElement('span');category.textContent=station.category;
+       const assigned=names.filter(name=>{const profile=profileForName(profiles,name);return profile.onSite!==false&&resolveProfileStation(profile,stations)?.id===station.id}).map(name=>name.toUpperCase());
+       const namesBox=document.createElement('small');namesBox.className='stationassigned';namesBox.textContent=assigned.length?assigned.join(', '):(station.active===false?'INACTIVE':'UNASSIGNED');
+       if(station.active===false){bay.style.opacity='.58';bay.title='Inactive station · retained for existing assignments and history'}
+       bay.append(title,category,namesBox);column.appendChild(bay);
+     });
+     host.appendChild(column);
+   });
+   if(lane)host.appendChild(lane);
+ }
  function applyOperatorProfiles(payload){
    const profiles=payload?.staff?.profiles||payload?.appData?.operatorProfiles||payload?.operatorProfiles||{};
    const roster=Array.isArray(payload?.staff?.roster)?payload.staff.roster:
      (Array.isArray(payload?.appData?.staffRoster)?payload.appData.staffRoster:Object.keys(profiles));
    const names=[...new Set(roster.filter(name=>typeof name==='string'&&name.trim()).map(name=>name.trim()))];
-   const grid=document.querySelector('.opgrid');
+   const stations=stationConfigFor(payload),grid=document.querySelector('.opgrid');
    if(grid){
      names.forEach(name=>{
        let card=[...grid.querySelectorAll('[data-opprofile]')].find(item=>item.dataset.opprofile.toLowerCase()===name.toLowerCase());
        if(!card){card=createOperatorCard(name);grid.appendChild(card)}
-       const profile=profileForName(profiles,name);
-       const stationMatch=String(profile.station||profile.assignedStation||'').match(/^Station\s*0?([1-6])(?:\s|$)/i);
-       const isAssigned=profile.onSite!==false&&!!stationMatch;
+       const profile=profileForName(profiles,name),assignedStation=resolveProfileStation(profile,stations);
+       const isAssigned=profile.onSite!==false&&!!assignedStation;
        card.style.display=isAssigned?'':'none';
        card.dataset.onPlant=isAssigned?'true':'false';
        const nameBox=card.querySelector('.name'),station=card.querySelector('.station'),photoBox=card.querySelector('.photo');
        if(nameBox)nameBox.textContent=name.toUpperCase();
-       if(station)station.textContent=isAssigned?(profile.station||profile.assignedStation):'UNASSIGNED';
+       if(station)station.textContent=isAssigned?stationConfigLabel(assignedStation):'UNASSIGNED';
        if(photoBox)updateOperatorPhoto(photoBox,profile,name);
        grid.appendChild(card);
      });
@@ -127,14 +170,7 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
        if(!names.some(name=>name.toLowerCase()===card.dataset.opprofile.toLowerCase()))card.style.display='none';
      });
    }
-   document.querySelectorAll('[data-stationassigned]').forEach(slot=>{
-     const stationNo=Number(slot.dataset.stationassigned);
-     const assigned=names.filter(name=>{
-       const profile=profileForName(profiles,name),match=String(profile.station||profile.assignedStation||'').match(/^Station\s*0?([1-6])(?:\s|$)/i);
-       return profile.onSite!==false&&match&&Number(match[1])===stationNo;
-     }).map(name=>name.toUpperCase());
-     slot.textContent=assigned.length?assigned.join(', '):'UNASSIGNED';
-   });
+   renderStationBlueprint(stations,names,profiles);
  }
  function fmtMinutes(m){m=Math.max(0,Math.round(m||0));return String(Math.floor(m/60)).padStart(2,'0')+'h '+String(m%60).padStart(2,'0')+'m'}
  function mins(t){if(!t||!/^\d{2}:\d{2}$/.test(t))return null;const [h,m]=t.split(':').map(Number);return h>23||m>59?null:h*60+m}
@@ -162,7 +198,7 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
    }
    const start=mins(dayRecord.start),stop=mins(dayRecord.stop),scheduled=(start===null||stop===null)?0:stop-start+(stop<=start?1440:0),net=Math.max(0,scheduled-75);
    const entries=Array.isArray(dayRecord.entries)?dayRecord.entries:[],totalDown=entries.reduce((sum,e)=>sum+Math.max(0,(Number(e.hours)||0)*60+(Number(e.minutes)||0)),0),totalRun=Math.max(0,net-totalDown);
-   const incidents=entries.length,profiles=payload?.staff?.profiles||appData?.operatorProfiles||payload?.operatorProfiles||{},operators=Object.values(profiles).filter(profile=>profile&&profile.onSite!==false&&/^Station\s*0?([1-6])(?:\s|$)/i.test(String(profile.station||'')));
+   const incidents=entries.length,profiles=payload?.staff?.profiles||appData?.operatorProfiles||payload?.operatorProfiles||{},stations=stationConfigFor(payload),operators=Object.values(profiles).filter(profile=>profile&&profile.onSite!==false&&!!resolveProfileStation(profile,stations));
    document.getElementById('totalDowntime').textContent=fmtMinutes(totalDown);
    document.getElementById('incidentCount').textContent=String(incidents);
    document.getElementById('availability').textContent=net?((totalRun/net)*100).toFixed(1)+'%':'—';
