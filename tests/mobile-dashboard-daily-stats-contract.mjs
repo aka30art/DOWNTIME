@@ -8,7 +8,7 @@ const source = await readFile('index.html', 'utf8');
 assert.match(source, /function renderActiveAccountIndicator\(\)[\s\S]*?name\.textContent=username/);
 assert.match(source, /function render\(\)\{renderActiveAccountIndicator\(\);/);
 assert.match(source, /const allowed=!!centralUser&&centralReady&&permission\('canControlPlantPower'\)/);
-assert.match(source, /if\(!centralReady\|\|!permission\('canControlPlantPower'\)\|\|b\.disabled\)return/);
+assert.match(source, /if\(!centralReady\|\|!permission\('canControlPlantPower'\)\|\|plantPowerBusy\)return/);
 assert.doesNotMatch(source, /activeOperator==='Jan'\|\|activeOperator==='Mick'/);
 assert.doesNotMatch(source, /activeOperator!=='Jan'&&activeOperator!=='Mick'/);
 assert.match(source, /id="menuAccountName"/);
