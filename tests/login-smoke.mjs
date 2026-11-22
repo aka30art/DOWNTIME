@@ -205,7 +205,7 @@ window.supabase={createClient:()=>({
  });
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
+ try{await page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:8000})}catch(error){throw new Error('Central login options failed to populate. Browser errors: '+errors.slice(-10).join(' | ')+'; auth message: '+await page.locator('#authMsg').textContent().catch(()=> 'missing')+'; window adapter: '+await page.evaluate(()=>String(!!window.DowntimeCentral)).catch(()=> 'unavailable')+'; original: '+error.message)}
  return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
