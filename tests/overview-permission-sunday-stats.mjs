@@ -22,6 +22,9 @@ assert.match(apiPermissionBlock,/SPECTATOR:\{[^}]*canViewPlantOverview:false/,'s
 assert.match(pageSource,/OWNER:\{[^}]*canViewPlantOverview:true/,'locked root OWNER permission includes Plant Overview');
 assert.match(apiSource,/OWNER:\{[^}]*canViewPlantOverview:true/,'locked root OWNER permission includes Plant Overview');
 assert.ok(overviewSource.includes('canViewPlantOverview=!!rights.canViewPlantOverview'),'Overview page enforces the right for direct URL access');
+assert.ok(overviewSource.includes('authorized=!!rights.canControlPlantPower'),'Overview Plant Power control uses the dedicated tier permission');
+assert.ok(overviewSource.includes('toggle.hidden=!authorized'),'Overview status control hides when Plant Power is disabled');
+assert.ok(overviewSource.includes('canControlPlantPower:true'),'Overview legacy/default permissions include Plant Power safely');
 assert.ok(overviewSource.includes('DOWNTIME ENTRIES TODAY'),'count metric is explicitly named as downtime entries');
 
 const server=http.createServer((req,res)=>{
@@ -53,6 +56,24 @@ try{
     return document.querySelector('main').hidden;
   });
   assert.equal(allowed,false,'Plant Overview content is visible when its dedicated right is granted');
+
+  const plantPowerOff=await page.evaluate(()=>{
+    window.__DOWNTIME_OVERVIEW_TEST__.applyCentralVisibility(
+      {tiers:{USER:{canEditTracker:false,canControlPlantPower:false,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true}}},
+      {tier:'USER'}
+    );
+    return document.getElementById('plantToggle').hidden;
+  });
+  assert.equal(plantPowerOff,true,'USER cannot see the Plant Power control when its dedicated right is off');
+
+  const plantPowerOn=await page.evaluate(()=>{
+    window.__DOWNTIME_OVERVIEW_TEST__.applyCentralVisibility(
+      {tiers:{USER:{canEditTracker:false,canControlPlantPower:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true}}},
+      {tier:'USER'}
+    );
+    return document.getElementById('plantToggle').hidden;
+  });
+  assert.equal(plantPowerOn,false,'read-only USER can see Plant Power when its dedicated right is on');
 
   const legacyPermissions=await page.evaluate(()=>{
     const payload={tiers:{USER:{canEditTracker:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true}}};
