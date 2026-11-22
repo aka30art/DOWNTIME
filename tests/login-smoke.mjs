@@ -442,6 +442,7 @@ try{
  await owner.page.locator('#smLock').check();
  await owner.page.locator('#smSave').click();
  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+ for(let attempt=0;attempt<40&&(owner.getVersion()<versionBeforeDailyTaskFlow+6||!owner.getBank().staff.profiles.Rita?.stationLocked);attempt++)await owner.page.waitForTimeout(100);
  assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','new staff member and station save centrally');
  assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,true,'station lock persists centrally');
  assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+6,'daily tasks, completions, lock and one staff save advance central version');
