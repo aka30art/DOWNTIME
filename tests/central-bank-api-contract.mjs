@@ -44,7 +44,7 @@ assert.ok(src.includes('!priv.canViewReports||!priv.canDeleteRecords'), 'server 
 assert.ok(src.includes('canAddDowntimeReasons:true')&&src.includes('existing.some((old:any)=>String(old).trim().toLowerCase()===value.trim().toLowerCase())'), 'SUPERVISOR can only append new downtime reason presets');
 assert.ok(src.includes('ADMIN:{canEditTracker:true')&&src.includes('canDeleteRecords:false'), 'ADMIN deletion is limited by default and not equivalent to root OWNER');
 
-assert.ok(src.includes('SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true'),
+assert.match(src,/SUPERVISOR:\{[^}]*canEditTracker:true,[^}]*canManageUsers:false,[^}]*canManageStaff:true,[^}]*canManageAssignments:true/,
   'SUPERVISOR can manage STAFF in the server tier defaults');
 const lockedRoles=src.slice(src.indexOf('const lockedRolePrivileges'),src.indexOf('function addStableRecordIds'));
 assert.ok(lockedRoles.includes('OWNER:{canEditTracker:true'), 'DEV root OWNER permissions are fixed');
