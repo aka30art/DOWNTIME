@@ -587,7 +587,8 @@ try{
   assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.[0]?.bucket),'downtime-staff-photos','original photo is uploaded to the private staff photo bucket');
  assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+6,'daily tasks, completions, lock and one staff save advance central version');
  // Crew Switchboard exposes only locked, assigned STAFF and saves ON/OFF PLANT to the Central Data Bank.
-await owner.page.locator('#crewSwitchboardBtn').waitFor({state:'visible',timeout:3000});
+console.log('CREW SWITCHBOARD VISIBILITY '+JSON.stringify({addStaffDisabled:await owner.page.locator('#addStaffBtn').isDisabled(),dom:await owner.page.locator('#crewSwitchboardBtn').evaluate(el=>{const ancestors=[];let node=el;while(node){const style=getComputedStyle(node),rect=node.getBoundingClientRect();ancestors.push({tag:node.tagName,id:node.id,className:node.className,display:style.display,visibility:style.visibility,opacity:style.opacity,rect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},inlineStyle:node.getAttribute('style')});node=node.parentElement}return ancestors})}));
+ await owner.page.locator('#crewSwitchboardBtn').waitFor({state:'visible',timeout:3000});
  await owner.page.locator('#crewSwitchboardBtn').click();
  await owner.page.locator('#crewSwitchboardBackdrop').waitFor({state:'visible',timeout:3000});
  assert.equal(await owner.page.locator('.crew-switchboard-row').count(),1,'only STAFF with a locked station appear in Crew Switchboard');
