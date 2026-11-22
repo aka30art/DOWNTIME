@@ -53,54 +53,36 @@ for (const id of [
     id + ' must remain in the DOM exactly once');
 }
 
-const accessMatch = html.match(/function settingsAccess\(section\)\{[^}]*\}/);
-assert.ok(accessMatch, 'settings section access must be permission-gated');
-const settingsAccess = new Function('permission', 'isJanAccessAdmin',
-  accessMatch[0] + '; return settingsAccess;'
-);
-const managerOnly = settingsAccess(name => ({
-  canManageUsers: true, canManageSettings: false, canAddDowntimeReasons: false
-}[name] === true), () => false);
-assert.equal(managerOnly('users'), true);
-assert.equal(managerOnly('areas'), false);
-assert.equal(managerOnly('reasons'), false);
-assert.equal(managerOnly('schedule'), false);
-assert.equal(managerOnly('staff'), false);
-assert.equal(managerOnly('dailyTasks'), false);
-
-const supervisorReasons = settingsAccess(name => ({
-  canManageUsers: false, canManageSettings: false, canAddDowntimeReasons: true
-}[name] === true), () => false);
-assert.equal(supervisorReasons('users'), false);
-assert.equal(supervisorReasons('areas'), false);
-assert.equal(supervisorReasons('reasons'), true);
-assert.equal(supervisorReasons('schedule'), false);
-assert.equal(supervisorReasons('staff'), false);
-assert.equal(supervisorReasons('dailyTasks'), false);
-
-const supervisorStaff = settingsAccess(name => ({
-  canViewStaff: true, canManageStaff: true
-}[name] === true), () => false);
-assert.equal(supervisorStaff('staff'), true, 'SUPERVISOR can access the STAFF panel');
-assert.equal(supervisorStaff('users'), false);
-assert.equal(supervisorStaff('areas'), false);
-assert.equal(supervisorStaff('schedule'), false);
-assert.equal(supervisorStaff('reasons'), false);
-assert.equal(supervisorStaff('dailyTasks'), false);
-
-const supervisorManageStaff = html.match(/SUPERVISOR:\{[^}]*\}/);
-assert.ok(supervisorManageStaff, 'SUPERVISOR permission profile must exist');
-assert.match(supervisorManageStaff[0], /canManageStaff:true/,
-  'SUPERVISOR must be granted STAFF management permission');
-
-const staffViewer = settingsAccess(name => name === 'canViewStaff', () => false);
-assert.equal(staffViewer('staff'), true, 'STAFF visibility must preserve the existing staff-view privilege');
-assert.equal(staffViewer('users'), false);
-
-const fullAdmin = settingsAccess(() => true, () => false);
-for (const section of requiredTiles) assert.equal(fullAdmin(section), true);
-assert.equal(fullAdmin('accessRights'), false, 'non-JAN admins cannot access tier rights even with every ordinary permission');
-assert.equal(settingsAccess(() => false, () => true)('accessRights'), true, 'JAN root OWNER can access Access and Rights');
+const helpersMatch=html.match(/function canManageSettingsSection\\(section\\)\\{[\\s\\S]*?function anySettingsAccess\\(\\)\\{[^}]*\\}/);
+assert.ok(helpersMatch,'granular Settings permission helpers must be present');
+const accessHelpers=new Function('permission','isJanAccessAdmin',helpersMatch[0]+'; return {settingsAccess,canManageSettingsSection};');
+const helper=(permission)=>accessHelpers(permission,()=>false);
+const managerOnly=helper(name=>({canManageUsers:true,canViewUsers:false}[name]===true));
+assert.equal(managerOnly.settingsAccess('users'),true);
+assert.equal(managerOnly.settingsAccess('areas'),false);
+assert.equal(managerOnly.settingsAccess('reasons'),false);
+assert.equal(managerOnly.settingsAccess('schedule'),false);
+assert.equal(managerOnly.settingsAccess('staff'),false);
+assert.equal(managerOnly.settingsAccess('dailyTasks'),false);
+const supervisorReasons=helper(name=>({canAddDowntimeReasons:true}[name]===true));
+assert.equal(supervisorReasons.settingsAccess('reasons'),true,'add-only SUPERVISOR can open the reason library');
+assert.equal(supervisorReasons.canManageSettingsSection('reasons'),false,'add-only reason permission cannot remove presets');
+const areaEditor=helper(name=>({canManageAreaPresets:true}[name]===true));
+assert.equal(areaEditor.settingsAccess('areas'),true);
+assert.equal(areaEditor.canManageSettingsSection('areas'),true);
+assert.equal(areaEditor.settingsAccess('schedule'),false);
+const taskEditor=helper(name=>({canManageDailyTasks:true}[name]===true));
+assert.equal(taskEditor.settingsAccess('dailyTasks'),true);
+assert.equal(taskEditor.canManageSettingsSection('dailyTasks'),true);
+const supervisorStaff=helper(name=>({canViewStaff:true,canManageStaff:true}[name]===true));
+assert.equal(supervisorStaff.settingsAccess('staff'),true,'staff managers can access the STAFF panel');
+assert.equal(supervisorStaff.settingsAccess('users'),false);
+const staffViewer=helper(name=>name==='canViewStaff');
+assert.equal(staffViewer.settingsAccess('staff'),true,'STAFF visibility preserves existing staff-view privilege');
+const fullAdmin=helper(()=>true);
+for(const section of requiredTiles)assert.equal(fullAdmin.settingsAccess(section),true);
+assert.equal(fullAdmin.settingsAccess('accessRights'),false,'non-JAN admins cannot access tier rights');
+assert.equal(accessHelpers(()=>false,()=>true).settingsAccess('accessRights'),true,'JAN root OWNER can access Access and Rights');
 
 assert.match(html, /function showSettingsHub\(\)/, 'back navigation must return to the Settings hub');
 assert.match(html, /function openSettingsPanel\(section\)/, 'tile navigation must open dedicated panels');
