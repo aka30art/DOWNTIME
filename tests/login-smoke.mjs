@@ -513,10 +513,17 @@ try{
   await owner.page.locator('#smOnPlant').uncheck();
   await owner.page.locator('#smSave').click();
   await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+  for(let attempt=0;attempt<40&&(owner.getBank().staff.profiles.Rita?.station!=='Station 5 · GENERAL'||owner.getBank().staff.profiles.Rita?.onSite!==false);attempt++)await owner.page.waitForTimeout(100);
   assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 5 · GENERAL','OFF PLANT retains assigned station');
   assert.equal(owner.getBank().staff.profiles.Rita.onSite,false,'OFF PLANT status persists centrally');
   assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,false,'manual unlock persists');
-  // Once explicitly unlocked, another device can reassign Rita; Realtime refreshes the Overview.
+    await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
+  await owner.page.locator('#smOnPlant').check();
+  await owner.page.locator('#smSave').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+  for(let attempt=0;attempt<40&&owner.getBank().staff.profiles.Rita?.onSite!==true;attempt++)await owner.page.waitForTimeout(100);
+  assert.equal(owner.getBank().staff.profiles.Rita.onSite,true,'ON PLANT status can be restored');
+// Once explicitly unlocked, another device can reassign Rita; Realtime refreshes the Overview.
   await owner.page.locator('.overview-link').click();
   const unlockedRita=owner.page.frameLocator('#overviewFrame').locator('[data-opprofile="RITA"]');
   await unlockedRita.waitFor({state:'visible',timeout:3000});
@@ -531,11 +538,6 @@ try{
   assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="5"]').textContent(),'SHAYNE','previous station is cleared after unlocked reassignment');
   await owner.page.locator('#overviewClose').click();
   await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
-  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
-  await owner.page.locator('#smOnPlant').check();
-  await owner.page.locator('#smSave').click();
-  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
-  assert.equal(owner.getBank().staff.profiles.Rita.onSite,true,'ON PLANT status can be restored');
   await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
   owner.page.once('dialog',dialog=>dialog.accept());
   await owner.page.locator('#smPhotoRemove').click();
@@ -620,6 +622,7 @@ try{
  await staffOnly.page.locator('#smOnPlant').uncheck();
  await staffOnly.page.locator('#smSave').click();
  await staffOnly.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+ for(let attempt=0;attempt<40&&staffOnly.getBank().staff.profiles.Jan?.onSite!==false;attempt++)await staffOnly.page.waitForTimeout(100);
  assert.equal(staffOnly.getBank().staff.profiles.Jan.station,'Station 1 · WOOD','STAFF-only save preserves station assignment');
  assert.equal(staffOnly.getBank().staff.profiles.Jan.onSite,false,'STAFF-only save updates ON/OFF PLANT');
  assert.equal(staffOnly.getBank().staff.profiles.Jan.stationLocked,undefined,'STAFF-only save cannot create station lock metadata');
@@ -640,6 +643,7 @@ try{
  await assignmentOnly.page.locator('#smLock').check();
  await assignmentOnly.page.locator('#smSave').click();
  await assignmentOnly.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+ for(let attempt=0;attempt<40&&assignmentOnly.getBank().staff.profiles.Jan?.stationLocked!==true;attempt++)await assignmentOnly.page.waitForTimeout(100);
  assert.equal(assignmentOnly.getBank().staff.profiles.Jan.station,'Station 6 · GENERAL','ASSIGNMENT-only tier saves station');
  assert.equal(assignmentOnly.getBank().staff.profiles.Jan.stationLocked,true,'ASSIGNMENT-only tier saves station lock');
  assert.equal(assignmentOnly.getBank().staff.profiles.Jan.onSite,true,'ASSIGNMENT-only tier preserves plant presence');
