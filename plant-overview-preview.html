@@ -120,7 +120,7 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
    const raw=String(profile?.station||profile?.assignedStation||'').trim();if(!raw)return null;
    const matched=stations.find(station=>stationConfigLabel(station)===raw||String(station.name||'').trim()===raw||(Array.isArray(station.aliases)&&station.aliases.includes(raw)));
    if(matched)return matched;
-   const legacyMatch=raw.match(/^Station\\s*0?([1-6])(?:\\s|$)/i);
+   const legacyMatch=raw.match(/^Station\s*0?([1-6])(?:\s|$)/i);
    return legacyMatch?stations.find(station=>station.id==='station-'+legacyMatch[1])||null:null;
  }
  function renderStationBlueprint(stations,names,profiles){
