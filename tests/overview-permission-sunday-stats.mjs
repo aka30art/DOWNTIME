@@ -65,6 +65,13 @@ try{
   assert.equal(legacyPermissions.staff,'','legacy permissions preserve the existing STAFF visibility right');
   assert.equal(legacyPermissions.stations,'','legacy permissions preserve the existing station visibility right');
 
+  const legacySpectatorDenied=await page.evaluate(()=>{
+    const payload={tiers:{SPECTATOR:{canEditTracker:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false}}};
+    window.__DOWNTIME_OVERVIEW_TEST__.applyCentralVisibility(payload,{tier:'SPECTATOR'});
+    return document.querySelector('main').hidden;
+  });
+  assert.equal(legacySpectatorDenied,true,'legacy SPECTATOR profile inherits the restrictive default when canViewPlantOverview is absent');
+
   for(const viewport of [{width:1280,height:900},{width:390,height:844}]){
     await page.setViewportSize(viewport);
     const responsive=await page.evaluate(()=>({
