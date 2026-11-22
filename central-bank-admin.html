@@ -1,48 +1,383 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DOWNTIME Central Data Bank Admin</title><style>
-:root{color-scheme:dark;--bg:#07131d;--panel:#102331;--line:#294353;--text:#f1f5f8;--muted:#a2b6c4;--accent:#ffc400}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,Arial}main{max-width:1080px;margin:auto;padding:24px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin:12px 0}h1,h2{margin:0 0 12px}h1{font-size:22px}h2{font-size:17px;color:var(--accent)}label{display:block;color:var(--muted);font-size:12px;margin:8px 0 4px}input,select,textarea{width:100%;padding:10px;background:#081721;color:var(--text);border:1px solid var(--line);border-radius:8px}textarea{min-height:150px;font-family:monospace}button{padding:9px 13px;border-radius:8px;border:1px solid var(--line);background:#1b3547;color:var(--text);font-weight:700;cursor:pointer;margin:4px 4px 4px 0}button.primary{background:var(--accent);color:#101820;border-color:var(--accent)}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.item{padding:10px;border:1px solid var(--line);border-radius:9px;margin:8px 0}.item strong{display:block}.muted{color:var(--muted)}#app{display:none}.status{min-height:24px;color:var(--accent)}@media(max-width:700px){main{padding:12px}.grid{grid-template-columns:1fr}}
-</style></head><body><main>
-<header class="panel"><h1>DOWNTIME · CENTRAL DATA BANK</h1><div class="muted">Central USERS · STAFF · Tier privileges · Shared tracker data</div></header>
-<section id="login" class="panel"><h2>Central login</h2><div class="grid"><div><label>Supabase project URL</label><input id="projectUrl" value="https://ygwfipksbbprqynvbklk.supabase.co"></div><div><label>Publishable / anon key</label><input id="pubKey" value="sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx" autocomplete="off"></div></div><label>Username</label><input id="username"><label>PIN</label><input id="pin" type="password" inputmode="numeric" maxlength="8"><div class="row"><button class="primary" id="loginBtn">Sign in</button><button id="showSetup">First owner setup</button></div><div id="setup" style="display:none"><label>Bootstrap setup code (stored encrypted in Supabase Vault)</label><input id="setupCode" type="password"><label>Root OWNER username (fixed)</label><input id="setupName" value="JAN" readonly><label>New owner PIN (4–8 digits)</label><input id="setupPin" type="password" inputmode="numeric" maxlength="8"><button id="bootstrapBtn">Initialize owner</button></div><div class="status" id="authStatus"></div></section>
-<section id="app">
-<div class="panel row"><div><h2 id="hello">Logged in</h2><div class="muted" id="tierInfo"></div></div><button id="logoutBtn">Log out</button><button id="refreshBtn">Refresh central data</button></div>
-<div class="panel" id="centralUsersPanel"><h2>USERS / PIN / TIER</h2><div id="userList"></div><h3>Add or update account</h3><div class="grid"><div><label>Username</label><input id="uName"></div><div><label>Display name</label><input id="uDisplay"></div><div><label>Tier</label><select id="uTier"><option>ADMIN</option><option>MANAGER</option><option>SUPERVISOR</option><option>USER</option><option>SPECTATOR</option><option>OWNER</option></select></div><div><label>PIN (4–8 digits; required for new account)</label><input id="uPin" type="password" inputmode="numeric" maxlength="8"></div></div><button class="primary" id="saveUser">Save user</button><div class="status" id="userStatus"></div></div>
-<div class="panel" id="centralStaffPanel"><h2>STAFF / PROFILE / PHOTO</h2><div id="staffList"></div><div class="grid"><div><label>Staff name</label><input id="staffName"></div><div><label>Assigned station / role</label><input id="staffStation"></div><div><label>Information / notes</label><textarea id="staffInfo"></textarea></div><div><label>Photo</label><input id="staffPhoto" type="file" accept="image/jpeg,image/webp,image/png"></div></div><button class="primary" id="saveStaff">Save staff profile</button><div class="status" id="staffStatus"></div></div>
-<div class="panel" id="centralRightsPanel"><h2>Access and Rights (JAN only)</h2><p class="muted">Only JAN, the permanent root OWNER, can change tier permissions. JAN may configure ADMIN, MANAGER, SUPERVISOR, USER and SPECTATOR access; the root OWNER rights remain fixed and cannot be changed.</p><textarea id="tiersJson" spellcheck="false"></textarea><button class="primary" id="saveTiers">Save privilege matrix</button><div class="status" id="tierStatus"></div></div>
-<div class="panel"><h2>Central statistics/data</h2><pre id="dataSummary" class="muted" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></div>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07131d">
+<title>DOWNTIME · Central Data Bank Admin</title>
+<style>
+:root{color-scheme:dark;--bg:#07131d;--panel:#0e202c;--panel2:#132b39;--line:#294655;--line2:#38586b;--text:#eff4f7;--muted:#91a8b7;--yellow:#ffc928;--blue:#50a8f5;--green:#5bd69a;--red:#ff887a;--shadow:0 18px 45px #0004}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at 52% -15%,#17394b 0,#07131d 55%);color:var(--text);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer;border:1px solid var(--line2);border-radius:9px;padding:10px 14px;color:var(--text);background:linear-gradient(180deg,#244252,#152c39);font-weight:800}
+button:hover{border-color:#7795a6;filter:brightness(1.08)}
+button:disabled{opacity:.45;cursor:not-allowed;filter:none}
+button.primary{background:var(--yellow);border-color:var(--yellow);color:#111c23}
+button.quiet{background:transparent}
+button.danger{border-color:#76463f;color:#ffb1a7}
+input,select,textarea{width:100%;min-width:0;background:#081721;border:1px solid var(--line);border-radius:8px;color:var(--text);padding:11px}
+textarea{min-height:142px;resize:vertical;line-height:1.6}
+label{display:block;margin:0 0 6px;color:#adc0cc;font-size:11px;font-weight:850;letter-spacing:.65px;text-transform:uppercase}
+small,.muted{color:var(--muted)}
+#login{max-width:760px;margin:6vh auto;padding:22px}
+.login-card{background:linear-gradient(150deg,#132c3b,#0b1c27);border:1px solid var(--line2);border-radius:18px;padding:26px;box-shadow:var(--shadow)}
+.brandline{display:flex;gap:12px;align-items:center;margin-bottom:22px}
+.brandmark{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--yellow);color:#101c23;font-weight:1000;font-size:18px}
+.eyebrow{font-size:10px;color:var(--yellow);font-weight:950;letter-spacing:1.8px}
+.brandline h1{font-size:20px;margin:2px 0 0;letter-spacing:.1px}
+.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.field{min-width:0}
+.field.full{grid-column:1/-1}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:15px}
+#setup{display:none;margin-top:18px;padding:16px;border:1px solid var(--line);border-radius:12px;background:#091923}
+.status{min-height:22px;margin-top:10px;color:var(--yellow);font-size:12px}
+#workspace{display:none;min-height:100vh}
+.shell{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;padding:19px 14px;background:linear-gradient(180deg,#06121a,#0a1b26);border-right:1px solid #203b4b;display:flex;flex-direction:column;gap:7px}
+.sidebrand{display:flex;align-items:center;gap:10px;padding:4px 7px 22px}
+.sidebrand .brandmark{width:38px;height:38px;font-size:15px}
+.sidebrand strong{display:block;font-size:13px;letter-spacing:.5px}
+.sidebrand small{font-size:10px;letter-spacing:1.2px}
+.navlabel{padding:11px 9px 4px;color:#688397;font-size:9px;font-weight:950;letter-spacing:1.5px;text-transform:uppercase}
+.nav{width:100%;display:flex;align-items:center;gap:11px;text-align:left;background:transparent;border:1px solid transparent;color:#a9bdc9;padding:11px 12px;font-size:12px}
+.nav .ico{width:22px;height:22px;display:grid;place-items:center;border:1px solid #355265;border-radius:7px;color:#83a1b5;font-size:12px}
+.nav.active{background:#263b36;color:#fff;border-color:#665b25}
+.nav.active .ico{background:var(--yellow);border-color:var(--yellow);color:#15212a}
+.sidefoot{margin-top:auto;border-top:1px solid #263f4e;padding:14px 8px 4px}
+.sidefoot strong{display:block;color:var(--green);font-size:11px}
+.sidefoot small{font-size:10px;line-height:1.5;display:block;margin-top:3px}
+.main{padding:22px 26px 40px;max-width:1600px;width:100%;margin:0 auto;min-width:0}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;border-bottom:1px solid #203b4b;padding:0 0 16px;margin-bottom:21px}
+.path{font-size:10px;color:#7d98aa;letter-spacing:1.2px;font-weight:900}
+.path span{color:var(--yellow)}
+.account{display:flex;align-items:center;gap:9px;color:#dce6eb;font-size:12px}
+.account .avatar{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#2d4e60;color:#fff;font-weight:950}
+.topactions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.view{display:none}.view.active{display:block}
+.pagehead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:19px;flex-wrap:wrap}
+.pagehead h1{font-size:25px;line-height:1.2;margin:2px 0 7px;letter-spacing:-.5px}
+.pagehead p{margin:0;color:var(--muted);max-width:760px;font-size:13px}
+.tag{display:inline-flex;align-items:center;gap:7px;border:1px solid #4c665d;background:#132b29;color:#aeecc9;padding:6px 9px;border-radius:30px;font-size:10px;font-weight:950;letter-spacing:.6px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 12px #5bd69a66}
+.panel{background:linear-gradient(145deg,#122a38,#0b1c27);border:1px solid var(--line);border-radius:14px;padding:17px;box-shadow:0 9px 28px #0002;min-width:0}
+.panel h2{margin:0 0 6px;font-size:14px;letter-spacing:.2px}
+.panel p{color:var(--muted);font-size:12px;margin:5px 0 0}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:14px}
+.kpi{padding:15px 16px;background:linear-gradient(145deg,#142c3b,#0c1d28);border:1px solid #304d5e;border-radius:12px;min-width:0}
+.kpi small{display:block;font-size:9px;font-weight:950;letter-spacing:1px;text-transform:uppercase}
+.kpi strong{display:block;font-size:27px;letter-spacing:-1px;margin:6px 0 1px}
+.kpi em{display:block;color:#839ba9;font-size:10px;font-style:normal}
+.callout{padding:14px 16px;border:1px solid #665723;background:linear-gradient(110deg,#332c16,#1c241e);border-radius:12px;margin:14px 0;color:#e7ddb7}
+.callout strong{display:block;color:#ffdb5e;font-size:11px;letter-spacing:.6px;margin-bottom:3px}
+.callout p{margin:0;color:#cabf99;font-size:12px}
+.twocol{display:grid;grid-template-columns:1.25fr .75fr;gap:13px}
+.cardlist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:13px}
+.feature{padding:13px;border:1px solid #294555;border-radius:10px;background:#0b1b26}
+.feature strong{display:block;font-size:12px}.feature small{font-size:10px;display:block;margin-top:4px;line-height:1.45}
+.sectionhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.sectionhead .eyebrow{color:#80b9e7}
+.formgrid .field input,.formgrid .field select{margin-bottom:2px}
+.editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.editor{background:#0a1b26;border:1px solid #263f4f;border-radius:11px;padding:13px;min-width:0}
+.editor textarea{min-height:145px;font-size:12px}
+.editor .hint{font-size:10px;line-height:1.45;margin-top:6px;color:#829cab}
+.daychecks{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.daychecks label{display:flex;align-items:center;gap:5px;padding:7px 9px;border:1px solid #2b4859;border-radius:8px;background:#0a1a24;text-transform:none;letter-spacing:0;font-size:10px}
+.daychecks input{width:14px;height:14px;padding:0;margin:0;accent-color:var(--yellow)}
+.full{grid-column:1/-1}
+.history-list{display:grid;gap:8px}
+.history-item{display:grid;grid-template-columns:70px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid #2b4656;border-radius:10px;background:#0a1b26}
+.versionno{font-size:14px;font-weight:950;color:var(--yellow)}
+.history-item strong{display:block;font-size:11px}.history-item small{font-size:10px;display:block;margin-top:3px}
+.pill{display:inline-block;border:1px solid #3b5969;border-radius:30px;padding:4px 7px;font-size:9px;font-weight:900;letter-spacing:.5px;color:#9cb6c5}
+.pill.live{border-color:#39765c;background:#122c24;color:#a7efc6}
+.pill.draft{border-color:#7c6b2b;background:#2b2816;color:#ffdf75}
+.empty{padding:24px;text-align:center;color:#8199a9;border:1px dashed #365264;border-radius:10px}
+.pagefoot{margin-top:22px;padding-top:13px;border-top:1px solid #243e4d;color:#718b9d;font-size:10px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+@media(max-width:1050px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.twocol{grid-template-columns:1fr}}
+@media(max-width:760px){.shell{display:block}.sidebar{position:relative;width:100%;height:auto;padding:10px;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px;border-right:0;border-bottom:1px solid #294352}.sidebrand{width:100%;padding:0 4px 7px}.navlabel,.sidefoot{display:none}.nav{width:auto;flex:1 1 30%;justify-content:center;padding:8px 7px;font-size:10px}.nav .ico{display:none}.main{padding:15px 12px 28px}.topbar{margin-bottom:15px}.pagehead h1{font-size:22px}.topactions{width:100%}.topactions button{flex:1}.history-item{grid-template-columns:52px minmax(0,1fr)}.history-item>button{grid-column:2}.editor-grid,.formgrid,.cardlist{grid-template-columns:1fr}.full{grid-column:auto}}
+@media(max-width:480px){#login{margin:2vh auto;padding:12px}.login-card{padding:17px}.kpis{gap:7px}.kpi{padding:12px}.kpi strong{font-size:22px}.nav{flex-basis:30%;font-size:9px}.account{width:100%;justify-content:space-between}}
+</style>
+</head>
+<body>
+<section id="login">
+ <div class="login-card">
+  <div class="brandline"><div class="brandmark">D</div><div><div class="eyebrow">SYSTEM CONTROL / RESTRICTED</div><h1>CENTRAL DATA BANK ADMIN</h1></div></div>
+  <p class="muted">Configuration control plane for organisation structure, master registries, operational libraries and approved system defaults.</p>
+  <div class="formgrid" style="margin-top:20px">
+   <div class="field"><label for="projectUrl">Supabase project URL</label><input id="projectUrl" value="https://ygwfipksbbprqynvbklk.supabase.co" autocomplete="url"></div>
+   <div class="field"><label for="pubKey">Publishable API key</label><input id="pubKey" value="sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx" autocomplete="off"></div>
+   <div class="field"><label for="username">Username</label><input id="username" autocomplete="username"></div>
+   <div class="field"><label for="pin">PIN</label><input id="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password"></div>
+  </div>
+  <div class="actions"><button id="loginBtn" class="primary">AUTHENTICATE</button><button id="showSetup" class="quiet">FIRST OWNER SETUP</button></div>
+  <div id="setup">
+   <div class="eyebrow">INITIAL ROOT IDENTITY</div>
+   <div class="field"><label for="setupCode">Bootstrap setup code</label><input id="setupCode" type="password"></div>
+   <div class="field"><label for="setupName">Root account</label><input id="setupName" value="JAN" readonly></div>
+   <div class="field"><label for="setupPin">New root PIN · 4–8 digits</label><input id="setupPin" type="password" inputmode="numeric" maxlength="8"></div>
+   <button id="bootstrapBtn" class="primary">INITIALISE JAN OWNER</button>
+  </div>
+  <div id="authStatus" class="status" role="status" aria-live="polite"></div>
+  <div class="pagefoot"><span>AUTHORISED IDENTITIES · ADMIN / JAN ONLY</span><span>Protected by central session validation</span></div>
+ </div>
 </section>
-</main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
-(()=>{const $=id=>document.getElementById(id);let token=null,me=null,bank=null,version=0,api="";
-function configure(){api=$("projectUrl").value.trim().replace(/\/$/,"")+"/functions/v1/central-bank";return api}
-async function call(action,payload={},auth=true){configure();const h={"Content-Type":"application/json","apikey":$("pubKey").value.trim()};if(auth&&token)h["x-downtime-session"]=token;const r=await fetch(api,{method:"POST",headers:h,body:JSON.stringify({action,...payload})});const d=await r.json().catch(()=>({error:"Bad response"}));if(!r.ok)throw Error(d.error||"API request failed");return d}
-function status(id,msg){$(id).textContent=msg}
-async function load(){const d=await call("central-admin-state");bank=d.payload;version=d.version;me=d.user;render()}
-function render(){
-const rights=bank.tiers?.[me.tier]||{},isRoot=String(me.username||'').toUpperCase()==='JAN'&&me.tier==='OWNER';
-const canManageUsers=rights.canManageUsers===true,canViewUsers=canManageUsers||rights.canViewUsers===true;
-const canManageStaff=rights.canManageStaff===true,canViewStaff=canManageStaff||rights.canViewStaff===true,canManageAssignments=rights.canManageAssignments===true;
-$("app").style.display="block";$("login").style.display="none";$("hello").textContent=me.displayName||me.username;$("tierInfo").textContent="Tier: "+me.tier+" · Version "+version;
-$("centralUsersPanel").style.display=canViewUsers?'block':'none';$("centralStaffPanel").style.display=canViewStaff?'block':'none';$("centralRightsPanel").style.display=isRoot?'block':'none';
-["uName","uDisplay","uTier","uPin","saveUser"].forEach(id=>{const el=$(id);if(el)el.disabled=!canManageUsers});
-["staffName","staffInfo","staffPhoto","saveStaff"].forEach(id=>{const el=$(id);if(el)el.disabled=!canManageStaff});
-$("staffStation").disabled=!(canManageStaff&&canManageAssignments);$("tiersJson").disabled=!isRoot;$("saveTiers").disabled=!isRoot;
-$("userList").innerHTML=(bank.users||[]).map(u=>{const root=String(u.username).toUpperCase()==="JAN"||u.tier==="OWNER";return '<div class="item"><strong>'+esc(u.displayName||u.username)+' · '+esc(u.username)+'</strong><span class="muted">'+esc(u.tier)+' · '+(u.enabled!==false?'ENABLED':'DISABLED')+'</span><div>'+(root?'<span class="muted">ROOT OWNER · PROTECTED</span>':(canManageUsers?'<button data-edit-user="'+esc(u.username)+'">Edit</button><button data-delete-user="'+esc(u.username)+'">Delete</button>':'<span class="muted">READ ONLY</span>'))+'</div></div>'}).join('');
-document.querySelectorAll('[data-edit-user]').forEach(b=>b.onclick=()=>{const u=bank.users.find(x=>x.username===b.dataset.editUser);$("uName").value=u.username;$("uDisplay").value=u.displayName||u.username;$("uTier").value=u.tier;$("uPin").value=''});
-$("staffList").innerHTML=Object.entries(bank.staff?.profiles||{}).map(([n,p])=>'<div class="item"><strong>'+esc(n)+'</strong><span class="muted">'+esc(p.station||p.assignedStation||'Unassigned')+'</span><p>'+esc(p.info||p.notes||'')+'</p>'+(p.photoPath?'<button data-photo="'+esc(p.photoPath)+'">View photo</button>':'')+(canManageStaff?'<button data-edit-staff="'+esc(n)+'">Edit</button>':'')+'</div>').join('');
-document.querySelectorAll('[data-edit-staff]').forEach(b=>b.onclick=()=>{const p=bank.staff.profiles[b.dataset.editStaff]||{};$("staffName").value=b.dataset.editStaff;$("staffStation").value=p.station||p.assignedStation||"";$("staffInfo").value=p.info||p.notes||""});
-document.querySelectorAll('[data-photo]').forEach(b=>b.onclick=async()=>{try{const res=await call("staff-photo-read",{path:b.dataset.photo});window.open(res.url,"_blank","noopener")}catch(e){alert(e.message)}});
-$("tiersJson").value=JSON.stringify(bank.tiers,null,2);
-const payload=bank.appData||{};$("dataSummary").textContent="Weeks stored: "+Object.keys(payload.weeks||{}).length+"\nArchive records: "+(payload.archive||[]).length+"\nAreas: "+(payload.areas||[]).length+"\nShared-state version: "+version+"\nStaff profiles: "+Object.keys(bank.staff?.profiles||{}).length+"\nUsers: "+(bank.users||[]).length;
-document.querySelectorAll('[data-delete-user]').forEach(b=>b.onclick=async()=>{if(!confirm("Delete user "+b.dataset.deleteUser+"?"))return;try{const d=await call("user-delete",{username:b.dataset.deleteUser,version});version=d.version;await load()}catch(e){status("userStatus",e.message)}});
-}
-function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-$("showSetup").onclick=()=>{$("setup").style.display=$("setup").style.display==="none"?"block":"none"};
-$("bootstrapBtn").onclick=async()=>{try{const d=await call("bootstrap",{bootstrapCode:$("setupCode").value,username:$("setupName").value,pin:$("setupPin").value},false);status("authStatus",d.message||"Owner setup done")}catch(e){status("authStatus",e.message)}};
-$("loginBtn").onclick=async()=>{try{const user=await call("login",{username:$("username").value,pin:$("pin").value},false);token=user.token;me=user.user;await load();}catch(e){if(token){try{await call("logout")}catch{}}token=null;me=null;bank=null;$("app").style.display="none";$("login").style.display="block";status("authStatus",e.message)}};
-$("logoutBtn").onclick=async()=>{try{await call("logout")}finally{token=null;me=null;bank=null;$("app").style.display="none";$("login").style.display="block"}};
-$("refreshBtn").onclick=async()=>{try{await load();status("authStatus","Central data refreshed")}catch(e){status("authStatus",e.message)}};
-$("saveUser").onclick=async()=>{try{const d=await call("user-save",{username:$("uName").value,displayName:$("uDisplay").value,tier:$("uTier").value,pin:$("uPin").value||undefined,version});version=d.version;status("userStatus","Saved centrally");await load()}catch(e){status("userStatus",e.message)}};
-$("saveStaff").onclick=async()=>{try{const name=$("staffName").value.trim(),profile={station:$("staffStation").value,info:$("staffInfo").value};const file=$("staffPhoto").files[0];if(file){const signed=await call("staff-photo-url",{name});const storage=window.supabase.createClient($("projectUrl").value.trim(),$("pubKey").value.trim());const up=await storage.storage.from("downtime-staff-photos").uploadToSignedUrl(signed.path,signed.token,file,{contentType:file.type,upsert:false});if(up.error)throw up.error;profile.photoPath=signed.path;}const d=await call("staff-save",{name,profile,version});version=d.version;status("staffStatus","Staff profile saved centrally");await load()}catch(e){status("staffStatus",e.message)}};
-$("saveTiers").onclick=async()=>{try{const tiers=JSON.parse($("tiersJson").value),d=await call("tiers-save",{tiers,version});version=d.version;status("tierStatus","Privilege matrix saved");await load()}catch(e){status("tierStatus",e.message)}};
+
+<section id="workspace">
+ <div class="shell">
+  <aside class="sidebar">
+   <div class="sidebrand"><div class="brandmark">D</div><div><strong>CENTRAL DATA BANK</strong><small>CONFIGURATION CONTROL</small></div></div>
+   <div class="navlabel">CONTROL CENTRE</div>
+   <button class="nav active" data-section="overview"><span class="ico">⌂</span>Overview</button>
+   <div class="navlabel">MASTER REGISTRY</div>
+   <button class="nav" data-section="organisation"><span class="ico">◎</span>Organisation</button>
+   <button class="nav" data-section="structure"><span class="ico">▦</span>Plant & Areas</button>
+   <div class="navlabel">SYSTEM CONFIGURATION</div>
+   <button class="nav" data-section="libraries"><span class="ico">▤</span>Operational Libraries</button>
+   <button class="nav" data-section="defaults"><span class="ico">⚙</span>System Defaults</button>
+   <div class="navlabel">GOVERNANCE</div>
+   <button class="nav" data-section="history"><span class="ico">◷</span>Version History</button>
+   <div class="sidefoot"><strong>ADMIN / JAN AUTHORITY</strong><small>Draft, validate, publish and restore configuration versions. Other accounts are rejected server-side.</small></div>
+  </aside>
+  <main class="main">
+   <div class="topbar">
+    <div><div class="path">DOWNTIME <span>/</span> CENTRAL DATA BANK <span>/</span> CONFIGURATION</div><div class="account" style="margin-top:6px"><span class="avatar" id="avatar">A</span><span id="identity">Authenticated administrator</span><span class="pill">RESTRICTED</span></div></div>
+    <div class="topactions"><button id="refreshBtn" class="quiet">REFRESH</button><button id="saveDraftBtn">SAVE DRAFT</button><button id="publishBtn" class="primary" disabled>PUBLISH VERSION</button><button id="logoutBtn" class="quiet">LOG OUT</button></div>
+   </div>
+
+   <section class="view active" id="view-overview">
+    <div class="pagehead"><div><div class="eyebrow">SYSTEM CONTROL ROOM</div><h1>Configuration overview</h1><p>Manage the data foundation of DOWNTIME. Changes are versioned independently of daily operational records.</p></div><span class="tag"><i class="dot"></i>ADMINISTRATOR SESSION ACTIVE</span></div>
+    <div class="kpis">
+     <div class="kpi"><small>Published version</small><strong id="publishedKpi">v1</strong><em id="publishedBy">Initial baseline</em></div>
+     <div class="kpi"><small>Current draft</small><strong id="draftKpi">v1</strong><em id="draftStatus">Synchronized with published</em></div>
+     <div class="kpi"><small>Registered items</small><strong id="itemsKpi">0</strong><em>Master data and catalogues</em></div>
+     <div class="kpi"><small>Version records</small><strong id="historyKpi">1</strong><em>Recoverable configuration snapshots</em></div>
+    </div>
+    <div class="callout"><strong>ISOLATED CONFIGURATION · LIVE TRACKER PROTECTED</strong><p>Saving a draft or publishing this registry does not write to the tracker’s operational data, users, staff, active shift records or reporting archive. The running application will only consume these settings after a separate, tested integration and release.</p></div>
+    <div class="twocol">
+     <div class="panel"><div class="sectionhead"><div><div class="eyebrow">WORKFLOW</div><h2>Controlled configuration lifecycle</h2></div><span class="pill">VALIDATE → APPROVE</span></div>
+      <div class="cardlist">
+       <div class="feature"><strong>01 · Configure</strong><small>Maintain site structure, area registries and standard operational libraries.</small></div>
+       <div class="feature"><strong>02 · Save draft</strong><small>Persist a new immutable snapshot without changing the published registry.</small></div>
+       <div class="feature"><strong>03 · Publish</strong><small>Activate a validated registry version through an explicit ADMIN/JAN action.</small></div>
+       <div class="feature"><strong>04 · Restore</strong><small>Recover any historical snapshot as a new draft, then publish deliberately.</small></div>
+      </div>
+     </div>
+     <div class="panel"><div class="eyebrow">SEPARATION OF RESPONSIBILITIES</div><h2>Access & Rights stays separate</h2><p>Account identities and the existing tier-permission matrix remain in ACCESS AND RIGHTS. This control room does not create users, edit PINs or duplicate the permission editor. Only ADMIN/JAN can open Access & Rights and change permissions for other users or tiers.</p><div style="margin-top:14px"><span class="pill live">ADMIN / JAN ONLY</span></div></div>
+    </div>
+   </section>
+
+   <section class="view" id="view-organisation">
+    <div class="pagehead"><div><div class="eyebrow">MASTER REGISTRY / 01</div><h1>Organisation</h1><p>Define the organisation identity and regional conventions used by the configuration registry.</p></div><span class="pill">DRAFT EDITABLE</span></div>
+    <div class="panel"><div class="sectionhead"><div><h2>Organisation identity</h2><p>Leave the company name and site code blank until the application is installed for a company.</p></div></div>
+     <div class="formgrid">
+      <div class="field"><label for="companyName">Company / organisation name</label><input id="companyName" maxlength="120" placeholder="Not configured"></div>
+      <div class="field"><label for="siteCode">Primary site code</label><input id="siteCode" maxlength="32" placeholder="Optional identifier"></div>
+      <div class="field"><label for="timezone">IANA time zone</label><input id="timezone" value="Europe/London" placeholder="Europe/London"></div>
+      <div class="field"><label for="locale">Locale</label><input id="locale" value="en-GB" placeholder="en-GB"></div>
+     </div>
+    </div>
+   </section>
+
+   <section class="view" id="view-structure">
+    <div class="pagehead"><div><div class="eyebrow">MASTER REGISTRY / 02</div><h1>Plant & Areas</h1><p>Maintain the structural hierarchy used to describe company sites, plants, operational areas and stations.</p></div><span class="pill">REFERENCE DATA</span></div>
+    <div class="editor-grid">
+     <div class="editor"><label for="sites">Sites</label><textarea id="sites" placeholder="One site per line"></textarea><div class="hint">One unique site name or code per line.</div></div>
+     <div class="editor"><label for="plants">Plants / facilities</label><textarea id="plants" placeholder="One plant per line"></textarea><div class="hint">Plant or facility records belonging to the configured sites.</div></div>
+     <div class="editor"><label for="areas">Plant areas</label><textarea id="areas" placeholder="One operational area per line"></textarea><div class="hint">Named areas within each plant, for example processing zones or departments.</div></div>
+     <div class="editor"><label for="stations">Stations / work positions</label><textarea id="stations" placeholder="One station per line"></textarea><div class="hint">Standard station names used by plant operations.</div></div>
+    </div>
+   </section>
+
+   <section class="view" id="view-libraries">
+    <div class="pagehead"><div><div class="eyebrow">SYSTEM CONFIGURATION / 03</div><h1>Operational Libraries</h1><p>Standardise reusable operational values. These are master lists; they do not rewrite existing downtime records.</p></div><span class="pill">CONTROLLED VOCABULARY</span></div>
+    <div class="editor-grid">
+     <div class="editor"><label for="areaPresets">Area presets</label><textarea id="areaPresets" placeholder="One preset per line"></textarea><div class="hint">Quick-select area choices used when recording downtime.</div></div>
+     <div class="editor"><label for="downtimeReasons">Downtime reasons</label><textarea id="downtimeReasons" placeholder="One reason per line"></textarea><div class="hint">Standard reason catalogue. Existing records remain unchanged.</div></div>
+     <div class="editor"><label for="dailyTaskPresets">Daily task templates</label><textarea id="dailyTaskPresets" placeholder="One task per line"></textarea><div class="hint">Reusable checklist item definitions for daily operations.</div></div>
+     <div class="editor"><label for="equipmentCategories">Equipment categories</label><textarea id="equipmentCategories" placeholder="One category per line"></textarea><div class="hint">Common equipment or asset groupings for future data integrations.</div></div>
+     <div class="editor"><label for="eventCategories">Event categories</label><textarea id="eventCategories" placeholder="One category per line"></textarea><div class="hint">Standard event classifications for future reporting and integrations.</div></div>
+     <div class="editor"><label for="statusCategories">Status categories</label><textarea id="statusCategories" placeholder="One status per line"></textarea><div class="hint">Controlled operational status vocabulary.</div></div>
+    </div>
+   </section>
+
+   <section class="view" id="view-defaults">
+    <div class="pagehead"><div><div class="eyebrow">SYSTEM CONFIGURATION / 04</div><h1>System Defaults</h1><p>Set the default operating calendar, break allowance and shift definitions for the configuration registry.</p></div><span class="pill">GLOBAL DEFAULTS</span></div>
+    <div class="panel">
+     <div class="formgrid">
+      <div class="field"><label for="weekStartsOn">Week starts on</label><select id="weekStartsOn"><option>MONDAY</option><option>SUNDAY</option><option>TUESDAY</option><option>WEDNESDAY</option><option>THURSDAY</option><option>FRIDAY</option><option>SATURDAY</option></select></div>
+      <div class="field"><label for="breakDeductionMinutes">Default break deduction · minutes</label><input id="breakDeductionMinutes" type="number" min="0" max="240" step="1"></div>
+      <div class="field full"><label>Operating days</label><div id="operatingDays" class="daychecks"></div></div>
+     </div>
+    </div>
+    <div class="editor-grid" style="margin-top:13px">
+     <div class="editor"><label for="shiftSchedule">Shift schedule JSON</label><textarea id="shiftSchedule" spellcheck="false" style="min-height:250px"></textarea><div class="hint">Structured by day. Must be valid JSON. The current application schedule is copied into the initial baseline.</div></div>
+     <div class="editor"><label for="shiftPresets">Saved shift presets JSON</label><textarea id="shiftPresets" spellcheck="false" style="min-height:250px"></textarea><div class="hint">Array of objects containing a preset name and its shift configuration.</div></div>
+    </div>
+   </section>
+
+   <section class="view" id="view-history">
+    <div class="pagehead"><div><div class="eyebrow">GOVERNANCE / 05</div><h1>Version History</h1><p>Every saved draft creates a new immutable configuration snapshot. Restore a snapshot as a draft; publishing remains a separate action.</p></div><span class="pill">AUDITABLE VERSIONS</span></div>
+    <div class="panel"><div class="sectionhead"><div><h2>Configuration snapshots</h2><p id="historySummary">Latest versions appear first.</p></div><button id="historyRefreshBtn" class="quiet">REFRESH HISTORY</button></div><div id="historyList" class="history-list"></div></div>
+   </section>
+
+   <div id="status" class="status" role="status" aria-live="polite"></div>
+   <div class="pagefoot"><span>DOWNTIME · CENTRAL DATA BANK CONFIGURATION CONTROL</span><span id="footVersion">Draft v1 · Published v1</span></div>
+  </main>
+ </div>
+</section>
+
+<script>
+(()=>{
+ const $=id=>document.getElementById(id);
+ let token=null,me=null,model=null,draftVersion=0,publishedVersion=0,nextVersion=0,versions=[],baseline="";
+ const DAYS=["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"];
+ const endpoint=()=> $("projectUrl").value.trim().replace(/\/$/,"")+"/functions/v1/central-bank";
+ function status(message,error=false){$("status").textContent=message;$("status").style.color=error?"#ff9a8e":"#ffd45d"}
+ async function call(action,payload={},auth=true){
+  const headers={"Content-Type":"application/json","apikey":$("pubKey").value.trim()};
+  if(auth&&token)headers["x-downtime-session"]=token;
+  const response=await fetch(endpoint(),{method:"POST",headers,body:JSON.stringify({action,...payload})});
+  const data=await response.json().catch(()=>({error:"Invalid server response"}));
+  if(!response.ok){const error=new Error(data.error||"Central configuration request failed");error.status=response.status;throw error}
+  return data;
+ }
+ function blankConfig(){return {schemaVersion:1,organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
+ const lines=value=>Array.isArray(value)?value.join("\n"):"";
+ function list(id){return $(id).value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean)}
+ function setValue(id,value){$(id).value=value??""}
+ function buildDayChecks(){
+  $("operatingDays").replaceChildren();
+  DAYS.forEach(day=>{
+   const label=document.createElement("label"),input=document.createElement("input"),span=document.createElement("span");
+   input.type="checkbox";input.value=day;input.dataset.operatingDay="true";span.textContent=day.slice(0,3);label.append(input,span);$("operatingDays").append(label);
+  });
+ }
+ function renderForm(config){
+  const c=config||blankConfig(),org=c.organization||{},structure=c.structure||{},libraries=c.libraries||{},defaults=c.defaults||{};
+  setValue("companyName",org.companyName);setValue("siteCode",org.siteCode);setValue("timezone",org.timezone||"Europe/London");setValue("locale",org.locale||"en-GB");
+  ["sites","plants","areas","stations"].forEach(key=>setValue(key,lines(structure[key])));
+  ["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].forEach(key=>setValue(key,lines(libraries[key])));
+  setValue("weekStartsOn",defaults.weekStartsOn||"MONDAY");setValue("breakDeductionMinutes",Number.isInteger(Number(defaults.breakDeductionMinutes))?defaults.breakDeductionMinutes:75);
+  document.querySelectorAll("[data-operating-day]").forEach(input=>input.checked=(defaults.operatingDays||DAYS.slice(0,6)).includes(input.value));
+  setValue("shiftSchedule",JSON.stringify(defaults.shiftSchedule||{},null,2));setValue("shiftPresets",JSON.stringify(defaults.shiftPresets||[],null,2));
+ }
+ function collectConfig(){
+  let shiftSchedule,shiftPresets;
+  try{shiftSchedule=JSON.parse($("shiftSchedule").value||"{}")}catch{throw new Error("Shift schedule must be valid JSON")}
+  try{shiftPresets=JSON.parse($("shiftPresets").value||"[]")}catch{throw new Error("Shift presets must be valid JSON")}
+  if(!shiftSchedule||typeof shiftSchedule!=="object"||Array.isArray(shiftSchedule))throw new Error("Shift schedule must be a JSON object");
+  if(!Array.isArray(shiftPresets))throw new Error("Shift presets must be a JSON array");
+  return {
+   schemaVersion:1,
+   organization:{companyName:$("companyName").value.trim(),siteCode:$("siteCode").value.trim(),timezone:$("timezone").value.trim(),locale:$("locale").value.trim()},
+   structure:{sites:list("sites"),plants:list("plants"),areas:list("areas"),stations:list("stations")},
+   libraries:{areaPresets:list("areaPresets"),downtimeReasons:list("downtimeReasons"),dailyTaskPresets:list("dailyTaskPresets"),equipmentCategories:list("equipmentCategories"),eventCategories:list("eventCategories"),statusCategories:list("statusCategories")},
+   defaults:{shiftSchedule,shiftPresets,weekStartsOn:$("weekStartsOn").value,operatingDays:Array.from(document.querySelectorAll("[data-operating-day]:checked")).map(input=>input.value),breakDeductionMinutes:Number($("breakDeductionMinutes").value)}
+  };
+ }
+ function stable(value){return JSON.stringify(value)}
+ function isDirty(){try{return stable(collectConfig())!==baseline}catch{return true}}
+ function updateButtons(){
+  const dirty=isDirty(),pending=draftVersion!==publishedVersion;
+  $("saveDraftBtn").disabled=!dirty;
+  $("publishBtn").disabled=dirty||!pending;
+  $("draftStatus").textContent=dirty?"Unsaved local edits":pending?"Unpublished draft ready":"Synchronized with published";
+  $("draftStatus").style.color=dirty||pending?"#ffdf75":"#83d9aa";
+ }
+ function countItems(c){
+  const s=c.structure||{},l=c.libraries||{};
+  return ["sites","plants","areas","stations"].reduce((n,k)=>n+(s[k]||[]).length,0)+["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].reduce((n,k)=>n+(l[k]||[]).length,0);
+ }
+ function renderOverview(){
+  $("publishedKpi").textContent="v"+publishedVersion;$("draftKpi").textContent="v"+draftVersion;
+  $("publishedBy").textContent="Published by "+(model.publishedBy||"SYSTEM");
+  $("itemsKpi").textContent=countItems(model.draft||blankConfig());
+  $("historyKpi").textContent=versions.length;
+  $("historySummary").textContent=versions.length+" version records · latest first";
+  $("footVersion").textContent="Draft v"+draftVersion+" · Published v"+publishedVersion;
+ }
+ function renderHistory(){
+  const host=$("historyList");host.replaceChildren();
+  if(!versions.length){const empty=document.createElement("div");empty.className="empty";empty.textContent="No configuration history is available.";host.append(empty);return}
+  versions.forEach(item=>{
+   const row=document.createElement("div");row.className="history-item";
+   const number=document.createElement("div");number.className="versionno";number.textContent="v"+item.version;
+   const details=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small"),pill=document.createElement("span");
+   title.textContent=(item.action||"snapshot").replace(/-/g," ").toUpperCase()+" · "+(item.actor||"SYSTEM");
+   meta.textContent=(item.note||"No change note")+" · "+(item.created_at?new Date(item.created_at).toLocaleString():"date unavailable");
+   pill.className="pill"+(item.status==="PUBLISHED"?" live":item.status==="CURRENT DRAFT"?" draft":"");pill.textContent=item.status||"HISTORICAL";
+   details.append(title,meta,pill);row.append(number,details);
+   if(Number(item.version)!==draftVersion){
+    const restore=document.createElement("button");restore.className="quiet";restore.textContent="RESTORE AS DRAFT";restore.dataset.restoreVersion=String(item.version);row.append(restore);
+   }
+   host.append(row);
+  });
+  host.querySelectorAll("[data-restore-version]").forEach(button=>button.addEventListener("click",()=>restoreVersion(Number(button.dataset.restoreVersion))));
+ }
+ async function loadState(){
+  const data=await call("central-config-state");
+  model=data;draftVersion=Number(data.draftVersion);publishedVersion=Number(data.publishedVersion);nextVersion=Number(data.nextVersion);versions=data.versions||[];
+  renderForm(model.draft);baseline=stable(collectConfig());$("avatar").textContent=(data.user?.displayName||data.user?.username||"A").slice(0,1).toUpperCase();
+  $("identity").textContent=(data.user?.displayName||data.user?.username||"ADMIN")+" · "+data.user?.tier;
+  renderOverview();renderHistory();updateButtons();
+  $("workspace").style.display="block";$("login").style.display="none";
+ }
+ function showSection(section){
+  document.querySelectorAll(".view").forEach(view=>view.classList.toggle("active",view.id==="view-"+section));
+  document.querySelectorAll("[data-section]").forEach(button=>button.classList.toggle("active",button.dataset.section===section));
+ }
+ async function login(){
+  $("loginBtn").disabled=true;status("Authenticating administrator...");
+  try{
+   const result=await call("login",{username:$("username").value.trim(),pin:$("pin").value},false);token=result.token;me=result.user;
+   await loadState();$("pin").value="";status("");
+  }catch(error){
+   if(token){try{await call("logout")}catch{}}
+   token=null;me=null;model=null;$("workspace").style.display="none";$("login").style.display="block";$("authStatus").textContent=error.message;
+  }finally{$("loginBtn").disabled=false}
+ }
+ async function saveDraft(){
+  let config;try{config=collectConfig()}catch(error){status(error.message,true);return}
+  $("saveDraftBtn").disabled=true;status("Validating and saving draft snapshot...");
+  try{
+   const saved=await call("central-config-save-draft",{config,draftVersion,nextVersion,note:"Saved from Central Data Bank Admin"});
+   await loadState();status("Draft saved as version v"+saved.draftVersion+". The published configuration and live tracker are unchanged.");
+  }catch(error){status(error.message,true);$("saveDraftBtn").disabled=false}
+ }
+ async function publish(){
+  if(isDirty()){status("Save the current edits as a draft before publishing.",true);return}
+  if(draftVersion===publishedVersion){status("There are no unpublished changes.");return}
+  const approved=window.confirm("Publish configuration version v"+draftVersion+" to the Central Data Bank registry? This will not change the running tracker. Tracker integration requires a separate tested release.");
+  if(!approved)return;
+  $("publishBtn").disabled=true;status("Publishing approved configuration version...");
+  try{const saved=await call("central-config-publish",{draftVersion,publishedVersion});await loadState();status("Configuration version v"+saved.publishedVersion+" published to the isolated registry. The live tracker remains unchanged.");}
+  catch(error){status(error.message,true);$("publishBtn").disabled=false}
+ }
+ async function restoreVersion(sourceVersion){
+  if(!window.confirm("Restore version v"+sourceVersion+" as a new draft? The current published version will remain active until a separate publish action."))return;
+  status("Restoring historical snapshot as a new draft...");
+  try{const result=await call("central-config-restore-draft",{sourceVersion,draftVersion,nextVersion});await loadState();showSection("overview");status("Version v"+sourceVersion+" restored as new draft v"+result.draftVersion+". Review and publish when ready.");}
+  catch(error){status(error.message,true)}
+ }
+ async function refresh(){
+  status("Refreshing configuration state...");
+  try{await loadState();status("Configuration state refreshed.");}
+  catch(error){status(error.message,true)}
+ }
+ $("loginBtn").addEventListener("click",login);$("pin").addEventListener("keydown",event=>{if(event.key==="Enter")login()});
+ $("showSetup").addEventListener("click",()=>$("setup").style.display=$("setup").style.display==="block"?"none":"block");
+ $("bootstrapBtn").addEventListener("click",async()=>{
+  try{const result=await call("bootstrap",{bootstrapCode:$("setupCode").value,username:"JAN",pin:$("setupPin").value},false);$("authStatus").textContent=result.message||"Root owner initialised. Sign in as JAN."}
+  catch(error){$("authStatus").textContent=error.message}
+ });
+ $("saveDraftBtn").addEventListener("click",saveDraft);$("publishBtn").addEventListener("click",publish);$("refreshBtn").addEventListener("click",refresh);$("historyRefreshBtn").addEventListener("click",refresh);
+ $("logoutBtn").addEventListener("click",async()=>{try{await call("logout")}catch{}finally{token=null;me=null;model=null;$("workspace").style.display="none";$("login").style.display="block";$("pin").value="";$("authStatus").textContent="Administrator session closed."}});
+ document.querySelectorAll("[data-section]").forEach(button=>button.addEventListener("click",()=>showSection(button.dataset.section)));
+ document.querySelectorAll("#workspace input,#workspace textarea,#workspace select").forEach(input=>input.addEventListener("input",updateButtons));
+ buildDayChecks();renderForm(blankConfig());updateButtons();
 })();
-</script></body></html>
+</script>
+</body>
+</html>

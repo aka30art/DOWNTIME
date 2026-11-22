@@ -24,6 +24,7 @@ for(const tier of ['OWNER','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR']){
   assert.match(api,new RegExp(tier+':\\{[^}]*canViewAreaPresets:'),'server default profile for '+tier);
 }
 
+assert.match(page,/function canManageAccessRights\(\)\{return canAccessCentralBank\(\)\}/,'Access and Rights uses the strict ADMIN/JAN identity allow-list');
 assert.match(page,/function canManageSettingsSection\(section\)/,'shared Settings edit permission resolver');
 assert.match(page,/function settingsAccess\(section\)/,'shared Settings section visibility resolver');
 assert.match(page,/function anySettingsAccess\(\)/,'Settings navigation follows section rights');
@@ -40,7 +41,7 @@ assert.match(api,/if\(action==="save-settings"\)[\s\S]*const canManageAreas=priv
 assert.match(api,/const canManageSchedule=priv\.canManageSettings\|\|priv\.canManageShiftSchedule/,'server enforces schedule edit permission');
 assert.match(api,/const canManageTasks=priv\.canManageSettings\|\|priv\.canManageDailyTasks/,'server enforces daily-task edit permission');
 assert.match(api,/const canManageReasons=priv\.canManageSettings\|\|priv\.canManageReasonPresets/,'server enforces reason preset edit permission');
-assert.match(api,/Only the JAN root administrator can change tier access and rights/,'tier editor remains JAN-root-only');
+assert.match(api,/if\(tier!=="ADMIN"&&!isJanRoot\)return json\(\{error:"Only ADMIN or the JAN root administrator can change tier access and rights"\},403\)/,'tier permission grants are restricted to ADMIN and JAN');
 assert.match(api,/OWNER:\{canEditTracker:true/,'OWNER default permissions remain fixed in the central API');
 
-console.log('PASS: granular Settings visibility/edit rights, tracker-independent settings persistence, central API enforcement, and JAN-only root rights.');
+console.log('PASS: granular Settings visibility/edit rights, tracker-independent settings persistence, central API enforcement, and ADMIN/JAN permission administration.');

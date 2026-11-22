@@ -47,6 +47,55 @@ function normalizeBank(p:any){
  b.statsSource=b.statsSource||{weeks:b.appData.weeks||{}};
  return b;
 }
+const centralConfigDays=["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"];
+function configString(value:any,label:string,max=120){
+ const result=String(value??"").trim();
+ if(result.length>max)throw new Error(label+" must be "+max+" characters or fewer");
+ return result;
+}
+function configStringList(value:any,label:string,maxItems=250,maxLength=100){
+ if(!Array.isArray(value))throw new Error(label+" must be a list");
+ const result:string[]=[],seen=new Set<string>();
+ for(const raw of value){
+  if(typeof raw!=="string")throw new Error(label+" entries must be text");
+  const item=raw.trim();if(!item)continue;
+  if(item.length>maxLength)throw new Error(label+" entries must be "+maxLength+" characters or fewer");
+  const key=item.toLocaleLowerCase();if(seen.has(key))throw new Error(label+" contains a duplicate entry: "+item);
+  seen.add(key);result.push(item);if(result.length>maxItems)throw new Error(label+" cannot contain more than "+maxItems+" entries");
+ }
+ return result;
+}
+function normalizeCentralConfig(input:any){
+ if(!input||typeof input!=="object"||Array.isArray(input))throw new Error("Configuration object required");
+ if(JSON.stringify(input).length>250000)throw new Error("Configuration is too large");
+ if(Number(input.schemaVersion)!==1)throw new Error("Unsupported configuration schema version");
+ const organization=input.organization||{},structure=input.structure||{},libraries=input.libraries||{},defaults=input.defaults||{};
+ const companyName=configString(organization.companyName,"Company name",120);
+ const siteCode=configString(organization.siteCode,"Site code",32);
+ const timezone=configString(organization.timezone||"Europe/London","Timezone",64);
+ const locale=configString(organization.locale||"en-GB","Locale",20);
+ try{new Intl.DateTimeFormat("en-GB",{timeZone:timezone}).format(new Date())}catch{throw new Error("Timezone must be a valid IANA timezone")}
+ const shiftSchedule=defaults.shiftSchedule&&typeof defaults.shiftSchedule==="object"&&!Array.isArray(defaults.shiftSchedule)?structuredClone(defaults.shiftSchedule):{};
+ if(JSON.stringify(shiftSchedule).length>60000)throw new Error("Shift schedule is too large");
+ const shiftPresets=Array.isArray(defaults.shiftPresets)?defaults.shiftPresets.slice(0,50).map((preset:any)=>{
+  if(!preset||typeof preset!=="object"||Array.isArray(preset)||!preset.config||typeof preset.config!=="object"||Array.isArray(preset.config))throw new Error("Shift presets must contain a name and configuration");
+  return {name:configString(preset.name,"Shift preset name",60),config:preset.config};
+ }).filter((preset:any)=>preset.name):[];
+ const weekStartsOn=String(defaults.weekStartsOn||"MONDAY").toUpperCase();
+ if(!centralConfigDays.includes(weekStartsOn))throw new Error("Week start must be a valid day");
+ const operatingDays=configStringList(defaults.operatingDays||centralConfigDays.slice(0,6),"Operating days",7,12).map((day:string)=>day.toUpperCase());
+ if(operatingDays.some(day=>!centralConfigDays.includes(day)))throw new Error("Operating days contain an invalid day");
+ const breakDeductionMinutes=Number(defaults.breakDeductionMinutes);
+ if(!Number.isInteger(breakDeductionMinutes)||breakDeductionMinutes<0||breakDeductionMinutes>240)throw new Error("Break deduction must be between 0 and 240 minutes");
+ return {
+  schemaVersion:1,
+  organization:{companyName,siteCode,timezone,locale},
+  structure:{sites:configStringList(structure.sites||[],"Sites"),plants:configStringList(structure.plants||[],"Plants"),areas:configStringList(structure.areas||[],"Plant areas"),stations:configStringList(structure.stations||[],"Stations")},
+  libraries:{areaPresets:configStringList(libraries.areaPresets||[],"Area presets"),downtimeReasons:configStringList(libraries.downtimeReasons||[],"Downtime reasons"),dailyTaskPresets:configStringList(libraries.dailyTaskPresets||[],"Daily task presets",250,120),equipmentCategories:configStringList(libraries.equipmentCategories||[],"Equipment categories"),eventCategories:configStringList(libraries.eventCategories||[],"Event categories"),statusCategories:configStringList(libraries.statusCategories||[],"Status categories")},
+  defaults:{shiftSchedule,shiftPresets,weekStartsOn,operatingDays,breakDeductionMinutes}
+ };
+}
+
 Deno.serve(async(req)=>{
  if(req.method==="OPTIONS"){if(req.headers.get("origin")&&req.headers.get("origin")!==allowedOrigin)return new Response("Forbidden",{status:403});return new Response("ok",{headers})}
  if(req.headers.get("origin")&&req.headers.get("origin")!==allowedOrigin)return json({error:"Origin denied"},403);
@@ -98,7 +147,61 @@ Deno.serve(async(req)=>{
    if(tier!=="ADMIN"&&!isJanRoot)return json({error:"Central Data Bank access is restricted to ADMIN and JAN."},403);
    return json({payload:{...bank,users:bank.users.map(safeUser)},version:row?.version||0,updatedAt:row?.updated_at||null,user:safeUser(currentUser)});
  }
- if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers||priv.canViewUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canDeleteRecords&&priv.canViewDashboards)restrictedData.weeks=addStableRecordIds(restrictedData.weeks||{});if(!priv.canViewStaff&&!priv.canManageStaff&&!priv.canManageAssignments){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}else if(!priv.canViewStaff&&!priv.canManageStaff&&priv.canManageAssignments){const assignmentProfiles=publicBank.staff?.profiles||{};const minimalProfiles=Object.fromEntries(Object.entries(assignmentProfiles).map(([name,profile]:any)=>[name,{name,onSite:profile?.onSite!==false,station:String(profile?.station||profile?.assignedStation||"").slice(0,100)}]));publicBank.staff={roster:publicBank.staff?.roster||[],profiles:minimalProfiles};restrictedData.staffRoster=publicBank.staff.roster;restrictedData.operatorProfiles=minimalProfiles;}if(!priv.canViewAssignments&&!priv.canManageAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff||priv.canManageStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!(priv.canViewAreaPresets||priv.canManageAreaPresets||priv.canManageSettings))delete restrictedData.areas;if(!(priv.canViewReasonPresets||priv.canManageReasonPresets||priv.canAddDowntimeReasons||priv.canManageSettings))delete restrictedData.reasons;if(!(priv.canViewShiftSchedule||priv.canManageShiftSchedule||priv.canManageSettings)){delete restrictedData.shiftSchedule;delete restrictedData.shiftPresets;}if(!(priv.canViewDailyTasks||priv.canManageDailyTasks||priv.canManageSettings))delete restrictedData.dailyTaskPresets;if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
+   const isJanRoot=String(currentUser.username||"").trim().toUpperCase()==="JAN"&&tier==="OWNER";
+  const isCentralAdmin=tier==="ADMIN"||isJanRoot;
+  if(typeof action==="string"&&action.startsWith("central-config-")&&!isCentralAdmin)return json({error:"Central configuration access is restricted to ADMIN and JAN."},403);
+  if(action==="central-config-state"){
+    const {data:configState,error:configError}=await db.from("downtime_central_config_state").select("*").eq("id",1).maybeSingle();
+    if(configError||!configState)return json({error:"Configuration control plane is not installed. Apply the Central Data Bank configuration migration first."},503);
+    const {data:history,error:historyError}=await db.from("downtime_central_config_history").select("version,parent_version,action,actor,note,created_at,published_at").order("version",{ascending:false}).limit(40);
+    if(historyError)return json({error:"Configuration history unavailable"},503);
+    const versions=(history||[]).map((item:any)=>({...item,status:Number(item.version)===Number(configState.published_version)?"PUBLISHED":Number(item.version)===Number(configState.draft_version)?"CURRENT DRAFT":"HISTORICAL"}));
+    return json({draft:configState.draft_payload,published:configState.published_payload,draftVersion:Number(configState.draft_version),publishedVersion:Number(configState.published_version),nextVersion:Number(configState.next_version),updatedBy:configState.updated_by,updatedAt:configState.updated_at,publishedBy:configState.published_by,publishedAt:configState.published_at,versions,user:safeUser(currentUser)});
+  }
+  if(action==="central-config-save-draft"){
+    const {data:configState,error:configError}=await db.from("downtime_central_config_state").select("*").eq("id",1).maybeSingle();
+    if(configError||!configState)return json({error:"Configuration control plane is not installed"},503);
+    if(Number(body.draftVersion)!==Number(configState.draft_version)||Number(body.nextVersion)!==Number(configState.next_version))return json({error:"Draft changed in another session. Refresh before saving."},409);
+    let config:any;try{config=normalizeCentralConfig(body.config)}catch(error){return json({error:error instanceof Error?error.message:"Invalid configuration"},400)}
+    const newVersion=Number(configState.next_version);let note="Draft configuration saved";try{note=configString(body.note||note,"Change note",240)}catch(error){return json({error:error instanceof Error?error.message:"Invalid change note"},400)}
+    const {error:historyInsertError}=await db.from("downtime_central_config_history").insert({version:newVersion,payload:config,parent_version:configState.draft_version,action:"draft-save",actor:currentUser.username,note});
+    if(historyInsertError)return json({error:"Unable to create configuration version"},409);
+    const {data:write,error}=await db.from("downtime_central_config_state").update({draft_payload:config,draft_version:newVersion,next_version:newVersion+1,updated_by:currentUser.username,updated_at:new Date().toISOString()}).eq("id",1).eq("draft_version",Number(body.draftVersion)).eq("next_version",Number(body.nextVersion)).select("id").maybeSingle();
+    if(error||!write){await db.from("downtime_central_config_history").delete().eq("version",newVersion);return json({error:"Draft changed in another session. Refresh before saving."},409)}
+    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"central-config-draft-save",details:{version:newVersion}});
+    return json({ok:true,draftVersion:newVersion,nextVersion:newVersion+1,updatedAt:new Date().toISOString()});
+  }
+  if(action==="central-config-publish"){
+    const {data:configState,error:configError}=await db.from("downtime_central_config_state").select("*").eq("id",1).maybeSingle();
+    if(configError||!configState)return json({error:"Configuration control plane is not installed"},503);
+    if(Number(body.draftVersion)!==Number(configState.draft_version)||Number(body.publishedVersion)!==Number(configState.published_version))return json({error:"Configuration changed in another session. Refresh before publishing."},409);
+    if(Number(configState.draft_version)===Number(configState.published_version))return json({error:"There are no unpublished changes to activate."},409);
+    try{normalizeCentralConfig(configState.draft_payload)}catch(error){return json({error:error instanceof Error?error.message:"Draft validation failed"},400)}
+    const now=new Date().toISOString();
+    const {data:write,error}=await db.from("downtime_central_config_state").update({published_payload:configState.draft_payload,published_version:configState.draft_version,published_by:currentUser.username,published_at:now}).eq("id",1).eq("draft_version",Number(body.draftVersion)).eq("published_version",Number(body.publishedVersion)).select("id").maybeSingle();
+    if(error||!write)return json({error:"Configuration changed in another session. Refresh before publishing."},409);
+    await db.from("downtime_central_config_history").update({published_at:now}).eq("version",Number(configState.draft_version));
+    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"central-config-publish",details:{version:Number(configState.draft_version)}});
+    return json({ok:true,publishedVersion:Number(configState.draft_version),publishedAt:now});
+  }
+  if(action==="central-config-restore-draft"){
+    const {data:configState,error:configError}=await db.from("downtime_central_config_state").select("*").eq("id",1).maybeSingle();
+    if(configError||!configState)return json({error:"Configuration control plane is not installed"},503);
+    if(Number(body.draftVersion)!==Number(configState.draft_version)||Number(body.nextVersion)!==Number(configState.next_version))return json({error:"Draft changed in another session. Refresh before restoring."},409);
+    const sourceVersion=Number(body.sourceVersion);
+    if(!Number.isSafeInteger(sourceVersion)||sourceVersion<1)return json({error:"Select a valid historical version"},400);
+    const {data:source,error:sourceError}=await db.from("downtime_central_config_history").select("payload").eq("version",sourceVersion).maybeSingle();
+    if(sourceError||!source)return json({error:"Historical configuration version not found"},404);
+    let config:any;try{config=normalizeCentralConfig(source.payload)}catch(error){return json({error:error instanceof Error?error.message:"Historical configuration is invalid"},400)}
+    const newVersion=Number(configState.next_version),note="Restored historical version v"+sourceVersion+" as a new draft";
+    const {error:historyInsertError}=await db.from("downtime_central_config_history").insert({version:newVersion,payload:config,parent_version:sourceVersion,action:"restore-draft",actor:currentUser.username,note});
+    if(historyInsertError)return json({error:"Unable to create restored draft"},409);
+    const {data:write,error}=await db.from("downtime_central_config_state").update({draft_payload:config,draft_version:newVersion,next_version:newVersion+1,updated_by:currentUser.username,updated_at:new Date().toISOString()}).eq("id",1).eq("draft_version",Number(body.draftVersion)).eq("next_version",Number(body.nextVersion)).select("id").maybeSingle();
+    if(error||!write){await db.from("downtime_central_config_history").delete().eq("version",newVersion);return json({error:"Draft changed in another session. Refresh before restoring."},409)}
+    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"central-config-restore-draft",details:{sourceVersion,newVersion}});
+    return json({ok:true,draftVersion:newVersion,nextVersion:newVersion+1,sourceVersion});
+  }
+  if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers||priv.canViewUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canDeleteRecords&&priv.canViewDashboards)restrictedData.weeks=addStableRecordIds(restrictedData.weeks||{});if(!priv.canViewStaff&&!priv.canManageStaff&&!priv.canManageAssignments){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}else if(!priv.canViewStaff&&!priv.canManageStaff&&priv.canManageAssignments){const assignmentProfiles=publicBank.staff?.profiles||{};const minimalProfiles=Object.fromEntries(Object.entries(assignmentProfiles).map(([name,profile]:any)=>[name,{name,onSite:profile?.onSite!==false,station:String(profile?.station||profile?.assignedStation||"").slice(0,100)}]));publicBank.staff={roster:publicBank.staff?.roster||[],profiles:minimalProfiles};restrictedData.staffRoster=publicBank.staff.roster;restrictedData.operatorProfiles=minimalProfiles;}if(!priv.canViewAssignments&&!priv.canManageAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff||priv.canManageStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!(priv.canViewAreaPresets||priv.canManageAreaPresets||priv.canManageSettings))delete restrictedData.areas;if(!(priv.canViewReasonPresets||priv.canManageReasonPresets||priv.canAddDowntimeReasons||priv.canManageSettings))delete restrictedData.reasons;if(!(priv.canViewShiftSchedule||priv.canManageShiftSchedule||priv.canManageSettings)){delete restrictedData.shiftSchedule;delete restrictedData.shiftPresets;}if(!(priv.canViewDailyTasks||priv.canManageDailyTasks||priv.canManageSettings))delete restrictedData.dailyTaskPresets;if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
  if(action==="save-state"){
    if(!priv.canEditTracker)return json({error:"Permission denied"},403);
    const incoming=body?.appData;if(!incoming||typeof incoming!=="object"||Array.isArray(incoming))return json({error:"appData required"},400);
@@ -252,6 +355,7 @@ Deno.serve(async(req)=>{
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
    const isRootName=username.toUpperCase()==="JAN";
    const existing=idx>=0?bank.users[idx]:null;
+   if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN or the JAN root administrator can create accounts or assign user tiers."},403);
    if(isRootName){
      if(tier!=="OWNER")return json({error:"JAN is protected. Only the OWNER may update JAN credentials."},403);
      if(!existing||existing.tier!=="OWNER"||newTier!=="OWNER"||body.enabled===false)return json({error:"JAN is the immutable root OWNER and cannot be created, demoted or disabled."},400);
@@ -328,7 +432,7 @@ Deno.serve(async(req)=>{
    return json({version:(row?.version||0)+1,updatedAt:new Date().toISOString()});
  }
  if(action==="tiers-save"){
-   if(String(currentUser.username||"").toUpperCase()!=="JAN"||tier!=="OWNER")return json({error:"Only the JAN root administrator can change tier access and rights"},403);
+   if(tier!=="ADMIN"&&!isJanRoot)return json({error:"Only ADMIN or the JAN root administrator can change tier access and rights"},403);
    const proposed=body.tiers;if(!proposed||typeof proposed!=="object"||Array.isArray(proposed))return json({error:"Tiers required"},400);
    const permissionKeys=Object.keys(tierDefault.OWNER),nextTiers:Record<string,Record<string,boolean>>={...bank.tiers,OWNER:{...tierDefault.OWNER}};
    for(const role of tiers){
