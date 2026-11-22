@@ -317,6 +317,7 @@ Deno.serve(async(req)=>{
          const existing=(currentProfiles as any)[name]||{};
          if("station" in existing)profile.station=existing.station;else delete profile.station;
          if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
+         if("stationLocked" in existing)profile.stationLocked=existing.stationLocked;else delete profile.stationLocked;
        }
      }
      nextAppData.operatorProfiles=newProfiles;
@@ -400,6 +401,17 @@ Deno.serve(async(req)=>{
    if(!priv.canManageAssignments){
      if("station" in existingProfile)nextProfile.station=existingProfile.station;else delete nextProfile.station;
      if("assignedStation" in existingProfile)nextProfile.assignedStation=existingProfile.assignedStation;else delete nextProfile.assignedStation;
+     if("stationLocked" in existingProfile)nextProfile.stationLocked=existingProfile.stationLocked;else delete nextProfile.stationLocked;
+   }else{
+     const wasLocked=existingProfile.stationLocked===true;
+     const explicitlyUnlocked=proposedProfile.stationLocked===false;
+     const requestedStation=String(proposedProfile.station??proposedProfile.assignedStation??"").slice(0,100);
+     const currentStation=String(existingProfile.station??existingProfile.assignedStation??"");
+     if(wasLocked&&!explicitlyUnlocked&&requestedStation!==currentStation){
+       if("station" in existingProfile)nextProfile.station=existingProfile.station;else delete nextProfile.station;
+       if("assignedStation" in existingProfile)nextProfile.assignedStation=existingProfile.assignedStation;else delete nextProfile.assignedStation;
+       nextProfile.stationLocked=true;
+     }
    }
    bank.staff.profiles[name]=nextProfile;
    if(!bank.staff.roster.includes(name))bank.staff.roster.push(name);
