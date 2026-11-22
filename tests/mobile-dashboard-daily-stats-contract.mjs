@@ -7,8 +7,10 @@ const source = await readFile('index.html', 'utf8');
 // Contract checks: preserve the identity source and existing privilege boundaries.
 assert.match(source, /function renderActiveAccountIndicator\(\)[\s\S]*?name\.textContent=username/);
 assert.match(source, /function render\(\)\{renderActiveAccountIndicator\(\);/);
-assert.match(source, /const allowed=activeOperator==='Jan'\|\|activeOperator==='Mick'/);
-assert.match(source, /if\(activeOperator!=='Jan'&&activeOperator!=='Mick'\)return/);
+assert.match(source, /const allowed=!!centralUser&&centralReady&&permission\('canControlPlantPower'\)/);
+assert.match(source, /if\(!centralReady\|\|!permission\('canControlPlantPower'\)\|\|b\.disabled\)return/);
+assert.doesNotMatch(source, /activeOperator==='Jan'\|\|activeOperator==='Mick'/);
+assert.doesNotMatch(source, /activeOperator!=='Jan'&&activeOperator!=='Mick'/);
 assert.match(source, /id="menuAccountName"/);
 assert.match(source, /id="dailyStatsHeading"[^>]*>DAILY STATS</);
 assert.match(source, /\$\('topWeekDown'\)\.textContent=fmt\(c\.down\)/);
