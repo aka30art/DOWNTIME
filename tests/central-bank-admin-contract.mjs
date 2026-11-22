@@ -23,7 +23,7 @@ assert.ok(migration.includes('downtime_central_config_history'),'append-only ver
 assert.ok(migration.includes('revoke all on public.downtime_central_config_state from public, anon, authenticated'),'config state is not exposed to browser database roles');
 assert.ok(migration.includes('grant all on public.downtime_central_config_state to service_role'),'only server-side service role can access config state');
 for(const action of ['central-config-state','central-config-save-draft','central-config-publish','central-config-restore-draft'])assert.ok(api.includes('action==="'+action+'"'),'Edge Function supports '+action);
-assert.ok(api.includes('action.startsWith("central-config-")&&!isCentralAdmin'),'all config actions have a common server-side ADMIN/DEV gate');
+assert.ok(api.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),'all config actions have a common server-side DEV-only gate');
 assert.ok(api.includes('normalizeCentralConfig(body.config)'),'drafts are validated server-side');
 assert.ok(api.includes('central-config-publish'),'publishing is a separate explicit server action');
 assert.ok(api.includes('central-config-restore-draft'),'historical versions can be restored only as new drafts');
