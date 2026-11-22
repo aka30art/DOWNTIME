@@ -94,7 +94,7 @@ window.supabase={createClient:()=>({
    })}
   })};
  });
- let bank=initialBank?JSON.parse(JSON.stringify(initialBank)):makeBank(),version=initialVersion,token='central-session-'+username;
+ let bank=initialBank?JSON.parse(JSON.stringify(initialBank)):makeBank(),version=initialVersion,token='central-session-'+username,failNextSettingsSave=false;
  const actions=[];
  const staffPhotoRemovals=[];
  let staffPhotoSequence=1;
@@ -152,8 +152,11 @@ window.supabase={createClient:()=>({
    const canManageTasks=rights.canManageSettings===true||rights.canManageDailyTasks===true;
    const canManageStaff=rights.canManageStaff===true;
    const canManageAssignments=rights.canManageAssignments===true;
-   if(!(canManageAreas||canAddReasons||canManageSchedule||canManageTasks||canManageStaff||canManageAssignments))return ok({error:'Permission denied'},403);
+   const canManageStations=rights.canManageSettings===true;
+   if(failNextSettingsSave){failNextSettingsSave=false;return ok({error:'Simulated central save failure'},503)}
+   if(!(canManageAreas||canAddReasons||canManageSchedule||canManageTasks||canManageStaff||canManageAssignments||canManageStations))return ok({error:'Permission denied'},403);
    const next={...bank.appData};
+   if(canManageStations&&Array.isArray(req.appData.stationConfig))next.stationConfig=JSON.parse(JSON.stringify(req.appData.stationConfig));
    if(canManageAreas)next.areas=req.appData.areas;
    if(canManageReasons)next.reasons=req.appData.reasons;
    else if(canAddReasons){const existing=next.reasons||[];next.reasons=[...existing,...(req.appData.reasons||[]).filter(value=>!existing.includes(value))]}
@@ -182,7 +185,7 @@ window.supabase={createClient:()=>({
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
- return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,setVersion:value=>{version=value}};
+ return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
 async function signIn(page,pin='2468',username='JAN'){
@@ -280,6 +283,39 @@ try{
  assert.equal(await owner.page.locator('.nav[data-view="staff"]').count(),0,'STAFF is no longer a standalone navigation item');
  assert.equal(await owner.page.locator('.nav[data-view="settings"]').isVisible(),true,'OWNER can open Settings');
  await openSettingsHub(owner.page);
+ await owner.page.locator('[data-settings-open="stations"]').click();
+ assert.equal(await owner.page.locator('#stationManagerList > div').count(),6,'Station Manager starts with the six existing station definitions');
+ const firstStation=owner.page.locator('#stationManagerList > div').nth(0);
+ await firstStation.locator('input[aria-label="Station name"]').fill('Bay A');
+ await owner.page.locator('#stationManagerList > div').nth(1).locator('input[type="checkbox"]').uncheck();
+ await owner.page.locator('#addStationBtn').click();
+ const newStation=owner.page.locator('#stationManagerList > div').nth(6);
+ await newStation.locator('input[aria-label="Station name"]').fill('Station 7');
+ await newStation.locator('input[aria-label="Station category"]').fill('GENERAL');
+ await owner.page.locator('#saveStationsBtn').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#stationManagerStatus')?.textContent.includes('saved centrally'),{timeout:5000});
+ const savedStations=owner.getBank().appData.stationConfig;
+ assert.equal(savedStations.length,7,'adding a station is stored centrally');
+ assert.equal(savedStations[0].name,'Bay A','renaming a station is stored centrally');
+ assert.ok(savedStations[0].aliases.includes('Station 1 · WOOD'),'station rename retains its prior label alias');
+ assert.equal(savedStations[1].active,false,'station deactivation is stored centrally without deleting its record');
+ assert.equal(savedStations[6].name,'Station 7','the newly-added station is available centrally');
+ await owner.page.locator('#settingsPanelStations [data-settings-back]').click();
+ await owner.page.locator('[data-settings-open="staff"]').click();
+ await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
+ const stationOptionLabels=await owner.page.locator('#smStation option').allTextContents();
+ assert.ok(stationOptionLabels.includes('Bay A · WOOD'),'STAFF profile choices display the renamed station label');
+ assert.ok(stationOptionLabels.includes('Station 7 · GENERAL'),'STAFF profile choices include the newly-added active station');
+ assert.equal(stationOptionLabels.includes('Station 2 · WOOD'),false,'STAFF assignment choices exclude a deactivated station');
+ assert.equal(await owner.page.locator('#smStation').inputValue(),'Bay A · WOOD','an existing assignment resolves through the previous station label alias');
+ await owner.page.locator('#smStation').selectOption('Station 7 · GENERAL');
+ await owner.page.locator('#smSave').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:5000});
+ assert.equal(owner.getBank().staff.profiles.Jan.station,'Station 7 · GENERAL','STAFF station reassignment is confirmed in the central data bank');
+ await owner.page.locator('#settingsPanelStaff [data-settings-back]').click();
+ await owner.page.locator('[data-settings-open="stations"]').click();
+ assert.equal(await owner.page.locator('#stationManagerList > div').count(),7,'saved station configuration is reloaded in Station Manager');
+ await owner.page.locator('#settingsPanelStations [data-settings-back]').click();
  await mkdir(resolve('artifacts/settings-hub'),{recursive:true});
  const settingsGrid=owner.page.locator('.settings-card-grid');
  for(const [width,columns] of [[1280,3],[1000,2],[600,1]]){
@@ -289,7 +325,7 @@ try{
    const rects=Object.fromEntries(cards.map(card=>[card.dataset.settingsOpen,card.getBoundingClientRect()]));
    return {columns:getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length,count:cards.length,staffTop:rects.staff?.top,dailyTasksTop:rects.dailyTasks?.top};
   });
-  assert.equal(layout.count,6,'all six Settings cards are inside the grid at '+width+'px');
+  assert.equal(layout.count,7,'all seven Settings cards are inside the grid at '+width+'px');
   assert.equal(layout.columns,columns,'Settings grid has '+columns+' columns at '+width+'px');
   if(width===1280)assert.ok(Math.abs(layout.staffTop-layout.dailyTasksTop)<2,'STAFF occupies the sixth grid position alongside the other cards');
   await owner.page.screenshot({path:resolve('artifacts/settings-hub/settings-'+width+'px.png')});
@@ -668,6 +704,8 @@ try{
   assert.equal(await supervisor.page.locator('#addEntry').isDisabled(),false,'SUPERVISOR can edit tracker');
   assert.equal(await supervisor.page.locator('#newStaffName').count(),0,'legacy inline add field is removed');
   await openStaffSettings(supervisor.page);
+ assert.equal(await supervisor.page.locator('[data-settings-open="stations"]').isVisible().catch(()=>false),false,'SUPERVISOR assignment permission does not expose Station Manager');
+
   assert.equal(await supervisor.page.locator('#addStaffBtn').isEnabled(),true,'SUPERVISOR can manage STAFF');
   assert.equal(await supervisor.page.locator('[data-settings-open="dailyTasks"]').isVisible(),false,'SUPERVISOR cannot manage general Settings presets');
   await supervisor.page.locator('#addStaffBtn').click();
@@ -730,6 +768,21 @@ try{
  await assignmentOnly.context.close();
 
 
+
+ // Failed central STAFF saves must leave the existing assignment unchanged and keep the modal open.
+ const failedSave=await openFor('ASSIGNMENT_ONLY','2468','MICK');
+ await signIn(failedSave.page,'2468','MICK');
+ await openStaffSettings(failedSave.page);
+ await failedSave.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
+ await failedSave.page.locator('#smStation').selectOption('Station 6 · GENERAL');
+ failedSave.failNextSettingsSave();
+ await failedSave.page.locator('#smSave').click();
+ await failedSave.page.waitForFunction(()=>document.querySelector('#smMsg')?.textContent.includes('Save failed'),{timeout:5000});
+ assert.equal(await failedSave.page.locator('#staffModalBackdrop').isVisible(),true,'STAFF profile modal remains open after a rejected central save');
+ assert.equal(failedSave.getBank().staff.profiles.Jan.station,'Station 1 · WOOD','failed central save does not change the server assignment');
+ assert.equal(await failedSave.page.locator('#smStation').inputValue(),'Station 1 · WOOD','failed central save rolls back the local selection');
+ await failedSave.context.close();
+
 // SPECTATOR receives no staff/assignment/dashboard/report surfaces.
  const spectator=await openFor('SPECTATOR','2468');
  await signIn(spectator.page);
@@ -745,6 +798,8 @@ try{
  await spectator.context.close();
 
  assert.deepEqual(errors,[],'no browser JavaScript errors');
+ console.log('PASS: Station Manager add, rename, deactivate, central persistence, alias migration and STAFF assignment workflow');
+ console.log('PASS: failed STAFF save rollback and Station Manager permission separation');
  console.log('PASS: central username/PIN authentication and invalid PIN rejection');
  console.log('PASS: central save-state writes use versioned compare-and-swap');
  console.log('PASS: OWNER and SUPERVISOR edit restrictions');

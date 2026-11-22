@@ -96,10 +96,12 @@ jobs:
           grep -q 'id="settingsHub"' /tmp/live-site.html
           grep -q 'data-settings-open="users"' /tmp/live-site.html
           grep -q 'data-settings-open="areas"' /tmp/live-site.html
+          grep -q 'data-settings-open="stations"' /tmp/live-site.html
           grep -q 'data-settings-open="reasons"' /tmp/live-site.html
           grep -q 'data-settings-open="schedule"' /tmp/live-site.html
           grep -q 'id="settingsPanelUsers"' /tmp/live-site.html
           grep -q 'id="settingsPanelAreas"' /tmp/live-site.html
+          grep -q 'id="settingsPanelStations"' /tmp/live-site.html
           grep -q 'id="settingsPanelReasons"' /tmp/live-site.html
           grep -q 'id="settingsPanelSchedule"' /tmp/live-site.html
           echo "Live Pages smoke checks passed: central USER authentication, central versioned sync, role admin entry point, and Plant Overview."
