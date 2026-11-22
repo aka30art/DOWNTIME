@@ -146,42 +146,15 @@ Deno.serve(async(req)=>{
  if(lockedRolePrivileges[tier])Object.assign(priv,lockedRolePrivileges[tier]);
  const currentUsername=String(currentUser.username||"").trim().toUpperCase();
  const isDevRoot=currentUsername==="DEV"&&tier==="OWNER";
- const isLegacyJanRoot=currentUsername==="JAN"&&tier==="OWNER";
- const isRootOwner=isDevRoot||isLegacyJanRoot;
- const isCentralAdmin=tier==="ADMIN"||tier==="DEVACC"||isDevRoot;
- const isCentralBankAccess=isDevRoot;
+ const isDevacc=tier==="DEVACC";
+ const isRootAuthority=isDevRoot||isDevacc;
+ const isCentralAdmin=tier==="ADMIN"||isRootAuthority;
+ const isCentralBankAccess=isRootAuthority;
  if(action==="central-admin-state"){
-   if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV only."},403);
+   if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);
    return json({payload:{...bank,users:bank.users.map(safeUser)},version:row?.version||0,updatedAt:row?.updated_at||null,user:safeUser(currentUser)});
  }
-  if(action==="root-account-split"){
-    if(!isRootOwner)return json({error:"Only the current root OWNER can split the DEV and Jan accounts."},403);
-    if(bank.users.some((u:any)=>u!==currentUser&&u.tier==="OWNER"))return json({error:"Account split blocked: more than one OWNER account exists."},409);
-    const janIndex=bank.users.findIndex((u:any)=>String(u.username||"").trim().toUpperCase()==="JAN");
-    const janExisting=janIndex>=0?bank.users[janIndex]:null;
-    if(isDevRoot&&janExisting){
-      if(janExisting.tier==="USER"&&janExisting.enabled!==false)return json({ok:true,alreadyComplete:true,version:Number(row?.version)||0});
-      return json({error:"A Jan account already exists with a different role. Resolve that account before running the split."},409);
-    }
-    if(isLegacyJanRoot&&janExisting&&janExisting!==currentUser)return json({error:"A separate Jan account already exists. Review the account records before running the split."},409);
-    const janPin=String(body.janPin||"");
-    if(!/^[0-9]{4,8}$/.test(janPin))return json({error:"A new 4-8 digit PIN is required for the Jan USER account."},400);
-    const expectedVersion=Number(body.version);
-    if(!Number.isInteger(expectedVersion)||expectedVersion!==Number(row?.version||0))return json({error:"Account data changed. Refresh and retry the split."},409);
-    const previousRootUsername=currentUser.username;
-    if(isLegacyJanRoot){
-      if(bank.users.some((u:any)=>String(u.username||"").trim().toUpperCase()==="DEV"))return json({error:"A DEV account already exists. Review the account records before running the split."},409);
-      currentUser.username="DEV";currentUser.displayName="DEV";
-    }
-    const salt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));
-    bank.users.push({username:"Jan",displayName:"Jan",tier:"USER",enabled:true,pinSalt:salt,pinHash:await hashPin(janPin,salt)});
-    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",expectedVersion).select("id").maybeSingle();
-    if(error||!write)return json({error:"Account split conflict; no account changes were committed. Refresh and retry."},409);
-    await db.from("downtime_central_audit").insert({username:"DEV",action:"root-account-split",details:{rootUsername:"DEV",createdUsername:"Jan",createdTier:"USER"}});
-    await db.from("downtime_central_sessions").delete().eq("username",previousRootUsername);
-    return json({ok:true,alreadyComplete:false,version:(row?.version||0)+1,message:"DEV root and Jan USER accounts are ready. Sign in again."});
-  }
-  if(typeof action==="string"&&action.startsWith("central-config-")&&!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV only."},403);
+  if(typeof action==="string"&&action.startsWith("central-config-")&&!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);
   if(action==="central-config-state"){
     const {data:configState,error:configError}=await db.from("downtime_central_config_state").select("*").eq("id",1).maybeSingle();
     if(configError||!configState)return json({error:"Configuration control plane is not installed. Apply the Central Data Bank configuration migration first."},503);
@@ -415,16 +388,14 @@ Deno.serve(async(req)=>{
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
    const existing=idx>=0?bank.users[idx]:null;
    const isRootName=username.toUpperCase()==="DEV";
-   const isLegacyRootName=username.toUpperCase()==="JAN"&&existing?.tier==="OWNER";
-   if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEVacc or the DEV root administrator can create accounts or assign user tiers."},403);
-   if(isRootName||isLegacyRootName){
-     if(tier!=="OWNER")return json({error:"The root OWNER account is protected. Only the OWNER may update root credentials."},403);
+   if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEV and DEVACC can create accounts or assign user tiers."},403);
+   if(isRootName){
+     if(!isDevRoot)return json({error:"Only root DEV can update root credentials."},403);
      if(!existing||existing.tier!=="OWNER"||newTier!=="OWNER"||body.enabled===false)return json({error:"DEV is the immutable root OWNER and cannot be created, demoted or disabled."},400);
    }else{
      if(newTier==="OWNER")return json({error:"DEV is the only OWNER account. Additional OWNER accounts are prohibited."},403);
-     if(newTier==="DEVACC"&&!isDevRoot)return json({error:"Only DEV can assign DEVacc."},403);
-     if(existing?.tier==="DEVACC"&&!isDevRoot)return json({error:"Only DEV can modify DEVacc."},403);
-     if(newTier==="DEVACC"&&bank.users.some((u:any)=>u!==existing&&u.tier==="DEVACC"))return json({error:"Only one DEVacc account is permitted."},409);
+     if(newTier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can assign DEVacc."},403);
+     if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);
      if(existing?.tier==="OWNER")return json({error:"The root OWNER account is protected."},403);
    }
    let user=existing||{username};
@@ -442,7 +413,7 @@ Deno.serve(async(req)=>{
    const target=String(body.username||"").trim();
    if(!target)return json({error:"Username required"},400);
    if(target.toUpperCase()==="DEV"||bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="OWNER"))return json({error:"The DEV root OWNER account cannot be deleted or removed."},403);
-   if(bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="DEVACC")&&!isDevRoot)return json({error:"Only DEV can remove DEVacc."},403);
+   if(bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="DEVACC")&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can remove DEVacc."},403);
    if(target.toLowerCase()===currentUser.username.toLowerCase())return json({error:"Cannot delete your own account"},400);
    bank.users=bank.users.filter((u:any)=>u.username!==target);
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
@@ -518,7 +489,7 @@ Deno.serve(async(req)=>{
    return json({version:(row?.version||0)+1,updatedAt:new Date().toISOString()});
  }
  if(action==="tiers-save"){
-   if(!isDevRoot)return json({error:"Only root DEV can change tier access and rights."},403);
+   if(!isCentralBankAccess)return json({error:"Only DEV and DEVACC can change tier access and rights."},403);
    const proposed=body.tiers;if(!proposed||typeof proposed!=="object"||Array.isArray(proposed))return json({error:"Tiers required"},400);
    const permissionKeys=Object.keys(tierDefault.OWNER),nextTiers:Record<string,Record<string,boolean>>={...bank.tiers,OWNER:{...tierDefault.OWNER}};
    for(const role of tiers){
