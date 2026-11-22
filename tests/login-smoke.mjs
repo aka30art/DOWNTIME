@@ -599,6 +599,8 @@ try{
   for(let attempt=0;attempt<40&&owner.getBank().staff.profiles.Rita?.photoPath;attempt++)await owner.page.waitForTimeout(100);
   assert.equal(owner.getBank().staff.profiles.Rita.photo,undefined,'REMOVE PHOTO clears thumbnail metadata');
   assert.equal(owner.getBank().staff.profiles.Rita.photoPath,undefined,'REMOVE PHOTO clears original photo path');
+  const localOriginalAfterRemove=await owner.page.evaluate(async name=>{const db=await new Promise((resolve,reject)=>{const req=indexedDB.open('downtime-operator-originals',1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});return await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readonly'),req=tx.objectStore('photos').get(name);req.onsuccess=()=>{db.close();resolve(!!req.result)};req.onerror=()=>{db.close();reject(req.error)}})},'Rita');
+  assert.equal(localOriginalAfterRemove,false,'REMOVE PHOTO deletes the local IndexedDB original as well as the private storage object');
   await owner.page.waitForFunction(()=>document.querySelector('#smMsg')?.textContent.includes('Photo removed.'),{timeout:5000});
   assert.equal(await owner.page.locator('#staffModalBackdrop').isVisible(),true,'photo removal finishes and refreshes the open profile');
   assert.equal(await owner.page.locator('#smPhotoRemove').isHidden(),true,'removed photo cannot be removed again');
