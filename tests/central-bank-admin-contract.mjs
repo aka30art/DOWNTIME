@@ -14,6 +14,8 @@ assert.ok(page.includes('x-downtime-session'),'configuration requests carry the 
 assert.ok(page.includes('"apikey":$("pubKey").value.trim()'),'configuration requests send the publishable API key');
 assert.ok(page.includes('call("central-config-state")'),'admin page loads configuration control-plane state');
 assert.ok(page.includes('if(auth&&token)headers["x-downtime-session"]=token'),'session token is attached only to authenticated admin actions');
+assert.ok(page.includes('Only root DEV can access the Central Data Bank'),'the configuration UI identifies the root DEV-only access boundary');
+assert.ok(page.includes('ROOT DEV ONLY'),'the Data Bank badge does not imply ADMIN or DEVacc access');
 assert.ok(page.includes('window.confirm("Publish configuration version v"+draftVersion'),'publishing requires an explicit confirmation');
 assert.ok(page.includes('RESTORE AS DRAFT'),'history restore creates a draft rather than publishing directly');
 assert.ok(page.includes('live tracker remains unchanged')&&page.includes('separate, tested integration'),'page clearly explains publication isolation from the operational app');
