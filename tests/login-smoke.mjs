@@ -16,16 +16,54 @@ await new Promise((ok,fail)=>{server.once('error',fail);server.listen(4173,'127.
 const browser=await chromium.launch({headless:true});
 const errors=[];
 const tiers={
- OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  MANAGER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ STAFF_ONLY:{canEditTracker:false,canManageUsers:false,canManageStaff:true,canManageAssignments:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:false,canViewReports:false},
+ ASSIGNMENT_ONLY:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:false,canViewReports:false},
  SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
 function makeBank(){
  const profiles=Object.fromEntries(['Jan','Mick','Gigi','Daz','Shayne'].map((name,i)=>[name,{station:'Station '+(i+1)+' · WOOD',onSite:true,photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}]));
- return {appData:{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360','Other'],reasons:['Blockage'],archive:[],plantOn:true,dailyTaskPresets:[]},users:[],tiers,staff:{roster:Object.keys(profiles),profiles},statsSource:{weeks:{}}};
+ const roster=Object.keys(profiles);
+ return {appData:{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360','Other'],reasons:['Blockage'],archive:[],plantOn:true,dailyTaskPresets:[],staffRoster:roster.slice(),operatorProfiles:JSON.parse(JSON.stringify(profiles))},users:[],tiers,staff:{roster,profiles},statsSource:{weeks:{}}};
+}
+async function dismissPlantTransitionAlerts(page){
+ const host=page.locator('#plantTransitionAlertHost');
+ for(let attempt=0;attempt<30;attempt++){
+  if(!(await host.count())){
+   await page.waitForTimeout(80);
+   if(!(await host.count()))return;
+   continue;
+  }
+  const acknowledgement=host.getByRole('button',{name:'ACKNOWLEDGE'});
+  try{
+   await acknowledgement.waitFor({state:'visible',timeout:1500});
+   await acknowledgement.click({timeout:1500});
+  }catch(error){
+   if(!(await host.count()))continue;
+   await page.waitForTimeout(100);
+  }
+  await page.waitForTimeout(100);
+ }
+ throw new Error('Plant transition alerts did not drain after acknowledgement.');
+}
+async function clickOverview(page){
+ const link=page.locator('.overview-link');
+ for(let attempt=0;attempt<10;attempt++){
+  await dismissPlantTransitionAlerts(page);
+  try{await link.click({timeout:1800});return}
+  catch(error){
+   if(await page.locator('#plantTransitionAlertHost').count()){
+    await dismissPlantTransitionAlerts(page);
+    continue;
+   }
+   throw error;
+  }
+ }
+ throw new Error('Plant transition alert repeatedly blocked Plant Overview navigation.');
 }
 async function openFor(tier,pin='2468',username='JAN',initialBank=null,initialVersion=1){
  const context=await browser.newContext();
@@ -50,12 +88,16 @@ window.supabase={createClient:()=>({
     order:async()=>({data:table==='downtime_reports'?[{id:'weekly-report-qa',week_start:'2026-11-16',file_name:'Downtime_2026-11-16_Weekly.pdf',file_size_bytes:18432,operators:{Monday:'Jan'},storage_path:'2026-11-16/weekly-report-qa.pdf'}]:[],error:null})
    }),
    storage:{from:bucket=>({
-    download:async path=>{window.__weeklyReportDownloads=window.__weeklyReportDownloads||[];window.__weeklyReportDownloads.push({bucket,path});const stream='BT /F1 26 Tf 70 760 Td (WEEKLY REPORT PREVIEW QA) Tj 0 -45 Td /F1 15 Tf (Week of 16 November 2026) Tj ET\n';let pdf='%PDF-1.4\n';const offsets=[0];const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Length '+stream.length+' >>\nstream\n'+stream+'endstream'];objects.forEach((object,index)=>{offsets.push(pdf.length);pdf+=(index+1)+' 0 obj\n'+object+'\nendobj\n'});const xref=pdf.length;pdf+='xref\n0 6\n0000000000 65535 f \n'+offsets.slice(1).map(offset=>String(offset).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';return {data:new Blob([pdf],{type:'application/pdf'}),error:null}}
+    download:async path=>{window.__weeklyReportDownloads=window.__weeklyReportDownloads||[];window.__weeklyReportDownloads.push({bucket,path});const stream='BT /F1 26 Tf 70 760 Td (WEEKLY REPORT PREVIEW QA) Tj 0 -45 Td /F1 15 Tf (Week of 16 November 2026) Tj ET\n';let pdf='%PDF-1.4\n';const offsets=[0];const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Length '+stream.length+' >>\nstream\n'+stream+'endstream'];objects.forEach((object,index)=>{offsets.push(pdf.length);pdf+=(index+1)+' 0 obj\n'+object+'\nendobj\n'});const xref=pdf.length;pdf+='xref\n0 6\n0000000000 65535 f \n'+offsets.slice(1).map(offset=>String(offset).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';return {data:new Blob([pdf],{type:'application/pdf'}),error:null}},
+    uploadToSignedUrl:async(path,token,file,options)=>{window.__staffPhotoUploads=window.__staffPhotoUploads||[];window.__staffPhotoUploads.push({bucket,path,type:file?.type,size:file?.size,contentType:options?.contentType});return {data:{path},error:null}},
+    remove:async paths=>{window.__staffPhotoRemovals=window.__staffPhotoRemovals||[];window.__staffPhotoRemovals.push({bucket,paths});return {data:(paths||[]).map(name=>({name})),error:null}}
    })}
   })};
  });
  let bank=initialBank?JSON.parse(JSON.stringify(initialBank)):makeBank(),version=initialVersion,token='central-session-'+username;
  const actions=[];
+ const staffPhotoRemovals=[];
+ let staffPhotoSequence=1;
  await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank',async route=>{
   const req=route.request().postDataJSON(),action=req.action;
   actions.push({action,body:req});
@@ -64,6 +106,24 @@ window.supabase={createClient:()=>({
   if(action==='login'){
    if(req.username!==username||req.pin!==pin)return ok({error:'Invalid username or PIN'},401);
    return ok({token,expiresAt:new Date(Date.now()+3600000).toISOString(),user:{username,displayName:username==='JAN'?'Jan':'Mick',tier}});
+  }
+  if(action==='staff-photo-url'){
+   const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
+   if(!rights.canManageStaff)return ok({error:'Permission denied'},403);
+   const slug=String(req.name||'').toLowerCase().replace(/[^a-z0-9_-]/g,'-')||'staff';
+   const path=slug+'/'+('00000000-0000-4000-8000-'+String(staffPhotoSequence++).padStart(12,'0'));
+   return ok({path,token:'signed-photo-token',signedUrl:'https://storage.test/'+path});
+  }
+  if(action==='staff-photo-read'){
+   const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
+   if(!rights.canViewStaff&&!rights.canManageStaff)return ok({error:'Permission denied'},403);
+   return ok({url:'https://storage.test/'+req.path});
+  }
+  if(action==='staff-photo-remove'){
+   const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
+   if(!rights.canManageStaff)return ok({error:'Permission denied'},403);
+   staffPhotoRemovals.push({path:req.path});
+   return ok({ok:true});
   }
   if(action==='get-state'){
    const copy=JSON.parse(JSON.stringify(bank));
@@ -78,8 +138,7 @@ window.supabase={createClient:()=>({
    const effectiveRights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
    if(!effectiveRights.canEditTracker)return ok({error:'Permission denied'},403);
    if(Number(req.version)!==version)return ok({error:'Version conflict; refresh before saving'},409);
-   bank.appData=req.appData;
-   if(effectiveRights.canManageStaff){bank.staff.profiles=req.appData.operatorProfiles||bank.staff.profiles;bank.staff.roster=req.appData.staffRoster||bank.staff.roster}
+   const currentProfiles=bank.staff.profiles||bank.appData.operatorProfiles||{},incomingProfiles=req.appData.operatorProfiles||{},profiles=effectiveRights.canManageStaff?JSON.parse(JSON.stringify(incomingProfiles)):JSON.parse(JSON.stringify(currentProfiles));for(const [name,incoming] of Object.entries(incomingProfiles)){if(!Object.prototype.hasOwnProperty.call(currentProfiles,name)||!incoming||typeof incoming!=='object')continue;const old=currentProfiles[name]||{},merged=effectiveRights.canManageStaff?{...incoming}:{...old};if(old.stationLocked===true||!effectiveRights.canManageAssignments){if('station' in old)merged.station=old.station;else delete merged.station;if('assignedStation' in old)merged.assignedStation=old.assignedStation;else delete merged.assignedStation}if('stationLocked' in old)merged.stationLocked=old.stationLocked===true;else delete merged.stationLocked;profiles[name]=merged}req.appData.operatorProfiles=profiles;if(effectiveRights.canManageStaff){bank.staff.roster=req.appData.staffRoster||bank.staff.roster}else req.appData.staffRoster=bank.staff.roster||[];bank.staff.profiles=profiles;bank.appData=req.appData;
    version++;
    return ok({version,updatedAt:new Date().toISOString()});
   }
@@ -92,7 +151,7 @@ window.supabase={createClient:()=>({
    const canManageSchedule=rights.canManageSettings===true||rights.canManageShiftSchedule===true;
    const canManageTasks=rights.canManageSettings===true||rights.canManageDailyTasks===true;
    const canManageStaff=rights.canManageStaff===true;
-   const canManageAssignments=rights.canManageAssignments===true||canManageStaff;
+   const canManageAssignments=rights.canManageAssignments===true;
    if(!(canManageAreas||canAddReasons||canManageSchedule||canManageTasks||canManageStaff||canManageAssignments))return ok({error:'Permission denied'},403);
    const next={...bank.appData};
    if(canManageAreas)next.areas=req.appData.areas;
@@ -100,8 +159,8 @@ window.supabase={createClient:()=>({
    else if(canAddReasons){const existing=next.reasons||[];next.reasons=[...existing,...(req.appData.reasons||[]).filter(value=>!existing.includes(value))]}
    if(canManageSchedule){next.shiftSchedule=req.appData.shiftSchedule;next.shiftPresets=req.appData.shiftPresets}
    if(canManageTasks)next.dailyTaskPresets=req.appData.dailyTaskPresets;
-   if(canManageStaff){next.operatorProfiles=req.appData.operatorProfiles;next.staffRoster=req.appData.staffRoster;bank.staff.profiles=req.appData.operatorProfiles;bank.staff.roster=req.appData.staffRoster}
-   else if(canManageAssignments){next.operatorProfiles={...(next.operatorProfiles||{})};for(const [name,profile] of Object.entries(req.appData.operatorProfiles||{})){if(next.operatorProfiles[name])next.operatorProfiles[name]={...next.operatorProfiles[name],station:profile.station}}}
+   if(canManageStaff){const currentProfiles=bank.staff.profiles||next.operatorProfiles||{},newProfiles=JSON.parse(JSON.stringify(req.appData.operatorProfiles||currentProfiles));for(const [name,profile] of Object.entries(newProfiles)){const old=currentProfiles[name]||{};if(!canManageAssignments){if('station' in old)profile.station=old.station;else delete profile.station;if('assignedStation' in old)profile.assignedStation=old.assignedStation;else delete profile.assignedStation;if('stationLocked' in old)profile.stationLocked=old.stationLocked;else delete profile.stationLocked;continue}const wasLocked=old.stationLocked===true,explicitlyUnlocked=profile.stationLocked===false,requested=profile.station??profile.assignedStation??'',current=old.station??old.assignedStation??'';if(wasLocked&&!explicitlyUnlocked&&requested!==current){if('station' in old)profile.station=old.station;else delete profile.station;if('assignedStation' in old)profile.assignedStation=old.assignedStation;else delete profile.assignedStation;profile.stationLocked=true}else if(wasLocked&&!explicitlyUnlocked)profile.stationLocked=true;else if('stationLocked' in profile)profile.stationLocked=profile.stationLocked===true}next.operatorProfiles=newProfiles;next.staffRoster=req.appData.staffRoster;bank.staff.profiles=newProfiles;bank.staff.roster=req.appData.staffRoster}
+   else if(canManageAssignments){const profiles=JSON.parse(JSON.stringify(bank.staff.profiles||next.operatorProfiles||{}));for(const [name,profile] of Object.entries(req.appData.operatorProfiles||{})){if(!profiles[name])continue;const old=profiles[name],requested=profile.station??profile.assignedStation??'',current=old.station??old.assignedStation??'',hasLockValue=Object.prototype.hasOwnProperty.call(profile,'stationLocked'),explicitlyUnlocked=profile.stationLocked===false;if(old.stationLocked!==true||explicitlyUnlocked||requested===current){if('station' in profile)old.station=requested;else if('assignedStation' in profile)old.assignedStation=requested}if(hasLockValue)old.stationLocked=profile.stationLocked===true;else if(old.stationLocked===true)old.stationLocked=true;profiles[name]=old}next.operatorProfiles=profiles;bank.staff.profiles=profiles;}
    bank.appData=next;version++;
    return ok({version,updatedAt:new Date().toISOString()});
   }
@@ -123,7 +182,7 @@ window.supabase={createClient:()=>({
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
- return {context,page,actions,getBank:()=>bank,getVersion:()=>version,setVersion:value=>{version=value}};
+ return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,setVersion:value=>{version=value}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
 async function signIn(page,pin='2468',username='JAN'){
@@ -141,9 +200,12 @@ async function signIn(page,pin='2468',username='JAN'){
 }
 
 async function openStaffSettings(page){
+ await dismissPlantTransitionAlerts(page);
  const menu=page.locator('.nav-menu');
  if(!await menu.evaluate(node=>node.open))await menu.locator(':scope > summary').click();
+ await dismissPlantTransitionAlerts(page);
  await page.locator('.nav[data-view="settings"]').click();
+ await dismissPlantTransitionAlerts(page);
  await page.locator('[data-settings-open="staff"]').click();
  await page.locator('#staffRosterList').waitFor({state:'visible'});
 }
@@ -170,6 +232,28 @@ try{
  await signIn(owner.page);
  assert.equal(await owner.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),true,'JAN root OWNER sees the Central Data Bank menu entry');
  assert.equal(await owner.page.locator('#authGate').isVisible(),false,'central login closes after authentication');
+ // Isolated central API regression: both save-state and save-settings must reject locked station moves.
+ const lockedFixture=makeBank();
+ lockedFixture.appData.operatorProfiles=JSON.parse(JSON.stringify(lockedFixture.staff.profiles));
+ lockedFixture.appData.staffRoster=lockedFixture.staff.roster.slice();
+ lockedFixture.staff.profiles.Jan.stationLocked=true;
+ lockedFixture.appData.operatorProfiles.Jan.stationLocked=true;
+ const lockGuard=await openFor('OWNER','2468','JAN',lockedFixture,1);
+ await signIn(lockGuard.page);
+ const trackerAttempt=JSON.parse(JSON.stringify(lockGuard.getBank().appData));
+ trackerAttempt.operatorProfiles.Jan.station='Station 2 · WOOD';
+ const trackerResult=await lockGuard.page.evaluate(({snapshot,version})=>window.DowntimeCentral.saveTracker(snapshot,version),{snapshot:trackerAttempt,version:lockGuard.getVersion()});
+ lockGuard.setVersion(trackerResult.version);
+ assert.equal(lockGuard.getBank().staff.profiles.Jan.station,'Station 1 · WOOD','save-state cannot reassign a locked station');
+ assert.equal(lockGuard.getBank().staff.profiles.Jan.stationLocked,true,'save-state preserves the station lock');
+ const settingsAttempt=JSON.parse(JSON.stringify(lockGuard.getBank().appData));
+ settingsAttempt.operatorProfiles.Jan.station='Station 3 · SCRAP';
+ const settingsResult=await lockGuard.page.evaluate(({snapshot,version})=>window.DowntimeCentral.saveSettings(snapshot,version),{snapshot:settingsAttempt,version:lockGuard.getVersion()});
+ lockGuard.setVersion(settingsResult.version);
+ assert.equal(lockGuard.getBank().staff.profiles.Jan.station,'Station 1 · WOOD','save-settings cannot reassign a locked station without explicit unlock');
+ assert.equal(lockGuard.getBank().staff.profiles.Jan.stationLocked,true,'save-settings preserves the station lock');
+ await lockGuard.context.close();
+
 
  await owner.page.locator('.nav-menu > summary').click();
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').textContent().then(value=>value.includes('WEEKLY Reports')),true,'navigation label is renamed to WEEKLY Reports');
@@ -310,7 +394,7 @@ try{
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').isVisible(),true,'OWNER can view reports');
  assert.equal(await owner.page.locator('.overview-link').isVisible(),true,'OWNER can view Plant Overview');
  assert.equal(await owner.page.locator('#addEntry').isDisabled(),false,'OWNER can edit tracker');
- await owner.page.locator('.overview-link').click();
+ await clickOverview(owner.page);
  const overview=owner.page.frameLocator('#overviewFrame');
  await owner.page.waitForFunction(()=>{const overlay=document.querySelector('#overviewOverlay'),frame=document.querySelector('#overviewFrame');return overlay&&!overlay.hidden&&frame?.contentDocument?.readyState==='complete'},{timeout:7000});
  await overview.locator('#plantControlNote').waitFor({state:'visible'});
@@ -335,15 +419,15 @@ try{
   await owner.page.waitForTimeout(60);
  }
  await owner.page.waitForFunction(()=>!document.querySelector('#plantTransitionAlertHost'),{timeout:3000});
- await owner.page.locator('.overview-link').click();
+ await clickOverview(owner.page);
  assert.equal(await owner.page.locator('#overviewOverlay').isVisible(),true,'Overview can be reopened');
  await overview.locator('#overviewFullscreen').focus();
  await owner.page.keyboard.press('Escape');
  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
- await owner.page.locator('.overview-link').click();
+ await clickOverview(owner.page);
  await owner.page.keyboard.press('Escape');
  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
- await owner.page.locator('.overview-link').click();
+ await clickOverview(owner.page);
  await owner.page.locator('#overviewClose').click();
  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
  assert.equal(owner.context.pages().length,1,'Closing overlay keeps the same app tab');
@@ -382,7 +466,8 @@ try{
  const daySetup=owner.page.locator('.day-setup');
  if(!await daySetup.evaluate(node=>node.open))await daySetup.locator(':scope > summary').click();
  await owner.page.locator('#dayTabs [data-day="0"]').click();
- await owner.page.locator('#openDailyTasks').click();
+ await dismissPlantTransitionAlerts(owner.page);
+  await owner.page.locator('#openDailyTasks').click();
  assert.equal((await owner.page.locator('#dailyTasksDay').textContent()).trim().startsWith('MONDAY ·'),true,'the task fixture is explicitly operating on Monday');
  assert.equal(await owner.page.locator('#dailyTasksModal').isVisible(),true,'clipboard opens the Daily Tasks popup');
  assert.equal(await owner.page.locator('#dailyTasksList input[type="checkbox"]').count(),2,'popup displays all preset tasks');
@@ -422,35 +507,118 @@ try{
  assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+5,'daily task presets, two day-specific completions and the daily lock are versioned central writes');
  await owner.page.locator('#closeDailyTasks').click();
 
- // STAFF additions and station assignments must immediately appear in the already-open Overview iframe.
+ // STAFF modal creation and locked station assignment immediately sync to the open Overview iframe.
  await openStaffSettings(owner.page);
- await owner.page.locator('#newStaffName').fill('Rita');
  await owner.page.locator('#addStaffBtn').click();
- const ritaStation=owner.page.locator('[aria-label="Station assignment for Rita"]');
- await ritaStation.waitFor({state:'visible'});
- assert.equal(await ritaStation.inputValue(),'','new STAFF member starts unassigned');
- await ritaStation.selectOption('Station 6 · GENERAL');
- for(let attempt=0;attempt<40&&!owner.getBank().staff.profiles.Rita?.station;attempt++)await owner.page.waitForTimeout(100);
- assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','station assignment is saved centrally');
- assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+7,'daily task presets, day completions, the daily lock and STAFF operations all advance central version');
- await owner.page.locator('.overview-link').click();
+ assert.equal(await owner.page.locator('#staffModalBackdrop').isVisible(),true,'Add New Member opens the modal');
+  const mobileModalChecks=[];
+  for(const viewport of [{width:320,height:800},{width:390,height:844}]){
+    await owner.page.setViewportSize(viewport);
+    mobileModalChecks.push(await owner.page.locator('.staff-modal').evaluate(el=>{const r=el.getBoundingClientRect(),footer=el.querySelector('.staff-modal-foot');return {left:r.left,right:r.right,viewport:innerWidth,footerWidth:footer.clientWidth,footerScroll:footer.scrollWidth}}));
+  }
+  for(const check of mobileModalChecks){assert.ok(check.left>=0&&check.right<=check.viewport,'STAFF modal fits '+check.viewport+'px viewport');assert.ok(check.footerScroll<=check.footerWidth+1,'STAFF modal action buttons wrap without horizontal overflow at '+check.viewport+'px')}
+  await owner.page.setViewportSize({width:1280,height:900});
+ assert.equal(await owner.page.locator('#smName').inputValue(),'','new STAFF profile template is blank');
+ assert.equal(await owner.page.locator('#smOnPlant').isChecked(),true,'new profile defaults ON PLANT');
+ await owner.page.locator('#smName').fill('Rita');
+  const ritaGif=Buffer.from('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=','base64');
+  await owner.page.locator('#smFile').setInputFiles({name:'rita.gif',mimeType:'image/gif',buffer:ritaGif});
+  await owner.page.waitForFunction(()=>document.querySelector('#smPreview')?.src.startsWith('data:image/jpeg'),{timeout:5000});
+  assert.equal(await owner.page.locator('#smPhotoSave').isHidden(),true,'new-member photo is committed with the new profile');
+ await owner.page.locator('#smStation').selectOption('Station 6 · GENERAL');
+ await owner.page.locator('#smOnPlant').uncheck();
+ assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'OFF PLANT disables station selection');
+ await owner.page.locator('#smOnPlant').check();
+ assert.equal(await owner.page.locator('#smStation').isEnabled(),true,'ON PLANT restores station selection when unlocked');
+ await owner.page.locator('#smLock').check();
+ assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'locked station cannot be edited');
+ await owner.page.locator('#smLock').uncheck();
+ assert.equal(await owner.page.locator('#smStation').isEnabled(),true,'station can be changed after unlock');
+ await owner.page.locator('#smStation').selectOption('Station 6 · GENERAL');
+ await owner.page.locator('#smLock').check();
+ await owner.page.locator('#smSave').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+ for(let attempt=0;attempt<40&&(owner.getVersion()<versionBeforeDailyTaskFlow+6||!owner.getBank().staff.profiles.Rita?.stationLocked);attempt++)await owner.page.waitForTimeout(100);
+ assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','new staff member and station save centrally');
+ assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,true,'station lock persists centrally');
+  assert.equal(owner.getBank().staff.profiles.Rita.photo?.startsWith('data:image/jpeg'),true,'new-member thumbnail is saved centrally');
+  assert.equal(typeof owner.getBank().staff.profiles.Rita.photoPath,'string','new-member original photo is stored centrally');
+  assert.ok(owner.getBank().staff.profiles.Rita.photoPath.startsWith('rita/'),'photo object path is associated with the new profile');
+  assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.length||0),1,'new-member original image is uploaded to private staff storage');
+  assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.[0]?.bucket),'downtime-staff-photos','original photo is uploaded to the private staff photo bucket');
+ assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+6,'daily tasks, completions, lock and one staff save advance central version');
+ await clickOverview(owner.page);
  const ritaCard=owner.page.frameLocator('#overviewFrame').locator('[data-opprofile="RITA"]');
  await ritaCard.waitFor({state:'visible',timeout:3000});
  assert.equal(await ritaCard.locator('.name').textContent(),'RITA','new STAFF card is created dynamically');
  assert.equal(await ritaCard.locator('.station').textContent(),'Station 6 · GENERAL','Overview immediately shows the assigned station');
  assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="6"]').textContent(),'RITA','station blueprint updates immediately');
 
- // Simulate a change from another device: the private Realtime invalidation causes a fresh, permission-checked read.
- owner.getBank().staff.profiles.Rita.station='Station 5 · GENERAL';
- owner.getBank().appData.operatorProfiles.Rita.station='Station 5 · GENERAL';
- const externalVersion=owner.getVersion()+1;
- owner.setVersion(externalVersion);
- await owner.page.evaluate(version=>window.__downtimeEmitBroadcast({payload:{version,updated_at:new Date().toISOString()}}),externalVersion);
- await owner.page.waitForFunction(()=>document.querySelector('#overviewFrame')?.contentWindow?.document?.querySelector('[data-opprofile="RITA"] .station')?.textContent==='Station 5 · GENERAL',{timeout:3000});
- assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="5"]').textContent(),'SHAYNE, RITA','remote station reassignment propagates to the station blueprint');
- assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="6"]').textContent(),'UNASSIGNED','previous station assignment is cleared live');
- await owner.page.locator('#overviewClose').click();
- await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
+ 
+  await owner.page.locator('#overviewClose').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
+  await openStaffSettings(owner.page);
+  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
+  assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'locked station is disabled when profile reopens');
+  await owner.page.locator('#smLock').uncheck();
+  assert.equal(await owner.page.locator('#smStation').isEnabled(),true,'manual unlock in Staff Settings enables reassignment');
+  await owner.page.locator('#smStation').selectOption('Station 5 · GENERAL');
+  await owner.page.locator('#smOnPlant').uncheck();
+  await owner.page.locator('#smSave').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+  for(let attempt=0;attempt<40&&(owner.getBank().staff.profiles.Rita?.station!=='Station 5 · GENERAL'||owner.getBank().staff.profiles.Rita?.onSite!==false);attempt++)await owner.page.waitForTimeout(100);
+  assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 5 · GENERAL','OFF PLANT retains assigned station');
+  assert.equal(owner.getBank().staff.profiles.Rita.onSite,false,'OFF PLANT status persists centrally');
+  assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,false,'manual unlock persists');
+    await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
+  await owner.page.locator('#smOnPlant').check();
+  await owner.page.locator('#smSave').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+  for(let attempt=0;attempt<40&&owner.getBank().staff.profiles.Rita?.onSite!==true;attempt++)await owner.page.waitForTimeout(100);
+  assert.equal(owner.getBank().staff.profiles.Rita.onSite,true,'ON PLANT status can be restored');
+// Once explicitly unlocked, another device can reassign Rita; Realtime refreshes the Overview.
+  await clickOverview(owner.page);
+  const unlockedRita=owner.page.frameLocator('#overviewFrame').locator('[data-opprofile="RITA"]');
+  await unlockedRita.waitFor({state:'visible',timeout:3000});
+  assert.equal(await unlockedRita.locator('.station').textContent(),'Station 5 · GENERAL','unlocked station assignment appears in Overview');
+  owner.getBank().staff.profiles.Rita.station='Station 6 · GENERAL';
+  owner.getBank().appData.operatorProfiles.Rita.station='Station 6 · GENERAL';
+  const externalVersion=owner.getVersion()+1;
+  owner.setVersion(externalVersion);
+  await owner.page.evaluate(version=>window.__downtimeEmitBroadcast({payload:{version,updated_at:new Date().toISOString()}}),externalVersion);
+  await owner.page.waitForFunction(()=>document.querySelector('#overviewFrame')?.contentWindow?.document?.querySelector('[data-opprofile="RITA"] .station')?.textContent==='Station 6 · GENERAL',{timeout:3000});
+  assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="6"]').textContent(),'RITA','remote assignment to an unlocked member propagates live');
+  assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="5"]').textContent(),'SHAYNE','previous station is cleared after unlocked reassignment');
+  await owner.page.locator('#overviewClose').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
+  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
+  owner.page.once('dialog',dialog=>dialog.accept());
+  await owner.page.locator('#smPhotoRemove').click();
+  for(let attempt=0;attempt<40&&!owner.getPhotoRemovals().some(x=>x.path?.startsWith('rita/'));attempt++)await owner.page.waitForTimeout(100);
+  assert.ok(owner.getPhotoRemovals().some(x=>x.path?.startsWith('rita/')),'REMOVE PHOTO requests secure deletion of the original storage object');
+  for(let attempt=0;attempt<40&&owner.getBank().staff.profiles.Rita?.photoPath;attempt++)await owner.page.waitForTimeout(100);
+  assert.equal(owner.getBank().staff.profiles.Rita.photo,undefined,'REMOVE PHOTO clears thumbnail metadata');
+  assert.equal(owner.getBank().staff.profiles.Rita.photoPath,undefined,'REMOVE PHOTO clears original photo path');
+  const localOriginalAfterRemove=await owner.page.evaluate(async name=>{const db=await new Promise((resolve,reject)=>{const req=indexedDB.open('downtime-operator-originals',1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});return await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readonly'),req=tx.objectStore('photos').get(name);req.onsuccess=()=>{db.close();resolve(!!req.result)};req.onerror=()=>{db.close();reject(req.error)}})},'Rita');
+  assert.equal(localOriginalAfterRemove,false,'REMOVE PHOTO deletes the local IndexedDB original as well as the private storage object');
+  await owner.page.waitForFunction(()=>document.querySelector('#smMsg')?.textContent.includes('Photo removed.'),{timeout:5000});
+  assert.equal(await owner.page.locator('#staffModalBackdrop').isVisible(),true,'photo removal finishes and refreshes the open profile');
+  assert.equal(await owner.page.locator('#smPhotoRemove').isHidden(),true,'removed photo cannot be removed again');
+  // Existing-profile SAVE PHOTO must upload and persist a replacement original and thumbnail.
+  const replacementGif=Buffer.from('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=','base64');
+  await owner.page.locator('#smFile').setInputFiles({name:'rita-replacement.gif',mimeType:'image/gif',buffer:replacementGif});
+  await owner.page.waitForFunction(()=>document.querySelector('#smPreview')?.src.startsWith('data:image/jpeg'),{timeout:5000});
+  await owner.page.locator('#smPhotoSave').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#smMsg')?.textContent==='Photo saved.',{timeout:5000});
+  assert.ok(owner.getBank().staff.profiles.Rita.photo?.startsWith('data:image/jpeg'),'existing profile SAVE PHOTO stores replacement thumbnail');
+  assert.ok(owner.getBank().staff.profiles.Rita.photoPath?.startsWith('rita/'),'existing profile SAVE PHOTO stores original photo path');
+  assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.length||0),2,'existing profile replacement uploads a second original photo');
+  owner.page.once('dialog',dialog=>dialog.accept());
+  await owner.page.locator('#smPhotoRemove').click();
+  for(let attempt=0;attempt<40&&owner.getBank().staff.profiles.Rita?.photoPath;attempt++)await owner.page.waitForTimeout(100);
+  assert.equal(owner.getBank().staff.profiles.Rita.photoPath,undefined,'replacement original can also be removed');
+  await owner.page.locator('#smCancel').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
  assert.equal(await owner.page.locator('.side #logoutBtn').isVisible(),true,'Log Out is available in the top navigation');
  assert.equal(await owner.page.locator('.top #logoutBtn').count(),0,'Log Out is no longer duplicated in the content header');
  await owner.page.locator('.side #logoutBtn').click();
@@ -492,27 +660,77 @@ try{
  assert.ok(user.actions.some(x=>x.action==='logout'),'USER sign-out invalidates the central session');
  await user.context.close();
 
- // SUPERVISOR can edit tracker data but not manage users or STAFF.
- const supervisor=await openFor('SUPERVISOR','2468');
- await signIn(supervisor.page);
- assert.equal(await supervisor.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'SUPERVISOR staff-management permission does not grant Central Data Bank access');
- await supervisor.page.locator('.nav-menu > summary').click();
- assert.equal(await supervisor.page.locator('#addEntry').isDisabled(),false,'SUPERVISOR can edit tracker');
- assert.equal(await supervisor.page.locator('#newStaffName').isVisible().catch(()=>false),false,'STAFF editing is not exposed before selecting the Settings STAFF panel');
- await openStaffSettings(supervisor.page);
- assert.equal(await supervisor.page.locator('#addStaffBtn').isEnabled(),true,'SUPERVISOR can manage STAFF');
- assert.equal(await supervisor.page.locator('[data-settings-open="dailyTasks"]').isVisible(),false,'SUPERVISOR can manage STAFF but not general Settings presets');
- assert.equal(await supervisor.page.locator('#newStaffName').isEnabled(),true,'SUPERVISOR can add staff names');
- await supervisor.page.locator('#newStaffName').fill('Supervisor QA');
- await supervisor.page.locator('#addStaffBtn').click();
- assert.ok(supervisor.getBank().staff.roster.includes('Supervisor QA'),'SUPERVISOR staff changes sync to central roster');
- const supervisorStation=supervisor.page.locator('[aria-label="Station assignment for Supervisor QA"]');
- await supervisorStation.waitFor({state:'visible'});
- assert.equal(await supervisorStation.isEnabled(),true,'SUPERVISOR can assign stations to staff');
- assert.equal(await supervisor.page.locator('[aria-label="Supervisor QA on-site toggle"]').isEnabled(),true,'SUPERVISOR can change on-site presence');
- await supervisor.context.close();
+ // SUPERVISOR can manage STAFF and assignments but not USERS or general Settings presets.
+  const supervisor=await openFor('SUPERVISOR','2468');
+  await signIn(supervisor.page);
+  assert.equal(await supervisor.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'SUPERVISOR staff-management permission does not grant Central Data Bank access');
+  await supervisor.page.locator('.nav-menu > summary').click();
+  assert.equal(await supervisor.page.locator('#addEntry').isDisabled(),false,'SUPERVISOR can edit tracker');
+  assert.equal(await supervisor.page.locator('#newStaffName').count(),0,'legacy inline add field is removed');
+  await openStaffSettings(supervisor.page);
+  assert.equal(await supervisor.page.locator('#addStaffBtn').isEnabled(),true,'SUPERVISOR can manage STAFF');
+  assert.equal(await supervisor.page.locator('[data-settings-open="dailyTasks"]').isVisible(),false,'SUPERVISOR cannot manage general Settings presets');
+  await supervisor.page.locator('#addStaffBtn').click();
+  assert.equal(await supervisor.page.locator('#smName').inputValue(),'','SUPERVISOR gets the blank Add New Member template');
+  await supervisor.page.locator('#smName').fill('Supervisor QA');
+  await supervisor.page.locator('#smStation').selectOption('Station 4 · SCRAP');
+  await supervisor.page.locator('#smLock').check();
+  await supervisor.page.locator('#smSave').click();
+  await supervisor.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+  assert.ok(supervisor.getBank().staff.roster.includes('Supervisor QA'),'SUPERVISOR changes sync to central roster');
+  assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].station,'Station 4 · SCRAP','SUPERVISOR can assign station in profile modal');
+  assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].stationLocked,true,'SUPERVISOR can lock station in Staff Settings');
+  const userCountBeforeStaffRemoval=supervisor.getBank().users.length;
+  await supervisor.page.locator('.staff-settings-icon[aria-label="Staff settings for Supervisor QA"]').click();
+  supervisor.page.once('dialog',dialog=>dialog.accept());
+  await supervisor.page.locator('#smRemove').click();
+  await supervisor.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+  assert.equal(supervisor.getBank().staff.roster.includes('Supervisor QA'),false,'REMOVE STAFF removes the member from the central roster');
+  assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'],undefined,'REMOVE STAFF removes the central staff profile');
+  assert.equal(supervisor.getBank().users.length,userCountBeforeStaffRemoval,'REMOVE STAFF does not delete or alter USER accounts');
+  await supervisor.context.close();
+ // Separate permission tiers: STAFF-only manages identity/presence/photos, not station/lock.
+ const staffOnly=await openFor('STAFF_ONLY','2468','MICK');
+ await signIn(staffOnly.page,'2468','MICK');
+ await openStaffSettings(staffOnly.page);
+ assert.equal(await staffOnly.page.locator('#addStaffBtn').isEnabled(),true,'STAFF-only tier can add members');
+ await staffOnly.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
+ assert.equal(await staffOnly.page.locator('#smStation').isDisabled(),true,'STAFF-only tier cannot assign stations');
+ assert.equal(await staffOnly.page.locator('#smLock').isDisabled(),true,'STAFF-only tier cannot change station lock');
+ assert.equal(await staffOnly.page.locator('#smOnPlant').isEnabled(),true,'STAFF-only tier can change plant availability');
+ assert.equal(await staffOnly.page.locator('#smFile').isEnabled(),true,'STAFF-only tier can manage profile photo');
+ await staffOnly.page.locator('#smOnPlant').uncheck();
+ await staffOnly.page.locator('#smSave').click();
+ await staffOnly.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+ for(let attempt=0;attempt<40&&staffOnly.getBank().staff.profiles.Jan?.onSite!==false;attempt++)await staffOnly.page.waitForTimeout(100);
+ assert.equal(staffOnly.getBank().staff.profiles.Jan.station,'Station 1 · WOOD','STAFF-only save preserves station assignment');
+ assert.equal(staffOnly.getBank().staff.profiles.Jan.onSite,false,'STAFF-only save updates ON/OFF PLANT');
+ assert.equal(staffOnly.getBank().staff.profiles.Jan.stationLocked,undefined,'STAFF-only save cannot create station lock metadata');
+ await staffOnly.context.close();
 
- // SPECTATOR receives no staff/assignment/dashboard/report surfaces.
+ // ASSIGNMENT-only can change a station and lock it, but cannot edit photo or plant availability.
+ const assignmentOnly=await openFor('ASSIGNMENT_ONLY','2468','MICK');
+ await signIn(assignmentOnly.page,'2468','MICK');
+ await openStaffSettings(assignmentOnly.page);
+ assert.equal(await assignmentOnly.page.locator('#addStaffBtn').isDisabled(),true,'ASSIGNMENT-only tier cannot create STAFF members');
+ await assignmentOnly.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
+ assert.equal(await assignmentOnly.page.locator('#smName').isDisabled(),true,'ASSIGNMENT-only tier cannot edit staff identity');
+ assert.equal(await assignmentOnly.page.locator('#smStation').isEnabled(),true,'ASSIGNMENT-only tier can assign station');
+ assert.equal(await assignmentOnly.page.locator('#smLock').isEnabled(),true,'ASSIGNMENT-only tier can lock station');
+ assert.equal(await assignmentOnly.page.locator('#smOnPlant').isDisabled(),true,'ASSIGNMENT-only tier cannot change plant availability');
+ assert.equal(await assignmentOnly.page.locator('#smFile').isDisabled(),true,'ASSIGNMENT-only tier cannot upload profile photo');
+ await assignmentOnly.page.locator('#smStation').selectOption('Station 6 · GENERAL');
+ await assignmentOnly.page.locator('#smLock').check();
+ await assignmentOnly.page.locator('#smSave').click();
+ await assignmentOnly.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+ for(let attempt=0;attempt<40&&assignmentOnly.getBank().staff.profiles.Jan?.stationLocked!==true;attempt++)await assignmentOnly.page.waitForTimeout(100);
+ assert.equal(assignmentOnly.getBank().staff.profiles.Jan.station,'Station 6 · GENERAL','ASSIGNMENT-only tier saves station');
+ assert.equal(assignmentOnly.getBank().staff.profiles.Jan.stationLocked,true,'ASSIGNMENT-only tier saves station lock');
+ assert.equal(assignmentOnly.getBank().staff.profiles.Jan.onSite,true,'ASSIGNMENT-only tier preserves plant presence');
+ await assignmentOnly.context.close();
+
+
+// SPECTATOR receives no staff/assignment/dashboard/report surfaces.
  const spectator=await openFor('SPECTATOR','2468');
  await signIn(spectator.page);
  assert.equal(await spectator.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'SPECTATOR cannot see the Central Data Bank menu entry');

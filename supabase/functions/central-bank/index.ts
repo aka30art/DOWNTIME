@@ -239,33 +239,30 @@ Deno.serve(async(req)=>{
        nextAppData[field]=[...existing,...additions].slice(0,250);
      }
    }
-   if(!priv.canManageStaff){
+   {
      const currentProfiles=bank.staff?.profiles||bank.appData?.operatorProfiles||{};
-     nextAppData.operatorProfiles=structuredClone(currentProfiles);
-     nextAppData.staffRoster=bank.appData?.staffRoster||bank.staff?.roster||[];
-     if(priv.canManageAssignments){
-       for(const [name,incomingProfile] of Object.entries((incoming.operatorProfiles||{}) as Record<string,any>)){
-         if(!Object.prototype.hasOwnProperty.call(currentProfiles,name)||!incomingProfile||typeof incomingProfile!=="object")continue;
-         const existing={...(currentProfiles as any)[name]};
-         if("station" in incomingProfile)existing.station=String(incomingProfile.station||"").slice(0,100);
-         else if("assignedStation" in incomingProfile)existing.assignedStation=String(incomingProfile.assignedStation||"").slice(0,100);
-         (nextAppData.operatorProfiles as any)[name]=existing;
+     const incomingProfiles=structuredClone(nextAppData.operatorProfiles||{});
+     const savedProfiles=priv.canManageStaff?incomingProfiles:structuredClone(currentProfiles||{});
+     for(const [name,incomingProfile] of Object.entries(incomingProfiles) as [string,any][]){
+       if(!Object.prototype.hasOwnProperty.call(currentProfiles,name)||!incomingProfile||typeof incomingProfile!=="object"||Array.isArray(incomingProfile))continue;
+       const existing={...(currentProfiles as any)[name]};
+       const merged=priv.canManageStaff?{...incomingProfile}:{...existing};
+       // Assignment metadata and its lock can only be changed by the Staff Settings save-settings route.
+       if(existing.stationLocked===true||!priv.canManageAssignments){
+         if("station" in existing)merged.station=existing.station;else delete merged.station;
+         if("assignedStation" in existing)merged.assignedStation=existing.assignedStation;else delete merged.assignedStation;
        }
+       if("stationLocked" in existing)merged.stationLocked=existing.stationLocked===true;else delete merged.stationLocked;
+       savedProfiles[name]=merged;
      }
-     bank.staff.profiles=nextAppData.operatorProfiles;
-   }else{
-     if(!priv.canManageAssignments){
-       const currentProfiles=bank.staff?.profiles||bank.appData?.operatorProfiles||{};
-       const safeProfiles=structuredClone(nextAppData.operatorProfiles||{});
-       for(const [name,profile] of Object.entries(safeProfiles) as [string,any][]){
-         const existing=(currentProfiles as any)[name]||{};
-         if("station" in existing)profile.station=existing.station;else delete profile.station;
-         if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
-       }
-       nextAppData.operatorProfiles=safeProfiles;
+     nextAppData.operatorProfiles=savedProfiles;
+     if(priv.canManageStaff){
+       bank.staff.profiles=savedProfiles;
+       bank.staff.roster=Array.isArray(nextAppData.staffRoster)?nextAppData.staffRoster:(bank.staff.roster||[]);
+     }else{
+       nextAppData.staffRoster=bank.staff.roster||bank.appData?.staffRoster||[];
+       bank.staff.profiles=savedProfiles;
      }
-     bank.staff.profiles=nextAppData.operatorProfiles||bank.staff.profiles||{};
-     bank.staff.roster=Array.isArray(nextAppData.staffRoster)?nextAppData.staffRoster:(bank.staff.roster||[]);
    }
    if(!priv.canViewReports||!priv.canDeleteRecords)nextAppData.archive=bank.appData?.archive||[];
    bank.appData=nextAppData;bank.statsSource={weeks:nextAppData.weeks||{}};
@@ -279,7 +276,7 @@ Deno.serve(async(req)=>{
    const canManageReasons=priv.canManageSettings||priv.canManageReasonPresets;
    const canManageSchedule=priv.canManageSettings||priv.canManageShiftSchedule;
    const canManageTasks=priv.canManageSettings||priv.canManageDailyTasks;
-   const canManageStaff=!!priv.canManageStaff,canManageAssignments=!!priv.canManageAssignments||canManageStaff;
+   const canManageStaff=!!priv.canManageStaff,canManageAssignments=!!priv.canManageAssignments;
    const canAddReasons=canManageReasons||!!priv.canAddDowntimeReasons;
    if(!(canManageAreas||canAddReasons||canManageSchedule||canManageTasks||canManageStaff||canManageAssignments))return json({error:"Permission denied"},403);
    const nextAppData={...(bank.appData||{})};
@@ -315,11 +312,26 @@ Deno.serve(async(req)=>{
      if(incoming.operatorProfiles&&typeof incoming.operatorProfiles!=="object"||Array.isArray(incoming.operatorProfiles))return json({error:"Invalid staff profiles"},400);
      if(!Array.isArray(incoming.staffRoster))return json({error:"Invalid staff roster"},400);
      const newProfiles=structuredClone(incoming.operatorProfiles||currentProfiles);
-     if(!canManageAssignments){
-       for(const [name,profile] of Object.entries(newProfiles) as [string,any][]){
-         const existing=(currentProfiles as any)[name]||{};
+     for(const [name,profile] of Object.entries(newProfiles) as [string,any][]){
+       const existing=(currentProfiles as any)[name]||{};
+       if(!canManageAssignments){
          if("station" in existing)profile.station=existing.station;else delete profile.station;
          if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
+         if("stationLocked" in existing)profile.stationLocked=existing.stationLocked;else delete profile.stationLocked;
+         continue;
+       }
+       const wasLocked=existing.stationLocked===true;
+       const explicitlyUnlocked=profile.stationLocked===false;
+       const requestedStation=String(profile.station??profile.assignedStation??"").slice(0,100);
+       const currentStation=String(existing.station??existing.assignedStation??"");
+       if(wasLocked&&!explicitlyUnlocked&&requestedStation!==currentStation){
+         if("station" in existing)profile.station=existing.station;else delete profile.station;
+         if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
+         profile.stationLocked=true;
+       }else if(wasLocked&&!explicitlyUnlocked){
+         profile.stationLocked=true;
+       }else if("stationLocked" in profile){
+         profile.stationLocked=profile.stationLocked===true;
        }
      }
      nextAppData.operatorProfiles=newProfiles;
@@ -330,8 +342,15 @@ Deno.serve(async(req)=>{
      for(const [name,profile] of Object.entries((incoming.operatorProfiles||{}) as Record<string,any>)){
        if(!Object.prototype.hasOwnProperty.call(newProfiles,name)||!profile||typeof profile!=="object"||Array.isArray(profile))continue;
        const existing={...(newProfiles as any)[name]};
-       if("station" in profile)existing.station=String(profile.station||"").slice(0,100);
-       else if("assignedStation" in profile)existing.assignedStation=String(profile.assignedStation||"").slice(0,100);
+       const wasLocked=existing.stationLocked===true,hasLockValue="stationLocked" in profile,willBeLocked=hasLockValue?profile.stationLocked===true:wasLocked;
+       const requestedStation=String(profile.station??profile.assignedStation??"").slice(0,100);
+       const currentStation=String(existing.station??existing.assignedStation??"");
+       // Reassigning a locked member requires an explicit unlock in this Staff Settings transaction.
+       if(!wasLocked||(hasLockValue&&profile.stationLocked===false)||requestedStation===currentStation){
+         if("station" in profile)existing.station=requestedStation;
+         else if("assignedStation" in profile)existing.assignedStation=requestedStation;
+       }
+       if(hasLockValue)existing.stationLocked=willBeLocked;else if(wasLocked)existing.stationLocked=true;
        (newProfiles as any)[name]=existing;
      }
      nextAppData.operatorProfiles=newProfiles;
@@ -396,6 +415,18 @@ Deno.serve(async(req)=>{
    if(!priv.canManageAssignments){
      if("station" in existingProfile)nextProfile.station=existingProfile.station;else delete nextProfile.station;
      if("assignedStation" in existingProfile)nextProfile.assignedStation=existingProfile.assignedStation;else delete nextProfile.assignedStation;
+     if("stationLocked" in existingProfile)nextProfile.stationLocked=existingProfile.stationLocked;else delete nextProfile.stationLocked;
+   }else{
+     const wasLocked=existingProfile.stationLocked===true;
+     const hasLockValue=Object.prototype.hasOwnProperty.call(proposedProfile,"stationLocked");
+     const explicitlyUnlocked=hasLockValue&&proposedProfile.stationLocked===false;
+     if(wasLocked&&!explicitlyUnlocked){
+       if("station" in existingProfile)nextProfile.station=existingProfile.station;else delete nextProfile.station;
+       if("assignedStation" in existingProfile)nextProfile.assignedStation=existingProfile.assignedStation;else delete nextProfile.assignedStation;
+       nextProfile.stationLocked=true;
+     }else if(hasLockValue){
+       nextProfile.stationLocked=proposedProfile.stationLocked===true;
+     }
    }
    bank.staff.profiles[name]=nextProfile;
    if(!bank.staff.roster.includes(name))bank.staff.roster.push(name);
@@ -420,6 +451,15 @@ Deno.serve(async(req)=>{
    const {data,error}=await db.storage.from("downtime-staff-photos").createSignedUrl(path,120);
    if(error)return json({error:error.message},404);
    return json({url:data.signedUrl});
+ }
+ if(action==="staff-photo-remove"){
+   if(!priv.canManageStaff)return json({error:"Permission denied"},403);
+   const path=String(body.path||"").trim(),parts=path.split("/");
+   if(parts.length!==2||!/^[a-z0-9_-]{1,80}$/i.test(parts[0])||!/^[0-9a-f-]{36}$/i.test(parts[1]))return json({error:"Invalid staff photo path"},400);
+   const {error}=await db.storage.from("downtime-staff-photos").remove([path]);
+   if(error)return json({error:error.message},500);
+   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"staff-photo-remove",details:{path}});
+   return json({ok:true});
  }
  if(action==="set-plant-status"){
    if(!priv.canEditTracker)return json({error:"Permission denied"},403);

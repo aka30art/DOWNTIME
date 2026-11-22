@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const src=fs.readFileSync('supabase/functions/central-bank/index.ts','utf8');
 const config=fs.readFileSync('supabase/config.toml','utf8');
-for(const term of ['bootstrap','login','get-state','central-admin-state','save-state','user-save','user-delete','staff-save','staff-photo-url','staff-photo-read','tiers-save','set-plant-status','logout','PBKDF2','downtime_central_sessions','downtime_central_bank'])assert.ok(src.includes(term),term+' implemented');
+for(const term of ['bootstrap','login','get-state','central-admin-state','save-state','user-save','user-delete','staff-save','staff-photo-url','staff-photo-read','staff-photo-remove','tiers-save','set-plant-status','logout','PBKDF2','downtime_central_sessions','downtime_central_bank'])assert.ok(src.includes(term),term+' implemented');
 assert.ok(src.includes('150000'),'PIN hashing work factor');
 assert.ok(config.includes('[functions.central-bank]')&&/verify_jwt\s*=\s*false/.test(config),'central API uses its own opaque-session verification instead of the Supabase JWT gate');
 assert.ok(src.includes('eq("id",1).eq("version"'),'singleton version compare-and-swap');
@@ -24,10 +24,12 @@ assert.ok(src.includes('Object.fromEntries(tiers.map(tier=>[tier,{...tierDefault
 assert.match(src,/USER:\{canEditTracker:false,[^}]*canViewAreaPresets:false,[^}]*canViewDailyTasks:false/,'USER default includes section-level Settings denials');
 assert.match(src,/SPECTATOR:\{canEditTracker:false,[^}]*canViewAreaPresets:false,[^}]*canViewDailyTasks:false/,'SPECTATOR default includes section-level Settings denials');
 assert.ok(src.includes('if(action==="save-settings")')&&src.includes('const canManageAreas=priv.canManageSettings||priv.canManageAreaPresets')&&src.includes('const canManageTasks=priv.canManageSettings||priv.canManageDailyTasks'),'Settings writes are authorized by granular section permissions independently of tracker edit rights');
-assert.match(src,/if\(!priv\.canManageAssignments\)[\s\S]*if\("station" in existing\)profile\.station=existing\.station/,
-  'generic tracker saves cannot overwrite staff station assignments without assignment permission');
-assert.ok(src.includes('const nextProfile={...existingProfile,...proposedProfile,name};')&&src.includes('if(!priv.canManageAssignments){'),
-  'legacy staff-save action independently protects station assignments');
+assert.ok(src.includes('if(existing.stationLocked===true||!priv.canManageAssignments){')&&src.includes('merged.stationLocked=existing.stationLocked===true')&&src.includes('nextAppData.operatorProfiles=savedProfiles'),
+  'generic tracker saves preserve existing station assignments and lock metadata, including for locked profiles');
+assert.ok(src.includes('const wasLocked=existing.stationLocked===true;')&&src.includes('const explicitlyUnlocked=profile.stationLocked===false;')&&src.includes('if(wasLocked&&!explicitlyUnlocked&&requestedStation!==currentStation)'),
+  'save-settings requires an explicit unlock before changing a locked station');
+assert.ok(src.includes('const nextProfile={...existingProfile,...proposedProfile,name};')&&src.includes('if(!priv.canManageAssignments){')&&src.includes('if(wasLocked&&!explicitlyUnlocked){')&&src.includes('nextProfile.stationLocked=true;')&&src.includes('nextProfile.stationLocked=proposedProfile.stationLocked===true;'),
+  'legacy staff-save action independently protects locked assignments and allows only explicit unlock');
 assert.ok(src.includes('if(!priv.canViewStaff&&!priv.canManageStaff)return json({error:"Permission denied"},403)'),
   'staff managers can read staff photos while view-only STAFF access is separate');
 
