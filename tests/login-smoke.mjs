@@ -381,6 +381,14 @@ try{
  for(let attempt=0;attempt<30&&!owner.getBank().appData.weeks[weekKey]?.days?.[0]?.dailyTasksDone?.includes('Check guards and safety covers');attempt++)await owner.page.waitForTimeout(100);
  assert.ok(owner.getBank().appData.weeks[weekKey].days[0].dailyTasksDone?.includes('Check guards and safety covers'),'Monday task completion is written centrally');
  assert.equal(owner.getBank().appData.weeks[weekKey].days[0].dailyTasksDone?.includes('Inspect emergency stops')||false,false,'unchecked Monday tasks remain incomplete');
+ await owner.page.locator('#saveDailyTasks').click();
+ for(let attempt=0;attempt<40&&!owner.getBank().appData.weeks[weekKey]?.days?.[0]?.dailyTasksLocked;attempt++)await owner.page.waitForTimeout(100);
+ assert.equal(owner.getBank().appData.weeks[weekKey].days[0].dailyTasksLocked,true,'Save & Lock persists the locked flag centrally');
+ assert.deepEqual(owner.getBank().appData.weeks[weekKey].days[0].dailyTasksSnapshot,['Check guards and safety covers','Inspect emergency stops'],'lock stores a snapshot of the checklist for that day');
+ assert.equal(await owner.page.locator('#saveDailyTasks').isDisabled(),true,'locked checklist cannot be saved again');
+ assert.equal(await owner.page.locator('[aria-label="Complete task: Inspect emergency stops"]').isDisabled(),true,'checkboxes are disabled after locking');
+ await owner.page.locator('#closeDailyTasks').click();await owner.page.locator('#openDailyTasks').click();
+ assert.equal(await owner.page.locator('#dailyTasksLockStatus').textContent(),'Saved and locked for today. This checklist cannot be changed.','lock persists after closing and reopening');
  await owner.page.setViewportSize({width:390,height:844});
  await mkdir(resolve('artifacts/stage-3'),{recursive:true});
  await owner.page.locator('#dailyTasksModal').screenshot({path:resolve('artifacts/stage-3/daily-tasks-popup-390px.png')});
@@ -396,7 +404,7 @@ try{
  await owner.page.locator('#openDailyTasks').click();
  assert.equal(await owner.page.locator('[aria-label="Complete task: Check guards and safety covers"]').isChecked(),true,'Monday completion is retained after switching days');
  assert.equal(await owner.page.locator('[aria-label="Complete task: Inspect emergency stops"]').isChecked(),false,'Monday completion does not inherit Tuesday changes');
- assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+4,'daily task presets and two day-specific completions are versioned central writes');
+ assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+5,'daily task presets, two day-specific completions and the daily lock are versioned central writes');
  await owner.page.locator('#closeDailyTasks').click();
 
  // STAFF additions and station assignments must immediately appear in the already-open Overview iframe.
@@ -409,7 +417,7 @@ try{
  await ritaStation.selectOption('Station 6 · GENERAL');
  for(let attempt=0;attempt<40&&!owner.getBank().staff.profiles.Rita?.station;attempt++)await owner.page.waitForTimeout(100);
  assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','station assignment is saved centrally');
- assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+6,'daily task presets, day completions and STAFF operations all advance central version');
+ assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+7,'daily task presets, day completions, the daily lock and STAFF operations all advance central version');
  await owner.page.locator('.overview-link').click();
  const ritaCard=owner.page.frameLocator('#overviewFrame').locator('[data-opprofile="RITA"]');
  await ritaCard.waitFor({state:'visible',timeout:3000});

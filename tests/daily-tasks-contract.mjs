@@ -30,8 +30,8 @@ assert.match(html, /function day\(\)\{const current=week\(\)\.days\[selected\];i
   'existing day records must safely migrate to an empty completion list');
 assert.match(html, /day\(\)\.dailyTasksDone=\[\.\.\.done\]/,
   'checklist completion must be stored against the selected day');
-assert.match(html, /if\(!permission\('canEditTracker'\)\)return/,
-  'only roles allowed to edit tracker data may change task completion');
+assert.match(html, /if\(locked\|\|!permission\('canEditTracker'\)\)return/,
+  'only roles allowed to edit tracker data may change task completion, and locked days reject edits');
 assert.match(html, /state\.dailyTaskPresets=\[\.\.\.state\.dailyTaskPresets,task\]/,
   'new task presets must be stored in the central tracker state');
 assert.match(html, /function canManageSettingsSection\(section\)[\s\S]*dailyTasks:\['canManageDailyTasks'\]/,
