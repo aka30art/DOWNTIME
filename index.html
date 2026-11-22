@@ -790,18 +790,18 @@ const parseWeek=k=>new Date(k+'T12:00:00');
 let weekStart=mondayOf(today),selected=0,entryDraft={area:'',reason:''},editing=-1;
 let state=load();state.shiftSchedule=state.shiftSchedule||scheduleDefaults();state.shiftPresets=state.shiftPresets||[];state.dailyTaskPresets=Array.isArray(state.dailyTaskPresets)?state.dailyTaskPresets:[];if(typeof state.plantOn!=="boolean")state.plantOn=true;state.undoAction=state.undoAction||null;delete state.quickReasons;delete state.recentReasons;
 let centralUsers=[],centralUser=null,centralBankPayload=null,centralVersion=0,centralReady=false,centralPendingWrites=0,centralPinAttempts=0,centralPinLockUntil=0;
-let activeOperator='',operatorReadOnly=false,operatorAdmin=false;
+let activeOperator='',operatorReadOnly=false,operatorAdmin=false,plantPowerBusy=false;
 const USER_TIERS=['OWNER','DEVACC','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR'];
 function staffRoster(){const names=Array.isArray(state?.staffRoster)?state.staffRoster:['Jan','Mick','Gigi','Daz','Shayne'];return [...new Set(names.filter(n=>typeof n==='string'&&n.trim()))]}
 function privilegeFor(n){const u=centralUsers.find(x=>String(x.username).toLowerCase()===String(n||'').toLowerCase());return (n===centralUser?.username?centralUser?.tier:u?.tier)||'USER'}
 const tierDefaults={
- OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- DEVACC:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:false,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:true,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:false,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:false,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:false,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewPlantOverview:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
+ OWNER:{canEditTracker:true,canControlPlantPower:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ DEVACC:{canEditTracker:true,canControlPlantPower:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ ADMIN:{canEditTracker:true,canControlPlantPower:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ MANAGER:{canEditTracker:true,canControlPlantPower:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:false,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SUPERVISOR:{canEditTracker:true,canControlPlantPower:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:true,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:false,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ USER:{canEditTracker:false,canControlPlantPower:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:false,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SPECTATOR:{canEditTracker:false,canControlPlantPower:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:false,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewPlantOverview:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
 const lockedTierPermissions={
  OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
@@ -814,6 +814,9 @@ function canAssignStandardAccountTiers(){const tier=String(centralUser?.tier||pr
 function isRootDevAccount(){return String(centralUser?.username||activeOperator||'').trim().toUpperCase()==='DEV'&&String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase()==='OWNER'}
 function syncDevaccTierOption(select=$('centralAccountTier')){const option=select?.querySelector('option[value="DEVACC"]');if(option)option.disabled=!isRootDevAccount()}
 const ACCESS_RIGHT_GROUPS=[
+ {title:'PLANT OPERATIONS',rights:[
+  {key:'canControlPlantPower',label:'PLANT POWER',detail:'Allow this tier to see and operate the main PLANT ON / PLANT OFF control. When off, the button is hidden and central requests are denied.'}
+ ]},
  {title:'TRACKER & RECORDS',rights:[
   {key:'canEditTracker',label:'Edit tracker',detail:'Create and edit downtime records and daily operational information'},
   {key:'canDeleteRecords',label:'Delete records',detail:'Permanently delete downtime records and eligible archived data'}
@@ -845,16 +848,17 @@ const ACCESS_RIGHT_GROUPS=[
   {key:'canExportReports',label:'Export reports',detail:'Download and export weekly report files'}
  ]}
 ];
-const ACCESS_TIER_DESCRIPTIONS={DEVACC:'Root-equivalent authority, identical to DEV except only root DEV can assign the DEVACC tier.',ADMIN:'Broad administrative access, configured by DEV or DEVACC in Access & Rights.',MANAGER:'Operational management access, configured by DEV or DEVACC in Access & Rights.',SUPERVISOR:'Front-line supervisory access, configured by DEV or DEVACC in Access & Rights.',USER:'Standard user access, configured by DEV or DEVACC in Access & Rights.',SPECTATOR:'Restricted viewing access, configured by DEV or DEVACC in Access & Rights.'};
+const ACCESS_TIER_DESCRIPTIONS={OWNER:'Immutable root OWNER privileges. PLANT POWER can be configured independently here.',DEVACC:'Root-equivalent privileges, identical to DEV except only root DEV can assign the DEVACC tier. PLANT POWER can be configured independently here.',ADMIN:'Broad administrative access, configured by DEV or DEVACC in Access & Rights.',MANAGER:'Operational management access, configured by DEV or DEVACC in Access & Rights.',SUPERVISOR:'Front-line supervisory access, configured by DEV or DEVACC in Access & Rights.',USER:'Standard user access, configured by DEV or DEVACC in Access & Rights.',SPECTATOR:'Restricted viewing access, configured by DEV or DEVACC in Access & Rights.'};
 function renderAccessRights(){
  const host=$('accessRightsTierList');if(!host||!canManageAccessRights())return;
  const stored=centralBankPayload?.tiers||tierDefaults;host.replaceChildren();
- USER_TIERS.filter(tier=>tier!=='OWNER'&&tier!=='DEVACC').forEach(tier=>{
+ USER_TIERS.forEach(tier=>{
   const profile={...tierDefaults[tier],...(stored[tier]||{})};
+  const rootTier=tier==='OWNER'||tier==='DEVACC';
   const card=document.createElement('section');card.className='access-rights-tier';card.dataset.accessTierCard=tier;
   const head=document.createElement('div');head.className='access-rights-tier-head';
   const title=document.createElement('strong');title.textContent=tier;
-  const note=document.createElement('span');note.textContent='TIER PERMISSIONS';
+  const note=document.createElement('span');note.textContent=rootTier?'ROOT ROLE · OTHER RIGHTS LOCKED':'TIER PERMISSIONS';
   head.append(title,note);card.appendChild(head);
   const description=document.createElement('p');description.className='muted';description.style.cssText='margin:0 0 10px;font-size:11px';description.textContent=ACCESS_TIER_DESCRIPTIONS[tier]||'Tier permissions';card.appendChild(description);
   ACCESS_RIGHT_GROUPS.forEach(group=>{
@@ -862,7 +866,7 @@ function renderAccessRights(){
    const legend=document.createElement('legend');legend.textContent=group.title;fieldset.appendChild(legend);
    group.rights.forEach(right=>{
     const label=document.createElement('label');label.className='access-rights-row';
-    const toggle=document.createElement('input');toggle.type='checkbox';toggle.checked=profile[right.key]===true;toggle.dataset.accessTier=tier;toggle.dataset.accessRight=right.key;toggle.id='access-'+tier.toLowerCase()+'-'+right.key;
+    const toggle=document.createElement('input');toggle.type='checkbox';toggle.checked=profile[right.key]===true;toggle.disabled=!!(lockedTierPermissions[tier]&&Object.prototype.hasOwnProperty.call(lockedTierPermissions[tier],right.key));toggle.dataset.accessTier=tier;toggle.dataset.accessRight=right.key;toggle.id='access-'+tier.toLowerCase()+'-'+right.key;
     const copy=document.createElement('span');copy.className='access-rights-copy';
     const name=document.createElement('strong');name.textContent=right.label;
     const detail=document.createElement('small');detail.textContent=right.detail;
@@ -880,7 +884,12 @@ async function saveAccessRights(){
  const source=centralBankPayload?.tiers||tierDefaults,tiers={};
  USER_TIERS.forEach(tier=>{
   const profile={...tierDefaults[tier],...(source[tier]||{})};
-  if(tier==='OWNER'){tiers[tier]={...tierDefaults.OWNER};return}
+  if(tier==='OWNER'||tier==='DEVACC'){
+   const rootProfile={...tierDefaults[tier],...(source[tier]||{}),...(lockedTierPermissions[tier]||{})};
+   const plantPower=host.querySelector('[data-access-tier="'+tier+'"][data-access-right="canControlPlantPower"]');
+   if(plantPower)rootProfile.canControlPlantPower=plantPower.checked;
+   tiers[tier]=rootProfile;return;
+  }
   host.querySelectorAll('[data-access-tier="'+tier+'"]').forEach(toggle=>{profile[toggle.dataset.accessRight]=toggle.checked});
   tiers[tier]=profile;
  });
@@ -952,7 +961,44 @@ function prettyDate(v){if(!v)return '—';let [y,m,d]=v.split('-');return d+'/'+
 function weekLabel(){let a=weekStart,b=plus(a,5);let f=x=>x.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});$('weekLabel').textContent=f(a)+' – '+f(b)}
 function safe(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function renderActiveAccountIndicator(){const box=$('menuAccount'),name=$('menuAccountName');if(!box||!name)return;const username=String(activeOperator||centralUser?.username||'').trim();box.hidden=!username;if(username)name.textContent=username;}
-function renderPlantOperatorControl(){const b=$('plantOperatorToggle'),wrap=$('plantStatusControls');if(!b)return;const allowed=activeOperator==='Jan'||activeOperator==='Mick';if(wrap)wrap.style.display=allowed?'flex':'none';b.style.display=allowed?'inline-flex':'none';if(!allowed)return;const on=state.plantOn!==false;b.textContent=on?'PLANT ON · GREEN':'PLANT OFF · RED';b.style.background=on?'#14532d':'#7f1d1d';b.style.borderColor=on?'#22c55e':'#ef4444';b.style.color='#fff';b.setAttribute('aria-pressed',String(on));b.onclick=()=>{if(activeOperator!=='Jan'&&activeOperator!=='Mick')return;state.plantOn=state.plantOn===false;persist();renderPlantOperatorControl();};}
+function renderPlantOperatorControl(){
+ const b=$('plantOperatorToggle'),wrap=$('plantStatusControls');if(!b)return;
+ const allowed=!!centralUser&&centralReady&&permission('canControlPlantPower');
+ if(wrap)wrap.style.display=allowed?'flex':'none';
+ b.style.display=allowed?'inline-flex':'none';
+ b.disabled=!allowed||plantPowerBusy;
+ if(!allowed){b.onclick=null;return}
+ const on=state.plantOn!==false;
+ b.textContent=on?'PLANT ON · GREEN':'PLANT OFF · RED';
+ b.style.background=on?'#14532d':'#7f1d1d';b.style.borderColor=on?'#22c55e':'#ef4444';b.style.color='#fff';
+ b.setAttribute('aria-pressed',String(on));
+ b.onclick=async()=>{
+  if(!centralReady||!permission('canControlPlantPower')||plantPowerBusy)return;
+  plantPowerBusy=true;
+  const nextOn=state.plantOn===false;
+  b.disabled=true;b.textContent='UPDATING PLANT STATUS…';
+  try{
+   const saved=await window.DowntimeCentral.setPlantStatus(nextOn,centralVersion);
+   centralVersion=Number(saved.version)||centralVersion;
+   state.plantOn=nextOn;
+   localStorage.setItem(STORE,JSON.stringify(state));
+   if(centralBankPayload){centralBankPayload.appData=centralBankPayload.appData||{};centralBankPayload.appData.plantOn=nextOn}
+   try{
+    const refreshed=await window.DowntimeCentral.state();
+    applyIncomingCloudPayload(refreshed.payload,nextOn?'CENTRAL · PLANT ON':'CENTRAL · PLANT OFF',refreshed.updatedAt,refreshed.version,refreshed.user);
+   }catch(refreshError){cloudStatus('PLANT POWER UPDATED · latest status refresh unavailable');console.warn('Plant Power state refresh failed.',refreshError)}
+  }catch(error){
+   try{
+    const refreshed=await window.DowntimeCentral.state();
+    applyIncomingCloudPayload(refreshed.payload,'CENTRAL · refreshed after Plant Power error',refreshed.updatedAt,refreshed.version,refreshed.user);
+   }catch(refreshError){console.warn('Plant Power refresh failed.',refreshError)}
+   cloudStatus('PLANT POWER UPDATE FAILED · '+(error.message||'Refresh and retry'));
+  }finally{
+   plantPowerBusy=false;
+   renderPlantOperatorControl();
+  }
+ };
+}
 function render(){renderActiveAccountIndicator();renderPlantOperatorControl();renderCrewSwitchboardTrigger();weekLabel();$('dayTabs').innerHTML=DAYS.map((n,i)=>{let d=week().days[i],c=calc(d);return '<button class="day '+(i===selected?'selected':'')+'" data-day="'+i+'">'+n.slice(0,3).toUpperCase()+'<small>'+prettyDate(d.date)+'</small><small>'+fmt(c.down)+'</small></button>'}).join('');
 document.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.day);render()});
 let d=day(),c=calc(d);$('dayHeading').textContent=DAYS[selected].toUpperCase()+' · '+prettyDate(d.date);$('dayDate').value=d.date;$('dayDate').disabled=!!d.startLocked;$('plantStart').value=d.start;$('plantStart').disabled=!!d.startLocked;$('plantStop').value=d.stop;$('plantStop').disabled=!!d.startLocked;$('lockStartBtn').disabled=!!d.startLocked;$('lockStartBtn').textContent=d.startLocked?'✓ DAILY SETUP LOCKED':'🔒 LOCK DAILY SETUP';$('startLockStatus').textContent=d.startLocked?'Daily setup locked · '+(d.startLockedAt||'Locked'):'Date and shift times remain editable until locked';const breakExcluded=$('breakExcluded');if(breakExcluded){const breakMinutes=configuredBreakMinutes(DAYS[selected]);breakExcluded.value=breakMinutes+' '+(breakMinutes===1?'minute':'minutes')}const duty=$('onDuty');if(duty){const todayIndex=(today.getDay()+6)%7,todayWeekKey=iso(mondayOf(today)),todayOperator=todayIndex<6?state.weeks[todayWeekKey]?.days?.[todayIndex]?.operator:null;duty.textContent=todayIndex===6?'OPERATOR ON DUTY · SUNDAY (NO DAY SLOT)':'OPERATOR ON DUTY TODAY · '+(todayOperator||'NOT ASSIGNED');duty.style.color=todayOperator?'#ffd21b':'#f2a7a0';}

@@ -19,6 +19,20 @@ for(const key of settingsRights){
   assert.ok(page.includes("{key:'"+key+"'"),'Access and Rights editor exposes '+key);
   assert.ok(api.includes(key+':'),'central API default permission '+key);
 }
+assert.ok(page.includes("{key:'canControlPlantPower',label:'PLANT POWER'"),'PLANT POWER is exposed as a dedicated Access & Rights checkbox');
+assert.ok(page.includes('USER_TIERS.forEach(tier=>{'),'Access & Rights renders a permission card for every tier, including OWNER and DEVACC');
+assert.ok(page.includes("rootProfile.canControlPlantPower=plantPower.checked"),'root tier Plant Power is editable without exposing other root privileges');
+assert.ok(page.includes("const allowed=!!centralUser&&centralReady&&permission('canControlPlantPower')"),'main page Plant Power visibility uses the dedicated permission');
+assert.ok(page.includes('window.DowntimeCentral.setPlantStatus(nextOn,centralVersion)'),'main page updates plant status through the dedicated API action');
+for(const tier of ['OWNER','DEVACC','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR']){
+  const pageRole=page.slice(page.indexOf('const tierDefaults={'),page.indexOf('const lockedTierPermissions=')).match(new RegExp(tier+':\\{[^}]*\\}'))?.[0]||'';
+  const apiRole=api.slice(api.indexOf('const tierDefault:'),api.indexOf('const cryptoHex=')).match(new RegExp(tier+':\\{[^}]*\\}'))?.[0]||'';
+  assert.ok(pageRole.includes('canControlPlantPower:true'),'frontend default Plant Power is enabled for '+tier);
+  assert.ok(apiRole.includes('canControlPlantPower:true'),'server default Plant Power is enabled for '+tier);
+}
+const plantPowerRoute=api.slice(api.indexOf('if(action==="set-plant-status")'),api.indexOf('if(action==="tiers-save")'));
+assert.ok(plantPowerRoute.includes('if(!priv.canControlPlantPower)return json({error:"Permission denied"},403)'),'server denies Plant Power use when its tier checkbox is off');
+
 for(const tier of ['OWNER','DEVACC','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR']){
   assert.match(page,new RegExp(tier+':\\{[^}]*canViewAreaPresets:'),'frontend default profile for '+tier);
   assert.match(api,new RegExp(tier+':\\{[^}]*canViewAreaPresets:'),'server default profile for '+tier);

@@ -15,7 +15,10 @@ assert.ok(src.includes('priv.canManageUsers||priv.canViewUsers?bank.users.map(sa
 assert.ok(src.includes('if(!priv.canViewAssignments&&!priv.canManageAssignments)'),'assignment redaction is enforced server-side unless manage access is granted');
 assert.ok(src.includes('if(!priv.canViewDashboards)'),'dashboard redaction is enforced server-side');
 assert.ok(src.includes('if(!priv.canViewReports)delete restrictedData.archive'),'report redaction is enforced server-side');
-assert.ok(src.includes('if(!priv.canEditTracker)return json({error:"Permission denied"},403)'),'plant status and tracker writes are tier gated');
+assert.ok(src.includes('if(!priv.canEditTracker)return json({error:"Permission denied"},403)'),'tracker writes remain gated by Edit tracker');
+const plantPowerRoute=src.slice(src.indexOf('if(action==="set-plant-status")'),src.indexOf('if(action==="tiers-save")'));
+assert.ok(plantPowerRoute.includes('if(!priv.canControlPlantPower)return json({error:"Permission denied"},403)'),'plant status writes use the dedicated PLANT POWER tier right');
+assert.ok(!plantPowerRoute.includes('priv.canEditTracker'),'plant status control is independent of tracker editing');
 assert.ok(src.includes('action:"set-plant-status"'),'plant status changes are audited');
 assert.ok(src.includes('MANAGER:{canEditTracker:true'), 'MANAGER can create and edit operational records');
 assert.ok(src.includes('SUPERVISOR:{canEditTracker:true')&&src.includes('canManageAssignments:true'), 'SUPERVISOR can edit existing station assignments');
@@ -41,7 +44,7 @@ assert.ok(src.includes('!priv.canViewReports||!priv.canDeleteRecords'), 'server 
 assert.ok(src.includes('canAddDowntimeReasons:true')&&src.includes('existing.some((old:any)=>String(old).trim().toLowerCase()===value.trim().toLowerCase())'), 'SUPERVISOR can only append new downtime reason presets');
 assert.ok(src.includes('ADMIN:{canEditTracker:true')&&src.includes('canDeleteRecords:false'), 'ADMIN deletion is limited by default and not equivalent to root OWNER');
 
-assert.ok(src.includes('SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true'),
+assert.match(src,/SUPERVISOR:\{[^}]*canEditTracker:true,[^}]*canManageUsers:false,[^}]*canManageStaff:true,[^}]*canManageAssignments:true/,
   'SUPERVISOR can manage STAFF in the server tier defaults');
 const lockedRoles=src.slice(src.indexOf('const lockedRolePrivileges'),src.indexOf('function addStableRecordIds'));
 assert.ok(lockedRoles.includes('OWNER:{canEditTracker:true'), 'DEV root OWNER permissions are fixed');
@@ -56,8 +59,8 @@ assert.ok(src.includes('if(!priv.canManageUsers)return json({error:"Permission d
   'other existing account maintenance remains subject to user-management rights');
 assert.ok(src.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&src.includes('typeof supplied[key]!=="boolean"'),
   'tier rights updates validate the permission whitelist and boolean values');
-assert.ok(src.includes('action:"tiers-save",details:{tiers:tiers.filter(role=>role!=="OWNER"&&role!=="DEVACC")}'),
-  'tier rights changes are audited and exclude root OWNER permissions');
+assert.ok(src.includes('action:"tiers-save",details:{tiers}'),
+  'tier rights changes, including the Plant Power exception for root tiers, are audited');
 
 assert.ok(src.includes('if(Array.isArray(bank.appData?.dailyTaskPresets))nextAppData.dailyTaskPresets=bank.appData.dailyTaskPresets;else delete nextAppData.dailyTaskPresets'),
   'non-settings roles can complete daily tasks but cannot edit the preset list');
@@ -90,7 +93,7 @@ assert.ok(src.includes('The DEV root OWNER account cannot be deleted or removed.
 assert.ok(!src.includes('root-account-split')&&!src.includes('isLegacyJanRoot'),'obsolete JAN split authorization is removed');
 
 assert.ok(src.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&src.includes('typeof supplied[key]!=="boolean"'),'tier rights updates validate the permission whitelist and boolean values');
-assert.ok(src.includes('action:"tiers-save",details:{tiers:tiers.filter(role=>role!=="OWNER"&&role!=="DEVACC")}'),'tier changes are audited and immutable root-equivalent tiers are excluded');
+assert.ok(src.includes('action:"tiers-save",details:{tiers}'),'tier permission changes across all seven roles, including root PLANT POWER overrides, are audited');
 for(const action of ['central-config-state','central-config-save-draft','central-config-publish','central-config-restore-draft'])assert.ok(src.includes('if(action==="'+action+'")'),'configuration control-plane action '+action);
 assert.ok(src.includes('configState.draft_version')&&src.includes('configState.published_version'),'configuration drafts and published state have independent version pointers');
 assert.ok(src.includes('downtime_central_config_state')&&src.includes('downtime_central_config_history'),'configuration control plane uses isolated tables');

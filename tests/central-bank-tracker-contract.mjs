@@ -22,7 +22,9 @@ assert.match(overview,/centralCall\('get-state'\)/,'Overview reads central state
 assert.match(overview,/apikey':CENTRAL_API_KEY/,'Overview sends the publishable API key');
 assert.match(overview,/centralCall\('set-plant-status'/,'Overview status button uses central action');
 assert.match(api,/action==="set-plant-status"/,'server implements central plant status updates');
-assert.match(api,/if\(!priv\.canEditTracker\)return json\(\{error:"Permission denied"\},403\)/,'server enforces tracker edit tier');
+const plantPowerRoute=api.slice(api.indexOf('if(action==="set-plant-status")'),api.indexOf('if(action==="tiers-save")'));
+assert.match(plantPowerRoute,/if\(!priv\.canControlPlantPower\)return json\(\{error:"Permission denied"\},403\)/,'server enforces dedicated Plant Power tier permission');
+assert.doesNotMatch(plantPowerRoute,/priv\.canEditTracker/,'Plant Power is independent from tracker edit access');
 assert.match(client,/async setPlantStatus\(plantOn,version\)/,'browser adapter exposes plant status action');
 assert.ok(tracker.includes('id="centralUsersManager"')&&tracker.includes('saveCentralUserSettings'), 'OWNER/ADMIN have central USER create/edit controls inside Settings');
 assert.ok(tracker.includes("window.DowntimeCentral.saveUser(payload,centralVersion)")&&tracker.includes("window.DowntimeCentral.deleteUser(user.username,centralVersion)"), 'Settings user operations use the central API and version checks');
