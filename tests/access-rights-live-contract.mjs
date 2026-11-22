@@ -52,9 +52,11 @@ function permissionRole(source,tier){
   const start=source.indexOf(tier+':{');if(start<0)return '';
   const end=source.indexOf('}',start);return end<0?'':source.slice(start,end+1);
 }
+function frontendPermissionRole(tier){return permissionRole(overviewPermissionBlock,tier);}
+function serverPermissionRole(tier){return permissionRole(apiOverviewPermissionBlock,tier);}
 for(const tier of ['OWNER','ADMIN','MANAGER','SUPERVISOR','USER']){
-  assert.ok(permissionRole(overviewPermissionBlock,tier).includes('canViewPlantOverview:true'),'frontend Plant Overview default for '+tier);
-  assert.ok(permissionRole(apiOverviewPermissionBlock,tier).includes('canViewPlantOverview:true'),'server Plant Overview default for '+tier);
+  assert.ok(frontendPermissionRole(tier).includes('canViewPlantOverview:true'),'frontend Plant Overview default for '+tier);
+  assert.ok(serverPermissionRole(tier).includes('canViewPlantOverview:true'),'server Plant Overview default for '+tier);
 }
 assert.ok(permissionRole(overviewPermissionBlock,'SPECTATOR').includes('canViewPlantOverview:false'),'frontend SPECTATOR cannot open Plant Overview');
 assert.ok(permissionRole(apiOverviewPermissionBlock,'SPECTATOR').includes('canViewPlantOverview:false'),'server SPECTATOR cannot open Plant Overview');
