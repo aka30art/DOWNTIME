@@ -24,7 +24,7 @@ for(const tier of ['OWNER','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR']){
   assert.match(api,new RegExp(tier+':\\{[^}]*canViewAreaPresets:'),'server default profile for '+tier);
 }
 
-assert.match(page,/function canManageAccessRights\(\)\{return canAccessCentralBank\(\)\}/,'Access and Rights uses the ADMIN/DEV root allow-list, with legacy JAN root permitted only until account split');
+assert.match(page,/function canManageAccessRights\(\)\{return canAccessCentralBank\(\)\}/,'Access and Rights uses the strict ADMIN/JAN identity allow-list');
 assert.match(page,/function canManageSettingsSection\(section\)/,'shared Settings edit permission resolver');
 assert.match(page,/function settingsAccess\(section\)/,'shared Settings section visibility resolver');
 assert.match(page,/function anySettingsAccess\(\)/,'Settings navigation follows section rights');
@@ -63,4 +63,4 @@ assert.ok(permissionRole(apiOverviewPermissionBlock,'SPECTATOR').includes('canVi
 assert.ok(page.includes("if(!permission('canViewPlantOverview'))return;"),'opening Plant Overview uses its dedicated right');
 assert.ok(page.includes("if(overview)overview.style.display=spectator||!permission('canViewPlantOverview')?'none':''"),'Plant Overview navigation uses its dedicated right');
 
-console.log('PASS: granular Settings visibility/edit rights, tracker-independent settings persistence, central API enforcement, and ADMIN/DEV permission administration.');
+console.log('PASS: granular Settings visibility/edit rights, tracker-independent settings persistence, central API enforcement, and ADMIN/JAN permission administration.');
