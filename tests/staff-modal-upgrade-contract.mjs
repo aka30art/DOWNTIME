@@ -8,7 +8,7 @@ assert.match(html,/if\(!manageStaff&&!manageAssign\)return;if\(!name&&!manageSta
 assert.match(html,/staffModalOpen\(\);/,'Add New Member opens a blank modal');
 assert.match(html,/\$\('smName'\)\.readOnly=!isNew/,'existing names are protected to preserve historical records');
 assert.match(html,/stationLocked/,'station lock state appears on roster and in profile modal');
-assert.ok(html.includes("stationSelect.disabled=!manageAssign||!!profile.stationLocked;"),'station picker remains controlled by assignment permission and station lock, not ON PLANT state');
+assert.ok(html.includes("$('smStation').disabled=!manageAssign||!!profile.stationLocked;"),'station picker remains controlled by assignment permission and station lock, not ON PLANT state');
 assert.ok(html.includes("option.textContent=stationLabel(station)"),'station picker displays each configured station title and category');
 assert.ok(html.includes('OFF PLANT staff stay off the tracker; their station can still be set.'),'OFF PLANT status remains distinct from the saved station assignment');
 assert.ok(html.includes('select#smStation{box-sizing:border-box;min-width:0;max-width:100%')&&html.includes('background-image:url("data:image/svg+xml,'),'station picker has a visible mobile dropdown affordance');
