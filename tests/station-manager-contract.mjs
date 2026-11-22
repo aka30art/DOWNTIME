@@ -12,7 +12,7 @@ assert.ok(ui.includes('function renderStationManager(reset=true)')&&ui.includes(
 assert.ok(ui.includes('Deactivated stations remain in the data bank'),'station deactivation is non-destructive');
 assert.ok(ui.includes('aliases.add(stationLabel(old))'),'station renames retain the previous label as an alias');
 assert.ok(ui.includes('stationSelect.replaceChildren()')&&ui.includes("station.active!==false"),'STAFF assignment choices are populated from active configured stations');
-assert.ok(ui.includes("raw.match(/^Station\\\\s*0?([1-6])$/i)")&&ui.includes("station.id==='station-'+legacy[1]"),'legacy Station N assignments resolve to the same station IDs during migration');
+assert.ok(ui.includes("legacyNumber=raw.toLowerCase().startsWith('station')")&&ui.includes("station.id==='station-'+legacyNumber"),'legacy Station N assignments resolve to the same station IDs during migration');
 assert.ok(ui.includes('resolveStationLabel(profile.station||profile.assignedStation||\'\')'),'STAFF roster displays renamed station labels');
 assert.ok(ui.includes('async function persistSettingsConfirmed()')&&ui.includes('return await syncSettingsCloud()'),'confirmed settings persistence waits for the central data-bank response');
 assert.ok(ui.includes('if(!await persistSettingsConfirmed())'),'STAFF profile save does not report success before central confirmation');
