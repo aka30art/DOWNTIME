@@ -41,7 +41,7 @@ for(const tier of ['OWNER','DEVACC']){
 // Frontend visibility and activation both use the tier right, not a username
 // allow-list or the unrelated tracker-edit permission.
 assert.ok(page.includes("const allowed=!!centralUser&&centralReady&&permission('canControlPlantPower')"),'main page toggle visibility uses Plant Power');
-assert.ok(page.includes("!permission('canControlPlantPower')||b.disabled"),'main page click handler rechecks Plant Power');
+assert.ok(page.includes("!permission('canControlPlantPower')||plantPowerBusy"),'main page click handler rechecks Plant Power and prevents duplicate in-flight status updates');
 assert.ok(page.includes('window.DowntimeCentral.setPlantStatus(nextOn,centralVersion)'),'main page invokes the dedicated central status action');
 assert.ok(!page.includes("activeOperator==='Jan'||activeOperator==='Mick'"),'main page no longer restricts Plant Power to JAN/MICK');
 assert.ok(client.includes('async setPlantStatus(plantOn,version)'), 'browser adapter exposes the versioned status action');
