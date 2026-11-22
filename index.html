@@ -1426,7 +1426,7 @@ function renderCentralUserSettings(){
  if(!host||!list)return;
  const canManage=permission('canManageUsers'),canView=canManage||permission('canViewUsers');
  host.style.display=canView?'block':'none';
- const accountLink=$('centralUsersAdminLink');if(accountLink)accountLink.style.display=canManage?'inline-block':'none';
+ const accountLink=$('centralUsersAdminLink');if(accountLink)accountLink.style.display=canAccessCentralBank()?'inline-block':'none';
  const formTitle=$('centralAccountFormTitle');if(formTitle?.parentElement)formTitle.parentElement.hidden=!canManage;
  if(!canView)return;
  list.replaceChildren();
