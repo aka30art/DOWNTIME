@@ -13,6 +13,9 @@ assert.ok(page.includes("if(admin)admin.style.display=canAccessCentralBank()?'':
 assert.ok(page.includes("if(usersAdmin)usersAdmin.style.display=canAccessCentralBank()?'':'none';"),'Settings shortcut uses strict allow-list');
 assert.ok(page.includes("if(accountLink)accountLink.style.display=canAccessCentralBank()?'inline-block':'none';"),'later USER panel rendering cannot re-open the shortcut using broad permissions');
 assert.ok(!page.includes('OWNER setup and account administration: <a href="central-bank-admin.html"'),'unauthenticated login screen does not expose a direct link');
+assert.ok(page.includes("if(centralAdminNav)centralAdminNav.style.display='none';")&&page.includes("if(centralUsersAdminLink)centralUsersAdminLink.style.display='none';"),'logout immediately clears both Central Data Bank shortcuts');
+const browserSmoke=fs.readFileSync('tests/login-smoke.mjs','utf8');
+for(const assertion of ['JAN root OWNER sees the Central Data Bank menu entry','ADMIN tier can see the Central Data Bank menu entry','MANAGER with ADMIN-equivalent configurable rights cannot see Central Data Bank','SUPERVISOR staff-management permission does not grant Central Data Bank access','USER cannot see the Central Data Bank menu entry','SPECTATOR cannot see the Central Data Bank menu entry','Central Data Bank entry is hidden immediately after logout','later USERS panel rendering cannot restore the Central Data Bank shortcut for MANAGER'])assert.ok(browserSmoke.includes(assertion),'browser regression: '+assertion);
 
 // The standalone page requests a separate server-authorized admin state, not normal tracker state.
 assert.ok(adminPage.includes('call("central-admin-state")'),'standalone page uses the protected admin-state action');
