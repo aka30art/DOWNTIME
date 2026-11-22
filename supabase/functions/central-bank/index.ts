@@ -148,7 +148,7 @@ Deno.serve(async(req)=>{
  const isDevRoot=currentUsername==="DEV"&&tier==="OWNER";
  const isLegacyJanRoot=currentUsername==="JAN"&&tier==="OWNER";
  const isRootOwner=isDevRoot||isLegacyJanRoot;
- const isCentralAdmin=tier==="ADMIN"||tier==="DEVACC"||isRootOwner;
+ const isCentralAdmin=tier==="ADMIN"||tier==="DEVACC"||isDevRoot;
  const isCentralBankAccess=isDevRoot;
  if(action==="central-admin-state"){
    if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV only."},403);
