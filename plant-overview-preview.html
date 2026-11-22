@@ -120,8 +120,8 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
    const raw=String(profile?.station||profile?.assignedStation||'').trim();if(!raw)return null;
    const matched=stations.find(station=>stationConfigLabel(station)===raw||String(station.name||'').trim()===raw||(Array.isArray(station.aliases)&&station.aliases.includes(raw)));
    if(matched)return matched;
-   const legacyNumber=raw.toLowerCase().startsWith('station')?Number(raw.slice(7).trim()):0;
-   return Number.isInteger(legacyNumber)&&legacyNumber>=1&&legacyNumber<=6?stations.find(station=>station.id==='station-'+legacyNumber)||null:null;
+   const legacyMatch=raw.match(/^Station\\s*0?([1-6])(?:\\s|$)/i);
+   return legacyMatch?stations.find(station=>station.id==='station-'+legacyMatch[1])||null:null;
  }
  function renderStationBlueprint(stations,names,profiles){
    const host=document.querySelector('.blueprintbays');if(!host)return;
