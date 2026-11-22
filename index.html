@@ -646,12 +646,12 @@ body.overview-overlay-open{overflow:hidden}
     </div>
     <div id="settingsOwnerAccess" class="settings-owner-access" hidden>
       <div class="settings-owner-access-head">
-        <div><div class="settings-eyebrow">ADMIN / DEV · RESTRICTED ADMINISTRATION</div><p>Restricted administration area for ADMIN and the permanent DEV root account.</p></div>
-        <span class="pill">ADMIN / DEV ONLY</span>
+        <div><div class="settings-eyebrow">DEV · ROOT ADMINISTRATION ONLY</div><p>Central tier privileges can only be changed by the permanent root DEV account.</p></div>
+        <span class="pill">DEV ONLY</span>
       </div>
       <button class="settings-card settings-owner-access-card" type="button" data-settings-open="accessRights" aria-controls="settingsPanelAccessRights" aria-expanded="false">
         <span class="settings-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 8.8 8 11 4.6-2.2 8-6 8-11V5l-8-3Z"/><path d="m8.5 12 2.3 2.3 4.8-5"/></svg></span>
-        <span class="settings-card-copy"><strong>ACCESS AND RIGHTS</strong><small>Configure tier permissions, privileges and access to DOWNTIME features</small><em>ADMIN / DEV ADMINISTRATION ONLY</em></span>
+        <span class="settings-card-copy"><strong>ACCESS AND RIGHTS</strong><small>Configure tier permissions, privileges and access to DOWNTIME features</small><em>DEV ROOT ADMINISTRATION ONLY</em></span>
         <span class="settings-card-arrow" aria-hidden="true">›</span>
       </button>
     </div>
@@ -663,7 +663,7 @@ body.overview-overlay-open{overflow:hidden}
     <div class="settings-detail-head"><button class="settings-back" type="button" data-settings-back>‹ <span>BACK TO SETTINGS</span></button><div class="settings-detail-tag">ACCESS MANAGEMENT</div></div>
     <div class="panel settings-content-panel">
       <h2>USERS</h2><p class="muted">Central USER accounts, PINs and privileges are managed in the single central database.</p>
-      <div id="centralUsersManager" style="display:none;margin:10px 0 16px;padding:12px;border:1px solid #354f61;border-radius:12px;background:#0c1b27"><h3 style="margin:0 0 8px;color:#ffc400">CENTRAL USER ACCOUNTS</h3><p class="muted" style="margin:0 0 10px">Account actions are available only to tiers granted user-management rights. DEV is protected as the permanent root OWNER; Jan remains a separate operational USER identity.</p><div id="centralUsersManageList"></div><div id="rootAccountMigration" hidden style="border:1px solid #806b22;border-radius:10px;padding:12px;margin-top:12px;background:#182431"><h3 style="margin:0 0 7px;color:#ffc400">ONE-TIME ROOT ACCOUNT SPLIT</h3><p class="muted" style="margin:0 0 10px">Rename the permanent ROOT OWNER identity to DEV, retain its existing PIN, and create a separate standard USER account for Jan.</p><div class="field"><label for="rootAccountJanPin">New Jan USER PIN · 4–8 digits</label><input id="rootAccountJanPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Enter new Jan PIN"></div><button id="splitRootAccountBtn" class="primary" type="button" style="margin-top:9px">SPLIT DEV / JAN ACCOUNTS</button></div><div style="border-top:1px solid #30495a;margin-top:12px;padding-top:12px"><h3 id="centralAccountFormTitle" style="margin:0 0 10px">ADD USER ACCOUNT</h3><div class="fields"><div class="field"><label>Username</label><input id="centralAccountUsername" maxlength="32" autocomplete="off" placeholder="Unique username"></div><div class="field"><label>Display name</label><input id="centralAccountDisplay" maxlength="60" placeholder="Name shown in login"></div><div class="field"><label>Tier</label><select id="centralAccountTier"><option>ADMIN</option><option>MANAGER</option><option>SUPERVISOR</option><option selected>USER</option><option>SPECTATOR</option></select><small id="centralAccountTierHint" class="muted">Only ADMIN / DEV can create accounts or assign tiers.</small></div><div class="field"><label>PIN · 4–8 digits</label><input id="centralAccountPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Required for new account"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button id="centralAccountSave" class="primary" type="button">ADD USER</button><button id="centralAccountCancel" type="button" style="display:none">CANCEL EDIT</button><button id="centralUsersRefresh" type="button">REFRESH USERS</button></div><div id="centralUsersStatus" class="muted" role="status" style="margin-top:8px;min-height:20px"></div></div></div>
+      <div id="centralUsersManager" style="display:none;margin:10px 0 16px;padding:12px;border:1px solid #354f61;border-radius:12px;background:#0c1b27"><h3 style="margin:0 0 8px;color:#ffc400">CENTRAL USER ACCOUNTS</h3><p class="muted" style="margin:0 0 10px">Account actions are available only to tiers granted user-management rights. DEV is protected as the permanent root OWNER; Jan remains a separate operational USER identity.</p><div id="centralUsersManageList"></div><div id="rootAccountMigration" hidden style="border:1px solid #806b22;border-radius:10px;padding:12px;margin-top:12px;background:#182431"><h3 style="margin:0 0 7px;color:#ffc400">ONE-TIME ROOT ACCOUNT SPLIT</h3><p class="muted" style="margin:0 0 10px">Rename the permanent ROOT OWNER identity to DEV, retain its existing PIN, and create a separate standard USER account for Jan.</p><div class="field"><label for="rootAccountJanPin">New Jan USER PIN · 4–8 digits</label><input id="rootAccountJanPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Enter new Jan PIN"></div><button id="splitRootAccountBtn" class="primary" type="button" style="margin-top:9px">SPLIT DEV / JAN ACCOUNTS</button></div><div style="border-top:1px solid #30495a;margin-top:12px;padding-top:12px"><h3 id="centralAccountFormTitle" style="margin:0 0 10px">ADD USER ACCOUNT</h3><div class="fields"><div class="field"><label>Username</label><input id="centralAccountUsername" maxlength="32" autocomplete="off" placeholder="Unique username"></div><div class="field"><label>Display name</label><input id="centralAccountDisplay" maxlength="60" placeholder="Name shown in login"></div><div class="field"><label>Tier</label><select id="centralAccountTier"><option>ADMIN</option><option value="DEVACC" disabled>DEVACC</option><option>MANAGER</option><option>SUPERVISOR</option><option selected>USER</option><option>SPECTATOR</option></select><small id="centralAccountTierHint" class="muted">DEV, ADMIN and DEVacc can manage standard accounts. Only DEV can grant or revoke DEVacc.</small></div><div class="field"><label>PIN · 4–8 digits</label><input id="centralAccountPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Required for new account"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button id="centralAccountSave" class="primary" type="button">ADD USER</button><button id="centralAccountCancel" type="button" style="display:none">CANCEL EDIT</button><button id="centralUsersRefresh" type="button">REFRESH USERS</button></div><div id="centralUsersStatus" class="muted" role="status" style="margin-top:8px;min-height:20px"></div></div></div>
       <div id="settingsAdminControls">
         <div id="operatorAdminPanel" style="display:none"><div class="field"><label>New app user name</label><input id="newOperatorName" maxlength="20" placeholder="User name"></div><div class="field"><label>Initial PIN (3–4 digits)</label><input id="newOperatorInitialPin" inputmode="numeric" type="password" maxlength="4"></div><button id="addOperatorBtn" class="primary">ADD USER</button><div id="operatorAdminMsg" class="muted"></div><div id="operatorRosterList"></div></div>
       </div>
@@ -724,11 +724,11 @@ body.overview-overlay-open{overflow:hidden}
     </div>
   </div>
   <div id="settingsPanelAccessRights" class="settings-panel" hidden>
-    <div class="settings-detail-head"><button class="settings-back" type="button" data-settings-back>‹ <span>BACK TO SETTINGS</span></button><div class="settings-detail-tag">ADMIN / DEV · RESTRICTED ADMINISTRATION</div></div>
+    <div class="settings-detail-head"><button class="settings-back" type="button" data-settings-back>‹ <span>BACK TO SETTINGS</span></button><div class="settings-detail-tag">DEV · ROOT ADMINISTRATION ONLY</div></div>
     <div class="panel settings-content-panel">
       <h2>ACCESS AND RIGHTS</h2>
       <p class="muted">Configure which DOWNTIME features each user tier can access and what actions each tier is permitted to perform. Changes are saved to the central data bank and apply to all accounts assigned to that tier.</p>
-      <div class="access-rights-topline"><span>EDITABLE TIERS · ADMIN / MANAGER / SUPERVISOR / USER / SPECTATOR</span><strong>OWNER · FIXED ROOT ACCESS</strong></div>
+      <div class="access-rights-topline"><span>EDITABLE TIERS · ADMIN / MANAGER / SUPERVISOR / USER / SPECTATOR</span><strong>OWNER · FIXED ROOT ACCESS · DEVACC · FIXED OPERATIONAL ACCESS</strong></div>
       <div id="accessRightsTierList" class="access-rights-grid" aria-label="Tier permissions editor"></div>
       <div id="accessRightsStatus" class="muted" role="status" aria-live="polite"></div>
       <div class="access-rights-actions"><button id="saveAccessRights" class="primary" type="button">SAVE ACCESS AND RIGHTS</button></div>
@@ -784,11 +784,12 @@ let weekStart=mondayOf(today),selected=0,entryDraft={area:'',reason:''},editing=
 let state=load();state.shiftSchedule=state.shiftSchedule||scheduleDefaults();state.shiftPresets=state.shiftPresets||[];state.dailyTaskPresets=Array.isArray(state.dailyTaskPresets)?state.dailyTaskPresets:[];if(typeof state.plantOn!=="boolean")state.plantOn=true;state.undoAction=state.undoAction||null;delete state.quickReasons;delete state.recentReasons;
 let centralUsers=[],centralUser=null,centralBankPayload=null,centralVersion=0,centralReady=false,centralPendingWrites=0,centralPinAttempts=0,centralPinLockUntil=0;
 let activeOperator='',operatorReadOnly=false,operatorAdmin=false;
-const USER_TIERS=['OWNER','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR'];
+const USER_TIERS=['OWNER','DEVACC','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR'];
 function staffRoster(){const names=Array.isArray(state?.staffRoster)?state.staffRoster:['Jan','Mick','Gigi','Daz','Shayne'];return [...new Set(names.filter(n=>typeof n==='string'&&n.trim()))]}
 function privilegeFor(n){const u=centralUsers.find(x=>String(x.username).toLowerCase()===String(n||'').toLowerCase());return (n===centralUser?.username?centralUser?.tier:u?.tier)||'USER'}
 const tierDefaults={
  OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ DEVACC:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:false,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:true,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:false,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
@@ -796,11 +797,15 @@ const tierDefaults={
  SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:false,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewPlantOverview:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
 const lockedTierPermissions={
- OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}
+ OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ DEVACC:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}
 };
 function permission(name){const tier=privilegeFor(activeOperator),locked=lockedTierPermissions[tier];if(locked&&Object.prototype.hasOwnProperty.call(locked,name))return locked[name];const custom=centralBankPayload?.tiers?.[tier];return typeof custom?.[name]==='boolean'?custom[name]:!!tierDefaults[tier]?.[name]}
 function canManageAccessRights(){return canAccessCentralBank()}
-function canAccessCentralBank(){const username=String(centralUser?.username||activeOperator||'').trim().toUpperCase(),tier=privilegeFor(activeOperator);return tier==='ADMIN'||((username==='DEV'||username==='JAN')&&tier==='OWNER')}
+function canAccessCentralBank(){const username=String(centralUser?.username||'').trim().toUpperCase(),tier=String(centralUser?.tier||'').trim().toUpperCase();return username==='DEV'&&tier==='OWNER'}
+function canAssignStandardAccountTiers(){const tier=String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase();return tier==='ADMIN'||tier==='DEVACC'||canAccessCentralBank()}
+function canRunRootAccountSplit(){const username=String(centralUser?.username||'').trim().toUpperCase(),tier=String(centralUser?.tier||'').trim().toUpperCase();return tier==='OWNER'&&(username==='DEV'||username==='JAN')}
+function syncDevaccTierOption(select=$('centralAccountTier')){const option=select?.querySelector('option[value="DEVACC"]');if(option)option.disabled=!canAccessCentralBank()}
 const ACCESS_RIGHT_GROUPS=[
  {title:'TRACKER & RECORDS',rights:[
   {key:'canEditTracker',label:'Edit tracker',detail:'Create and edit downtime records and daily operational information'},
@@ -833,11 +838,11 @@ const ACCESS_RIGHT_GROUPS=[
   {key:'canExportReports',label:'Export reports',detail:'Download and export weekly report files'}
  ]}
 ];
-const ACCESS_TIER_DESCRIPTIONS={ADMIN:'Broad administrative access, configured by ADMIN / DEV.',MANAGER:'Operational management access, configured by ADMIN / DEV.',SUPERVISOR:'Front-line supervisory access, configured by ADMIN / DEV.',USER:'Standard user access, configured by ADMIN / DEV.',SPECTATOR:'Restricted viewing access, configured by ADMIN / DEV.'};
+const ACCESS_TIER_DESCRIPTIONS={DEVACC:'Locked root-equivalent operational tier; Central Data Bank excluded. Only DEV can assign or revoke.',ADMIN:'Broad administrative access, configured by root DEV in Access & Rights.',MANAGER:'Operational management access, configured by root DEV in Access & Rights.',SUPERVISOR:'Front-line supervisory access, configured by root DEV in Access & Rights.',USER:'Standard user access, configured by root DEV in Access & Rights.',SPECTATOR:'Restricted viewing access, configured by root DEV in Access & Rights.'};
 function renderAccessRights(){
  const host=$('accessRightsTierList');if(!host||!canManageAccessRights())return;
  const stored=centralBankPayload?.tiers||tierDefaults;host.replaceChildren();
- USER_TIERS.filter(tier=>tier!=='OWNER').forEach(tier=>{
+ USER_TIERS.filter(tier=>tier!=='OWNER'&&tier!=='DEVACC').forEach(tier=>{
   const profile={...tierDefaults[tier],...(stored[tier]||{})};
   const card=document.createElement('section');card.className='access-rights-tier';card.dataset.accessTierCard=tier;
   const head=document.createElement('div');head.className='access-rights-tier-head';
@@ -1523,17 +1528,19 @@ function resetCentralUserForm(){
  if(display)display.value='';
  if(tier)tier.value='USER';
  if(pin)pin.value='';
- const canAssignTier=canAccessCentralBank();
+ const canAssignTier=canAssignStandardAccountTiers();
+ syncDevaccTierOption(tier);
  if(tier)tier.disabled=!canAssignTier;
  if($('centralAccountFormTitle'))$('centralAccountFormTitle').textContent='ADD USER ACCOUNT';
- if($('centralAccountSave')){$('centralAccountSave').textContent='ADD USER';$('centralAccountSave').disabled=!canAssignTier;}
- if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'ADMIN / DEV can create accounts and assign tiers.':'Only ADMIN / DEV can create accounts or assign tiers. You may edit permitted existing accounts without changing their tier.';
+ if($('centralAccountSave')){$('centralAccountSave').textContent='ADD USER';$('centralAccountSave').disabled=!permission('canManageUsers')||!canAssignTier;}
+ if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'You can manage ordinary accounts and assign standard tiers. Only DEV can grant DEVacc.':'You can edit permitted existing accounts; account creation and tier assignment are restricted.';
  if($('centralAccountCancel'))$('centralAccountCancel').style.display='none';
 }
 function renderCentralUserSettings(){
  const host=$('centralUsersManager'),list=$('centralUsersManageList');
  if(!host||!list)return;
- const canManage=permission('canManageUsers'),canView=canManage||permission('canViewUsers'),canAssignTier=canAccessCentralBank();
+ const canManage=permission('canManageUsers'),canView=canManage||permission('canViewUsers'),canAssignTier=canAssignStandardAccountTiers();
+ syncDevaccTierOption($('centralAccountTier'));
  host.style.display=canView?'block':'none';
  const currentUsername=String(centralUser?.username||activeOperator||'').trim().toUpperCase(),currentTier=String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase();
  const janOperationalExists=(centralBankPayload?.users||[]).some(user=>String(user.username||'').trim().toUpperCase()==='JAN'&&user.tier==='USER'&&user.enabled!==false);
@@ -1541,7 +1548,7 @@ function renderCentralUserSettings(){
  if(!editingCentralUsername){
   if($('centralAccountTier'))$('centralAccountTier').disabled=!canAssignTier;
   if($('centralAccountSave'))$('centralAccountSave').disabled=!canManage||!canAssignTier;
-  if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'ADMIN / DEV can create accounts and assign tiers.':'Only ADMIN / DEV can create accounts or assign tiers. You may edit permitted existing accounts without changing their tier.';
+  if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'You can manage ordinary accounts and assign standard tiers. Only DEV can grant DEVacc.':'You can edit permitted existing accounts; account creation and tier assignment are restricted.';
  }
  const formTitle=$('centralAccountFormTitle');if(formTitle?.parentElement)formTitle.parentElement.hidden=!canManage;
  if(!canView)return;
@@ -1556,18 +1563,19 @@ function renderCentralUserSettings(){
   info.append(name,meta);row.appendChild(info);
   const actions=document.createElement('div');actions.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
   if(canManage){
-  const root=String(user.username).toUpperCase()==='DEV'||user.tier==='OWNER';
-  if(root){const protectedLabel=document.createElement('span');protectedLabel.className='pill';protectedLabel.textContent='ROOT · PROTECTED';actions.appendChild(protectedLabel)}
+  const root=String(user.username).toUpperCase()==='DEV'||user.tier==='OWNER',protectedDevacc=user.tier==='DEVACC'&&!canAccessCentralBank();
+  if(root||protectedDevacc){const protectedLabel=document.createElement('span');protectedLabel.className='pill';protectedLabel.textContent=root?'ROOT · PROTECTED':'DEVACC · DEV ONLY';actions.appendChild(protectedLabel)}
   else{
    const edit=document.createElement('button');edit.type='button';edit.textContent='EDIT';edit.onclick=()=>{
     editingCentralUsername=user.username;
-    const canAssignTier=canAccessCentralBank();
+    const canAssignTier=canAssignStandardAccountTiers();
+    syncDevaccTierOption($('centralAccountTier'));
     $('centralAccountUsername').value=user.username;$('centralAccountUsername').disabled=true;
     $('centralAccountDisplay').value=user.displayName||user.username;$('centralAccountTier').value=user.tier;$('centralAccountTier').disabled=!canAssignTier;
     $('centralAccountPin').value='';
     $('centralAccountFormTitle').textContent='EDIT USER · '+user.username;
     $('centralAccountSave').textContent='SAVE CHANGES';$('centralAccountSave').disabled=false;$('centralAccountCancel').style.display='inline-block';
-    if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'ADMIN / DEV may change this account tier.':'Tier assignment is reserved to ADMIN / DEV; this account tier is locked.';
+    if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'DEV, ADMIN or DEVacc may change standard account tiers. Only DEV can grant DEVacc.':'Tier assignment is reserved to DEV, ADMIN and DEVacc; this account tier is locked.';
     $('centralUsersStatus').textContent='Leave PIN blank to keep the current PIN.';
     $('centralAccountFormTitle').scrollIntoView({behavior:'smooth',block:'nearest'});
    };actions.appendChild(edit);
@@ -1597,7 +1605,7 @@ async function refreshCentralUserSettings(message='Central USERS refreshed.'){
  if($('centralUsersStatus'))$('centralUsersStatus').textContent=message;
 }
 async function runRootAccountSplit(){
- if(!canAccessCentralBank()||String(centralUser?.tier||'').toUpperCase()!=='OWNER')return;
+ if(!canRunRootAccountSplit())return;
  const input=$('rootAccountJanPin'),button=$('splitRootAccountBtn'),status=$('centralUsersStatus'),pin=input?.value||'';
  if(!/^[0-9]{4,8}$/.test(pin)){if(status)status.textContent='Enter a new 4–8 digit PIN for Jan.';return}
  if(!confirm('Rename the permanent root account to DEV, retain its existing PIN, and create a separate standard USER account for Jan? Your current session will end.'))return;
@@ -1614,8 +1622,9 @@ async function saveCentralUserSettings(){
  const username=$('centralAccountUsername').value.trim(),displayName=$('centralAccountDisplay').value.trim(),tier=$('centralAccountTier').value,pin=$('centralAccountPin').value;
  if(!username){$('centralUsersStatus').textContent='Enter a username.';return}
  const existing=(centralBankPayload?.users||[]).find(user=>String(user.username).toLowerCase()===username.toLowerCase());
- const canAssignTier=canAccessCentralBank();
- if((!editingCentralUsername||!existing||existing.tier!==tier)&&!canAssignTier){$('centralUsersStatus').textContent='Only ADMIN / DEV can create accounts or assign user tiers.';return}
+ const canAssignTier=canAssignStandardAccountTiers(),canAssignDevacc=canAccessCentralBank();
+ if(tier==='DEVACC'&&!canAssignDevacc){$('centralUsersStatus').textContent='Only DEV can assign DEVacc tier.';return}
+ if((!editingCentralUsername||!existing||existing.tier!==tier)&&!canAssignTier){$('centralUsersStatus').textContent='DEV, ADMIN and DEVacc can create ordinary accounts or assign standard tiers.';return}
  const payload={username,displayName:displayName||username,tier,enabled:existing?.enabled!==false,version:centralVersion};
  if(pin)payload.pin=pin;
  if(!editingCentralUsername&&!pin){$('centralUsersStatus').textContent='A 4–8 digit PIN is required for a new account.';return}

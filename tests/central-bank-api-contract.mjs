@@ -47,15 +47,16 @@ const lockedRoles=src.slice(src.indexOf('const lockedRolePrivileges'),src.indexO
 assert.ok(lockedRoles.includes('OWNER:{canEditTracker:true'), 'DEV root OWNER permissions are fixed');
 assert.doesNotMatch(lockedRoles, /MANAGER:|SUPERVISOR:|USER:|SPECTATOR:/,
   'non-root tiers are configurable by DEV rather than locked to hard-coded baselines');
-assert.ok(src.includes('if(tier!=="ADMIN"&&!isRootOwner)return json({error:"Only ADMIN or the DEV root administrator can change tier access and rights"},403);'),
-  'tier rights changes are restricted to the ADMIN tier and DEV root OWNER');
-assert.ok(src.includes('if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN or the DEV root administrator can create accounts or assign user tiers."},403);'),
-  'only ADMIN/DEV may create user accounts or change a users tier');
+assert.ok(src.includes('if(!isDevRoot)return json({error:"Only root DEV can change tier access and rights."},403);'),
+  'tier rights changes are restricted to root DEV only');
+assert.ok(src.includes('const isCentralAdmin=tier==="ADMIN"||tier==="DEVACC"||isDevRoot;'),'standard account creation and tier changes exclude the legacy JAN root');
+assert.ok(src.includes('if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEVacc or the DEV root administrator can create accounts or assign user tiers."},403);'),
+  'ADMIN, DEVacc and DEV may manage standard user tiers; DEV-only tier guard protects DEVacc');
 assert.ok(src.includes('if(!priv.canManageUsers)return json({error:"Permission denied"},403);'),
   'other existing account maintenance remains subject to user-management rights');
 assert.ok(src.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&src.includes('typeof supplied[key]!=="boolean"'),
   'tier rights updates validate the permission whitelist and boolean values');
-assert.ok(src.includes('action:"tiers-save",details:{tiers:tiers.filter(role=>role!=="OWNER")}'),
+assert.ok(src.includes('action:"tiers-save",details:{tiers:tiers.filter(role=>role!=="OWNER"&&role!=="DEVACC")}'),
   'tier rights changes are audited and exclude root OWNER permissions');
 
 assert.ok(src.includes('if(Array.isArray(bank.appData?.dailyTaskPresets))nextAppData.dailyTaskPresets=bank.appData.dailyTaskPresets;else delete nextAppData.dailyTaskPresets'),
@@ -65,7 +66,7 @@ assert.ok(src.includes('delete nextAppData.quickReasons;delete nextAppData.recen
 
 
 for(const action of ['central-config-state','central-config-save-draft','central-config-publish','central-config-restore-draft'])assert.ok(src.includes('if(action==="'+action+'")'),'configuration control-plane action '+action);
-assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralAdmin'),'configuration control-plane API denies all non-ADMIN/non-DEV-root tiers');
+assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),'configuration control-plane API denies all non-DEV identities');
 assert.ok(src.includes('configState.draft_version')&&src.includes('configState.published_version'),'configuration drafts and published state have independent version pointers');
 assert.ok(src.includes('downtime_central_config_state')&&src.includes('downtime_central_config_history'),'configuration control plane uses isolated tables');
 assert.ok(src.includes('normalizeCentralConfig(body.config)'),'server validates configuration before saving a draft');
@@ -80,4 +81,9 @@ assert.ok(src.includes('bank.users.push({username:"Jan",displayName:"Jan",tier:"
 assert.ok(src.includes('if(!Number.isInteger(expectedVersion)||expectedVersion!==Number(row?.version||0))'),'account split uses optimistic version checking');
 assert.ok(src.includes('delete().eq("username",previousRootUsername)'),'old root sessions are revoked after the split');
 assert.ok(!src.includes('isJanRoot'),'obsolete JAN root authorization flag is removed');
+assert.ok(src.includes('const isCentralBankAccess=isDevRoot;'),'only the authenticated DEV OWNER identity is a Data Bank principal');
+assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV only."},403);'),'whole-bank administrative payload is DEV-only');
+assert.ok(src.includes('if(newTier==="DEVACC"&&!isDevRoot)return json({error:"Only DEV can assign DEVacc."},403);'),'only DEV can assign the DEVACC tier');
+assert.ok(src.includes('if(existing?.tier==="DEVACC"&&!isDevRoot)return json({error:"Only DEV can modify DEVacc."},403);'),'only DEV can modify, disable or restore the DEVACC account');
+assert.ok(src.includes('&&!isDevRoot)return json({error:"Only DEV can remove DEVacc."},403);'),'only DEV can delete the DEVACC account');
 console.log('Central API security, DEV root ownership, account split and configuration contracts passed (static source checks).');

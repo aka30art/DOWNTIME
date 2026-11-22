@@ -25,6 +25,7 @@ const tiers={
  ASSIGNMENT_ONLY:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:false,canViewReports:false},
  SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
+tiers.DEVACC={...tiers.OWNER};
 function makeBank(){
  const profiles=Object.fromEntries(['Jan','Mick','Gigi','Daz','Shayne'].map((name,i)=>[name,{station:'Station '+(i+1)+' · WOOD',onSite:true,photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}]));
  const roster=Object.keys(profiles);
@@ -189,7 +190,7 @@ window.supabase={createClient:()=>({
    return ok({version,updatedAt:new Date().toISOString()});
   }
   if(action==='tiers-save'){
-   if(!(tier==='ADMIN'||(username==='DEV'&&tier==='OWNER')))return ok({error:'Only ADMIN or DEV can change tier rights'},403);
+   if(!(username.toUpperCase()==='DEV'&&tier==='OWNER'))return ok({error:'Only root DEV can change tier rights'},403);
    if(Number(req.version)!==version)return ok({error:'Version conflict'},409);
    bank.tiers=req.tiers;version++;
    return ok({ok:true,version});
@@ -205,7 +206,7 @@ window.supabase={createClient:()=>({
  });
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
+ try{await page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:8000})}catch(error){throw new Error('Central login options failed to populate. Browser errors: '+errors.slice(-10).join(' | ')+'; auth message: '+await page.locator('#authMsg').textContent().catch(()=> 'missing')+'; window adapter: '+await page.evaluate(()=>String(!!window.DowntimeCentral)).catch(()=> 'unavailable')+'; original: '+error.message)}
  return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
@@ -418,18 +419,34 @@ try{
  await owner.page.locator('#settingsPanelAccessRights [data-settings-back]').click();
  const nonJanAdmin=await openFor('ADMIN','2468','MICK');
  await signIn(nonJanAdmin.page,'2468','MICK');
- assert.equal(await nonJanAdmin.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),true,'ADMIN tier can see the Central Data Bank menu entry');
+ assert.equal(await nonJanAdmin.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'ADMIN tier cannot see the DEV-only Central Data Bank menu entry');
  await openSettingsHub(nonJanAdmin.page);
- assert.equal(await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),true,'ADMIN tier can see Access and Rights');
- await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').click();
- assert.equal(await nonJanAdmin.page.locator('#settingsPanelAccessRights').isVisible(),true,'ADMIN opens the Access and Rights editor');
- const userGrant=nonJanAdmin.page.locator('[data-access-tier="USER"][data-access-right="canDeleteRecords"]');
- await userGrant.check();
- await nonJanAdmin.page.locator('#saveAccessRights').click();
- await nonJanAdmin.page.waitForFunction(()=>document.querySelector('#accessRightsStatus')?.textContent.includes('saved centrally'),{timeout:5000});
- assert.equal(nonJanAdmin.getBank().tiers.USER.canDeleteRecords,true,'ADMIN can grant a permission to another tier through Access and Rights');
- assert.ok(nonJanAdmin.actions.some(item=>item.action==='tiers-save'),'ADMIN permission grants use the central tiers-save action');
+ assert.equal(await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'ADMIN cannot access the root-only Access and Rights editor');
+ await nonJanAdmin.page.locator('[data-settings-open="users"]').click();
+ await nonJanAdmin.page.locator('#settingsPanelUsers').waitFor({state:'visible'});
+ assert.equal(await nonJanAdmin.page.locator('#centralUsersManager').isVisible(),true,'ADMIN retains ordinary account-management access');
  await nonJanAdmin.context.close();
+ const devaccBank=makeBank();
+ devaccBank.users=[
+  {username:'DEV',displayName:'DEV',tier:'OWNER',enabled:true},
+  {username:'DEVacc',displayName:'DEVacc',tier:'DEVACC',enabled:true},
+  {username:'Jan',displayName:'Jan',tier:'USER',enabled:true},
+  {username:'MICK',displayName:'Mick',tier:'ADMIN',enabled:true}
+ ];
+ const devacc=await openFor('DEVACC','2468','DEVacc',devaccBank);
+ await signIn(devacc.page,'2468','DEVacc');
+ assert.equal(await devacc.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'DEVacc cannot see the root-only Central Data Bank menu entry');
+ await openSettingsHub(devacc.page);
+ assert.equal(await devacc.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'DEVacc cannot open the root-only Access and Rights editor');
+ await devacc.page.locator('[data-settings-open="users"]').click();
+ await devacc.page.locator('#settingsPanelUsers').waitFor({state:'visible'});
+ assert.equal(await devacc.page.locator('#centralUsersManager').isVisible(),true,'DEVacc retains ordinary user-management access');
+ assert.equal(await devacc.page.locator('#centralAccountTier').isDisabled(),false,'DEVacc can assign standard account tiers');
+ assert.equal(await devacc.page.locator('#centralAccountTier option[value="DEVACC"]').isDisabled(),true,'DEVacc cannot assign the DEVACC tier');
+ const protectedDevacc=devacc.page.locator('#centralUsersManageList > div').filter({hasText:'DEVacc'});
+ assert.equal(await protectedDevacc.locator('button').count(),0,'DEVacc cannot edit, disable or remove the DEVACC account');
+ assert.equal(await protectedDevacc.getByText('DEVACC · DEV ONLY').count(),1,'DEVACC account is explicitly marked as root-only managed');
+ await devacc.context.close();
  const manager=await openFor('MANAGER','2468','MICK',owner.getBank(),owner.getVersion());
  await signIn(manager.page,'2468','MICK');
  assert.equal(await manager.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'MANAGER with ADMIN-equivalent configurable rights cannot see Central Data Bank');

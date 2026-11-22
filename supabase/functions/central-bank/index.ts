@@ -4,9 +4,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const allowedOrigin="https://aka30art.github.io";
 const headers={"Access-Control-Allow-Origin":allowedOrigin,"Access-Control-Allow-Headers":"authorization, apikey, content-type, x-downtime-session","Access-Control-Allow-Methods":"POST, OPTIONS","Cache-Control":"no-store","Vary":"Origin","Content-Type":"application/json"};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers});
-const tiers=["OWNER","ADMIN","MANAGER","SUPERVISOR","USER","SPECTATOR"];
+const tiers=["OWNER","DEVACC","ADMIN","MANAGER","SUPERVISOR","USER","SPECTATOR"];
 const tierDefault:Record<string,Record<string,boolean>>={
  OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ DEVACC:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:false,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:true,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:false,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
@@ -19,7 +20,8 @@ async function hashPin(pin:string,salt:string){const key=await crypto.subtle.imp
 async function verifyPin(pin:string,user:any){return user?.pinSalt&&user?.pinHash&&await hashPin(pin,user.pinSalt)===user.pinHash}
 function safeUser(u:any){return {username:u.username,tier:u.tier,enabled:u.enabled!==false,displayName:u.displayName||u.username}}
 const lockedRolePrivileges:Record<string,Record<string,boolean>>={
- OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}
+ OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ DEVACC:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
 };
 function addStableRecordIds(weeks:any){
  const copy=structuredClone(weeks||{});
@@ -146,9 +148,10 @@ Deno.serve(async(req)=>{
  const isDevRoot=currentUsername==="DEV"&&tier==="OWNER";
  const isLegacyJanRoot=currentUsername==="JAN"&&tier==="OWNER";
  const isRootOwner=isDevRoot||isLegacyJanRoot;
- const isCentralAdmin=tier==="ADMIN"||isRootOwner;
+ const isCentralAdmin=tier==="ADMIN"||tier==="DEVACC"||isDevRoot;
+ const isCentralBankAccess=isDevRoot;
  if(action==="central-admin-state"){
-   if(tier!=="ADMIN"&&!isRootOwner)return json({error:"Central Data Bank access is restricted to ADMIN and the DEV root OWNER."},403);
+   if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV only."},403);
    return json({payload:{...bank,users:bank.users.map(safeUser)},version:row?.version||0,updatedAt:row?.updated_at||null,user:safeUser(currentUser)});
  }
   if(action==="root-account-split"){
@@ -178,7 +181,7 @@ Deno.serve(async(req)=>{
     await db.from("downtime_central_sessions").delete().eq("username",previousRootUsername);
     return json({ok:true,alreadyComplete:false,version:(row?.version||0)+1,message:"DEV root and Jan USER accounts are ready. Sign in again."});
   }
-  if(typeof action==="string"&&action.startsWith("central-config-")&&!isCentralAdmin)return json({error:"Central configuration access is restricted to ADMIN and the DEV root OWNER."},403);
+  if(typeof action==="string"&&action.startsWith("central-config-")&&!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV only."},403);
   if(action==="central-config-state"){
     const {data:configState,error:configError}=await db.from("downtime_central_config_state").select("*").eq("id",1).maybeSingle();
     if(configError||!configState)return json({error:"Configuration control plane is not installed. Apply the Central Data Bank configuration migration first."},503);
@@ -413,12 +416,15 @@ Deno.serve(async(req)=>{
    const existing=idx>=0?bank.users[idx]:null;
    const isRootName=username.toUpperCase()==="DEV";
    const isLegacyRootName=username.toUpperCase()==="JAN"&&existing?.tier==="OWNER";
-   if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN or the DEV root administrator can create accounts or assign user tiers."},403);
+   if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEVacc or the DEV root administrator can create accounts or assign user tiers."},403);
    if(isRootName||isLegacyRootName){
      if(tier!=="OWNER")return json({error:"The root OWNER account is protected. Only the OWNER may update root credentials."},403);
      if(!existing||existing.tier!=="OWNER"||newTier!=="OWNER"||body.enabled===false)return json({error:"DEV is the immutable root OWNER and cannot be created, demoted or disabled."},400);
    }else{
      if(newTier==="OWNER")return json({error:"DEV is the only OWNER account. Additional OWNER accounts are prohibited."},403);
+     if(newTier==="DEVACC"&&!isDevRoot)return json({error:"Only DEV can assign DEVacc."},403);
+     if(existing?.tier==="DEVACC"&&!isDevRoot)return json({error:"Only DEV can modify DEVacc."},403);
+     if(newTier==="DEVACC"&&bank.users.some((u:any)=>u!==existing&&u.tier==="DEVACC"))return json({error:"Only one DEVacc account is permitted."},409);
      if(existing?.tier==="OWNER")return json({error:"The root OWNER account is protected."},403);
    }
    let user=existing||{username};
@@ -436,6 +442,7 @@ Deno.serve(async(req)=>{
    const target=String(body.username||"").trim();
    if(!target)return json({error:"Username required"},400);
    if(target.toUpperCase()==="DEV"||bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="OWNER"))return json({error:"The DEV root OWNER account cannot be deleted or removed."},403);
+   if(bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="DEVACC")&&!isDevRoot)return json({error:"Only DEV can remove DEVacc."},403);
    if(target.toLowerCase()===currentUser.username.toLowerCase())return json({error:"Cannot delete your own account"},400);
    bank.users=bank.users.filter((u:any)=>u.username!==target);
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
@@ -511,11 +518,11 @@ Deno.serve(async(req)=>{
    return json({version:(row?.version||0)+1,updatedAt:new Date().toISOString()});
  }
  if(action==="tiers-save"){
-   if(tier!=="ADMIN"&&!isRootOwner)return json({error:"Only ADMIN or the DEV root administrator can change tier access and rights"},403);
+   if(!isDevRoot)return json({error:"Only root DEV can change tier access and rights."},403);
    const proposed=body.tiers;if(!proposed||typeof proposed!=="object"||Array.isArray(proposed))return json({error:"Tiers required"},400);
    const permissionKeys=Object.keys(tierDefault.OWNER),nextTiers:Record<string,Record<string,boolean>>={...bank.tiers,OWNER:{...tierDefault.OWNER}};
    for(const role of tiers){
-     if(role==="OWNER")continue;
+     if(role==="OWNER"||role==="DEVACC")continue;
      const supplied=proposed[role];
      if(!supplied||typeof supplied!=="object"||Array.isArray(supplied))return json({error:"Missing permission profile for "+role},400);
      if(Object.keys(supplied).some(key=>!permissionKeys.includes(key)))return json({error:"Unknown permission key for "+role},400);
@@ -529,7 +536,7 @@ Deno.serve(async(req)=>{
    bank.tiers=nextTiers;
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Version conflict"},409);
-   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"tiers-save",details:{tiers:tiers.filter(role=>role!=="OWNER")}});
+   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"tiers-save",details:{tiers:tiers.filter(role=>role!=="OWNER"&&role!=="DEVACC")}});
    return json({ok:true,version:(row?.version||0)+1});
  }
  if(action==="logout"){await db.from("downtime_central_sessions").delete().eq("token_hash",tokenHash);return json({ok:true});}

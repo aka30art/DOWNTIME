@@ -12,11 +12,11 @@ let draft={
  libraries:{areaPresets:['Line 1'],downtimeReasons:['Mechanical failure'],dailyTaskPresets:['Check guards'],equipmentCategories:[],eventCategories:[],statusCategories:['Running','Stopped']},
  defaults:{shiftSchedule:{MONDAY:{start:'06:30',stop:'17:00'}},shiftPresets:[],weekStartsOn:'MONDAY',operatingDays:['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'],breakDeductionMinutes:75}
 };
-let draftVersion=1,publishedVersion=1,nextVersion=2,activeTestUser='ADMIN';
+let draftVersion=1,publishedVersion=1,nextVersion=2,activeTestUser='DEV';
 let versions=[{version:1,parent_version:null,action:'initial',actor:'SYSTEM',note:'Initial baseline',created_at:new Date().toISOString(),published_at:new Date().toISOString(),status:'PUBLISHED'}];
 const calls=[];
-function state(user={username:'ADMIN',displayName:'Admin',tier:'ADMIN'}){
- return {draft,published:draftVersion===publishedVersion?draft:publishedVersion===1?draft:{...draft,organization:{...draft.organization,companyName:'published'}},draftVersion,publishedVersion,nextVersion,updatedBy:'ADMIN',updatedAt:new Date().toISOString(),publishedBy:'ADMIN',publishedAt:new Date().toISOString(),versions,user};
+function state(user={username:'DEV',displayName:'DEV',tier:'OWNER'}){
+ return {draft,published:draftVersion===publishedVersion?draft:publishedVersion===1?draft:{...draft,organization:{...draft.organization,companyName:'published'}},draftVersion,publishedVersion,nextVersion,updatedBy:'DEV',updatedAt:new Date().toISOString(),publishedBy:'DEV',publishedAt:new Date().toISOString(),versions,user};
 }
 const server=http.createServer((req,res)=>{
  if(req.url==='/central-bank-admin.html'){
@@ -36,19 +36,20 @@ try{
   }
   const body=request.postDataJSON();calls.push(body.action);
   if(body.action==='login'){
-   activeTestUser=String(body.username||'ADMIN').toUpperCase();
-   await route.fulfill({json:{token:'test-session-token',expiresAt:new Date(Date.now()+3600000).toISOString(),user:{username:body.username,displayName:body.username,tier:body.username.toUpperCase()==='MANAGER'?'MANAGER':'ADMIN'}}});return;
+   activeTestUser=String(body.username||'DEV').toUpperCase();
+   const tier=activeTestUser==='DEV'?'OWNER':activeTestUser==='DEVACC'?'DEVACC':activeTestUser==='MANAGER'?'MANAGER':'ADMIN';
+   await route.fulfill({json:{token:'test-session-token',expiresAt:new Date(Date.now()+3600000).toISOString(),user:{username:body.username,displayName:body.username,tier}}});return;
   }
   if(body.action==='logout'){await route.fulfill({json:{ok:true}});return;}
   if(body.action==='central-config-state'){
-   const user=activeTestUser==='MANAGER'?{username:'MANAGER',displayName:'Manager',tier:'MANAGER'}:{username:'ADMIN',displayName:'Admin',tier:'ADMIN'};
-   if(user.tier!=='ADMIN'){await route.fulfill({status:403,json:{error:'Central configuration access is restricted to ADMIN and JAN.'}});return;}
+   const user=activeTestUser==='DEV'?{username:'DEV',displayName:'DEV',tier:'OWNER'}:{username:activeTestUser,displayName:activeTestUser,tier:activeTestUser==='DEVACC'?'DEVACC':'ADMIN'};
+   if(user.username!=='DEV'||user.tier!=='OWNER'){await route.fulfill({status:403,json:{error:'Central Data Bank access is restricted to DEV only.'}});return;}
    await route.fulfill({json:state(user)});return;
   }
   if(body.action==='central-config-save-draft'){
    if(body.draftVersion!==draftVersion||body.nextVersion!==nextVersion){await route.fulfill({status:409,json:{error:'Draft changed in another session.'}});return;}
    draft=body.config;draftVersion=nextVersion;nextVersion++;
-   versions.unshift({version:draftVersion,parent_version:draftVersion-1,action:'draft-save',actor:'ADMIN',note:body.note,created_at:new Date().toISOString(),published_at:null,status:'CURRENT DRAFT'});
+   versions.unshift({version:draftVersion,parent_version:draftVersion-1,action:'draft-save',actor:'DEV',note:body.note,created_at:new Date().toISOString(),published_at:null,status:'CURRENT DRAFT'});
    await route.fulfill({json:{ok:true,draftVersion,nextVersion}});return;
   }
   if(body.action==='central-config-publish'){
@@ -68,7 +69,7 @@ try{
  });
  await page.goto('http://127.0.0.1:'+address.port+'/central-bank-admin.html');
  assert.equal(await page.locator('#workspace').isVisible(),false,'workspace starts inaccessible before authentication');
- await page.locator('#username').fill('ADMIN');
+ await page.locator('#username').fill('DEV');
  await page.locator('#pin').fill('1234');
  await page.locator('#loginBtn').click();
  await page.locator('#view-overview').waitFor({state:'visible'});
@@ -103,14 +104,19 @@ try{
  await page.locator('#logoutBtn').click();
  await page.locator('#workspace').waitFor({state:'hidden'});
  assert.equal(await page.locator('#workspace').isVisible(),false,'logout closes the admin workspace');
- await page.locator('#username').fill('MANAGER');
+ await page.locator('#username').fill('ADMIN');
  await page.locator('#pin').fill('1234');
  await page.locator('#loginBtn').click();
- await page.getByText('Central configuration access is restricted',{exact:false}).waitFor();
- assert.equal(await page.locator('#workspace').isVisible(),false,'MANAGER is rejected when server returns HTTP 403');
+ await page.getByText('Central Data Bank access is restricted',{exact:false}).waitFor();
+ assert.equal(await page.locator('#workspace').isVisible(),false,'ADMIN is rejected when server returns HTTP 403');
+ await page.locator('#username').fill('DEVACC');
+ await page.locator('#pin').fill('1234');
+ await page.locator('#loginBtn').click();
+ await page.getByText('Central Data Bank access is restricted',{exact:false}).waitFor();
+ assert.equal(await page.locator('#workspace').isVisible(),false,'DEVACC is rejected when server returns HTTP 403');
  assert.ok(calls.includes('central-config-save-draft')&&calls.includes('central-config-publish')&&calls.includes('central-config-restore-draft'),'draft, publish and restore actions were exercised');
  assert.ok(!calls.includes('central-admin-state')&&!calls.includes('get-state'),'configuration UI never requests tracker or legacy admin state');
- console.log('PASS: Central Data Bank Admin browser QA — ADMIN login, draft save, separate publish, restore-as-draft, mobile layout, logout, and non-admin HTTP 403.');
+ console.log('PASS: Central Data Bank Admin browser QA — DEV root login, draft save, separate publish, restore-as-draft, mobile layout, logout, and ADMIN/DEVACC HTTP 403.');
 } finally {
  await browser.close();
  await new Promise(resolve=>server.close(resolve));
