@@ -238,7 +238,7 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
      USER:{canEditTracker:false,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true},
      SPECTATOR:{canEditTracker:false,canViewPlantOverview:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false}
    };
-   const rights=payload?.tiers?.[tier]||defaults[tier]||defaults.USER;
+   const rights={...(defaults[tier]||defaults.USER),...(payload?.tiers?.[tier]||{})};
    authorized=!!rights.canEditTracker;viewerTier=tier;canViewPlantOverview=!!rights.canViewPlantOverview;canViewStaff=!!rights.canViewStaff;canViewAssignments=!!rights.canViewAssignments;canViewDashboards=!!rights.canViewDashboards;
    toggle.hidden=!authorized;const overviewRoot=document.querySelector('main');if(overviewRoot)overviewRoot.hidden=!canViewPlantOverview;
    const staffSection=document.querySelector('.opgrid')?.closest('.section');
