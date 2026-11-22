@@ -26,10 +26,10 @@ assert.match(src,/SPECTATOR:\{canEditTracker:false,[^}]*canViewAreaPresets:false
 assert.ok(src.includes('if(action==="save-settings")')&&src.includes('const canManageAreas=priv.canManageSettings||priv.canManageAreaPresets')&&src.includes('const canManageTasks=priv.canManageSettings||priv.canManageDailyTasks'),'Settings writes are authorized by granular section permissions independently of tracker edit rights');
 assert.ok(src.includes('if(existing.stationLocked===true||!priv.canManageAssignments){')&&src.includes('merged.stationLocked=existing.stationLocked===true')&&src.includes('nextAppData.operatorProfiles=savedProfiles'),
   'generic tracker saves preserve existing station assignments and lock metadata, including for locked profiles');
-assert.ok(src.includes('if(wasLocked&&!explicitlyUnlocked&&requestedStation!==currentStation)')&&src.includes('profile.stationLocked=true'),
+assert.ok(src.includes('const explicitlyUnlocked=existing.stationLocked===true&&hasLockValue&&profile.stationLocked===false;')&&src.includes('if(!canManageAssignments||(existing.stationLocked===true&&!explicitUnlock)){'),
   'save-settings requires an explicit unlock before changing a locked station');
-assert.ok(src.includes('const nextProfile={...existingProfile,...proposedProfile,name};')&&src.includes('if(!priv.canManageAssignments){')&&src.includes('if("stationLocked" in existingProfile)nextProfile.stationLocked=existingProfile.stationLocked;else delete nextProfile.stationLocked;'),
-  'legacy staff-save action independently protects station assignments and lock metadata');
+assert.ok(src.includes('const nextProfile={...existingProfile,...proposedProfile,name};')&&src.includes('if(!priv.canManageAssignments){')&&src.includes('if(wasLocked&&!explicitlyUnlocked){')&&src.includes('nextProfile.stationLocked=true;')&&src.includes('nextProfile.stationLocked=proposedProfile.stationLocked===true;'),
+  'legacy staff-save action independently protects locked assignments and allows only explicit unlock');
 assert.ok(src.includes('if(!priv.canViewStaff&&!priv.canManageStaff)return json({error:"Permission denied"},403)'),
   'staff managers can read staff photos while view-only STAFF access is separate');
 
