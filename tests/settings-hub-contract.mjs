@@ -53,7 +53,7 @@ for (const id of [
     id + ' must remain in the DOM exactly once');
 }
 
-const helpersMatch=html.match(/function canManageSettingsSection\\(section\\)\\{[\\s\\S]*?function anySettingsAccess\\(\\)\\{[^}]*\\}/);
+const helpersMatch=html.match(/function canManageSettingsSection\(section\)\{[\s\S]*?function anySettingsAccess\(\)\{[^}]*\}/);
 assert.ok(helpersMatch,'granular Settings permission helpers must be present');
 const accessHelpers=new Function('permission','isJanAccessAdmin',helpersMatch[0]+'; return {settingsAccess,canManageSettingsSection};');
 const helper=(permission)=>accessHelpers(permission,()=>false);
