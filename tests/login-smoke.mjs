@@ -253,7 +253,7 @@ try{
  const revokedVersion=manager.getVersion()+1;manager.setVersion(revokedVersion);
  await manager.page.evaluate(version=>window.__downtimeEmitBroadcast({payload:{version,updated_at:new Date().toISOString()}}),revokedVersion);
  await manager.page.waitForFunction(()=>document.querySelector('#newAreaPreset')?.disabled===true,{timeout:5000});
- assert.equal(await manager.page.locator('[data-settings-open="areas"]').isVisible(),true,'MANAGER keeps read access when edit permission is revoked');
+ assert.equal(await manager.page.locator('#settingsPanelAreas').isVisible(),true,'MANAGER keeps the open Area Presets panel visible after edit permission is revoked');
  assert.equal(await manager.page.locator('#newAreaPreset').isDisabled(),true,'live central permission change revokes Settings edit controls without a new login');
  assert.equal(await manager.page.locator('#authGate').isVisible(),false,'live permission changes do not force a logout');
  await manager.page.locator('.nav[data-view="weekly"]').click();
