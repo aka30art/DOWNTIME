@@ -15,7 +15,10 @@ assert.ok(src.includes('priv.canManageUsers||priv.canViewUsers?bank.users.map(sa
 assert.ok(src.includes('if(!priv.canViewAssignments&&!priv.canManageAssignments)'),'assignment redaction is enforced server-side unless manage access is granted');
 assert.ok(src.includes('if(!priv.canViewDashboards)'),'dashboard redaction is enforced server-side');
 assert.ok(src.includes('if(!priv.canViewReports)delete restrictedData.archive'),'report redaction is enforced server-side');
-assert.ok(src.includes('if(!priv.canEditTracker)return json({error:"Permission denied"},403)'),'plant status and tracker writes are tier gated');
+assert.ok(src.includes('if(!priv.canEditTracker)return json({error:"Permission denied"},403)'),'tracker writes remain gated by Edit tracker');
+const plantPowerRoute=src.slice(src.indexOf('if(action==="set-plant-status")'),src.indexOf('if(action==="tiers-save")'));
+assert.ok(plantPowerRoute.includes('if(!priv.canControlPlantPower)return json({error:"Permission denied"},403)'),'plant status writes use the dedicated PLANT POWER tier right');
+assert.ok(!plantPowerRoute.includes('priv.canEditTracker'),'plant status control is independent of tracker editing');
 assert.ok(src.includes('action:"set-plant-status"'),'plant status changes are audited');
 assert.ok(src.includes('MANAGER:{canEditTracker:true'), 'MANAGER can create and edit operational records');
 assert.ok(src.includes('SUPERVISOR:{canEditTracker:true')&&src.includes('canManageAssignments:true'), 'SUPERVISOR can edit existing station assignments');
