@@ -27,7 +27,7 @@ function makeBank(){
  const profiles=Object.fromEntries(['Jan','Mick','Gigi','Daz','Shayne'].map((name,i)=>[name,{station:'Station '+(i+1)+' · WOOD',onSite:true,photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}]));
  return {appData:{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360','Other'],reasons:['Blockage'],archive:[],plantOn:true,dailyTaskPresets:[]},users:[],tiers,staff:{roster:Object.keys(profiles),profiles},statsSource:{weeks:{}}};
 }
-async function openFor(tier,pin='2468',username='JAN'){
+async function openFor(tier,pin='2468',username='JAN',initialBank=null,initialVersion=1){
  const context=await browser.newContext();
  const page=await context.newPage();
  page.on('pageerror',e=>errors.push(e.message));
@@ -54,7 +54,7 @@ window.supabase={createClient:()=>({
    })}
   })};
  });
- let bank=makeBank(),version=1,token='central-session-'+username;
+ let bank=initialBank?JSON.parse(JSON.stringify(initialBank)):makeBank(),version=initialVersion,token='central-session-'+username;
  const actions=[];
  await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank',async route=>{
   const req=route.request().postDataJSON(),action=req.action;
@@ -80,6 +80,28 @@ window.supabase={createClient:()=>({
    bank.appData=req.appData;
    if(tiers[tier].canManageStaff){bank.staff.profiles=req.appData.operatorProfiles||bank.staff.profiles;bank.staff.roster=req.appData.staffRoster||bank.staff.roster}
    version++;
+   return ok({version,updatedAt:new Date().toISOString()});
+  }
+  if(action==='save-settings'){
+   if(Number(req.version)!==version)return ok({error:'Version conflict; refresh before saving Settings'},409);
+   const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
+   const canManageAreas=rights.canManageSettings===true||rights.canManageAreaPresets===true;
+   const canManageReasons=rights.canManageSettings===true||rights.canManageReasonPresets===true;
+   const canAddReasons=canManageReasons||rights.canAddDowntimeReasons===true;
+   const canManageSchedule=rights.canManageSettings===true||rights.canManageShiftSchedule===true;
+   const canManageTasks=rights.canManageSettings===true||rights.canManageDailyTasks===true;
+   const canManageStaff=rights.canManageStaff===true;
+   const canManageAssignments=rights.canManageAssignments===true||canManageStaff;
+   if(!(canManageAreas||canAddReasons||canManageSchedule||canManageTasks||canManageStaff||canManageAssignments))return ok({error:'Permission denied'},403);
+   const next={...bank.appData};
+   if(canManageAreas)next.areas=req.appData.areas;
+   if(canManageReasons)next.reasons=req.appData.reasons;
+   else if(canAddReasons){const existing=next.reasons||[];next.reasons=[...existing,...(req.appData.reasons||[]).filter(value=>!existing.includes(value))]}
+   if(canManageSchedule){next.shiftSchedule=req.appData.shiftSchedule;next.shiftPresets=req.appData.shiftPresets}
+   if(canManageTasks)next.dailyTaskPresets=req.appData.dailyTaskPresets;
+   if(canManageStaff){next.operatorProfiles=req.appData.operatorProfiles;next.staffRoster=req.appData.staffRoster;bank.staff.profiles=req.appData.operatorProfiles;bank.staff.roster=req.appData.staffRoster}
+   else if(canManageAssignments){next.operatorProfiles={...(next.operatorProfiles||{})};for(const [name,profile] of Object.entries(req.appData.operatorProfiles||{})){if(next.operatorProfiles[name])next.operatorProfiles[name]={...next.operatorProfiles[name],station:profile.station}}}
+   bank.appData=next;version++;
    return ok({version,updatedAt:new Date().toISOString()});
   }
   if(action==='tiers-save'){
@@ -217,11 +239,11 @@ try{
  await owner.page.locator('#addAreaPresetBtn').click();
  await owner.page.locator('#areaPresetAdminList [data-area-preset="QA Test Bay"]').waitFor({state:'visible',timeout:3000});
  for(let attempt=0;attempt<40&&!owner.getBank().appData.areas.includes('QA Test Bay');attempt++)await owner.page.waitForTimeout(50);
- assert.ok(owner.getBank().appData.areas.includes('QA Test Bay'),'new AREA PRESET is saved through the central state');
+ assert.ok(owner.getBank().appData.areas.includes('QA Test Bay'),'new AREA PRESET is saved through the central settings route');
  await owner.page.locator('#areaPresetAdminList button[aria-label="Remove area QA Test Bay"]').click();
  await owner.page.waitForFunction(()=>!document.querySelector('#areaPresetAdminList [data-area-preset="QA Test Bay"]'),{timeout:3000});
  for(let attempt=0;attempt<40&&owner.getBank().appData.areas.includes('QA Test Bay');attempt++)await owner.page.waitForTimeout(50);
- assert.equal(owner.getBank().appData.areas.includes('QA Test Bay'),false,'removed AREA PRESET is saved through the central state');
+ assert.equal(owner.getBank().appData.areas.includes('QA Test Bay'),false,'removed AREA PRESET is saved through the central settings route');
  await owner.page.locator('.nav[data-view="weekly"]').click();
  await owner.page.locator('#addEntry').click();
  assert.deepEqual(await owner.page.locator('#areaButtons [data-preset]').evaluateAll(nodes=>nodes.map(node=>node.dataset.preset)),configuredAreas,
@@ -277,8 +299,8 @@ try{
  await owner.page.locator('#newAreaPreset').fill('Central Sync Test');
  await owner.page.locator('#addAreaPresetBtn').click();
  await owner.page.waitForFunction(()=>document.body.textContent.includes('Central Sync Test'));
- for(let i=0;i<30&&!owner.actions.some(x=>x.action==='save-state');i++)await owner.page.waitForTimeout(100);
- assert.ok(owner.actions.some(x=>x.action==='save-state'),'tracker changes must write through central save-state API');
+ for(let i=0;i<30&&!owner.actions.some(x=>x.action==='save-settings'&&x.body.appData.areas?.includes('Central Sync Test'));i++)await owner.page.waitForTimeout(100);
+ assert.ok(owner.actions.some(x=>x.action==='save-settings'&&x.body.appData.areas?.includes('Central Sync Test')),'AREA PRESETS must use the independent central save-settings route');
  assert.ok(owner.getBank().appData.areas.includes('Central Sync Test'),'central bank mock should retain the edited tracker setting');
  assert.equal(owner.getVersion(),versionBeforePlantAndTrackerEdits+2,'plant status and tracker edits must each advance the compare-and-swap version');
 
@@ -292,6 +314,7 @@ try{
  await owner.page.locator('#addDailyTaskPresetBtn').click();
  for(let attempt=0;attempt<40&&owner.getBank().appData.dailyTaskPresets?.length!==2;attempt++)await owner.page.waitForTimeout(100);
  assert.deepEqual(owner.getBank().appData.dailyTaskPresets,['Check guards and safety covers','Inspect emergency stops'],'daily task presets sync to the central bank');
+ assert.ok(owner.actions.filter(x=>x.action==='save-settings'&&Array.isArray(x.body.appData.dailyTaskPresets)).length>=2,'daily task presets use the settings-specific write action');
  const ownerMenu=owner.page.locator('.nav-menu');
  if(!await ownerMenu.evaluate(node=>node.open))await ownerMenu.locator(':scope > summary').click();
  await owner.page.locator('.nav[data-view="weekly"]').click();
@@ -315,7 +338,7 @@ try{
  await owner.page.setViewportSize({width:390,height:844});
  await mkdir(resolve('artifacts/stage-3'),{recursive:true});
  await owner.page.locator('#dailyTasksModal').screenshot({path:resolve('artifacts/stage-3/daily-tasks-popup-390px.png')});
- console.log('PASS: Daily Tasks presets and day-specific completions persist through central save-state');
+ console.log('PASS: Daily Tasks presets use save-settings and day-specific completions use save-state');
  await owner.page.locator('#closeDailyTasks').click();
  await owner.page.locator('#dayTabs [data-day="1"]').click();
  await owner.page.locator('#openDailyTasks').click();
