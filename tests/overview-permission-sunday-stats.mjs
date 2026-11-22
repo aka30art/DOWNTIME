@@ -54,6 +54,45 @@ try{
   });
   assert.equal(allowed,false,'Plant Overview content is visible when its dedicated right is granted');
 
+  const legacyPermissions=await page.evaluate(()=>{
+    const payload={tiers:{USER:{canEditTracker:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true}}};
+    window.__DOWNTIME_OVERVIEW_TEST__.applyCentralVisibility(payload,{tier:'USER'});
+    const main=document.querySelector('main');
+    return {hidden:main.hidden,display:getComputedStyle(main).display,staff:document.querySelector('.opgrid')?.closest('.section')?.style.display,stations:document.querySelector('.stationblueprint')?.closest('.section')?.style.display};
+  });
+  assert.equal(legacyPermissions.hidden,false,'legacy stored USER permissions without canViewPlantOverview inherit the USER default instead of blanking the Overview');
+  assert.notEqual(legacyPermissions.display,'none','legacy permissions leave the Overview root rendered');
+  assert.equal(legacyPermissions.staff,'','legacy permissions preserve the existing STAFF visibility right');
+  assert.equal(legacyPermissions.stations,'','legacy permissions preserve the existing station visibility right');
+
+  const legacySpectatorDenied=await page.evaluate(()=>{
+    const payload={tiers:{SPECTATOR:{canEditTracker:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false}}};
+    window.__DOWNTIME_OVERVIEW_TEST__.applyCentralVisibility(payload,{tier:'SPECTATOR'});
+    return document.querySelector('main').hidden;
+  });
+  assert.equal(legacySpectatorDenied,true,'legacy SPECTATOR profile inherits the restrictive default when canViewPlantOverview is absent');
+
+  for(const viewport of [{width:1280,height:900},{width:390,height:844}]){
+    await page.setViewportSize(viewport);
+    const responsive=await page.evaluate(()=>{
+      const legacyUserPayload={tiers:{USER:{canEditTracker:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true}}};
+      window.__DOWNTIME_OVERVIEW_TEST__.applyCentralVisibility(legacyUserPayload,{tier:'USER'});
+      const main=document.querySelector('main');
+      return {
+        hidden:main.hidden,
+        display:getComputedStyle(main).display,
+        metrics:!!document.querySelector('.metrics'),
+        operators:!!document.querySelector('.opgrid'),
+        stations:!!document.querySelector('.stationblueprint')
+      };
+    });
+    assert.equal(responsive.hidden,false,'Overview remains unhidden at '+viewport.width+'px');
+    assert.notEqual(responsive.display,'none','Overview is rendered at '+viewport.width+'px');
+    assert.equal(responsive.metrics,true,'KPI container exists at '+viewport.width+'px');
+    assert.equal(responsive.operators,true,'operator section exists at '+viewport.width+'px');
+    assert.equal(responsive.stations,true,'station layout exists at '+viewport.width+'px');
+  }
+
   const sunday=await page.evaluate(()=>{
     const stationConfig=[{id:'station-1',name:'Station 1',category:'WOOD',active:true,aliases:[]}];
     const payload={
