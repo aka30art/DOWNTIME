@@ -10,7 +10,8 @@ assert.match(html,/DowntimeCentral\.listUsers\(\)/,'login choices come from cent
 assert.match(html,/DowntimeCentral\.login\(username,pin\)/,'username/PIN authentication is central');
 assert.match(html,/function staffRoster\(\)\{const names=Array\.isArray\(state\?\.staffRoster\)/,'STAFF roster is loaded from central app data');
 assert.match(html,/Central USER accounts, PINs and privileges are managed in the single central database/,'local user administration is retired');
-assert.match(html,/OPEN CENTRAL USERS & PRIVILEGES/,'main tracker links to the central admin surface');
+assert.match(html,/id="centralAdminNav" class="nav central-admin-nav" href="central-bank-admin.html"/,'main tracker exposes the ADMIN/JAN-only Central Data Bank navigation entry');
+assert.doesNotMatch(html,/OPEN CENTRAL USERS & PRIVILEGES|centralUsersAdminLink/,'former duplicate Central Data Bank link is removed from USERS settings');
 
 // No legacy PIN constants, local PIN storage or direct writes to the old shared-state table remain in the tracker.
 assert.doesNotMatch(html,/TEAM_PIN\s*=|PIN_OVERRIDES_KEY|operatorPins\(|operatorPrivileges\(/,'legacy local PIN/user privilege storage is absent from main tracker');
