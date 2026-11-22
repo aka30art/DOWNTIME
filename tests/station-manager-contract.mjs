@@ -24,7 +24,7 @@ assert.ok(api.includes('aliases:Array.isArray(station?.aliases)'),'station alias
 assert.ok(api.includes('delete restrictedData.stationConfig'),'station configuration is not exposed to users without assignment visibility');
 assert.ok(api.includes('nextAppData.stationConfig=bank.appData.stationConfig'),'ordinary tracker saves cannot overwrite station configuration');
 assert.ok(overview.includes('function stationConfigFor(payload)')&&overview.includes('function resolveProfileStation(profile,stations)'),'Plant Overview resolves operator assignments from central station configuration and retained aliases');
-assert.ok(overview.includes("legacyNumber=raw.toLowerCase().startsWith('station')")&&overview.includes("station.id==='station-'+legacyNumber"),'Plant Overview preserves legacy Station N assignments through the same stable IDs');
+assert.ok(overview.includes(String.raw`legacyMatch=raw.match(/^Station\\s*0?([1-6])(?:\\s|$)`)&&overview.includes("station.id==='station-'+legacyMatch[1]"),'Plant Overview preserves legacy Station N assignments with historical category suffixes');
 assert.ok(overview.includes('function renderStationBlueprint(stations,names,profiles)'),'Plant Overview renders the configured station list, including added stations');
 assert.ok(overview.includes("stationConfigLabel(assignedStation)")&&overview.includes("stations=stationConfigFor(payload)"),'renamed station labels and custom stations feed the operator cards and live assigned-operator count');
 assert.ok(!overview.includes("profile.onSite!==false&&!!stationMatch"),'Plant Overview no longer hides operators assigned to stations beyond the original six');
