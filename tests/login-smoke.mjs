@@ -21,6 +21,8 @@ const tiers={
  MANAGER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ STAFF_ONLY:{canEditTracker:false,canManageUsers:false,canManageStaff:true,canManageAssignments:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:false,canViewReports:false},
+ ASSIGNMENT_ONLY:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:false,canViewReports:false},
  SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
 function makeBank(){
@@ -599,6 +601,44 @@ try{
   assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].station,'Station 4 · SCRAP','SUPERVISOR can assign station in profile modal');
   assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].stationLocked,true,'SUPERVISOR can lock station in Staff Settings');
   await supervisor.context.close();
+ // Separate permission tiers: STAFF-only manages identity/presence/photos, not station/lock.
+ const staffOnly=await openFor('STAFF_ONLY','2468','MICK');
+ await signIn(staffOnly.page,'2468','MICK');
+ await openStaffSettings(staffOnly.page);
+ assert.equal(await staffOnly.page.locator('#addStaffBtn').isEnabled(),true,'STAFF-only tier can add members');
+ await staffOnly.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
+ assert.equal(await staffOnly.page.locator('#smStation').isDisabled(),true,'STAFF-only tier cannot assign stations');
+ assert.equal(await staffOnly.page.locator('#smLock').isDisabled(),true,'STAFF-only tier cannot change station lock');
+ assert.equal(await staffOnly.page.locator('#smOnPlant').isEnabled(),true,'STAFF-only tier can change plant availability');
+ assert.equal(await staffOnly.page.locator('#smFile').isEnabled(),true,'STAFF-only tier can manage profile photo');
+ await staffOnly.page.locator('#smOnPlant').uncheck();
+ await staffOnly.page.locator('#smSave').click();
+ await staffOnly.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+ assert.equal(staffOnly.getBank().staff.profiles.Jan.station,'Station 1 · WOOD','STAFF-only save preserves station assignment');
+ assert.equal(staffOnly.getBank().staff.profiles.Jan.onSite,false,'STAFF-only save updates ON/OFF PLANT');
+ assert.equal(staffOnly.getBank().staff.profiles.Jan.stationLocked,undefined,'STAFF-only save cannot create station lock metadata');
+ await staffOnly.context.close();
+
+ // ASSIGNMENT-only can change a station and lock it, but cannot edit photo or plant availability.
+ const assignmentOnly=await openFor('ASSIGNMENT_ONLY','2468','MICK');
+ await signIn(assignmentOnly.page,'2468','MICK');
+ await openStaffSettings(assignmentOnly.page);
+ assert.equal(await assignmentOnly.page.locator('#addStaffBtn').isDisabled(),true,'ASSIGNMENT-only tier cannot create STAFF members');
+ await assignmentOnly.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
+ assert.equal(await assignmentOnly.page.locator('#smName').isDisabled(),true,'ASSIGNMENT-only tier cannot edit staff identity');
+ assert.equal(await assignmentOnly.page.locator('#smStation').isEnabled(),true,'ASSIGNMENT-only tier can assign station');
+ assert.equal(await assignmentOnly.page.locator('#smLock').isEnabled(),true,'ASSIGNMENT-only tier can lock station');
+ assert.equal(await assignmentOnly.page.locator('#smOnPlant').isDisabled(),true,'ASSIGNMENT-only tier cannot change plant availability');
+ assert.equal(await assignmentOnly.page.locator('#smFile').isDisabled(),true,'ASSIGNMENT-only tier cannot upload profile photo');
+ await assignmentOnly.page.locator('#smStation').selectOption('Station 6 · GENERAL');
+ await assignmentOnly.page.locator('#smLock').check();
+ await assignmentOnly.page.locator('#smSave').click();
+ await assignmentOnly.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+ assert.equal(assignmentOnly.getBank().staff.profiles.Jan.station,'Station 6 · GENERAL','ASSIGNMENT-only tier saves station');
+ assert.equal(assignmentOnly.getBank().staff.profiles.Jan.stationLocked,true,'ASSIGNMENT-only tier saves station lock');
+ assert.equal(assignmentOnly.getBank().staff.profiles.Jan.onSite,true,'ASSIGNMENT-only tier preserves plant presence');
+ await assignmentOnly.context.close();
+
 
 // SPECTATOR receives no staff/assignment/dashboard/report surfaces.
  const spectator=await openFor('SPECTATOR','2468');
