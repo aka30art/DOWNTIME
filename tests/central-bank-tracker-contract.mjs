@@ -30,7 +30,8 @@ assert.ok(tracker.includes('ROOT · PROTECTED'), 'JAN root account is protected 
 assert.ok(tracker.includes('lockedTierPermissions'), 'frontend locks USER/SPECTATOR/operational role permissions against stale central overrides');
 assert.ok(tracker.includes("operatorReadOnly||!permission('canDeleteRecords')"), 'MANAGER/SUPERVISOR cannot delete operational records in the UI');
 assert.ok(tracker.includes('if(previous?.recordId)item.recordId=previous.recordId'), 'editing a downtime record preserves its central identity');
-assert.ok(tracker.includes("$('smStation').disabled=!manageAssign||!!profile.stationLocked||profile.onSite===false"), 'modal station selector respects assignment permission, station lock and plant status');
+assert.ok(tracker.includes("$('smStation').disabled=!manageAssign||!!profile.stationLocked"), 'modal station selector respects assignment permission and station lock without coupling selection to plant status');
+assert.ok(overview.includes('return profile.onSite!==false&&resolveProfileStation(profile,stations)?.id===station.id'), 'OFF PLANT staff remain excluded from active station assignments in Plant Overview');
 assert.ok(tracker.includes("manageAssign?{station:$('smStation').value,stationLocked:$('smLock').checked}:{}"), 'profile save independently gates station and station-lock changes by assignment permission');
 assert.ok(tracker.includes("manageStaff?{onSite:$('smOnPlant').checked}:{}"), 'plant status changes are independently permission-gated and do not overwrite station assignments');
 assert.ok(api.includes('if(existing.stationLocked===true||!priv.canManageAssignments){')&&api.includes('merged.stationLocked=existing.stationLocked===true'), 'ordinary tracker saves preserve existing station assignments and lock metadata');
