@@ -49,6 +49,7 @@ assert.doesNotMatch(lockedRoles, /MANAGER:|SUPERVISOR:|USER:|SPECTATOR:/,
   'non-root tiers are configurable by DEV rather than locked to hard-coded baselines');
 assert.ok(src.includes('if(!isDevRoot)return json({error:"Only root DEV can change tier access and rights."},403);'),
   'tier rights changes are restricted to root DEV only');
+assert.ok(src.includes('const isCentralAdmin=tier==="ADMIN"||tier==="DEVACC"||isDevRoot;'),'standard account creation and tier changes exclude the legacy JAN root');
 assert.ok(src.includes('if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEVacc or the DEV root administrator can create accounts or assign user tiers."},403);'),
   'ADMIN, DEVacc and DEV may manage standard user tiers; DEV-only tier guard protects DEVacc');
 assert.ok(src.includes('if(!priv.canManageUsers)return json({error:"Permission denied"},403);'),
