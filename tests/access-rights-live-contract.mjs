@@ -19,13 +19,13 @@ for(const key of settingsRights){
   assert.ok(page.includes("{key:'"+key+"'"),'Access and Rights editor exposes '+key);
   assert.ok(api.includes(key+':'),'central API default permission '+key);
 }
-for(const tier of ['OWNER','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR']){
+for(const tier of ['OWNER','DEVACC','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR']){
   assert.match(page,new RegExp(tier+':\\{[^}]*canViewAreaPresets:'),'frontend default profile for '+tier);
   assert.match(api,new RegExp(tier+':\\{[^}]*canViewAreaPresets:'),'server default profile for '+tier);
 }
 
 assert.match(page,/function canManageAccessRights\(\)\{return canAccessCentralBank\(\)\}/,'Access and Rights shares the central admin identity gate');
-assert.match(page,/return tier==='ADMIN'\|\|\(\(username==='DEV'\|\|username==='JAN'\)&&tier==='OWNER'\)/,'DEV is permanent root and JAN OWNER is accepted only as a transitional identity until the split');
+assert.match(page,/return username==='DEV'&&tier==='OWNER'/,'only root DEV can access Access and Rights');
 assert.match(api,/const isLegacyJanRoot=currentUsername==="JAN"&&tier==="OWNER"/,'legacy JAN root support is limited to the one-time migration state');
 assert.match(page,/function canManageSettingsSection\(section\)/,'shared Settings edit permission resolver');
 assert.match(page,/function settingsAccess\(section\)/,'shared Settings section visibility resolver');
@@ -43,7 +43,7 @@ assert.match(api,/if\(action==="save-settings"\)[\s\S]*const canManageAreas=priv
 assert.match(api,/const canManageSchedule=priv\.canManageSettings\|\|priv\.canManageShiftSchedule/,'server enforces schedule edit permission');
 assert.match(api,/const canManageTasks=priv\.canManageSettings\|\|priv\.canManageDailyTasks/,'server enforces daily-task edit permission');
 assert.match(api,/const canManageReasons=priv\.canManageSettings\|\|priv\.canManageReasonPresets/,'server enforces reason preset edit permission');
-assert.match(api,/if\(tier!=="ADMIN"&&!isRootOwner\)return json\(\{error:"Only ADMIN or the DEV root administrator can change tier access and rights"\},403\)/,'tier permission grants are restricted to ADMIN and the DEV root OWNER');
+assert.match(api,/if\(!isDevRoot\)return json\(\{error:"Only root DEV can change tier access and rights\."\},403\)/,'tier permission grants are root DEV-only');
 assert.match(api,/OWNER:\{canEditTracker:true/,'OWNER default permissions remain fixed in the central API');
 
 const overviewPermissionBlock=page.slice(page.indexOf('const tierDefaults={'),page.indexOf('function permission(name)'));
@@ -65,4 +65,4 @@ assert.ok(permissionRole(apiOverviewPermissionBlock,'SPECTATOR').includes('canVi
 assert.ok(page.includes("if(!permission('canViewPlantOverview'))return;"),'opening Plant Overview uses its dedicated right');
 assert.ok(page.includes("if(overview)overview.style.display=spectator||!permission('canViewPlantOverview')?'none':''"),'Plant Overview navigation uses its dedicated right');
 
-console.log('PASS: granular Settings visibility/edit rights, tracker-independent settings persistence, and DEV root / transitional JAN migration authorization.');
+console.log('PASS: granular Settings visibility/edit rights, tracker-independent settings persistence, and DEV-only Data Bank authorization.');
