@@ -16,14 +16,14 @@ await new Promise((ok,fail)=>{server.once('error',fail);server.listen(4173,'127.
 const browser=await chromium.launch({headless:true});
 const errors=[];
 const tiers={
- OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- MANAGER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- STAFF_ONLY:{canEditTracker:false,canManageUsers:false,canManageStaff:true,canManageAssignments:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:false,canViewReports:false},
- ASSIGNMENT_ONLY:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:false,canViewReports:false},
- SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
+ OWNER:{canEditTracker:true,canControlPlantPower:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ ADMIN:{canEditTracker:true,canControlPlantPower:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ MANAGER:{canEditTracker:false,canControlPlantPower:true,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SUPERVISOR:{canEditTracker:true,canControlPlantPower:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ USER:{canEditTracker:false,canControlPlantPower:true,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ STAFF_ONLY:{canEditTracker:false,canControlPlantPower:true,canManageUsers:false,canManageStaff:true,canManageAssignments:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:false,canViewReports:false},
+ ASSIGNMENT_ONLY:{canEditTracker:false,canControlPlantPower:true,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:false,canViewReports:false},
+ SPECTATOR:{canEditTracker:false,canControlPlantPower:true,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
 tiers.DEVACC={...tiers.OWNER};
 function makeBank(){
@@ -197,7 +197,8 @@ window.supabase={createClient:()=>({
    return ok({ok:true,version});
   }
   if(action==='set-plant-status'){
-   if(!tiers[tier].canEditTracker)return ok({error:'Permission denied'},403);
+   const effectiveRights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
+   if(!effectiveRights.canControlPlantPower)return ok({error:'Permission denied'},403);
    if(Number(req.version)!==version)return ok({error:'Version conflict; refresh before changing plant status'},409);
    bank.appData.plantOn=req.plantOn;version++;
    return ok({version,updatedAt:new Date().toISOString()});
@@ -263,7 +264,12 @@ try{
  await signIn(janOperational.page,'1357','Jan');
  await janOperational.page.locator('.nav-menu > summary').click();
  assert.equal(await janOperational.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'Jan USER does not see the Central Data Bank admin entry');
- assert.equal(await janOperational.page.locator('#plantOperatorToggle').isVisible(),true,'Jan USER retains the Jan operational plant toggle inside the expanded navigation menu');
+ assert.equal(await janOperational.page.locator('#plantOperatorToggle').isVisible(),true,'USER tier sees Plant Power when its permission is enabled');
+ assert.equal(await janOperational.page.locator('#plantOperatorToggle').textContent(),'PLANT ON · GREEN','USER sees the live plant status');
+ await janOperational.page.locator('#plantOperatorToggle').click();
+ await janOperational.page.waitForFunction(()=>document.querySelector('#plantOperatorToggle')?.textContent==='PLANT OFF · RED',{timeout:5000});
+ assert.equal(janOperational.getBank().appData.plantOn,false,'USER can operate Plant Power despite having no tracker-edit right');
+ await dismissPlantTransitionAlerts(janOperational.page);
  await openSettingsHub(janOperational.page);
  assert.equal(await janOperational.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'Jan USER cannot open root-only Access and Rights');
  await janOperational.context.close();
@@ -911,9 +917,14 @@ const crewMenu=owner.page.locator('.nav-menu');
  await failedSave.context.close();
 
 // SPECTATOR receives no staff/assignment/dashboard/report surfaces.
- const spectator=await openFor('SPECTATOR','2468');
- await signIn(spectator.page);
+ const spectator=await openFor('SPECTATOR','2468','WATCHER');
+ await signIn(spectator.page,'2468','WATCHER');
  assert.equal(await spectator.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'SPECTATOR cannot see the Central Data Bank menu entry');
+ assert.equal(await spectator.page.locator('#plantOperatorToggle').isVisible(),true,'SPECTATOR sees Plant Power when its tier checkbox is enabled');
+ await spectator.page.locator('#plantOperatorToggle').click();
+ await spectator.page.waitForFunction(()=>document.querySelector('#plantOperatorToggle')?.textContent==='PLANT OFF · RED',{timeout:5000});
+ assert.equal(spectator.getBank().appData.plantOn,false,'SPECTATOR can operate Plant Power independently of dashboard and tracker-edit permissions');
+ await dismissPlantTransitionAlerts(spectator.page);
  await spectator.page.locator('.nav-menu > summary').click();
  assert.equal(await spectator.page.locator('.nav[data-view="staff"]').count(),0,'STAFF is not a standalone navigation item');
  assert.equal(await spectator.page.locator('.nav[data-view="settings"]').isVisible(),false,'SPECTATOR cannot open Settings');
