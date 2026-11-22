@@ -27,6 +27,9 @@ assert.ok(client.includes('async splitRootAccount(janPin,version)'),'browser ada
 assert.ok(admin.includes('username:"DEV"'),'standalone bootstrap selects DEV');
 assert.ok(login.includes("openFor('USER','1357','Jan')")&&login.includes('Jan USER retains the Jan operational plant toggle'),'browser regression covers Jan operational login');
 assert.ok(login.includes('Jan USER does not see the Central Data Bank admin entry'),'browser regression denies Jan admin navigation');
+assert.ok(login.includes('Exercise the complete one-time legacy JAN root migration'),'browser regression exercises the root split UI');
+assert.ok(login.includes('migration retains the original root PIN hash'),'browser regression verifies the existing root PIN hash is preserved');
+assert.ok(login.includes('new Jan USER account cannot access root administration'),'browser regression verifies the new Jan account has no root access');
 assert.ok(packageJson.scripts['test:central-bank'].includes('tests/root-account-split-contract.mjs'),'contract is in the CI suite');
 const hardcodedPinPattern=/\b(?:janPin|pin)\s*[:=]\s*['"]\d{4,8}['"]/i;
 for(const source of [api,app,client,admin])assert.doesNotMatch(source,hardcodedPinPattern,'PIN values are not hard-coded');

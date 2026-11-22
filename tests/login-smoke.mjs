@@ -102,10 +102,31 @@ window.supabase={createClient:()=>({
   const req=route.request().postDataJSON(),action=req.action;
   actions.push({action,body:req});
   const ok=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
-  if(action==='list-users')return ok({users:[{username:'DEV',displayName:'DEV',tier:'OWNER'},{username:'Jan',displayName:'Jan',tier:'USER'},{username:'MICK',displayName:'Mick',tier:username.toUpperCase()==='MICK'?tier:'USER'}]});
+  if(action==='list-users'){
+   const listed=bank.users?.length?bank.users.filter(user=>user.enabled!==false).map(user=>({username:user.username,displayName:user.displayName||user.username,tier:user.tier})):[{username:'DEV',displayName:'DEV',tier:'OWNER'},{username:'Jan',displayName:'Jan',tier:'USER'},{username:'MICK',displayName:'Mick',tier:username.toUpperCase()==='MICK'?tier:'USER'}];
+   return ok({users:listed});
+  }
   if(action==='login'){
-   if(req.username!==username||req.pin!==pin)return ok({error:'Invalid username or PIN'},401);
+   if(req.username.toLowerCase()!==username.toLowerCase()||req.pin!==pin)return ok({error:'Invalid username or PIN'},401);
    return ok({token,expiresAt:new Date(Date.now()+3600000).toISOString(),user:{username,displayName:username.toUpperCase()==='DEV'?'DEV':username.toLowerCase()==='jan'?'Jan':'Mick',tier}});
+  }
+  if(action==='root-account-split'){
+   const root=bank.users?.find(user=>String(user.username).toUpperCase()===username.toUpperCase()&&user.tier==='OWNER'&&user.enabled!==false);
+   if(!root||(username.toUpperCase()!=='JAN'&&username.toUpperCase()!=='DEV'))return ok({error:'Only the root OWNER can split accounts'},403);
+   if(Number(req.version)!==version)return ok({error:'Account data changed'},409);
+   if(!/^[0-9]{4,8}$/.test(String(req.janPin||'')))return ok({error:'A valid Jan PIN is required'},400);
+   if(username.toUpperCase()==='JAN'){
+    if(bank.users.some(user=>user!==root&&user.tier==='OWNER'))return ok({error:'Multiple OWNER records'},409);
+    if(bank.users.some(user=>String(user.username).toUpperCase()==='DEV'))return ok({error:'DEV already exists'},409);
+    root.username='DEV';root.displayName='DEV';
+    bank.users.push({username:'Jan',displayName:'Jan',tier:'USER',enabled:true,pinSalt:'qa-salt',pinHash:'qa-pbkdf2-hash'});
+    version++;
+    username='DEV';
+    return ok({ok:true,alreadyComplete:false,version,message:'Account split completed'});
+   }
+   const jan=bank.users.find(user=>String(user.username).toUpperCase()==='JAN');
+   if(jan?.tier==='USER'&&jan.enabled!==false)return ok({ok:true,alreadyComplete:true,version});
+   return ok({error:'Jan account state needs review'},409);
   }
   if(action==='staff-photo-url'){
    const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
@@ -244,6 +265,39 @@ try{
  await openSettingsHub(janOperational.page);
  assert.equal(await janOperational.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'Jan USER cannot open root-only Access and Rights');
  await janOperational.context.close();
+
+ // Exercise the complete one-time legacy JAN root migration through the application UI.
+ const legacyRootFixture=makeBank();
+ legacyRootFixture.users=[{username:'JAN',displayName:'Jan',tier:'OWNER',enabled:true,pinSalt:'preserved-root-salt',pinHash:'preserved-root-hash'}];
+ const migration=await openFor('OWNER','2468','JAN',legacyRootFixture,1);
+ await signIn(migration.page,'2468','JAN');
+ await openSettingsHub(migration.page);
+ await migration.page.locator('[data-settings-open="users"]').click();
+ await migration.page.locator('#rootAccountMigration').waitFor({state:'visible',timeout:3000});
+ await migration.page.locator('#rootAccountJanPin').fill('9753');
+ migration.page.on('dialog',dialog=>dialog.accept());
+ await Promise.all([
+  migration.page.waitForNavigation({waitUntil:'domcontentloaded'}),
+  migration.page.locator('#splitRootAccountBtn').click()
+ ]);
+ await migration.page.waitForFunction(()=>document.querySelector('#authGate')?.style.display!=='none',{timeout:5000});
+ assert.equal(migration.getBank().users.find(user=>user.tier==='OWNER')?.username,'DEV','migration renames the original OWNER identity to DEV');
+ assert.equal(migration.getBank().users.find(user=>user.tier==='OWNER')?.pinSalt,'preserved-root-salt','migration retains the original root PIN salt');
+ assert.equal(migration.getBank().users.find(user=>user.tier==='OWNER')?.pinHash,'preserved-root-hash','migration retains the original root PIN hash');
+ const migratedJan=migration.getBank().users.find(user=>String(user.username).toUpperCase()==='JAN');
+ assert.equal(migratedJan?.tier,'USER','migration creates Jan as a normal USER');
+ assert.equal(migratedJan?.enabled,true,'new Jan USER account is enabled');
+ assert.notEqual(migratedJan?.pinHash,'9753','new Jan PIN is stored as a hash, not plaintext');
+ assert.equal(await migration.page.evaluate(()=>window.DowntimeCentral.session),null,'migration revokes the browser root session and returns to login');
+ await signIn(migration.page,'2468','DEV');
+ assert.equal(await migration.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),true,'renamed DEV account retains root administration');
+ await migration.context.close();
+ const migratedJanLogin=await openFor('USER','9753','Jan',migration.getBank(),migration.getVersion());
+ await signIn(migratedJanLogin.page,'9753','Jan');
+ await migratedJanLogin.page.locator('.nav-menu > summary').click();
+ assert.equal(await migratedJanLogin.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'new Jan USER account cannot access root administration');
+ assert.equal(await migratedJanLogin.page.locator('#plantOperatorToggle').isVisible(),true,'new Jan USER retains the normal plant operation toggle');
+ await migratedJanLogin.context.close();
 
  // Isolated central API regression: both save-state and save-settings must reject locked station moves.
  const lockedFixture=makeBank();
