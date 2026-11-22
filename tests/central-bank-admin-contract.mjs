@@ -8,7 +8,7 @@ const migration=fs.readFileSync('supabase/migrations/20261122060000_central_conf
 
 for(const id of ['projectUrl','pubKey','loginBtn','bootstrapBtn','companyName','siteCode','sites','plants','areas','stations','areaPresets','downtimeReasons','dailyTaskPresets','equipmentCategories','eventCategories','statusCategories','weekStartsOn','breakDeductionMinutes','shiftSchedule','shiftPresets','historyList','saveDraftBtn','publishBtn','restoreVersion'])assert.ok(page.includes(id),'configuration UI element '+id);
 for(const action of ['central-config-state','central-config-save-draft','central-config-publish','central-config-restore-draft','login','bootstrap','logout'])assert.ok(page.includes(action),'configuration API action '+action);
-assert.ok(tracker.includes('Only ADMIN / JAN can create accounts or assign tiers.'),'account tier selection explains restricted tier assignment');
+assert.ok(tracker.includes('Only ADMIN / DEV can create accounts or assign tiers.'),'account tier selection explains restricted tier assignment');
 for(const legacy of ['user-save','user-delete','staff-save','staff-photo-url','tiers-save','saveUser','saveStaff','saveTiers','centralUsersPanel','centralStaffPanel'])assert.ok(!page.includes(legacy),'new Data Bank Admin must not duplicate Access & Rights or account/staff management: '+legacy);
 assert.ok(page.includes('x-downtime-session'),'configuration requests carry the opaque central session');
 assert.ok(page.includes('"apikey":$("pubKey").value.trim()'),'configuration requests send the publishable API key');
@@ -23,7 +23,7 @@ assert.ok(migration.includes('downtime_central_config_history'),'append-only ver
 assert.ok(migration.includes('revoke all on public.downtime_central_config_state from public, anon, authenticated'),'config state is not exposed to browser database roles');
 assert.ok(migration.includes('grant all on public.downtime_central_config_state to service_role'),'only server-side service role can access config state');
 for(const action of ['central-config-state','central-config-save-draft','central-config-publish','central-config-restore-draft'])assert.ok(api.includes('action==="'+action+'"'),'Edge Function supports '+action);
-assert.ok(api.includes('action.startsWith("central-config-")&&!isCentralAdmin'),'all config actions have a common server-side ADMIN/JAN gate');
+assert.ok(api.includes('action.startsWith("central-config-")&&!isCentralAdmin'),'all config actions have a common server-side ADMIN/DEV gate');
 assert.ok(api.includes('normalizeCentralConfig(body.config)'),'drafts are validated server-side');
 assert.ok(api.includes('central-config-publish'),'publishing is a separate explicit server action');
 assert.ok(api.includes('central-config-restore-draft'),'historical versions can be restored only as new drafts');
