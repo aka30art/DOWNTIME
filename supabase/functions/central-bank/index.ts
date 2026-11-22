@@ -146,6 +146,16 @@ Deno.serve(async(req)=>{
      }
      bank.staff.profiles=nextAppData.operatorProfiles;
    }else{
+     if(!priv.canManageAssignments){
+       const currentProfiles=bank.staff?.profiles||bank.appData?.operatorProfiles||{};
+       const safeProfiles=structuredClone(nextAppData.operatorProfiles||{});
+       for(const [name,profile] of Object.entries(safeProfiles) as [string,any][]){
+         const existing=(currentProfiles as any)[name]||{};
+         if("station" in existing)profile.station=existing.station;else delete profile.station;
+         if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
+       }
+       nextAppData.operatorProfiles=safeProfiles;
+     }
      bank.staff.profiles=nextAppData.operatorProfiles||bank.staff.profiles||{};
      bank.staff.roster=Array.isArray(nextAppData.staffRoster)?nextAppData.staffRoster:(bank.staff.roster||[]);
    }
@@ -271,7 +281,14 @@ Deno.serve(async(req)=>{
    if(!priv.canManageStaff)return json({error:"Permission denied"},403);
    const name=String(body.name||"").trim();if(!name||name.length>80)return json({error:"Staff name required"},400);
    bank.staff.profiles=bank.staff.profiles||{};bank.staff.roster=bank.staff.roster||[];
-   bank.staff.profiles[name]={...(bank.staff.profiles[name]||{}),...(body.profile||{}),name};
+   const existingProfile=bank.staff.profiles[name]||bank.appData?.operatorProfiles?.[name]||{};
+   const proposedProfile=body.profile&&typeof body.profile==="object"&&!Array.isArray(body.profile)?body.profile:{};
+   const nextProfile={...existingProfile,...proposedProfile,name};
+   if(!priv.canManageAssignments){
+     if("station" in existingProfile)nextProfile.station=existingProfile.station;else delete nextProfile.station;
+     if("assignedStation" in existingProfile)nextProfile.assignedStation=existingProfile.assignedStation;else delete nextProfile.assignedStation;
+   }
+   bank.staff.profiles[name]=nextProfile;
    if(!bank.staff.roster.includes(name))bank.staff.roster.push(name);
    bank.appData.operatorProfiles=bank.appData.operatorProfiles||{};bank.appData.operatorProfiles[name]=bank.staff.profiles[name];
    bank.appData.staffRoster=bank.staff.roster.slice();
@@ -290,7 +307,7 @@ Deno.serve(async(req)=>{
  }
  if(action==="staff-photo-read"){
    const path=String(body.path||"");if(!path||path.length>300)return json({error:"Invalid path"},400);
-   if(!priv.canViewStaff)return json({error:"Permission denied"},403);
+   if(!priv.canViewStaff&&!priv.canManageStaff)return json({error:"Permission denied"},403);
    const {data,error}=await db.storage.from("downtime-staff-photos").createSignedUrl(path,120);
    if(error)return json({error:error.message},404);
    return json({url:data.signedUrl});
