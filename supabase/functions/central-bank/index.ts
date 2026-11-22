@@ -418,13 +418,14 @@ Deno.serve(async(req)=>{
      if("stationLocked" in existingProfile)nextProfile.stationLocked=existingProfile.stationLocked;else delete nextProfile.stationLocked;
    }else{
      const wasLocked=existingProfile.stationLocked===true;
-     const explicitlyUnlocked=proposedProfile.stationLocked===false;
-     const requestedStation=String(proposedProfile.station??proposedProfile.assignedStation??"").slice(0,100);
-     const currentStation=String(existingProfile.station??existingProfile.assignedStation??"");
-     if(wasLocked&&!explicitlyUnlocked&&requestedStation!==currentStation){
+     const hasLockValue=Object.prototype.hasOwnProperty.call(proposedProfile,"stationLocked");
+     const explicitlyUnlocked=hasLockValue&&proposedProfile.stationLocked===false;
+     if(wasLocked&&!explicitlyUnlocked){
        if("station" in existingProfile)nextProfile.station=existingProfile.station;else delete nextProfile.station;
        if("assignedStation" in existingProfile)nextProfile.assignedStation=existingProfile.assignedStation;else delete nextProfile.assignedStation;
        nextProfile.stationLocked=true;
+     }else if(hasLockValue){
+       nextProfile.stationLocked=proposedProfile.stationLocked===true;
      }
    }
    bank.staff.profiles[name]=nextProfile;
