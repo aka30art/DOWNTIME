@@ -501,7 +501,9 @@ Deno.serve(async(req)=>{
        for(const key of permissionKeys){
          if(key==="canControlPlantPower"){
            const requested=supplied[key];
-           next[key]=typeof requested==="boolean"?requested:(bank.tiers[role]?.[key]??tierDefault[role][key]);
+           if(typeof requested==="boolean")next[key]=requested;
+           else if(!Object.prototype.hasOwnProperty.call(supplied,key))next[key]=bank.tiers[role]?.[key]??tierDefault[role][key];
+           else return json({error:"Permission values must be boolean ("+role+"."+key+")"},400);
          }else{
            next[key]=lockedRolePrivileges[role][key]??tierDefault[role][key];
          }
@@ -510,7 +512,7 @@ Deno.serve(async(req)=>{
      }
      for(const key of permissionKeys){
        if(typeof supplied[key]!=="boolean"){
-         if(key==="canControlPlantPower"){next[key]=bank.tiers[role]?.[key]??tierDefault[role][key];continue}
+         if(key==="canControlPlantPower"&&!Object.prototype.hasOwnProperty.call(supplied,key)){next[key]=bank.tiers[role]?.[key]??tierDefault[role][key];continue}
          return json({error:"Permission values must be boolean ("+role+"."+key+")"},400);
        }
        next[key]=supplied[key];
