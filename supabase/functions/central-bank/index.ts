@@ -312,12 +312,26 @@ Deno.serve(async(req)=>{
      if(incoming.operatorProfiles&&typeof incoming.operatorProfiles!=="object"||Array.isArray(incoming.operatorProfiles))return json({error:"Invalid staff profiles"},400);
      if(!Array.isArray(incoming.staffRoster))return json({error:"Invalid staff roster"},400);
      const newProfiles=structuredClone(incoming.operatorProfiles||currentProfiles);
-     if(!canManageAssignments){
-       for(const [name,profile] of Object.entries(newProfiles) as [string,any][]){
-         const existing=(currentProfiles as any)[name]||{};
+     for(const [name,profile] of Object.entries(newProfiles) as [string,any][]){
+       const existing=(currentProfiles as any)[name]||{};
+       if(!canManageAssignments){
          if("station" in existing)profile.station=existing.station;else delete profile.station;
          if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
          if("stationLocked" in existing)profile.stationLocked=existing.stationLocked;else delete profile.stationLocked;
+         continue;
+       }
+       const wasLocked=existing.stationLocked===true;
+       const explicitlyUnlocked=profile.stationLocked===false;
+       const requestedStation=String(profile.station??profile.assignedStation??"").slice(0,100);
+       const currentStation=String(existing.station??existing.assignedStation??"");
+       if(wasLocked&&!explicitlyUnlocked&&requestedStation!==currentStation){
+         if("station" in existing)profile.station=existing.station;else delete profile.station;
+         if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
+         profile.stationLocked=true;
+       }else if(wasLocked&&!explicitlyUnlocked){
+         profile.stationLocked=true;
+       }else if("stationLocked" in profile){
+         profile.stationLocked=profile.stationLocked===true;
        }
      }
      nextAppData.operatorProfiles=newProfiles;
