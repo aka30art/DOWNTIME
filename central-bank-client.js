@@ -30,6 +30,7 @@
     async saveTiers(tiers,version){return call("tiers-save",{tiers,version})},
     async signedStaffPhotoUpload(name){return call("staff-photo-url",{name})},
     async signedStaffPhotoRead(path){return call("staff-photo-read",{path})},
+    async removeStaffPhoto(path){return call("staff-photo-remove",{path})},
     async bootstrap(data){return call("bootstrap",data,null)}
   };
 })();
