@@ -569,6 +569,8 @@ try{
   assert.equal(owner.getBank().staff.profiles.Rita.photo,undefined,'REMOVE PHOTO clears thumbnail metadata');
   assert.equal(owner.getBank().staff.profiles.Rita.photoPath,undefined,'REMOVE PHOTO clears original photo path');
   assert.equal(await owner.page.locator('#smPhotoRemove').isHidden(),true,'removed photo cannot be removed again');
+  await owner.page.locator('#smCancel').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
  assert.equal(await owner.page.locator('.side #logoutBtn').isVisible(),true,'Log Out is available in the top navigation');
  assert.equal(await owner.page.locator('.top #logoutBtn').count(),0,'Log Out is no longer duplicated in the content header');
  await owner.page.locator('.side #logoutBtn').click();
