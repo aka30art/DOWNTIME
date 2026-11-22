@@ -483,18 +483,7 @@ try{
  assert.equal(await ritaCard.locator('.station').textContent(),'Station 6 · GENERAL','Overview immediately shows the assigned station');
  assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="6"]').textContent(),'RITA','station blueprint updates immediately');
 
- // Simulate a change from another device: the private Realtime invalidation causes a fresh, permission-checked read.
- owner.getBank().staff.profiles.Rita.station='Station 5 · GENERAL';
- owner.getBank().appData.operatorProfiles.Rita.station='Station 5 · GENERAL';
- const externalVersion=owner.getVersion()+1;
- owner.setVersion(externalVersion);
- await owner.page.evaluate(version=>window.__downtimeEmitBroadcast({payload:{version,updated_at:new Date().toISOString()}}),externalVersion);
- await owner.page.waitForFunction(()=>document.querySelector('#overviewFrame')?.contentWindow?.document?.querySelector('[data-opprofile="RITA"] .station')?.textContent==='Station 5 · GENERAL',{timeout:3000});
- assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="5"]').textContent(),'SHAYNE, RITA','remote station reassignment propagates to the station blueprint');
- assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="6"]').textContent(),'UNASSIGNED','previous station assignment is cleared live');
- await owner.page.locator('#overviewClose').click();
- await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
-
+ 
   // Ordinary tracker writes cannot bypass a locked station; explicit unlock is limited to Staff Settings.
   const attemptedReassignment=JSON.parse(JSON.stringify(owner.getBank().appData));
   attemptedReassignment.operatorProfiles.Rita.station='Station 5 · GENERAL';
@@ -513,6 +502,21 @@ try{
   assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 5 · GENERAL','OFF PLANT retains assigned station');
   assert.equal(owner.getBank().staff.profiles.Rita.onSite,false,'OFF PLANT status persists centrally');
   assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,false,'manual unlock persists');
+  // Once explicitly unlocked, another device can reassign Rita; Realtime refreshes the Overview.
+  await owner.page.locator('.overview-link').click();
+  const unlockedRita=owner.page.frameLocator('#overviewFrame').locator('[data-opprofile="RITA"]');
+  await unlockedRita.waitFor({state:'visible',timeout:3000});
+  assert.equal(await unlockedRita.locator('.station').textContent(),'Station 5 · GENERAL','unlocked station assignment appears in Overview');
+  owner.getBank().staff.profiles.Rita.station='Station 6 · GENERAL';
+  owner.getBank().appData.operatorProfiles.Rita.station='Station 6 · GENERAL';
+  const externalVersion=owner.getVersion()+1;
+  owner.setVersion(externalVersion);
+  await owner.page.evaluate(version=>window.__downtimeEmitBroadcast({payload:{version,updated_at:new Date().toISOString()}}),externalVersion);
+  await owner.page.waitForFunction(()=>document.querySelector('#overviewFrame')?.contentWindow?.document?.querySelector('[data-opprofile="RITA"] .station')?.textContent==='Station 6 · GENERAL',{timeout:3000});
+  assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="6"]').textContent(),'RITA','remote assignment to an unlocked member propagates live');
+  assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="5"]').textContent(),'SHAYNE','previous station is cleared after unlocked reassignment');
+  await owner.page.locator('#overviewClose').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
   await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
   await owner.page.locator('#smOnPlant').check();
   await owner.page.locator('#smSave').click();
