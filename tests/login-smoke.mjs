@@ -99,13 +99,10 @@ window.supabase={createClient:()=>({
    return ok({payload:copy,user:{username,displayName:username==='JAN'?'Jan':'Mick',tier},version,updatedAt:new Date().toISOString()});
   }
   if(action==='save-state'){
-   const diagnosticBefore=bank.staff.profiles.Rita?{...bank.staff.profiles.Rita}:null;
-   const incomingRita=req.appData?.operatorProfiles?.Rita?{...req.appData.operatorProfiles.Rita}:null;
    const effectiveRights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
    if(!effectiveRights.canEditTracker)return ok({error:'Permission denied'},403);
    if(Number(req.version)!==version)return ok({error:'Version conflict; refresh before saving'},409);
    const currentProfiles=bank.staff.profiles||bank.appData.operatorProfiles||{},incomingProfiles=req.appData.operatorProfiles||{},profiles=effectiveRights.canManageStaff?JSON.parse(JSON.stringify(incomingProfiles)):JSON.parse(JSON.stringify(currentProfiles));for(const [name,incoming] of Object.entries(incomingProfiles)){if(!Object.prototype.hasOwnProperty.call(currentProfiles,name)||!incoming||typeof incoming!=='object')continue;const old=currentProfiles[name]||{},merged=effectiveRights.canManageStaff?{...incoming}:{...old};if(old.stationLocked===true||!effectiveRights.canManageAssignments){if('station' in old)merged.station=old.station;else delete merged.station;if('assignedStation' in old)merged.assignedStation=old.assignedStation;else delete merged.assignedStation}if('stationLocked' in old)merged.stationLocked=old.stationLocked===true;else delete merged.stationLocked;profiles[name]=merged}req.appData.operatorProfiles=profiles;if(effectiveRights.canManageStaff){bank.staff.roster=req.appData.staffRoster||bank.staff.roster}else req.appData.staffRoster=bank.staff.roster||[];bank.staff.profiles=profiles;bank.appData=req.appData;
-   actions.push({action:'save-state-lock-diagnostic',before:diagnosticBefore,incoming:incomingRita,after:bank.staff.profiles.Rita?{...bank.staff.profiles.Rita}:null,rights:effectiveRights});
    version++;
    return ok({version,updatedAt:new Date().toISOString()});
   }
@@ -504,6 +501,8 @@ try{
   await owner.page.evaluate(async snapshot=>{const result=await window.DowntimeCentral.saveSettings(snapshot,centralVersion);centralVersion=Number(result.version)||centralVersion},attemptedSettings);
   assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','locked station resists a direct save-settings reassignment');
   assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,true,'save-settings cannot silently unlock a locked station');
+  await owner.page.locator('#overviewClose').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
   await openStaffSettings(owner.page);
   await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
   assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'locked station is disabled when profile reopens');
