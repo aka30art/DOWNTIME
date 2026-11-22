@@ -21,6 +21,7 @@ assert.match(source, /if\(operatorReadOnly\|\|day\(\)\.startLocked\)\{e\.target\
 assert.match(source, /if\(operatorReadOnly\|\|day\(\)\.startLocked\)\{e\.target\.value=day\(\)\.stop;return\}/);
 assert.match(source, /if\(!isAdmin\(\)\|\|!day\(\)\.startLocked\)return/);
 assert.match(source, /permission\('canManageSettings'\)&&!!day\(\)\.startLocked/);
+assert.match(source, /document\.querySelectorAll\('main input,main select,main textarea'\)[\s\S]*?\['dayDate','plantStart','plantStop'\]\.forEach\(id=>\{const el=\$\(id\);if\(el\)el\.disabled=operatorReadOnly\|\|!!day\(\)\.startLocked\}\);if\(\$\('breakExcluded'\)\)\$\('breakExcluded'\)\.disabled=true;/);
 assert.match(source, /LOCK DAILY SETUP/);
 assert.doesNotMatch(source, />\s*🔒 LOCK START\s*</);
 assert.doesNotMatch(source, /class="menu-utilities"[\s\S]{0,500}id="plantOperatorToggle"/);
