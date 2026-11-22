@@ -29,6 +29,20 @@ function makeBank(){
  const profiles=Object.fromEntries(['Jan','Mick','Gigi','Daz','Shayne'].map((name,i)=>[name,{station:'Station '+(i+1)+' · WOOD',onSite:true,photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}]));
  return {appData:{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360','Other'],reasons:['Blockage'],archive:[],plantOn:true,dailyTaskPresets:[]},users:[],tiers,staff:{roster:Object.keys(profiles),profiles},statsSource:{weeks:{}}};
 }
+async function clickOverview(page){
+ const link=page.locator('.overview-link');
+ for(let attempt=0;attempt<5;attempt++){
+  const ack=page.locator('#plantTransitionAlertHost button');
+  if(await ack.count()){await ack.first().click();continue;}
+  try{await link.click({timeout:2500});return}
+  catch(error){
+   const pendingAck=page.locator('#plantTransitionAlertHost button');
+   if(!(await pendingAck.count()))throw error;
+   await pendingAck.first().click({timeout:2500});
+  }
+ }
+ throw new Error('Plant transition alert did not clear before opening Plant Overview.');
+}
 async function openFor(tier,pin='2468',username='JAN',initialBank=null,initialVersion=1){
  const context=await browser.newContext();
  const page=await context.newPage();
@@ -357,7 +371,7 @@ try{
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').isVisible(),true,'OWNER can view reports');
  assert.equal(await owner.page.locator('.overview-link').isVisible(),true,'OWNER can view Plant Overview');
  assert.equal(await owner.page.locator('#addEntry').isDisabled(),false,'OWNER can edit tracker');
- await owner.page.locator('.overview-link').click();
+ await clickOverview(owner.page);
  const overview=owner.page.frameLocator('#overviewFrame');
  await owner.page.waitForFunction(()=>{const overlay=document.querySelector('#overviewOverlay'),frame=document.querySelector('#overviewFrame');return overlay&&!overlay.hidden&&frame?.contentDocument?.readyState==='complete'},{timeout:7000});
  await overview.locator('#plantControlNote').waitFor({state:'visible'});
@@ -382,15 +396,15 @@ try{
   await owner.page.waitForTimeout(60);
  }
  await owner.page.waitForFunction(()=>!document.querySelector('#plantTransitionAlertHost'),{timeout:3000});
- await owner.page.locator('.overview-link').click();
+ await clickOverview(owner.page);
  assert.equal(await owner.page.locator('#overviewOverlay').isVisible(),true,'Overview can be reopened');
  await overview.locator('#overviewFullscreen').focus();
  await owner.page.keyboard.press('Escape');
  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
- await owner.page.locator('.overview-link').click();
+ await clickOverview(owner.page);
  await owner.page.keyboard.press('Escape');
  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
- await owner.page.locator('.overview-link').click();
+ await clickOverview(owner.page);
  await owner.page.locator('#overviewClose').click();
  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
  assert.equal(owner.context.pages().length,1,'Closing overlay keeps the same app tab');
@@ -502,7 +516,7 @@ try{
   assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.length||0),1,'new-member original image is uploaded to private staff storage');
   assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.[0]?.bucket),'downtime-staff-photos','original photo is uploaded to the private staff photo bucket');
  assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+6,'daily tasks, completions, lock and one staff save advance central version');
- await owner.page.locator('.overview-link').click();
+ await clickOverview(owner.page);
  const ritaCard=owner.page.frameLocator('#overviewFrame').locator('[data-opprofile="RITA"]');
  await ritaCard.waitFor({state:'visible',timeout:3000});
  assert.equal(await ritaCard.locator('.name').textContent(),'RITA','new STAFF card is created dynamically');
@@ -532,7 +546,7 @@ try{
   for(let attempt=0;attempt<40&&owner.getBank().staff.profiles.Rita?.onSite!==true;attempt++)await owner.page.waitForTimeout(100);
   assert.equal(owner.getBank().staff.profiles.Rita.onSite,true,'ON PLANT status can be restored');
 // Once explicitly unlocked, another device can reassign Rita; Realtime refreshes the Overview.
-  await owner.page.locator('.overview-link').click();
+  await clickOverview(owner.page);
   const unlockedRita=owner.page.frameLocator('#overviewFrame').locator('[data-opprofile="RITA"]');
   await unlockedRita.waitFor({state:'visible',timeout:3000});
   assert.equal(await unlockedRita.locator('.station').textContent(),'Station 5 · GENERAL','unlocked station assignment appears in Overview');
