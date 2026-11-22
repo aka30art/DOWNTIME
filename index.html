@@ -438,7 +438,7 @@ body.overview-overlay-open{overflow:hidden}
 }
 </style>
 </head>
-<body><div id="authGate"><div class="authbox"><h2>DOWNTIME · CENTRAL LOGIN</h2><p class="muted">Select your central USER account and enter your PIN.</p><label for="centralUsername">USERNAME</label><select id="centralUsername" class="input" aria-label="Central username"><option value="">Loading central USERS…</option></select><input id="teamPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="4–8 digit PIN" aria-label="Central account PIN"><div class="pinpad" data-pinpad="teamPin"><div class="pinpad-grid"><button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="clear">CLEAR</button><button type="button" data-key="0">0</button><button type="button" data-key="back">⌫</button></div></div><button id="unlockBtn" class="primary">SIGN IN</button><button type="button" id="refreshAppBtn" class="quiet" style="width:100%;margin-top:8px">REFRESH USER LIST</button><div id="authMsg" role="status" aria-live="polite"></div><p class="muted" style="font-size:12px;margin-top:12px">OWNER setup and account administration: <a href="central-bank-admin.html" target="_blank" rel="noopener">Central Data Bank</a></p></div></div>
+<body><div id="authGate"><div class="authbox"><h2>DOWNTIME · CENTRAL LOGIN</h2><p class="muted">Select your central USER account and enter your PIN.</p><label for="centralUsername">USERNAME</label><select id="centralUsername" class="input" aria-label="Central username"><option value="">Loading central USERS…</option></select><input id="teamPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="4–8 digit PIN" aria-label="Central account PIN"><div class="pinpad" data-pinpad="teamPin"><div class="pinpad-grid"><button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="clear">CLEAR</button><button type="button" data-key="0">0</button><button type="button" data-key="back">⌫</button></div></div><button id="unlockBtn" class="primary">SIGN IN</button><button type="button" id="refreshAppBtn" class="quiet" style="width:100%;margin-top:8px">REFRESH USER LIST</button><div id="authMsg" role="status" aria-live="polite"></div></div></div>
 <div id="operatorGate" style="display:none"></div>
 <div id="spectatorView" style="display:none"></div>
 <div class="shell">
@@ -451,7 +451,7 @@ body.overview-overlay-open{overflow:hidden}
 <button class="nav" data-view="reports">▤ &nbsp; WEEKLY Reports</button>
 
 <button class="nav" data-view="settings">⚙ &nbsp; Settings</button>
-<a id="centralAdminNav" class="nav central-admin-nav" href="central-bank-admin.html" target="_blank" rel="noopener">▣ &nbsp; Central Data Bank Admin</a>
+<a id="centralAdminNav" class="nav central-admin-nav" href="central-bank-admin.html" target="_blank" rel="noopener" style="display:none">▣ &nbsp; Central Data Bank Admin</a>
 <a class="nav overview-link" href="plant-overview-preview.html" aria-haspopup="dialog" aria-controls="overviewOverlay" aria-expanded="false">▦ &nbsp; Overview</a>
 <button id="logoutBtn" class="nav logout-nav" type="button" aria-label="Log out and return to USER login">↪ &nbsp; LOG OUT</button>
 </div>
@@ -738,6 +738,7 @@ const lockedTierPermissions={
 };
 function permission(name){const tier=privilegeFor(activeOperator),locked=lockedTierPermissions[tier];if(locked&&Object.prototype.hasOwnProperty.call(locked,name))return locked[name];const custom=centralBankPayload?.tiers?.[tier];return typeof custom?.[name]==='boolean'?custom[name]:!!tierDefaults[tier]?.[name]}
 function isJanAccessAdmin(){return String(centralUser?.username||activeOperator||'').trim().toUpperCase()==='JAN'&&privilegeFor(activeOperator)==='OWNER'}
+function canAccessCentralBank(){const username=String(centralUser?.username||activeOperator||'').trim().toUpperCase(),tier=privilegeFor(activeOperator);return tier==='ADMIN'||(username==='JAN'&&tier==='OWNER')}
 const ACCESS_RIGHT_GROUPS=[
  {title:'TRACKER & RECORDS',rights:[
   {key:'canEditTracker',label:'Edit tracker',detail:'Create and edit downtime records and daily operational information'},
@@ -840,8 +841,8 @@ function applyTierVisibility(){
  if(reportsNav)reportsNav.style.display=spectator||!permission('canViewReports')?'none':'';
  if(settingsNav)settingsNav.style.display=spectator||!anySettingsAccess()?'none':'';
  if(overview)overview.style.display=spectator||!permission('canViewAssignments')?'none':'';
- if(admin)admin.style.display=operatorAdmin?'':'none';
- if(usersAdmin)usersAdmin.style.display=permission('canManageUsers')?'':'none';
+ if(admin)admin.style.display=canAccessCentralBank()?'':'none';
+ if(usersAdmin)usersAdmin.style.display=canAccessCentralBank()?'':'none';
  document.body.classList.toggle('central-spectator',spectator);
  if(reportsView)reportsView.style.display=spectator||!permission('canViewReports')?'none':'';
  if(settingsView)settingsView.style.display=spectator||!anySettingsAccess()?'none':'';
