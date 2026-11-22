@@ -74,13 +74,18 @@ try{
 
   for(const viewport of [{width:1280,height:900},{width:390,height:844}]){
     await page.setViewportSize(viewport);
-    const responsive=await page.evaluate(()=>({
-      hidden:document.querySelector('main').hidden,
-      display:getComputedStyle(document.querySelector('main')).display,
-      metrics:!!document.querySelector('.metrics'),
-      operators:!!document.querySelector('.opgrid'),
-      stations:!!document.querySelector('.stationblueprint')
-    }));
+    const responsive=await page.evaluate(()=>{
+      const legacyUserPayload={tiers:{USER:{canEditTracker:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true}}};
+      window.__DOWNTIME_OVERVIEW_TEST__.applyCentralVisibility(legacyUserPayload,{tier:'USER'});
+      const main=document.querySelector('main');
+      return {
+        hidden:main.hidden,
+        display:getComputedStyle(main).display,
+        metrics:!!document.querySelector('.metrics'),
+        operators:!!document.querySelector('.opgrid'),
+        stations:!!document.querySelector('.stationblueprint')
+      };
+    });
     assert.equal(responsive.hidden,false,'Overview remains unhidden at '+viewport.width+'px');
     assert.notEqual(responsive.display,'none','Overview is rendered at '+viewport.width+'px');
     assert.equal(responsive.metrics,true,'KPI container exists at '+viewport.width+'px');
