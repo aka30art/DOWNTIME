@@ -143,7 +143,7 @@ window.supabase={createClient:()=>({
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
- return {context,page,actions,getBank:()=>bank,getVersion:()=>version,setVersion:value=>{version=value}};
+ return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,setVersion:value=>{version=value}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
 async function signIn(page,pin='2468',username='JAN'){
@@ -520,7 +520,7 @@ try{
   await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
   owner.page.once('dialog',dialog=>dialog.accept());
   await owner.page.locator('#smPhotoRemove').click();
-  await owner.page.waitForFunction(()=>window.__staffPhotoRemovals?.some(x=>x.path?.startsWith('rita/')),{timeout:5000});
+  await owner.page.waitForFunction(()=>owner.getPhotoRemovals().some(x=>x.path?.startsWith('rita/')),{timeout:5000});
   for(let attempt=0;attempt<40&&owner.getBank().staff.profiles.Rita?.photoPath;attempt++)await owner.page.waitForTimeout(100);
   assert.equal(owner.getBank().staff.profiles.Rita.photo,undefined,'REMOVE PHOTO clears thumbnail metadata');
   assert.equal(owner.getBank().staff.profiles.Rita.photoPath,undefined,'REMOVE PHOTO clears original photo path');
