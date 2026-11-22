@@ -15,7 +15,7 @@ assert.ok(ui.includes('resolveStationLabel(profile.station||profile.assignedStat
 assert.ok(ui.includes('async function persistSettingsConfirmed()')&&ui.includes('return await syncSettingsCloud()'),'confirmed settings persistence waits for the central data-bank response');
 assert.ok(ui.includes('if(!await persistSettingsConfirmed())'),'STAFF profile save does not report success before central confirmation');
 
-assert.ok(api.includes('const canManageStations=!!priv.canManageSettings'),'the API permits station config writes only for existing settings administrators');
+assert.ok(api.includes('canManageStations=!!priv.canManageSettings'),'the API permits station config writes only for existing settings administrators');
 assert.ok(api.includes('Object.prototype.hasOwnProperty.call(incoming,"stationConfig")')&&api.includes('nextAppData.stationConfig=stations'),'the API validates and stores station configuration in the central data bank');
 assert.ok(api.includes('!stations.some((station:any)=>station.active)'),'the API rejects a configuration with no active stations');
 assert.ok(api.includes('aliases:Array.isArray(station?.aliases)'),'station aliases are persisted for renamed assignments');
