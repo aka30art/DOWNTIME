@@ -41,6 +41,14 @@ jobs:
           path: artifacts/stage-1/
           if-no-files-found: warn
           retention-days: 7
+      - name: Upload Daily Stats and mobile dashboard screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-dashboard-daily-stats-qa
+          path: artifacts/mobile-dashboard/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Upload WEEKLY Reports preview screenshots
         if: always()
         uses: actions/upload-artifact@v4
