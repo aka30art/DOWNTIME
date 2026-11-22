@@ -13,6 +13,7 @@ assert.match(tracker,/DowntimeCentral\.listUsers\(\)/,'login choices are central
 assert.match(tracker,/DowntimeCentral\.login\(username,pin\)/,'user PINs are verified centrally');
 assert.match(tracker,/DowntimeCentral\.state\(\)/,'tracker state is loaded from central bank');
 assert.match(tracker,/DowntimeCentral\.saveTracker\(snapshot,centralVersion\)/,'tracker saves centrally with a version');
+assert.match(tracker,/DowntimeCentral\.saveSettings\(snapshot,centralVersion\)/,'permitted Settings saves use a separate server-authorized route');
 assert.match(tracker,/setInterval\(async\(\)=>\{if\(!centralReady/,'tracker polls centrally for cross-device changes');
 assert.doesNotMatch(tracker,/downtime_shared_state/,'main tracker has no legacy shared-state access');
 assert.doesNotMatch(overview,/downtime_shared_state/,'Plant Overview has no legacy shared-state access');
@@ -35,10 +36,10 @@ assert.match(tracker,/if\(!permission\('canExportReports'\)\)el\.querySelectorAl
 assert.ok(tracker.includes('id="reasonPresetAdmin"')&&tracker.includes('REASON PRESETS'), 'all supported tiers use one shared downtime reason preset panel');
 assert.ok(!tracker.includes('quickReasonButtons')&&!tracker.includes('quickReasonAdminList')&&!tracker.includes('addQuickReasonBtn'), 'quick reason shortcut chips and Settings entries are removed');
 assert.ok(tracker.includes('$("addDowntimeReasonBtn").onclick=()=>addReasonPreset("reasons","newDowntimeReason")'), 'downtime reason Add button remains wired to the entry preset handler');
-assert.ok(tracker.includes('function addReasonPreset(key,inputId)')&&tracker.includes('if(!persist())'), 'reason additions are validated and persisted centrally');
+assert.ok(tracker.includes('function addReasonPreset(key,inputId)')&&tracker.includes('if(!persistSettings())'), 'reason additions are validated and persisted centrally');
 assert.ok(tracker.includes('id="openDailyTasks"')&&tracker.includes('id="dailyTasksModal"'), 'Day to Day provides a clipboard button and Daily Tasks popup');
 assert.ok(tracker.includes('state.dailyTaskPresets')&&tracker.includes('dailyTasksDone'), 'daily task presets and per-day completion state are saved in the tracker');
 assert.ok(tracker.includes('function renderDailyTaskSettings()')&&tracker.includes('function renderDailyTasksPopup()'), 'daily task settings and checklist popup are rendered');
-assert.ok(tracker.includes("querySelectorAll('main input,main select,main textarea').forEach(el=>{el.disabled=operatorReadOnly})"), 'USER has all main data-entry controls disabled');
+assert.ok(tracker.includes("querySelectorAll('main input,main select,main textarea').forEach(el=>{if(!el.closest('.settings-panel'))el.disabled=operatorReadOnly})"), 'USER has all main data-entry controls disabled');
 assert.ok(tracker.includes("deleteCloudReport(id,path){if(!permission('canDeleteRecords'))return"), 'report deletion respects limited delete permission');
 console.log('PASS: main tracker and Plant Overview are connected to the central data bank.');
