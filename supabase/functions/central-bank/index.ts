@@ -19,7 +19,7 @@ async function hashPin(pin:string,salt:string){const key=await crypto.subtle.imp
 async function verifyPin(pin:string,user:any){return user?.pinSalt&&user?.pinHash&&await hashPin(pin,user.pinSalt)===user.pinHash}
 function safeUser(u:any){return {username:u.username,tier:u.tier,enabled:u.enabled!==false,displayName:u.displayName||u.username}}
 const lockedRolePrivileges:Record<string,Record<string,boolean>>={
- OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}
+ OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}
 };
 function addStableRecordIds(weeks:any){
  const copy=structuredClone(weeks||{});
