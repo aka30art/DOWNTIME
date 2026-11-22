@@ -663,7 +663,7 @@ body.overview-overlay-open{overflow:hidden}
     <div class="settings-detail-head"><button class="settings-back" type="button" data-settings-back>‹ <span>BACK TO SETTINGS</span></button><div class="settings-detail-tag">ACCESS MANAGEMENT</div></div>
     <div class="panel settings-content-panel">
       <h2>USERS</h2><p class="muted">Central USER accounts, PINs and privileges are managed in the single central database.</p>
-      <div id="centralUsersManager" style="display:none;margin:10px 0 16px;padding:12px;border:1px solid #354f61;border-radius:12px;background:#0c1b27"><h3 style="margin:0 0 8px;color:#ffc400">CENTRAL USER ACCOUNTS</h3><p class="muted" style="margin:0 0 10px">DEV is the immutable root OWNER. DEVACC has the same administrative authority as DEV, including Central Data Bank and Access & Rights access.</p><div id="centralUsersManageList"></div><div style="border-top:1px solid #30495a;margin-top:12px;padding-top:12px"><h3 id="centralAccountFormTitle" style="margin:0 0 10px">ADD USER ACCOUNT</h3><div class="fields"><div class="field"><label>Username</label><input id="centralAccountUsername" maxlength="32" autocomplete="off" placeholder="Unique username"></div><div class="field"><label>Display name</label><input id="centralAccountDisplay" maxlength="60" placeholder="Name shown in login"></div><div class="field"><label>Tier</label><select id="centralAccountTier"><option>ADMIN</option><option value="DEVACC">DEVACC</option><option>MANAGER</option><option>SUPERVISOR</option><option selected>USER</option><option>SPECTATOR</option></select><small id="centralAccountTierHint" class="muted">DEV and DEVACC have full administrative authority. ADMIN can manage standard account tiers.</small></div><div class="field"><label>PIN · 4–8 digits</label><input id="centralAccountPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Required for new account"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button id="centralAccountSave" class="primary" type="button">ADD USER</button><button id="centralAccountCancel" type="button" style="display:none">CANCEL EDIT</button><button id="centralUsersRefresh" type="button">REFRESH USERS</button></div><div id="centralUsersStatus" class="muted" role="status" style="margin-top:8px;min-height:20px"></div></div></div>
+      <div id="centralUsersManager" style="display:none;margin:10px 0 16px;padding:12px;border:1px solid #354f61;border-radius:12px;background:#0c1b27"><h3 style="margin:0 0 8px;color:#ffc400">CENTRAL USER ACCOUNTS</h3><p class="muted" style="margin:0 0 10px">DEV is the immutable root OWNER. DEVACC has the same administrative authority as DEV, including Central Data Bank and Access & Rights access.</p><div id="centralUsersManageList"></div><div style="border-top:1px solid #30495a;margin-top:12px;padding-top:12px"><h3 id="centralAccountFormTitle" style="margin:0 0 10px">ADD USER ACCOUNT</h3><div class="fields"><div class="field"><label>Username</label><input id="centralAccountUsername" maxlength="32" autocomplete="off" placeholder="Unique username"></div><div class="field"><label>Display name</label><input id="centralAccountDisplay" maxlength="60" placeholder="Name shown in login"></div><div class="field"><label>Tier</label><select id="centralAccountTier"><option>ADMIN</option><option value="DEVACC">DEVACC</option><option>MANAGER</option><option>SUPERVISOR</option><option selected>USER</option><option>SPECTATOR</option></select><small id="centralAccountTierHint" class="muted">Only root DEV can assign the DEVACC tier. DEVACC and ADMIN can manage standard tiers.</small></div><div class="field"><label>PIN · 4–8 digits</label><input id="centralAccountPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Required for new account"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button id="centralAccountSave" class="primary" type="button">ADD USER</button><button id="centralAccountCancel" type="button" style="display:none">CANCEL EDIT</button><button id="centralUsersRefresh" type="button">REFRESH USERS</button></div><div id="centralUsersStatus" class="muted" role="status" style="margin-top:8px;min-height:20px"></div></div></div>
       <div id="settingsAdminControls">
         <div id="operatorAdminPanel" style="display:none"><div class="field"><label>New app user name</label><input id="newOperatorName" maxlength="20" placeholder="User name"></div><div class="field"><label>Initial PIN (3–4 digits)</label><input id="newOperatorInitialPin" inputmode="numeric" type="password" maxlength="4"></div><button id="addOperatorBtn" class="primary">ADD USER</button><div id="operatorAdminMsg" class="muted"></div><div id="operatorRosterList"></div></div>
       </div>
@@ -838,7 +838,7 @@ const ACCESS_RIGHT_GROUPS=[
   {key:'canExportReports',label:'Export reports',detail:'Download and export weekly report files'}
  ]}
 ];
-const ACCESS_TIER_DESCRIPTIONS={DEVACC:'Root-equivalent authority, identical to DEV. Only DEV and DEVACC can assign or revoke.',ADMIN:'Broad administrative access, configured by DEV or DEVACC in Access & Rights.',MANAGER:'Operational management access, configured by DEV or DEVACC in Access & Rights.',SUPERVISOR:'Front-line supervisory access, configured by DEV or DEVACC in Access & Rights.',USER:'Standard user access, configured by DEV or DEVACC in Access & Rights.',SPECTATOR:'Restricted viewing access, configured by DEV or DEVACC in Access & Rights.'};
+const ACCESS_TIER_DESCRIPTIONS={DEVACC:'Root-equivalent authority, identical to DEV except only root DEV can assign the DEVACC tier.',ADMIN:'Broad administrative access, configured by DEV or DEVACC in Access & Rights.',MANAGER:'Operational management access, configured by DEV or DEVACC in Access & Rights.',SUPERVISOR:'Front-line supervisory access, configured by DEV or DEVACC in Access & Rights.',USER:'Standard user access, configured by DEV or DEVACC in Access & Rights.',SPECTATOR:'Restricted viewing access, configured by DEV or DEVACC in Access & Rights.'};
 function renderAccessRights(){
  const host=$('accessRightsTierList');if(!host||!canManageAccessRights())return;
  const stored=centralBankPayload?.tiers||tierDefaults;host.replaceChildren();
@@ -1533,7 +1533,7 @@ function resetCentralUserForm(){
  if(tier)tier.disabled=!canAssignTier;
  if($('centralAccountFormTitle'))$('centralAccountFormTitle').textContent='ADD USER ACCOUNT';
  if($('centralAccountSave')){$('centralAccountSave').textContent='ADD USER';$('centralAccountSave').disabled=!permission('canManageUsers')||!canAssignTier;}
- if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'You have account-management access. DEV and DEVACC can manage every tier; ADMIN is limited to standard tiers.':'You can edit permitted existing accounts; account creation and tier assignment are restricted.';
+ if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'You can manage standard account tiers; only root DEV can assign DEVACC.':'You can edit permitted existing accounts; account creation and tier assignment are restricted.';
  if($('centralAccountCancel'))$('centralAccountCancel').style.display='none';
 }
 function renderCentralUserSettings(){
@@ -1545,7 +1545,7 @@ function renderCentralUserSettings(){
  if(!editingCentralUsername){
   if($('centralAccountTier'))$('centralAccountTier').disabled=!canAssignTier;
   if($('centralAccountSave'))$('centralAccountSave').disabled=!canManage||!canAssignTier;
-  if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'You have account-management access. DEV and DEVACC can manage every tier; ADMIN is limited to standard tiers.':'You can edit permitted existing accounts; account creation and tier assignment are restricted.';
+  if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'You can manage standard account tiers; only root DEV can assign DEVACC.':'You can edit permitted existing accounts; account creation and tier assignment are restricted.';
  }
  const formTitle=$('centralAccountFormTitle');if(formTitle?.parentElement)formTitle.parentElement.hidden=!canManage;
  if(!canView)return;
@@ -1572,7 +1572,7 @@ function renderCentralUserSettings(){
     $('centralAccountPin').value='';
     $('centralAccountFormTitle').textContent='EDIT USER · '+user.username;
     $('centralAccountSave').textContent='SAVE CHANGES';$('centralAccountSave').disabled=false;$('centralAccountCancel').style.display='inline-block';
-    if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'DEV and DEVACC have full tier authority. ADMIN can manage standard tiers.':'Tier changes are restricted; the existing account tier is preserved.';
+    if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'Only root DEV can assign DEVACC. DEVACC and ADMIN can manage standard tiers.':'Tier changes are restricted; the existing account tier is preserved.';
     $('centralUsersStatus').textContent='Leave PIN blank to keep the current PIN.';
     $('centralAccountFormTitle').scrollIntoView({behavior:'smooth',block:'nearest'});
    };actions.appendChild(edit);
@@ -1608,7 +1608,7 @@ async function saveCentralUserSettings(){
  const existing=(centralBankPayload?.users||[]).find(user=>String(user.username).toLowerCase()===username.toLowerCase());
  const canAssignTier=canAssignStandardAccountTiers(),canAssignDevacc=isRootDevAccount();
  if(tier==='DEVACC'&&(!existing||existing.tier!=='DEVACC')&&!canAssignDevacc){$('centralUsersStatus').textContent='Only root DEV can assign DEVacc tier.';return}
- if((!editingCentralUsername||!existing||existing.tier!==tier)&&!canAssignTier){$('centralUsersStatus').textContent='DEV and DEVACC can manage all account tiers; ADMIN can manage standard tiers.';return}
+ if((!editingCentralUsername||!existing||existing.tier!==tier)&&!canAssignTier){$('centralUsersStatus').textContent='Account creation and tier assignment require account-management privileges.';return}
  const payload={username,displayName:displayName||username,tier,enabled:existing?.enabled!==false,version:centralVersion};
  if(pin)payload.pin=pin;
  if(!editingCentralUsername&&!pin){$('centralUsersStatus').textContent='A 4–8 digit PIN is required for a new account.';return}
