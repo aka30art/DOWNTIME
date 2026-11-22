@@ -494,14 +494,14 @@ try{
   // Ordinary tracker writes cannot bypass a locked station; explicit unlock is limited to Staff Settings.
   const attemptedReassignment=JSON.parse(JSON.stringify(owner.getBank().appData));
   attemptedReassignment.operatorProfiles.Rita.station='Station 5 · GENERAL';
-  await owner.page.evaluate(async({snapshot,version})=>window.DowntimeCentral.saveTracker(snapshot,version),{snapshot:attemptedReassignment,version:owner.getVersion()});
+  await owner.page.evaluate(async snapshot=>{const result=await window.DowntimeCentral.saveTracker(snapshot,centralVersion);centralVersion=Number(result.version)||centralVersion},attemptedReassignment);
   console.log('STAFF LOCK DIAGNOSTICS '+JSON.stringify(owner.actions.filter(action=>action.action==='save-state-lock-diagnostic'||action.action==='save-settings-lock-diagnostic').slice(-8)));
   assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','locked station resists ordinary tracker save attempts');
   assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,true,'ordinary tracker saves cannot clear station lock');
   // Settings and tracker APIs must both reject station changes until the lock is explicitly cleared.
   const attemptedSettings=JSON.parse(JSON.stringify(owner.getBank().appData));
   attemptedSettings.operatorProfiles.Rita.station='Station 4 · SCRAP';
-  await owner.page.evaluate(async({snapshot,version})=>window.DowntimeCentral.saveSettings(snapshot,version),{snapshot:attemptedSettings,version:owner.getVersion()});
+  await owner.page.evaluate(async snapshot=>{const result=await window.DowntimeCentral.saveSettings(snapshot,centralVersion);centralVersion=Number(result.version)||centralVersion},attemptedSettings);
   assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','locked station resists a direct save-settings reassignment');
   assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,true,'save-settings cannot silently unlock a locked station');
   await openStaffSettings(owner.page);
