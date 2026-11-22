@@ -59,8 +59,8 @@ assert.ok(src.includes('if(!priv.canManageUsers)return json({error:"Permission d
   'other existing account maintenance remains subject to user-management rights');
 assert.ok(src.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&src.includes('typeof supplied[key]!=="boolean"'),
   'tier rights updates validate the permission whitelist and boolean values');
-assert.ok(src.includes('action:"tiers-save",details:{tiers:tiers.filter(role=>role!=="OWNER"&&role!=="DEVACC")}'),
-  'tier rights changes are audited and exclude root OWNER permissions');
+assert.ok(src.includes('action:"tiers-save",details:{tiers}'),
+  'tier rights changes, including the Plant Power exception for root tiers, are audited');
 
 assert.ok(src.includes('if(Array.isArray(bank.appData?.dailyTaskPresets))nextAppData.dailyTaskPresets=bank.appData.dailyTaskPresets;else delete nextAppData.dailyTaskPresets'),
   'non-settings roles can complete daily tasks but cannot edit the preset list');
