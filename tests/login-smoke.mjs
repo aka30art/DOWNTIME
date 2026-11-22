@@ -58,7 +58,9 @@ window.supabase={createClient:()=>({
  });
  let bank=initialBank?JSON.parse(JSON.stringify(initialBank)):makeBank(),version=initialVersion,token='central-session-'+username;
  const actions=[];
- let staffPhotoSequence=1;\n await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank',async route=>{
+ const staffPhotoRemovals=[];
+ let staffPhotoSequence=1;
+ await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank',async route=>{
   const req=route.request().postDataJSON(),action=req.action;
   actions.push({action,body:req});
   const ok=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
@@ -82,8 +84,7 @@ window.supabase={createClient:()=>({
   if(action==='staff-photo-remove'){
    const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
    if(!rights.canManageStaff)return ok({error:'Permission denied'},403);
-   window.__staffPhotoRemovals=window.__staffPhotoRemovals||[];
-   window.__staffPhotoRemovals.push({path:req.path});
+   staffPhotoRemovals.push({path:req.path});
    return ok({ok:true});
   }
   if(action==='get-state'){
