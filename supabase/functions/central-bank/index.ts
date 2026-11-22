@@ -261,6 +261,8 @@ Deno.serve(async(req)=>{
          const existing=(currentProfiles as any)[name]||{};
          if("station" in existing)profile.station=existing.station;else delete profile.station;
          if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
+         if("stationLocked" in existing)profile.stationLocked=existing.stationLocked;else delete profile.stationLocked;
+         if("stationLocked" in existing)profile.stationLocked=existing.stationLocked;else delete profile.stationLocked;
        }
        nextAppData.operatorProfiles=safeProfiles;
      }
@@ -332,6 +334,7 @@ Deno.serve(async(req)=>{
        const existing={...(newProfiles as any)[name]};
        if("station" in profile)existing.station=String(profile.station||"").slice(0,100);
        else if("assignedStation" in profile)existing.assignedStation=String(profile.assignedStation||"").slice(0,100);
+       if("stationLocked" in profile)existing.stationLocked=profile.stationLocked===true;
        (newProfiles as any)[name]=existing;
      }
      nextAppData.operatorProfiles=newProfiles;
