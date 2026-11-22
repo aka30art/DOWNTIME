@@ -511,6 +511,13 @@ try{
  await openStaffSettings(owner.page);
  await owner.page.locator('#addStaffBtn').click();
  assert.equal(await owner.page.locator('#staffModalBackdrop').isVisible(),true,'Add New Member opens the modal');
+  const mobileModalChecks=[];
+  for(const viewport of [{width:320,height:800},{width:390,height:844}]){
+    await owner.page.setViewportSize(viewport);
+    mobileModalChecks.push(await owner.page.locator('.staff-modal').evaluate(el=>{const r=el.getBoundingClientRect(),footer=el.querySelector('.staff-modal-foot');return {left:r.left,right:r.right,viewport:innerWidth,footerWidth:footer.clientWidth,footerScroll:footer.scrollWidth}}));
+  }
+  for(const check of mobileModalChecks){assert.ok(check.left>=0&&check.right<=check.viewport,'STAFF modal fits '+check.viewport+'px viewport');assert.ok(check.footerScroll<=check.footerWidth+1,'STAFF modal action buttons wrap without horizontal overflow at '+check.viewport+'px')}
+  await owner.page.setViewportSize({width:1280,height:900});
  assert.equal(await owner.page.locator('#smName').inputValue(),'','new STAFF profile template is blank');
  assert.equal(await owner.page.locator('#smOnPlant').isChecked(),true,'new profile defaults ON PLANT');
  await owner.page.locator('#smName').fill('Rita');
@@ -595,6 +602,19 @@ try{
   await owner.page.waitForFunction(()=>document.querySelector('#smMsg')?.textContent.includes('Photo removed.'),{timeout:5000});
   assert.equal(await owner.page.locator('#staffModalBackdrop').isVisible(),true,'photo removal finishes and refreshes the open profile');
   assert.equal(await owner.page.locator('#smPhotoRemove').isHidden(),true,'removed photo cannot be removed again');
+  // Existing-profile SAVE PHOTO must upload and persist a replacement original and thumbnail.
+  const replacementGif=Buffer.from('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=','base64');
+  await owner.page.locator('#smFile').setInputFiles({name:'rita-replacement.gif',mimeType:'image/gif',buffer:replacementGif});
+  await owner.page.waitForFunction(()=>document.querySelector('#smPreview')?.src.startsWith('data:image/jpeg'),{timeout:5000});
+  await owner.page.locator('#smPhotoSave').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#smMsg')?.textContent==='Photo saved.',{timeout:5000});
+  assert.ok(owner.getBank().staff.profiles.Rita.photo?.startsWith('data:image/jpeg'),'existing profile SAVE PHOTO stores replacement thumbnail');
+  assert.ok(owner.getBank().staff.profiles.Rita.photoPath?.startsWith('rita/'),'existing profile SAVE PHOTO stores original photo path');
+  assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.length||0),2,'existing profile replacement uploads a second original photo');
+  owner.page.once('dialog',dialog=>dialog.accept());
+  await owner.page.locator('#smPhotoRemove').click();
+  for(let attempt=0;attempt<40&&owner.getBank().staff.profiles.Rita?.photoPath;attempt++)await owner.page.waitForTimeout(100);
+  assert.equal(owner.getBank().staff.profiles.Rita.photoPath,undefined,'replacement original can also be removed');
   await owner.page.locator('#smCancel').click();
   await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
  assert.equal(await owner.page.locator('.side #logoutBtn').isVisible(),true,'Log Out is available in the top navigation');
@@ -658,6 +678,14 @@ try{
   assert.ok(supervisor.getBank().staff.roster.includes('Supervisor QA'),'SUPERVISOR changes sync to central roster');
   assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].station,'Station 4 · SCRAP','SUPERVISOR can assign station in profile modal');
   assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].stationLocked,true,'SUPERVISOR can lock station in Staff Settings');
+  const userCountBeforeStaffRemoval=supervisor.getBank().users.length;
+  await supervisor.page.locator('.staff-settings-icon[aria-label="Staff settings for Supervisor QA"]').click();
+  supervisor.page.once('dialog',dialog=>dialog.accept());
+  await supervisor.page.locator('#smRemove').click();
+  await supervisor.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+  assert.equal(supervisor.getBank().staff.roster.includes('Supervisor QA'),false,'REMOVE STAFF removes the member from the central roster');
+  assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'],undefined,'REMOVE STAFF removes the central staff profile');
+  assert.equal(supervisor.getBank().users.length,userCountBeforeStaffRemoval,'REMOVE STAFF does not delete or alter USER accounts');
   await supervisor.context.close();
  // Separate permission tiers: STAFF-only manages identity/presence/photos, not station/lock.
  const staffOnly=await openFor('STAFF_ONLY','2468','MICK');
