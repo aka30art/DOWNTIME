@@ -155,6 +155,24 @@ async function openSettingsHub(page){
  await page.locator('#settingsHub').waitFor({state:'visible'});
 }
 
+async function dismissPlantTransitionAlerts(page){
+ const host=page.locator('#plantTransitionAlertHost');
+ for(let attempt=0;attempt<20;attempt++){
+  const acknowledge=host.locator('button');
+  if(await acknowledge.count()){
+   await acknowledge.first().evaluate(button=>button.click());
+   await page.waitForTimeout(75);
+   continue;
+  }
+  await page.waitForTimeout(100);
+  if(!await host.count()){
+   await page.waitForTimeout(350);
+   if(!await host.count())return;
+  }
+ }
+ throw new Error('Plant transition alert remained active after repeated acknowledgement attempts');
+}
+
 try{
  // Invalid credentials never unlock the tracker.
  const rejected=await openFor('OWNER');
@@ -313,8 +331,7 @@ try{
  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
  assert.equal(await owner.page.locator('#authGate').isVisible(),false,'Exiting Overview returns to the still-authenticated main app');
  assert.equal(await owner.page.locator('.view.active').count(),1,'The underlying tracker view remains active');
- const immediateTransitionAck=owner.page.locator('#plantTransitionAlertHost button');
- if(await immediateTransitionAck.count())await immediateTransitionAck.evaluate(button=>button.click()); // Dismiss overlay alert before underlying Overview navigation.
+ await dismissPlantTransitionAlerts(owner.page);
  await owner.page.locator('.overview-link').click();
  assert.equal(await owner.page.locator('#overviewOverlay').isVisible(),true,'Overview can be reopened');
  await overview.locator('#overviewFullscreen').focus();
