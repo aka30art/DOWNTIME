@@ -195,6 +195,28 @@ try{
  await signIn(owner.page);
  assert.equal(await owner.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),true,'JAN root OWNER sees the Central Data Bank menu entry');
  assert.equal(await owner.page.locator('#authGate').isVisible(),false,'central login closes after authentication');
+ // Isolated central API regression: both save-state and save-settings must reject locked station moves.
+ const lockedFixture=makeBank();
+ lockedFixture.appData.operatorProfiles=JSON.parse(JSON.stringify(lockedFixture.staff.profiles));
+ lockedFixture.appData.staffRoster=lockedFixture.staff.roster.slice();
+ lockedFixture.staff.profiles.Jan.stationLocked=true;
+ lockedFixture.appData.operatorProfiles.Jan.stationLocked=true;
+ const lockGuard=await openFor('OWNER','2468','JAN',lockedFixture,1);
+ await signIn(lockGuard.page);
+ const trackerAttempt=JSON.parse(JSON.stringify(lockGuard.getBank().appData));
+ trackerAttempt.operatorProfiles.Jan.station='Station 2 · WOOD';
+ const trackerResult=await lockGuard.page.evaluate(({snapshot,version})=>window.DowntimeCentral.saveTracker(snapshot,version),{snapshot:trackerAttempt,version:lockGuard.getVersion()});
+ lockGuard.setVersion(trackerResult.version);
+ assert.equal(lockGuard.getBank().staff.profiles.Jan.station,'Station 1 · WOOD','save-state cannot reassign a locked station');
+ assert.equal(lockGuard.getBank().staff.profiles.Jan.stationLocked,true,'save-state preserves the station lock');
+ const settingsAttempt=JSON.parse(JSON.stringify(lockGuard.getBank().appData));
+ settingsAttempt.operatorProfiles.Jan.station='Station 3 · SCRAP';
+ const settingsResult=await lockGuard.page.evaluate(({snapshot,version})=>window.DowntimeCentral.saveSettings(snapshot,version),{snapshot:settingsAttempt,version:lockGuard.getVersion()});
+ lockGuard.setVersion(settingsResult.version);
+ assert.equal(lockGuard.getBank().staff.profiles.Jan.station,'Station 1 · WOOD','save-settings cannot reassign a locked station without explicit unlock');
+ assert.equal(lockGuard.getBank().staff.profiles.Jan.stationLocked,true,'save-settings preserves the station lock');
+ await lockGuard.context.close();
+
 
  await owner.page.locator('.nav-menu > summary').click();
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').textContent().then(value=>value.includes('WEEKLY Reports')),true,'navigation label is renamed to WEEKLY Reports');
@@ -488,21 +510,6 @@ try{
  assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="6"]').textContent(),'RITA','station blueprint updates immediately');
 
  
-  // Ordinary tracker writes cannot bypass a locked station; explicit unlock is limited to Staff Settings.
-  const attemptedReassignment=JSON.parse(JSON.stringify(owner.getBank().appData));
-  attemptedReassignment.operatorProfiles.Rita.station='Station 5 · GENERAL';
-  const trackerSaveResult=await owner.page.evaluate(async({snapshot,version})=>window.DowntimeCentral.saveTracker(snapshot,version),{snapshot:attemptedReassignment,version:owner.getVersion()});
-  owner.setVersion(Number(trackerSaveResult.version)||owner.getVersion());
-  console.log('STAFF LOCK DIAGNOSTICS '+JSON.stringify(owner.actions.filter(action=>action.action==='save-state-lock-diagnostic'||action.action==='save-settings-lock-diagnostic').slice(-8)));
-  assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','locked station resists ordinary tracker save attempts');
-  assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,true,'ordinary tracker saves cannot clear station lock');
-  // Settings and tracker APIs must both reject station changes until the lock is explicitly cleared.
-  const attemptedSettings=JSON.parse(JSON.stringify(owner.getBank().appData));
-  attemptedSettings.operatorProfiles.Rita.station='Station 4 · SCRAP';
-  const settingsSaveResult=await owner.page.evaluate(async({snapshot,version})=>window.DowntimeCentral.saveSettings(snapshot,version),{snapshot:attemptedSettings,version:owner.getVersion()});
-  owner.setVersion(Number(settingsSaveResult.version)||owner.getVersion());
-  assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','locked station resists a direct save-settings reassignment');
-  assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,true,'save-settings cannot silently unlock a locked station');
   await owner.page.locator('#overviewClose').click();
   await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
   await openStaffSettings(owner.page);
