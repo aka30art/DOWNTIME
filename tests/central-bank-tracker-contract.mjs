@@ -30,7 +30,8 @@ assert.ok(tracker.includes('ROOT · PROTECTED'), 'JAN root account is protected 
 assert.ok(tracker.includes('lockedTierPermissions'), 'frontend locks USER/SPECTATOR/operational role permissions against stale central overrides');
 assert.ok(tracker.includes("operatorReadOnly||!permission('canDeleteRecords')"), 'MANAGER/SUPERVISOR cannot delete operational records in the UI');
 assert.ok(tracker.includes('if(previous?.recordId)item.recordId=previous.recordId'), 'editing a downtime record preserves its central identity');
-assert.ok(tracker.includes("station.disabled=!(permission('canManageAssignments')||permission('canManageStaff'))"), 'SUPERVISOR station assignment control is separated from STAFF administration');
+assert.ok(tracker.includes("station.disabled=!permission('canManageAssignments')"), 'station assignment editing depends only on canManageAssignments, not STAFF administration');
+assert.ok(tracker.includes("station.onchange=()=>{if(!permission('canManageAssignments'))return;"), 'station assignment mutations independently enforce canManageAssignments');
 assert.ok(tracker.includes("saveCloudReport(){if(!permission('canExportReports'))return"), 'MANAGER can export weekly reports');
 assert.match(tracker,/if\(!permission\('canExportReports'\)\)el\.querySelectorAll\('\[data-report-download\]'\)\.forEach\(button=>button\.style\.display='none'\)/, 'USER cannot export archived weekly reports while retaining report-view access');
 assert.ok(tracker.includes('id="reasonPresetAdmin"')&&tracker.includes('REASON PRESETS'), 'all supported tiers use one shared downtime reason preset panel');
