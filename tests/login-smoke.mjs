@@ -99,14 +99,19 @@ window.supabase={createClient:()=>({
    return ok({payload:copy,user:{username,displayName:username==='JAN'?'Jan':'Mick',tier},version,updatedAt:new Date().toISOString()});
   }
   if(action==='save-state'){
+   const diagnosticBefore=bank.staff.profiles.Rita?{...bank.staff.profiles.Rita}:null;
+   const incomingRita=req.appData?.operatorProfiles?.Rita?{...req.appData.operatorProfiles.Rita}:null;
    const effectiveRights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
    if(!effectiveRights.canEditTracker)return ok({error:'Permission denied'},403);
    if(Number(req.version)!==version)return ok({error:'Version conflict; refresh before saving'},409);
    const currentProfiles=bank.staff.profiles||bank.appData.operatorProfiles||{},incomingProfiles=req.appData.operatorProfiles||{},profiles=effectiveRights.canManageStaff?JSON.parse(JSON.stringify(incomingProfiles)):JSON.parse(JSON.stringify(currentProfiles));for(const [name,incoming] of Object.entries(incomingProfiles)){if(!Object.prototype.hasOwnProperty.call(currentProfiles,name)||!incoming||typeof incoming!=='object')continue;const old=currentProfiles[name]||{},merged=effectiveRights.canManageStaff?{...incoming}:{...old};if(old.stationLocked===true||!effectiveRights.canManageAssignments){if('station' in old)merged.station=old.station;else delete merged.station;if('assignedStation' in old)merged.assignedStation=old.assignedStation;else delete merged.assignedStation}if('stationLocked' in old)merged.stationLocked=old.stationLocked===true;else delete merged.stationLocked;profiles[name]=merged}req.appData.operatorProfiles=profiles;if(effectiveRights.canManageStaff){bank.staff.roster=req.appData.staffRoster||bank.staff.roster}else req.appData.staffRoster=bank.staff.roster||[];bank.staff.profiles=profiles;bank.appData=req.appData;
+   actions.push({action:'save-state-lock-diagnostic',before:diagnosticBefore,incoming:incomingRita,after:bank.staff.profiles.Rita?{...bank.staff.profiles.Rita}:null,rights:effectiveRights});
    version++;
    return ok({version,updatedAt:new Date().toISOString()});
   }
   if(action==='save-settings'){
+   const diagnosticBefore=bank.staff.profiles.Rita?{...bank.staff.profiles.Rita}:null;
+   const incomingRita=req.appData?.operatorProfiles?.Rita?{...req.appData.operatorProfiles.Rita}:null;
    if(Number(req.version)!==version)return ok({error:'Version conflict; refresh before saving Settings'},409);
    const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
    const canManageAreas=rights.canManageSettings===true||rights.canManageAreaPresets===true;
@@ -490,6 +495,7 @@ try{
   const attemptedReassignment=JSON.parse(JSON.stringify(owner.getBank().appData));
   attemptedReassignment.operatorProfiles.Rita.station='Station 5 · GENERAL';
   await owner.page.evaluate(async({snapshot,version})=>window.DowntimeCentral.saveTracker(snapshot,version),{snapshot:attemptedReassignment,version:owner.getVersion()});
+  console.log('STAFF LOCK DIAGNOSTICS '+JSON.stringify(owner.actions.filter(action=>action.action==='save-state-lock-diagnostic'||action.action==='save-settings-lock-diagnostic').slice(-8)));
   assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','locked station resists ordinary tracker save attempts');
   assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,true,'ordinary tracker saves cannot clear station lock');
   // Settings and tracker APIs must both reject station changes until the lock is explicitly cleared.
