@@ -3,10 +3,11 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
-const requiredTiles = ['users', 'areas', 'reasons', 'schedule', 'dailyTasks', 'staff'];
+const requiredTiles = ['users', 'areas', 'stations', 'reasons', 'schedule', 'dailyTasks', 'staff'];
 const requiredPanels = {
   users: 'settingsPanelUsers',
   areas: 'settingsPanelAreas',
+  stations: 'settingsPanelStations',
   reasons: 'settingsPanelReasons',
   schedule: 'settingsPanelSchedule',
   dailyTasks: 'settingsPanelDailyTasks',
@@ -31,9 +32,9 @@ for (const section of requiredTiles) {
     section + ' tile must identify the panel it opens'
   );
 }
-assert.equal((html.match(/data-settings-open="/g) || []).length, 7,
-  'hub must expose six standard destinations plus the ADMIN/JAN Access and Rights destination');
-assert.equal((html.match(/data-settings-back>/g) || []).length, 7,
+assert.equal((html.match(/data-settings-open="/g) || []).length, 8,
+  'hub must expose seven standard destinations plus the ADMIN/JAN Access and Rights destination');
+assert.equal((html.match(/data-settings-back>/g) || []).length, 8,
   'every settings panel must provide a back-to-settings control');
 assert.doesNotMatch(html, /data-view="staff"/, 'STAFF must no longer have a standalone navigation destination');
 assert.match(html, /id="settingsPanelStaff"[\s\S]*?id="staffRosterList"/, 'STAFF roster management must live inside its Settings panel');
@@ -44,6 +45,7 @@ assert.match(html, /id="accessRightsTierList"[\s\S]*?id="saveAccessRights"/, 'AD
 for (const id of [
   'centralUsersManager', 'centralUsersManageList',
   'centralAccountSave', 'operatorAdminPanel', 'areaPresetAdmin',
+  'stationManagerList', 'addStationBtn', 'saveStationsBtn', 'stationManagerStatus',
   'areaPresetAdminList', 'addAreaPresetBtn', 'reasonPresetAdmin',
   'downtimeReasonAdminList', 'addDowntimeReasonBtn', 'dailyTaskPresetInput',
   'addDailyTaskPresetBtn', 'dailyTaskPresetList', 'shiftScheduleAdmin', 'shiftScheduleEditor',
@@ -60,6 +62,7 @@ const helper=(permission)=>accessHelpers(permission,()=>false);
 const managerOnly=helper(name=>({canManageUsers:true,canViewUsers:false}[name]===true));
 assert.equal(managerOnly.settingsAccess('users'),true);
 assert.equal(managerOnly.settingsAccess('areas'),false);
+assert.equal(managerOnly.settingsAccess('stations'),false,'station configuration is restricted to settings administrators');
 assert.equal(managerOnly.settingsAccess('reasons'),false);
 assert.equal(managerOnly.settingsAccess('schedule'),false);
 assert.equal(managerOnly.settingsAccess('staff'),false);
@@ -77,6 +80,7 @@ assert.equal(taskEditor.canManageSettingsSection('dailyTasks'),true);
 const supervisorStaff=helper(name=>({canViewStaff:true,canManageStaff:true}[name]===true));
 assert.equal(supervisorStaff.settingsAccess('staff'),true,'staff managers can access the STAFF panel');
 assert.equal(supervisorStaff.settingsAccess('users'),false);
+assert.equal(supervisorStaff.settingsAccess('stations'),false,'SUPERVISOR assignment rights do not include station configuration rights');
 const staffViewer=helper(name=>name==='canViewStaff');
 assert.equal(staffViewer.settingsAccess('staff'),true,'STAFF visibility preserves existing staff-view privilege');
 const fullAdmin=helper(()=>true);
@@ -117,9 +121,11 @@ const settingsGridEnd = html.indexOf('</div>', settingsGridStart);
 const staffCardPosition = html.indexOf('data-settings-open="staff"', settingsGridStart);
 assert.ok(settingsGridStart >= 0 && staffCardPosition > settingsGridStart && staffCardPosition < settingsGridEnd,
   'STAFF must be the sixth card inside the Settings grid');
-assert.equal((html.slice(settingsGridStart, settingsGridEnd).match(/data-settings-open="/g) || []).length, 6,
-  'all six Settings destinations must be direct grid cards');
+assert.equal((html.slice(settingsGridStart, settingsGridEnd).match(/data-settings-open="/g) || []).length, 7,
+  'all seven operational Settings destinations must be direct grid cards');
 
+assert.match(html, /id="stationManagerStatus"[^>]*role="status"/, 'Station Manager has an accessible save status');
+assert.match(html, /function saveStationManager\(\)[\s\S]*?persistSettingsConfirmed\(\)/, 'Station Manager saves only after central acknowledgement');
 assert.match(html, /id="areaPresetAdminMsg"[^>]*role="status"/,
   'AREA PRESETS must have a dedicated accessible status message');
 assert.match(html, /function renderAreaPresetSettings\(\)[\s\S]*?Array\.isArray\(state\.areas\)/,
@@ -135,4 +141,4 @@ assert.match(html, /Remove area \"\+value/,
 assert.doesNotMatch(html, /quickReasonAdminList|addQuickReasonBtn|quickReasonButtons/, 'quick reason shortcuts and their Settings controls must be removed');
 assert.match(html, /data-settings-open="dailyTasks"[\s\S]*?DAILY TASKS/, 'Daily Tasks must be available from Settings');
 assert.match(html, /aria-label="Open Daily Tasks"/, 'Day to Day includes the clipboard trigger');
-console.log('PASS: Settings hub navigation, Daily Tasks permissions, reason presets and responsive styling');
+console.log('PASS: Settings hub navigation, Station Manager permissions, Daily Tasks, reason presets and responsive styling');
