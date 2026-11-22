@@ -32,17 +32,17 @@ for (const section of requiredTiles) {
   );
 }
 assert.equal((html.match(/data-settings-open="/g) || []).length, 7,
-  'hub must expose six standard destinations plus the ADMIN/JAN Access and Rights destination');
+  'hub must expose six standard destinations plus the JAN-only Access and Rights destination');
 assert.equal((html.match(/data-settings-back>/g) || []).length, 7,
   'every settings panel must provide a back-to-settings control');
 assert.doesNotMatch(html, /data-view="staff"/, 'STAFF must no longer have a standalone navigation destination');
 assert.match(html, /id="settingsPanelStaff"[\s\S]*?id="staffRosterList"/, 'STAFF roster management must live inside its Settings panel');
-assert.match(html, /id="settingsOwnerAccess"[\s\S]*?data-settings-open="accessRights"/, 'Access and Rights lives in a separate ADMIN/JAN-only Settings area');
+assert.match(html, /id="settingsOwnerAccess"[\s\S]*?data-settings-open="accessRights"/, 'Access and Rights lives in a separate JAN-only Settings area');
 assert.match(html, /id="settingsPanelAccessRights" class="settings-panel" hidden/, 'Access and Rights has its own hidden panel');
-assert.match(html, /id="accessRightsTierList"[\s\S]*?id="saveAccessRights"/, 'ADMIN/JAN have an individual tier rights editor and central save control');
+assert.match(html, /id="accessRightsTierList"[\s\S]*?id="saveAccessRights"/, 'JAN has an individual tier rights editor and central save control');
 
 for (const id of [
-  'centralUsersManager', 'centralUsersManageList',
+  'centralUsersAdminLink', 'centralUsersManager', 'centralUsersManageList',
   'centralAccountSave', 'operatorAdminPanel', 'areaPresetAdmin',
   'areaPresetAdminList', 'addAreaPresetBtn', 'reasonPresetAdmin',
   'downtimeReasonAdminList', 'addDowntimeReasonBtn', 'dailyTaskPresetInput',
@@ -55,7 +55,7 @@ for (const id of [
 
 const helpersMatch=html.match(/function canManageSettingsSection\(section\)\{[\s\S]*?function anySettingsAccess\(\)\{[^}]*\}/);
 assert.ok(helpersMatch,'granular Settings permission helpers must be present');
-const accessHelpers=new Function('permission','canManageAccessRights',helpersMatch[0]+'; return {settingsAccess,canManageSettingsSection};');
+const accessHelpers=new Function('permission','isJanAccessAdmin',helpersMatch[0]+'; return {settingsAccess,canManageSettingsSection};');
 const helper=(permission)=>accessHelpers(permission,()=>false);
 const managerOnly=helper(name=>({canManageUsers:true,canViewUsers:false}[name]===true));
 assert.equal(managerOnly.settingsAccess('users'),true);
@@ -81,10 +81,8 @@ const staffViewer=helper(name=>name==='canViewStaff');
 assert.equal(staffViewer.settingsAccess('staff'),true,'STAFF visibility preserves existing staff-view privilege');
 const fullAdmin=helper(()=>true);
 for(const section of requiredTiles)assert.equal(fullAdmin.settingsAccess(section),true);
-assert.equal(fullAdmin.settingsAccess('accessRights'),false,'a role without the ADMIN/JAN identity allow-list cannot access tier rights');
-assert.equal(accessHelpers(()=>false,()=>true).settingsAccess('accessRights'),true,'ADMIN tier or JAN root OWNER allow-list can access Access and Rights');
-assert.ok(html.includes('function canManageAccessRights(){return canAccessCentralBank()}'),'Access and Rights uses the strict ADMIN/JAN allow-list');
-assert.ok(!html.includes('centralUsersAdminLink'),'obsolete Central Data Bank link is removed from the USERS panel');
+assert.equal(fullAdmin.settingsAccess('accessRights'),false,'non-JAN admins cannot access tier rights');
+assert.equal(accessHelpers(()=>false,()=>true).settingsAccess('accessRights'),true,'JAN root OWNER can access Access and Rights');
 
 assert.match(html, /function showSettingsHub\(\)/, 'back navigation must return to the Settings hub');
 assert.match(html, /function openSettingsPanel\(section\)/, 'tile navigation must open dedicated panels');

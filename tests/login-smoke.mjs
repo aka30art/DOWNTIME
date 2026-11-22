@@ -106,7 +106,7 @@ window.supabase={createClient:()=>({
    return ok({version,updatedAt:new Date().toISOString()});
   }
   if(action==='tiers-save'){
-   if(!(tier==='ADMIN'||(username==='JAN'&&tier==='OWNER')))return ok({error:'Only ADMIN or JAN can change tier rights'},403);
+   if(username!=='JAN'||tier!=='OWNER')return ok({error:'Only JAN can change tier rights'},403);
    if(Number(req.version)!==version)return ok({error:'Version conflict'},409);
    bank.tiers=req.tiers;version++;
    return ok({ok:true,version});
@@ -236,25 +236,17 @@ try{
  await signIn(nonJanAdmin.page,'2468','MICK');
  assert.equal(await nonJanAdmin.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),true,'ADMIN tier can see the Central Data Bank menu entry');
  await openSettingsHub(nonJanAdmin.page);
- assert.equal(await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),true,'ADMIN tier can see Access and Rights');
- await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').click();
- assert.equal(await nonJanAdmin.page.locator('#settingsPanelAccessRights').isVisible(),true,'ADMIN opens the Access and Rights editor');
- const userGrant=nonJanAdmin.page.locator('[data-access-tier="USER"][data-access-right="canDeleteRecords"]');
- await userGrant.check();
- await nonJanAdmin.page.locator('#saveAccessRights').click();
- await nonJanAdmin.page.waitForFunction(()=>document.querySelector('#accessRightsStatus')?.textContent.includes('saved centrally'),{timeout:5000});
- assert.equal(nonJanAdmin.getBank().tiers.USER.canDeleteRecords,true,'ADMIN can grant a permission to another tier through Access and Rights');
- assert.ok(nonJanAdmin.actions.some(item=>item.action==='tiers-save'),'ADMIN permission grants use the central tiers-save action');
+ assert.equal(await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'non-JAN ADMIN cannot see Access and Rights');
  await nonJanAdmin.context.close();
  const manager=await openFor('MANAGER','2468','MICK',owner.getBank(),owner.getVersion());
  await signIn(manager.page,'2468','MICK');
  assert.equal(await manager.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'MANAGER with ADMIN-equivalent configurable rights cannot see Central Data Bank');
  await openSettingsHub(manager.page);
- assert.equal(await manager.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'MANAGER never gains access to ADMIN/JAN-only Access and Rights');
+ assert.equal(await manager.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'MANAGER never gains access to JAN-only Access and Rights');
  assert.equal(await manager.page.locator('[data-settings-open="areas"]').isVisible(),true,'MANAGER receives ADMIN-equivalent Settings access');
  await manager.page.locator('[data-settings-open="users"]').click();
  await manager.page.locator('#settingsPanelUsers').waitFor({state:'visible'});
- assert.equal(await manager.page.locator('#centralUsersAdminLink').count(),0,'legacy Central Data Bank shortcut is no longer embedded in the USERS panel');
+ assert.equal(await manager.page.locator('#centralUsersAdminLink').isVisible(),false,'later USERS panel rendering cannot restore the Central Data Bank shortcut for MANAGER');
  await manager.page.locator('#settingsPanelUsers [data-settings-back]').click();
  await manager.page.locator('[data-settings-open="areas"]').click();
  assert.equal(await manager.page.locator('#newAreaPreset').isEnabled(),true,'MANAGER can edit Area Presets when granted ADMIN-equivalent rights');

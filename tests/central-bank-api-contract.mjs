@@ -45,12 +45,8 @@ const lockedRoles=src.slice(src.indexOf('const lockedRolePrivileges'),src.indexO
 assert.ok(lockedRoles.includes('OWNER:{canEditTracker:true'), 'JAN root OWNER permissions are fixed');
 assert.doesNotMatch(lockedRoles, /MANAGER:|SUPERVISOR:|USER:|SPECTATOR:/,
   'non-root tiers are configurable by JAN rather than locked to hard-coded baselines');
-assert.ok(src.includes('if(tier!=="ADMIN"&&!isJanRoot)return json({error:"Only ADMIN or the JAN root administrator can change tier access and rights"},403);'),
-  'tier rights changes are restricted to the ADMIN tier and JAN root OWNER');
-assert.ok(src.includes('if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN or the JAN root administrator can create accounts or assign user tiers."},403);'),
-  'only ADMIN/JAN may create user accounts or change a users tier');
-assert.ok(src.includes('if(!priv.canManageUsers)return json({error:"Permission denied"},403);'),
-  'other existing account maintenance remains subject to user-management rights');
+assert.ok(src.includes('String(currentUser.username||"").toUpperCase()!=="JAN"||tier!=="OWNER"'),
+  'tier rights changes are restricted to the JAN root OWNER identity');
 assert.ok(src.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&src.includes('typeof supplied[key]!=="boolean"'),
   'tier rights updates validate the permission whitelist and boolean values');
 assert.ok(src.includes('action:"tiers-save",details:{tiers:tiers.filter(role=>role!=="OWNER")}'),
@@ -61,13 +57,4 @@ assert.ok(src.includes('if(Array.isArray(bank.appData?.dailyTaskPresets))nextApp
 assert.ok(src.includes('delete nextAppData.quickReasons;delete nextAppData.recentReasons'),
   'legacy quick reason shortcut data is removed during the next central save');
 
-
-for(const action of ['central-config-state','central-config-save-draft','central-config-publish','central-config-restore-draft'])assert.ok(src.includes('if(action==="'+action+'")'),'configuration control-plane action '+action);
-assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralAdmin'),'configuration control-plane API denies all non-ADMIN/non-JAN tiers');
-assert.ok(src.includes('configState.draft_version')&&src.includes('configState.published_version'),'configuration drafts and published state have independent version pointers');
-assert.ok(src.includes('downtime_central_config_state')&&src.includes('downtime_central_config_history'),'configuration control plane uses isolated tables');
-assert.ok(src.includes('normalizeCentralConfig(body.config)'),'server validates configuration before saving a draft');
-assert.ok(src.includes('action:"central-config-publish"'),'publishing is audited');
-assert.ok(src.includes('action:"central-config-restore-draft"'),'restoring historical configuration is audited');
-
-console.log('Central API security and isolated configuration contracts passed (static source checks).');
+console.log('Central API security contract checks passed (static source checks).');

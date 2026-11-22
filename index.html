@@ -598,12 +598,12 @@ body.overview-overlay-open{overflow:hidden}
     </div>
     <div id="settingsOwnerAccess" class="settings-owner-access" hidden>
       <div class="settings-owner-access-head">
-        <div><div class="settings-eyebrow">ADMIN / JAN · RESTRICTED ADMINISTRATION</div><p>Restricted administration area for ADMIN and the permanent JAN root account.</p></div>
-        <span class="pill">ADMIN / JAN ONLY</span>
+        <div><div class="settings-eyebrow">JAN · ROOT ADMINISTRATION</div><p>Restricted control area for the permanent JAN administrator account.</p></div>
+        <span class="pill">JAN ONLY</span>
       </div>
       <button class="settings-card settings-owner-access-card" type="button" data-settings-open="accessRights" aria-controls="settingsPanelAccessRights" aria-expanded="false">
         <span class="settings-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 8.8 8 11 4.6-2.2 8-6 8-11V5l-8-3Z"/><path d="m8.5 12 2.3 2.3 4.8-5"/></svg></span>
-        <span class="settings-card-copy"><strong>ACCESS AND RIGHTS</strong><small>Configure tier permissions, privileges and access to DOWNTIME features</small><em>ADMIN / JAN ADMINISTRATION ONLY</em></span>
+        <span class="settings-card-copy"><strong>ACCESS AND RIGHTS</strong><small>Configure tier permissions, privileges and access to DOWNTIME features</small><em>JAN ADMINISTRATION ONLY</em></span>
         <span class="settings-card-arrow" aria-hidden="true">›</span>
       </button>
     </div>
@@ -615,7 +615,7 @@ body.overview-overlay-open{overflow:hidden}
     <div class="settings-detail-head"><button class="settings-back" type="button" data-settings-back>‹ <span>BACK TO SETTINGS</span></button><div class="settings-detail-tag">ACCESS MANAGEMENT</div></div>
     <div class="panel settings-content-panel">
       <h2>USERS</h2><p class="muted">Central USER accounts, PINs and privileges are managed in the single central database.</p>
-      <div id="centralUsersManager" style="display:none;margin:10px 0 16px;padding:12px;border:1px solid #354f61;border-radius:12px;background:#0c1b27"><h3 style="margin:0 0 8px;color:#ffc400">CENTRAL USER ACCOUNTS</h3><p class="muted" style="margin:0 0 10px">Account actions are available only to tiers granted user-management rights. JAN is protected as the permanent root OWNER.</p><div id="centralUsersManageList"></div><div style="border-top:1px solid #30495a;margin-top:12px;padding-top:12px"><h3 id="centralAccountFormTitle" style="margin:0 0 10px">ADD USER ACCOUNT</h3><div class="fields"><div class="field"><label>Username</label><input id="centralAccountUsername" maxlength="32" autocomplete="off" placeholder="Unique username"></div><div class="field"><label>Display name</label><input id="centralAccountDisplay" maxlength="60" placeholder="Name shown in login"></div><div class="field"><label>Tier</label><select id="centralAccountTier"><option>ADMIN</option><option>MANAGER</option><option>SUPERVISOR</option><option selected>USER</option><option>SPECTATOR</option></select><small id="centralAccountTierHint" class="muted">Only ADMIN / JAN can create accounts or assign tiers.</small></div><div class="field"><label>PIN · 4–8 digits</label><input id="centralAccountPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Required for new account"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button id="centralAccountSave" class="primary" type="button">ADD USER</button><button id="centralAccountCancel" type="button" style="display:none">CANCEL EDIT</button><button id="centralUsersRefresh" type="button">REFRESH USERS</button></div><div id="centralUsersStatus" class="muted" role="status" style="margin-top:8px;min-height:20px"></div></div></div>
+      <a id="centralUsersAdminLink" href="central-bank-admin.html" target="_blank" rel="noopener" style="display:inline-block;margin:8px 0 14px;color:#ffc400;font-weight:800">OPEN CENTRAL USERS & PRIVILEGES ↗</a><div id="centralUsersManager" style="display:none;margin:10px 0 16px;padding:12px;border:1px solid #354f61;border-radius:12px;background:#0c1b27"><h3 style="margin:0 0 8px;color:#ffc400">CENTRAL USER ACCOUNTS</h3><p class="muted" style="margin:0 0 10px">Account actions are available only to tiers granted user-management rights. JAN is protected as the permanent root OWNER.</p><div id="centralUsersManageList"></div><div style="border-top:1px solid #30495a;margin-top:12px;padding-top:12px"><h3 id="centralAccountFormTitle" style="margin:0 0 10px">ADD USER ACCOUNT</h3><div class="fields"><div class="field"><label>Username</label><input id="centralAccountUsername" maxlength="32" autocomplete="off" placeholder="Unique username"></div><div class="field"><label>Display name</label><input id="centralAccountDisplay" maxlength="60" placeholder="Name shown in login"></div><div class="field"><label>Tier</label><select id="centralAccountTier"><option>ADMIN</option><option>MANAGER</option><option>SUPERVISOR</option><option selected>USER</option><option>SPECTATOR</option></select></div><div class="field"><label>PIN · 4–8 digits</label><input id="centralAccountPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Required for new account"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button id="centralAccountSave" class="primary" type="button">ADD USER</button><button id="centralAccountCancel" type="button" style="display:none">CANCEL EDIT</button><button id="centralUsersRefresh" type="button">REFRESH USERS</button></div><div id="centralUsersStatus" class="muted" role="status" style="margin-top:8px;min-height:20px"></div></div></div>
       <div id="settingsAdminControls">
         <div id="operatorAdminPanel" style="display:none"><div class="field"><label>New app user name</label><input id="newOperatorName" maxlength="20" placeholder="User name"></div><div class="field"><label>Initial PIN (3–4 digits)</label><input id="newOperatorInitialPin" inputmode="numeric" type="password" maxlength="4"></div><button id="addOperatorBtn" class="primary">ADD USER</button><div id="operatorAdminMsg" class="muted"></div><div id="operatorRosterList"></div></div>
       </div>
@@ -662,7 +662,7 @@ body.overview-overlay-open{overflow:hidden}
     </div>
   </div>
   <div id="settingsPanelAccessRights" class="settings-panel" hidden>
-    <div class="settings-detail-head"><button class="settings-back" type="button" data-settings-back>‹ <span>BACK TO SETTINGS</span></button><div class="settings-detail-tag">ADMIN / JAN · RESTRICTED ADMINISTRATION</div></div>
+    <div class="settings-detail-head"><button class="settings-back" type="button" data-settings-back>‹ <span>BACK TO SETTINGS</span></button><div class="settings-detail-tag">JAN · ROOT ADMINISTRATION</div></div>
     <div class="panel settings-content-panel">
       <h2>ACCESS AND RIGHTS</h2>
       <p class="muted">Configure which DOWNTIME features each user tier can access and what actions each tier is permitted to perform. Changes are saved to the central data bank and apply to all accounts assigned to that tier.</p>
@@ -737,7 +737,7 @@ const lockedTierPermissions={
  OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}
 };
 function permission(name){const tier=privilegeFor(activeOperator),locked=lockedTierPermissions[tier];if(locked&&Object.prototype.hasOwnProperty.call(locked,name))return locked[name];const custom=centralBankPayload?.tiers?.[tier];return typeof custom?.[name]==='boolean'?custom[name]:!!tierDefaults[tier]?.[name]}
-function canManageAccessRights(){return canAccessCentralBank()}
+function isJanAccessAdmin(){return String(centralUser?.username||activeOperator||'').trim().toUpperCase()==='JAN'&&privilegeFor(activeOperator)==='OWNER'}
 function canAccessCentralBank(){const username=String(centralUser?.username||activeOperator||'').trim().toUpperCase(),tier=privilegeFor(activeOperator);return tier==='ADMIN'||(username==='JAN'&&tier==='OWNER')}
 const ACCESS_RIGHT_GROUPS=[
  {title:'TRACKER & RECORDS',rights:[
@@ -770,9 +770,9 @@ const ACCESS_RIGHT_GROUPS=[
   {key:'canExportReports',label:'Export reports',detail:'Download and export weekly report files'}
  ]}
 ];
-const ACCESS_TIER_DESCRIPTIONS={ADMIN:'Broad administrative access, configured by ADMIN / JAN.',MANAGER:'Operational management access, configured by ADMIN / JAN.',SUPERVISOR:'Front-line supervisory access, configured by ADMIN / JAN.',USER:'Standard user access, configured by ADMIN / JAN.',SPECTATOR:'Restricted viewing access, configured by ADMIN / JAN.'};
+const ACCESS_TIER_DESCRIPTIONS={ADMIN:'Broad administrative access, configured here by JAN.',MANAGER:'Operational management access, configured here by JAN.',SUPERVISOR:'Front-line supervisory access, configured here by JAN.',USER:'Standard user access, configured here by JAN.',SPECTATOR:'Restricted viewing access, configured here by JAN.'};
 function renderAccessRights(){
- const host=$('accessRightsTierList');if(!host||!canManageAccessRights())return;
+ const host=$('accessRightsTierList');if(!host||!isJanAccessAdmin())return;
  const stored=centralBankPayload?.tiers||tierDefaults;host.replaceChildren();
  USER_TIERS.filter(tier=>tier!=='OWNER').forEach(tier=>{
   const profile={...tierDefaults[tier],...(stored[tier]||{})};
@@ -799,7 +799,7 @@ function renderAccessRights(){
  });
 }
 async function saveAccessRights(){
- if(!canManageAccessRights())return;
+ if(!isJanAccessAdmin())return;
  const button=$('saveAccessRights'),status=$('accessRightsStatus'),host=$('accessRightsTierList');
  if(!button||!host||!status)return;
  const source=centralBankPayload?.tiers||tierDefaults,tiers={};
@@ -836,12 +836,13 @@ function renderOperatorChoices(){const select=$('centralUsername');if(!select)re
 function centralAppData(payload){const bank=payload||{},app={...(bank.appData||{})};app.operatorProfiles=bank.staff?.profiles||app.operatorProfiles||{};app.staffRoster=Array.isArray(bank.staff?.roster)?bank.staff.roster:(Array.isArray(app.staffRoster)?app.staffRoster:['Jan','Mick','Gigi','Daz','Shayne']);if(!app.weeks||typeof app.weeks!=='object')app.weeks={};if(!Array.isArray(app.areas))app.areas=['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360'];if(!Array.isArray(app.reasons))app.reasons=['Mick (diesel, filter, etc)','Blockage','Repair/Maintenance','Unknown'];if(!Array.isArray(app.dailyTaskPresets))app.dailyTaskPresets=[];delete app.quickReasons;delete app.recentReasons;if(!Array.isArray(app.archive))app.archive=[];return app}
 function applyTierVisibility(){
  const spectator=!permission('canViewDashboards')&&!anySettingsAccess()&&!permission('canViewReports')&&!permission('canViewAssignments');
- const reportsNav=document.querySelector('.nav[data-view="reports"]'),settingsNav=document.querySelector('.nav[data-view="settings"]'),overview=document.querySelector('.overview-link'),admin=$('centralAdminNav');
+ const reportsNav=document.querySelector('.nav[data-view="reports"]'),settingsNav=document.querySelector('.nav[data-view="settings"]'),overview=document.querySelector('.overview-link'),admin=$('centralAdminNav'),usersAdmin=$('centralUsersAdminLink');
  const reportsView=$('reports'),settingsView=$('settings'),onDuty=$('onDuty'),exportButton=$('exportBtn');
  if(reportsNav)reportsNav.style.display=spectator||!permission('canViewReports')?'none':'';
  if(settingsNav)settingsNav.style.display=spectator||!anySettingsAccess()?'none':'';
  if(overview)overview.style.display=spectator||!permission('canViewAssignments')?'none':'';
  if(admin)admin.style.display=canAccessCentralBank()?'':'none';
+ if(usersAdmin)usersAdmin.style.display=canAccessCentralBank()?'':'none';
  document.body.classList.toggle('central-spectator',spectator);
  if(reportsView)reportsView.style.display=spectator||!permission('canViewReports')?'none':'';
  if(settingsView)settingsView.style.display=spectator||!anySettingsAccess()?'none':'';
@@ -938,7 +939,7 @@ function canManageSettingsSection(section){
  return permission('canManageSettings')||(rights[section]||[]).some(key=>permission(key));
 }
 function settingsAccess(section){
- if(section==='accessRights')return canManageAccessRights();
+ if(section==='accessRights')return isJanAccessAdmin();
  const view={users:'canViewUsers',areas:'canViewAreaPresets',reasons:'canViewReasonPresets',schedule:'canViewShiftSchedule',dailyTasks:'canViewDailyTasks',staff:'canViewStaff'};
  return !!view[section]&&(permission(view[section])||canManageSettingsSection(section))||(section==='reasons'&&permission('canAddDowntimeReasons'));
 }
@@ -1400,7 +1401,7 @@ async function unlockTracker(){const pin=$('teamPin').value,username=$('centralU
 async function resumeCentralSession(){if(!window.DowntimeCentral.session?.token)return;try{centralUser=window.DowntimeCentral.session.user;activeOperator=centralUser?.username||'';await cloudInit();if(centralReady){showCentralApp();legacyCloudClient().catch(()=>null)}}catch(error){console.warn('Stored central session could not be resumed.',error);await window.DowntimeCentral.logout().catch(()=>{});centralUser=null;activeOperator='';loadCentralUsers().catch(()=>{})}}
 $('unlockBtn').onclick=unlockTracker;$('teamPin').addEventListener('keydown',e=>{if(e.key==='Enter')unlockTracker()});
 $('refreshAppBtn').onclick=()=>{loadCentralUsers().catch(()=>{})};
-$('logoutBtn')?.addEventListener('click',async()=>{try{stopCentralRealtimeSync();await window.DowntimeCentral.logout()}finally{if(managementPollTimer)clearInterval(managementPollTimer);centralReady=false;cloudReady=false;centralUser=null;centralBankPayload=null;activeOperator='';operatorReadOnly=false;$('authGate').style.display='grid';const centralAdminNav=$('centralAdminNav');if(centralAdminNav)centralAdminNav.style.display='none';const shell=document.querySelector('.shell');if(shell)shell.style.display='';$('teamPin').value='';loadCentralUsers().catch(()=>{})}});
+$('logoutBtn')?.addEventListener('click',async()=>{try{stopCentralRealtimeSync();await window.DowntimeCentral.logout()}finally{if(managementPollTimer)clearInterval(managementPollTimer);centralReady=false;cloudReady=false;centralUser=null;centralBankPayload=null;activeOperator='';operatorReadOnly=false;$('authGate').style.display='grid';const centralAdminNav=$('centralAdminNav');if(centralAdminNav)centralAdminNav.style.display='none';const centralUsersAdminLink=$('centralUsersAdminLink');if(centralUsersAdminLink)centralUsersAdminLink.style.display='none';const shell=document.querySelector('.shell');if(shell)shell.style.display='';$('teamPin').value='';loadCentralUsers().catch(()=>{})}});
 function managementRole(){return permission('canEditTracker')||permission('canManageSettings')}
 function managementEntryKey(dayKey,entry){return dayKey+'|'+JSON.stringify({area:entry.area||'',reason:entry.reason||'',hours:Number(entry.hours)||0,minutes:Number(entry.minutes)||0})}
 function addedEntries(previous,next){const added=[];for(const [weekKey,weekData] of Object.entries(next?.weeks||{})){const oldWeek=previous?.weeks?.[weekKey];(weekData?.days||[]).forEach((d,dayIndex)=>{const oldDay=oldWeek?.days?.[dayIndex],oldCounts={};(oldDay?.entries||[]).forEach(e=>{const k=managementEntryKey(weekKey+'-'+dayIndex,e);oldCounts[k]=(oldCounts[k]||0)+1});(d.entries||[]).forEach(e=>{const k=managementEntryKey(weekKey+'-'+dayIndex,e);if(oldCounts[k])oldCounts[k]--;else added.push({weekKey,dayIndex,entry:e})})})}return added}
@@ -1416,23 +1417,16 @@ function resetCentralUserForm(){
  if(display)display.value='';
  if(tier)tier.value='USER';
  if(pin)pin.value='';
- const canAssignTier=canAccessCentralBank();
- if(tier)tier.disabled=!canAssignTier;
  if($('centralAccountFormTitle'))$('centralAccountFormTitle').textContent='ADD USER ACCOUNT';
- if($('centralAccountSave')){$('centralAccountSave').textContent='ADD USER';$('centralAccountSave').disabled=!canAssignTier;}
- if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'ADMIN / JAN can create accounts and assign tiers.':'Only ADMIN / JAN can create accounts or assign tiers. You may edit permitted existing accounts without changing their tier.';
+ if($('centralAccountSave'))$('centralAccountSave').textContent='ADD USER';
  if($('centralAccountCancel'))$('centralAccountCancel').style.display='none';
 }
 function renderCentralUserSettings(){
  const host=$('centralUsersManager'),list=$('centralUsersManageList');
  if(!host||!list)return;
- const canManage=permission('canManageUsers'),canView=canManage||permission('canViewUsers'),canAssignTier=canAccessCentralBank();
+ const canManage=permission('canManageUsers'),canView=canManage||permission('canViewUsers');
  host.style.display=canView?'block':'none';
- if(!editingCentralUsername){
-  if($('centralAccountTier'))$('centralAccountTier').disabled=!canAssignTier;
-  if($('centralAccountSave'))$('centralAccountSave').disabled=!canManage||!canAssignTier;
-  if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'ADMIN / JAN can create accounts and assign tiers.':'Only ADMIN / JAN can create accounts or assign tiers. You may edit permitted existing accounts without changing their tier.';
- }
+ const accountLink=$('centralUsersAdminLink');if(accountLink)accountLink.style.display=canAccessCentralBank()?'inline-block':'none';
  const formTitle=$('centralAccountFormTitle');if(formTitle?.parentElement)formTitle.parentElement.hidden=!canManage;
  if(!canView)return;
  list.replaceChildren();
@@ -1451,13 +1445,11 @@ function renderCentralUserSettings(){
   else{
    const edit=document.createElement('button');edit.type='button';edit.textContent='EDIT';edit.onclick=()=>{
     editingCentralUsername=user.username;
-    const canAssignTier=canAccessCentralBank();
     $('centralAccountUsername').value=user.username;$('centralAccountUsername').disabled=true;
-    $('centralAccountDisplay').value=user.displayName||user.username;$('centralAccountTier').value=user.tier;$('centralAccountTier').disabled=!canAssignTier;
+    $('centralAccountDisplay').value=user.displayName||user.username;$('centralAccountTier').value=user.tier;
     $('centralAccountPin').value='';
     $('centralAccountFormTitle').textContent='EDIT USER · '+user.username;
-    $('centralAccountSave').textContent='SAVE CHANGES';$('centralAccountSave').disabled=false;$('centralAccountCancel').style.display='inline-block';
-    if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'ADMIN / JAN may change this account tier.':'Tier assignment is reserved to ADMIN / JAN; this account tier is locked.';
+    $('centralAccountSave').textContent='SAVE CHANGES';$('centralAccountCancel').style.display='inline-block';
     $('centralUsersStatus').textContent='Leave PIN blank to keep the current PIN.';
     $('centralAccountFormTitle').scrollIntoView({behavior:'smooth',block:'nearest'});
    };actions.appendChild(edit);
@@ -1491,8 +1483,6 @@ async function saveCentralUserSettings(){
  const username=$('centralAccountUsername').value.trim(),displayName=$('centralAccountDisplay').value.trim(),tier=$('centralAccountTier').value,pin=$('centralAccountPin').value;
  if(!username){$('centralUsersStatus').textContent='Enter a username.';return}
  const existing=(centralBankPayload?.users||[]).find(user=>String(user.username).toLowerCase()===username.toLowerCase());
- const canAssignTier=canAccessCentralBank();
- if((!editingCentralUsername||!existing||existing.tier!==tier)&&!canAssignTier){$('centralUsersStatus').textContent='Only ADMIN / JAN can create accounts or assign user tiers.';return}
  const payload={username,displayName:displayName||username,tier,enabled:existing?.enabled!==false,version:centralVersion};
  if(pin)payload.pin=pin;
  if(!editingCentralUsername&&!pin){$('centralUsersStatus').textContent='A 4–8 digit PIN is required for a new account.';return}
