@@ -790,7 +790,7 @@ const parseWeek=k=>new Date(k+'T12:00:00');
 let weekStart=mondayOf(today),selected=0,entryDraft={area:'',reason:''},editing=-1;
 let state=load();state.shiftSchedule=state.shiftSchedule||scheduleDefaults();state.shiftPresets=state.shiftPresets||[];state.dailyTaskPresets=Array.isArray(state.dailyTaskPresets)?state.dailyTaskPresets:[];if(typeof state.plantOn!=="boolean")state.plantOn=true;state.undoAction=state.undoAction||null;delete state.quickReasons;delete state.recentReasons;
 let centralUsers=[],centralUser=null,centralBankPayload=null,centralVersion=0,centralReady=false,centralPendingWrites=0,centralPinAttempts=0,centralPinLockUntil=0;
-let activeOperator='',operatorReadOnly=false,operatorAdmin=false;
+let activeOperator='',operatorReadOnly=false,operatorAdmin=false,plantPowerBusy=false;
 const USER_TIERS=['OWNER','DEVACC','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR'];
 function staffRoster(){const names=Array.isArray(state?.staffRoster)?state.staffRoster:['Jan','Mick','Gigi','Daz','Shayne'];return [...new Set(names.filter(n=>typeof n==='string'&&n.trim()))]}
 function privilegeFor(n){const u=centralUsers.find(x=>String(x.username).toLowerCase()===String(n||'').toLowerCase());return (n===centralUser?.username?centralUser?.tier:u?.tier)||'USER'}
@@ -966,29 +966,36 @@ function renderPlantOperatorControl(){
  const allowed=!!centralUser&&centralReady&&permission('canControlPlantPower');
  if(wrap)wrap.style.display=allowed?'flex':'none';
  b.style.display=allowed?'inline-flex':'none';
- b.disabled=!allowed;
+ b.disabled=!allowed||plantPowerBusy;
  if(!allowed){b.onclick=null;return}
  const on=state.plantOn!==false;
  b.textContent=on?'PLANT ON · GREEN':'PLANT OFF · RED';
  b.style.background=on?'#14532d':'#7f1d1d';b.style.borderColor=on?'#22c55e':'#ef4444';b.style.color='#fff';
  b.setAttribute('aria-pressed',String(on));
  b.onclick=async()=>{
-  if(!centralReady||!permission('canControlPlantPower')||b.disabled)return;
+  if(!centralReady||!permission('canControlPlantPower')||plantPowerBusy)return;
+  plantPowerBusy=true;
   const nextOn=state.plantOn===false;
   b.disabled=true;b.textContent='UPDATING PLANT STATUS…';
   try{
-   await window.DowntimeCentral.setPlantStatus(nextOn,centralVersion);
-   const refreshed=await window.DowntimeCentral.state();
-   applyIncomingCloudPayload(refreshed.payload,nextOn?'CENTRAL · PLANT ON':'CENTRAL · PLANT OFF',refreshed.updatedAt,refreshed.version,refreshed.user);
+   const saved=await window.DowntimeCentral.setPlantStatus(nextOn,centralVersion);
+   centralVersion=Number(saved.version)||centralVersion;
+   state.plantOn=nextOn;
+   localStorage.setItem(STORE,JSON.stringify(state));
+   if(centralBankPayload){centralBankPayload.appData=centralBankPayload.appData||{};centralBankPayload.appData.plantOn=nextOn}
+   try{
+    const refreshed=await window.DowntimeCentral.state();
+    applyIncomingCloudPayload(refreshed.payload,nextOn?'CENTRAL · PLANT ON':'CENTRAL · PLANT OFF',refreshed.updatedAt,refreshed.version,refreshed.user);
+   }catch(refreshError){cloudStatus('PLANT POWER UPDATED · latest status refresh unavailable');console.warn('Plant Power state refresh failed.',refreshError)}
   }catch(error){
-   cloudStatus('PLANT POWER UPDATE FAILED · '+(error.message||'Refresh and retry'));
    try{
     const refreshed=await window.DowntimeCentral.state();
     applyIncomingCloudPayload(refreshed.payload,'CENTRAL · refreshed after Plant Power error',refreshed.updatedAt,refreshed.version,refreshed.user);
    }catch(refreshError){console.warn('Plant Power refresh failed.',refreshError)}
+   cloudStatus('PLANT POWER UPDATE FAILED · '+(error.message||'Refresh and retry'));
   }finally{
-   const current=$('plantOperatorToggle');
-   if(current){current.disabled=!centralReady||!permission('canControlPlantPower');renderPlantOperatorControl()}
+   plantPowerBusy=false;
+   renderPlantOperatorControl();
   }
  };
 }
