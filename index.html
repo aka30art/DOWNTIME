@@ -438,7 +438,7 @@ body.overview-overlay-open{overflow:hidden}
 }
 </style>
 </head>
-<body><div id="authGate"><div class="authbox"><h2>DOWNTIME · CENTRAL LOGIN</h2><p class="muted">Select your central USER account and enter your PIN.</p><label for="centralUsername">USERNAME</label><select id="centralUsername" class="input" aria-label="Central username"><option value="">Loading central USERS…</option></select><input id="teamPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="4–8 digit PIN" aria-label="Central account PIN"><div class="pinpad" data-pinpad="teamPin"><div class="pinpad-grid"><button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="clear">CLEAR</button><button type="button" data-key="0">0</button><button type="button" data-key="back">⌫</button></div></div><button id="unlockBtn" class="primary">SIGN IN</button><button type="button" id="refreshAppBtn" class="quiet" style="width:100%;margin-top:8px">REFRESH USER LIST</button><div id="authMsg" role="status" aria-live="polite"></div><p class="muted" style="font-size:12px;margin-top:12px">OWNER setup and account administration: <a href="central-bank-admin.html" target="_blank" rel="noopener">Central Data Bank</a></p></div></div>
+<body><div id="authGate"><div class="authbox"><h2>DOWNTIME · CENTRAL LOGIN</h2><p class="muted">Select your central USER account and enter your PIN.</p><label for="centralUsername">USERNAME</label><select id="centralUsername" class="input" aria-label="Central username"><option value="">Loading central USERS…</option></select><input id="teamPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="4–8 digit PIN" aria-label="Central account PIN"><div class="pinpad" data-pinpad="teamPin"><div class="pinpad-grid"><button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="clear">CLEAR</button><button type="button" data-key="0">0</button><button type="button" data-key="back">⌫</button></div></div><button id="unlockBtn" class="primary">SIGN IN</button><button type="button" id="refreshAppBtn" class="quiet" style="width:100%;margin-top:8px">REFRESH USER LIST</button><div id="authMsg" role="status" aria-live="polite"></div></div></div>
 <div id="operatorGate" style="display:none"></div>
 <div id="spectatorView" style="display:none"></div>
 <div class="shell">
@@ -451,7 +451,7 @@ body.overview-overlay-open{overflow:hidden}
 <button class="nav" data-view="reports">▤ &nbsp; WEEKLY Reports</button>
 
 <button class="nav" data-view="settings">⚙ &nbsp; Settings</button>
-<a id="centralAdminNav" class="nav central-admin-nav" href="central-bank-admin.html" target="_blank" rel="noopener">▣ &nbsp; Central Data Bank Admin</a>
+<a id="centralAdminNav" class="nav central-admin-nav" href="central-bank-admin.html" target="_blank" rel="noopener" style="display:none">▣ &nbsp; Central Data Bank Admin</a>
 <a class="nav overview-link" href="plant-overview-preview.html" aria-haspopup="dialog" aria-controls="overviewOverlay" aria-expanded="false">▦ &nbsp; Overview</a>
 <button id="logoutBtn" class="nav logout-nav" type="button" aria-label="Log out and return to USER login">↪ &nbsp; LOG OUT</button>
 </div>
@@ -738,6 +738,7 @@ const lockedTierPermissions={
 };
 function permission(name){const tier=privilegeFor(activeOperator),locked=lockedTierPermissions[tier];if(locked&&Object.prototype.hasOwnProperty.call(locked,name))return locked[name];const custom=centralBankPayload?.tiers?.[tier];return typeof custom?.[name]==='boolean'?custom[name]:!!tierDefaults[tier]?.[name]}
 function isJanAccessAdmin(){return String(centralUser?.username||activeOperator||'').trim().toUpperCase()==='JAN'&&privilegeFor(activeOperator)==='OWNER'}
+function canAccessCentralBank(){const username=String(centralUser?.username||activeOperator||'').trim().toUpperCase(),tier=privilegeFor(activeOperator);return tier==='ADMIN'||(username==='JAN'&&tier==='OWNER')}
 const ACCESS_RIGHT_GROUPS=[
  {title:'TRACKER & RECORDS',rights:[
   {key:'canEditTracker',label:'Edit tracker',detail:'Create and edit downtime records and daily operational information'},
@@ -840,8 +841,8 @@ function applyTierVisibility(){
  if(reportsNav)reportsNav.style.display=spectator||!permission('canViewReports')?'none':'';
  if(settingsNav)settingsNav.style.display=spectator||!anySettingsAccess()?'none':'';
  if(overview)overview.style.display=spectator||!permission('canViewAssignments')?'none':'';
- if(admin)admin.style.display=operatorAdmin?'':'none';
- if(usersAdmin)usersAdmin.style.display=permission('canManageUsers')?'':'none';
+ if(admin)admin.style.display=canAccessCentralBank()?'':'none';
+ if(usersAdmin)usersAdmin.style.display=canAccessCentralBank()?'':'none';
  document.body.classList.toggle('central-spectator',spectator);
  if(reportsView)reportsView.style.display=spectator||!permission('canViewReports')?'none':'';
  if(settingsView)settingsView.style.display=spectator||!anySettingsAccess()?'none':'';
@@ -1400,7 +1401,7 @@ async function unlockTracker(){const pin=$('teamPin').value,username=$('centralU
 async function resumeCentralSession(){if(!window.DowntimeCentral.session?.token)return;try{centralUser=window.DowntimeCentral.session.user;activeOperator=centralUser?.username||'';await cloudInit();if(centralReady){showCentralApp();legacyCloudClient().catch(()=>null)}}catch(error){console.warn('Stored central session could not be resumed.',error);await window.DowntimeCentral.logout().catch(()=>{});centralUser=null;activeOperator='';loadCentralUsers().catch(()=>{})}}
 $('unlockBtn').onclick=unlockTracker;$('teamPin').addEventListener('keydown',e=>{if(e.key==='Enter')unlockTracker()});
 $('refreshAppBtn').onclick=()=>{loadCentralUsers().catch(()=>{})};
-$('logoutBtn')?.addEventListener('click',async()=>{try{stopCentralRealtimeSync();await window.DowntimeCentral.logout()}finally{if(managementPollTimer)clearInterval(managementPollTimer);centralReady=false;cloudReady=false;centralUser=null;centralBankPayload=null;activeOperator='';operatorReadOnly=false;$('authGate').style.display='grid';const shell=document.querySelector('.shell');if(shell)shell.style.display='';$('teamPin').value='';loadCentralUsers().catch(()=>{})}});
+$('logoutBtn')?.addEventListener('click',async()=>{try{stopCentralRealtimeSync();await window.DowntimeCentral.logout()}finally{if(managementPollTimer)clearInterval(managementPollTimer);centralReady=false;cloudReady=false;centralUser=null;centralBankPayload=null;activeOperator='';operatorReadOnly=false;$('authGate').style.display='grid';const centralAdminNav=$('centralAdminNav');if(centralAdminNav)centralAdminNav.style.display='none';const centralUsersAdminLink=$('centralUsersAdminLink');if(centralUsersAdminLink)centralUsersAdminLink.style.display='none';const shell=document.querySelector('.shell');if(shell)shell.style.display='';$('teamPin').value='';loadCentralUsers().catch(()=>{})}});
 function managementRole(){return permission('canEditTracker')||permission('canManageSettings')}
 function managementEntryKey(dayKey,entry){return dayKey+'|'+JSON.stringify({area:entry.area||'',reason:entry.reason||'',hours:Number(entry.hours)||0,minutes:Number(entry.minutes)||0})}
 function addedEntries(previous,next){const added=[];for(const [weekKey,weekData] of Object.entries(next?.weeks||{})){const oldWeek=previous?.weeks?.[weekKey];(weekData?.days||[]).forEach((d,dayIndex)=>{const oldDay=oldWeek?.days?.[dayIndex],oldCounts={};(oldDay?.entries||[]).forEach(e=>{const k=managementEntryKey(weekKey+'-'+dayIndex,e);oldCounts[k]=(oldCounts[k]||0)+1});(d.entries||[]).forEach(e=>{const k=managementEntryKey(weekKey+'-'+dayIndex,e);if(oldCounts[k])oldCounts[k]--;else added.push({weekKey,dayIndex,entry:e})})})}return added}
@@ -1425,7 +1426,7 @@ function renderCentralUserSettings(){
  if(!host||!list)return;
  const canManage=permission('canManageUsers'),canView=canManage||permission('canViewUsers');
  host.style.display=canView?'block':'none';
- const accountLink=$('centralUsersAdminLink');if(accountLink)accountLink.style.display=canManage?'inline-block':'none';
+ const accountLink=$('centralUsersAdminLink');if(accountLink)accountLink.style.display=canAccessCentralBank()?'inline-block':'none';
  const formTitle=$('centralAccountFormTitle');if(formTitle?.parentElement)formTitle.parentElement.hidden=!canManage;
  if(!canView)return;
  list.replaceChildren();

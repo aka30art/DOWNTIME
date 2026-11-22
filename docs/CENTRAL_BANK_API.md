@@ -9,6 +9,7 @@ The function is designed to be deployed with `verify_jwt=false` because it valid
 - `list-users`: returns enabled login choices only (username, display name and tier); it never returns PIN hash or salt fields.
 - `login`: validates username and PIN using PBKDF2-HMAC-SHA256 (150,000 iterations, per-user random salt); creates a random 256-bit opaque session token, stores only its SHA-256 hash, and expires the session after 12 hours. Failed attempts are recorded and throttled after five attempts for a username in five minutes.
 - `get-state`: returns the payload according to the caller's tier. It strips PIN secrets and filters user lists, STAFF data, assignments, dashboards and reports according to server-side privileges.
+- `central-admin-state`: returns the full Central Data Bank administration workspace only to tier `ADMIN` and the immutable `JAN` / `OWNER` root account. Every other authenticated identity receives HTTP 403. The standalone admin page uses this dedicated action; normal tracker clients continue using the tier-filtered `get-state` action.
 - `save-state`: accepts tracker app data only from `canEditTracker` accounts. It uses version compare-and-swap and preserves settings, STAFF and archive fields outside the caller's privilege.
 - `users`, `user-save`, `user-delete`: tier-gated USER administration. Only OWNER may grant or modify OWNER accounts. USER changes and deletions revoke target sessions.
 - `staff-save`: STAFF profile and roster updates for `canManageStaff` accounts.

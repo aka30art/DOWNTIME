@@ -16,7 +16,7 @@
 function configure(){api=$("projectUrl").value.trim().replace(/\/$/,"")+"/functions/v1/central-bank";return api}
 async function call(action,payload={},auth=true){configure();const h={"Content-Type":"application/json","apikey":$("pubKey").value.trim()};if(auth&&token)h["x-downtime-session"]=token;const r=await fetch(api,{method:"POST",headers:h,body:JSON.stringify({action,...payload})});const d=await r.json().catch(()=>({error:"Bad response"}));if(!r.ok)throw Error(d.error||"API request failed");return d}
 function status(id,msg){$(id).textContent=msg}
-async function load(){const d=await call("get-state");bank=d.payload;version=d.version;me=d.user;render()}
+async function load(){const d=await call("central-admin-state");bank=d.payload;version=d.version;me=d.user;render()}
 function render(){
 const rights=bank.tiers?.[me.tier]||{},isRoot=String(me.username||'').toUpperCase()==='JAN'&&me.tier==='OWNER';
 const canManageUsers=rights.canManageUsers===true,canViewUsers=canManageUsers||rights.canViewUsers===true;
@@ -38,7 +38,7 @@ document.querySelectorAll('[data-delete-user]').forEach(b=>b.onclick=async()=>{i
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 $("showSetup").onclick=()=>{$("setup").style.display=$("setup").style.display==="none"?"block":"none"};
 $("bootstrapBtn").onclick=async()=>{try{const d=await call("bootstrap",{bootstrapCode:$("setupCode").value,username:$("setupName").value,pin:$("setupPin").value},false);status("authStatus",d.message||"Owner setup done")}catch(e){status("authStatus",e.message)}};
-$("loginBtn").onclick=async()=>{try{const user=await call("login",{username:$("username").value,pin:$("pin").value},false);token=user.token;me=user.user;await load();}catch(e){status("authStatus",e.message)}};
+$("loginBtn").onclick=async()=>{try{const user=await call("login",{username:$("username").value,pin:$("pin").value},false);token=user.token;me=user.user;await load();}catch(e){if(token){try{await call("logout")}catch{}}token=null;me=null;bank=null;$("app").style.display="none";$("login").style.display="block";status("authStatus",e.message)}};
 $("logoutBtn").onclick=async()=>{try{await call("logout")}finally{token=null;me=null;bank=null;$("app").style.display="none";$("login").style.display="block"}};
 $("refreshBtn").onclick=async()=>{try{await load();status("authStatus","Central data refreshed")}catch(e){status("authStatus",e.message)}};
 $("saveUser").onclick=async()=>{try{const d=await call("user-save",{username:$("uName").value,displayName:$("uDisplay").value,tier:$("uTier").value,pin:$("uPin").value||undefined,version});version=d.version;status("userStatus","Saved centrally");await load()}catch(e){status("userStatus",e.message)}};
