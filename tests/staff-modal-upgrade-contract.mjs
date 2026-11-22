@@ -15,6 +15,6 @@ assert.match(html,/saveOperatorOriginalPhoto\(name,original\)/,'photo originals 
 assert.match(html,/pendingOperatorPhotos\.modal/,'modal photo changes are staged before saving');
 assert.match(html,/data\.length>48000/,'profile thumbnail size is constrained');
 assert.match(html,/staffRoster\(\)\.filter\(n=>n!==name\)/,'staff removal only removes the roster/profile entry');
-assert.match(html,/Historical records will be preserved/,'staff removal explicitly preserves history');
+assert.match(html,/Historical records remain preserved/,'staff removal explicitly preserves history');
 assert.doesNotMatch(html,/id="newStaffName"/,'old inline add-name input removed');
 console.log('PASS: STAFF modal upgrade contract — cards, Add New Member, photo workflow, station lock, plant status and permissions');
