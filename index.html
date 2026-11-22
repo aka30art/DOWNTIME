@@ -615,7 +615,7 @@ body.overview-overlay-open{overflow:hidden}
     <div class="settings-detail-head"><button class="settings-back" type="button" data-settings-back>‹ <span>BACK TO SETTINGS</span></button><div class="settings-detail-tag">ACCESS MANAGEMENT</div></div>
     <div class="panel settings-content-panel">
       <h2>USERS</h2><p class="muted">Central USER accounts, PINs and privileges are managed in the single central database.</p>
-      <a id="centralUsersAdminLink" href="central-bank-admin.html" target="_blank" rel="noopener" style="display:inline-block;margin:8px 0 14px;color:#ffc400;font-weight:800">OPEN CENTRAL USERS & PRIVILEGES ↗</a><div id="centralUsersManager" style="display:none;margin:10px 0 16px;padding:12px;border:1px solid #354f61;border-radius:12px;background:#0c1b27"><h3 style="margin:0 0 8px;color:#ffc400">CENTRAL USER ACCOUNTS</h3><p class="muted" style="margin:0 0 10px">OWNER and ADMIN can add, update, disable, activate and remove application accounts. JAN is protected as the permanent root OWNER.</p><div id="centralUsersManageList"></div><div style="border-top:1px solid #30495a;margin-top:12px;padding-top:12px"><h3 id="centralAccountFormTitle" style="margin:0 0 10px">ADD USER ACCOUNT</h3><div class="fields"><div class="field"><label>Username</label><input id="centralAccountUsername" maxlength="32" autocomplete="off" placeholder="Unique username"></div><div class="field"><label>Display name</label><input id="centralAccountDisplay" maxlength="60" placeholder="Name shown in login"></div><div class="field"><label>Tier</label><select id="centralAccountTier"><option>ADMIN</option><option>MANAGER</option><option>SUPERVISOR</option><option selected>USER</option><option>SPECTATOR</option></select></div><div class="field"><label>PIN · 4–8 digits</label><input id="centralAccountPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Required for new account"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button id="centralAccountSave" class="primary" type="button">ADD USER</button><button id="centralAccountCancel" type="button" style="display:none">CANCEL EDIT</button><button id="centralUsersRefresh" type="button">REFRESH USERS</button></div><div id="centralUsersStatus" class="muted" role="status" style="margin-top:8px;min-height:20px"></div></div></div>
+      <a id="centralUsersAdminLink" href="central-bank-admin.html" target="_blank" rel="noopener" style="display:inline-block;margin:8px 0 14px;color:#ffc400;font-weight:800">OPEN CENTRAL USERS & PRIVILEGES ↗</a><div id="centralUsersManager" style="display:none;margin:10px 0 16px;padding:12px;border:1px solid #354f61;border-radius:12px;background:#0c1b27"><h3 style="margin:0 0 8px;color:#ffc400">CENTRAL USER ACCOUNTS</h3><p class="muted" style="margin:0 0 10px">Account actions are available only to tiers granted user-management rights. JAN is protected as the permanent root OWNER.</p><div id="centralUsersManageList"></div><div style="border-top:1px solid #30495a;margin-top:12px;padding-top:12px"><h3 id="centralAccountFormTitle" style="margin:0 0 10px">ADD USER ACCOUNT</h3><div class="fields"><div class="field"><label>Username</label><input id="centralAccountUsername" maxlength="32" autocomplete="off" placeholder="Unique username"></div><div class="field"><label>Display name</label><input id="centralAccountDisplay" maxlength="60" placeholder="Name shown in login"></div><div class="field"><label>Tier</label><select id="centralAccountTier"><option>ADMIN</option><option>MANAGER</option><option>SUPERVISOR</option><option selected>USER</option><option>SPECTATOR</option></select></div><div class="field"><label>PIN · 4–8 digits</label><input id="centralAccountPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Required for new account"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button id="centralAccountSave" class="primary" type="button">ADD USER</button><button id="centralAccountCancel" type="button" style="display:none">CANCEL EDIT</button><button id="centralUsersRefresh" type="button">REFRESH USERS</button></div><div id="centralUsersStatus" class="muted" role="status" style="margin-top:8px;min-height:20px"></div></div></div>
       <div id="settingsAdminControls">
         <div id="operatorAdminPanel" style="display:none"><div class="field"><label>New app user name</label><input id="newOperatorName" maxlength="20" placeholder="User name"></div><div class="field"><label>Initial PIN (3–4 digits)</label><input id="newOperatorInitialPin" inputmode="numeric" type="password" maxlength="4"></div><button id="addOperatorBtn" class="primary">ADD USER</button><div id="operatorAdminMsg" class="muted"></div><div id="operatorRosterList"></div></div>
       </div>
@@ -1408,9 +1408,11 @@ function resetCentralUserForm(){
 function renderCentralUserSettings(){
  const host=$('centralUsersManager'),list=$('centralUsersManageList');
  if(!host||!list)return;
- const allowed=permission('canManageUsers');
- host.style.display=allowed?'block':'none';
- if(!allowed)return;
+ const canManage=permission('canManageUsers'),canView=canManage||permission('canViewUsers');
+ host.style.display=canView?'block':'none';
+ const accountLink=$('centralUsersAdminLink');if(accountLink)accountLink.style.display=canManage?'inline-block':'none';
+ const formTitle=$('centralAccountFormTitle');if(formTitle?.parentElement)formTitle.parentElement.hidden=!canManage;
+ if(!canView)return;
  list.replaceChildren();
  const users=Array.isArray(centralBankPayload?.users)?centralBankPayload.users.slice().sort((a,b)=>String(a.username).localeCompare(String(b.username))):[];
  if(!users.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='No central USER accounts found.';list.appendChild(empty);return}
@@ -1421,6 +1423,7 @@ function renderCentralUserSettings(){
   const meta=document.createElement('span');meta.className='muted';meta.textContent=user.tier+' · '+(user.enabled===false?'DISABLED':'ACTIVE');meta.style.fontSize='11px';
   info.append(name,meta);row.appendChild(info);
   const actions=document.createElement('div');actions.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
+  if(canManage){
   const root=String(user.username).toUpperCase()==='JAN'||user.tier==='OWNER';
   if(root){const protectedLabel=document.createElement('span');protectedLabel.className='pill';protectedLabel.textContent='ROOT · PROTECTED';actions.appendChild(protectedLabel)}
   else{
@@ -1448,7 +1451,8 @@ function renderCentralUserSettings(){
     catch(error){$('centralUsersStatus').textContent=error.message||'Account removal failed.';remove.disabled=false}
    };actions.appendChild(remove);
   }
-  row.appendChild(actions);list.appendChild(row);
+  }
+  if(canManage)row.appendChild(actions);list.appendChild(row);
  });
 }
 async function refreshCentralUserSettings(message='Central USERS refreshed.'){
