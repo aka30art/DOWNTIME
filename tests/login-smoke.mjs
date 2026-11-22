@@ -65,7 +65,7 @@ async function clickOverview(page){
  }
  throw new Error('Plant transition alert repeatedly blocked Plant Overview navigation.');
 }
-async function openFor(tier,pin='2468',username='JAN',initialBank=null,initialVersion=1){
+async function openFor(tier,pin='2468',username='DEV',initialBank=null,initialVersion=1){
  const context=await browser.newContext();
  const page=await context.newPage();
  page.on('pageerror',e=>errors.push(e.message));
@@ -102,10 +102,31 @@ window.supabase={createClient:()=>({
   const req=route.request().postDataJSON(),action=req.action;
   actions.push({action,body:req});
   const ok=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
-  if(action==='list-users')return ok({users:[{username:'JAN',displayName:'Jan',tier:'OWNER'},{username:'MICK',displayName:'Mick',tier:username==='MICK'?tier:'USER'}]});
+  if(action==='list-users'){
+   const listed=bank.users?.length?bank.users.filter(user=>user.enabled!==false).map(user=>({username:user.username,displayName:user.displayName||user.username,tier:user.tier})):[{username:'DEV',displayName:'DEV',tier:'OWNER'},{username:'Jan',displayName:'Jan',tier:'USER'},{username:'MICK',displayName:'Mick',tier:username.toUpperCase()==='MICK'?tier:'USER'}];
+   return ok({users:listed});
+  }
   if(action==='login'){
-   if(req.username!==username||req.pin!==pin)return ok({error:'Invalid username or PIN'},401);
-   return ok({token,expiresAt:new Date(Date.now()+3600000).toISOString(),user:{username,displayName:username==='JAN'?'Jan':'Mick',tier}});
+   if(req.username.toLowerCase()!==username.toLowerCase()||req.pin!==pin)return ok({error:'Invalid username or PIN'},401);
+   return ok({token,expiresAt:new Date(Date.now()+3600000).toISOString(),user:{username,displayName:username.toUpperCase()==='DEV'?'DEV':username.toLowerCase()==='jan'?'Jan':'Mick',tier}});
+  }
+  if(action==='root-account-split'){
+   const root=bank.users?.find(user=>String(user.username).toUpperCase()===username.toUpperCase()&&user.tier==='OWNER'&&user.enabled!==false);
+   if(!root||(username.toUpperCase()!=='JAN'&&username.toUpperCase()!=='DEV'))return ok({error:'Only the root OWNER can split accounts'},403);
+   if(Number(req.version)!==version)return ok({error:'Account data changed'},409);
+   if(!/^[0-9]{4,8}$/.test(String(req.janPin||'')))return ok({error:'A valid Jan PIN is required'},400);
+   if(username.toUpperCase()==='JAN'){
+    if(bank.users.some(user=>user!==root&&user.tier==='OWNER'))return ok({error:'Multiple OWNER records'},409);
+    if(bank.users.some(user=>String(user.username).toUpperCase()==='DEV'))return ok({error:'DEV already exists'},409);
+    root.username='DEV';root.displayName='DEV';
+    bank.users.push({username:'Jan',displayName:'Jan',tier:'USER',enabled:true,pinSalt:'qa-salt',pinHash:'qa-pbkdf2-hash'});
+    version++;
+    username='DEV';
+    return ok({ok:true,alreadyComplete:false,version,message:'Account split completed'});
+   }
+   const jan=bank.users.find(user=>String(user.username).toUpperCase()==='JAN');
+   if(jan?.tier==='USER'&&jan.enabled!==false)return ok({ok:true,alreadyComplete:true,version});
+   return ok({error:'Jan account state needs review'},409);
   }
   if(action==='staff-photo-url'){
    const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
@@ -132,7 +153,7 @@ window.supabase={createClient:()=>({
     delete copy.appData.operatorProfiles;
     delete copy.appData.archive;
    }
-   return ok({payload:copy,user:{username,displayName:username==='JAN'?'Jan':'Mick',tier},version,updatedAt:new Date().toISOString()});
+   return ok({payload:copy,user:{username,displayName:username.toUpperCase()==='DEV'?'DEV':username.toLowerCase()==='jan'?'Jan':'Mick',tier},version,updatedAt:new Date().toISOString()});
   }
   if(action==='save-state'){
    const effectiveRights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
@@ -168,7 +189,7 @@ window.supabase={createClient:()=>({
    return ok({version,updatedAt:new Date().toISOString()});
   }
   if(action==='tiers-save'){
-   if(!(tier==='ADMIN'||(username==='JAN'&&tier==='OWNER')))return ok({error:'Only ADMIN or JAN can change tier rights'},403);
+   if(!(tier==='ADMIN'||(username==='DEV'&&tier==='OWNER')))return ok({error:'Only ADMIN or DEV can change tier rights'},403);
    if(Number(req.version)!==version)return ok({error:'Version conflict'},409);
    bank.tiers=req.tiers;version++;
    return ok({ok:true,version});
@@ -188,7 +209,7 @@ window.supabase={createClient:()=>({
  return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
-async function signIn(page,pin='2468',username='JAN'){
+async function signIn(page,pin='2468',username='DEV'){
  await page.locator('#centralUsername').selectOption(username);
  await pinpad(page,pin);
  await page.locator('#unlockBtn').click();
@@ -223,7 +244,7 @@ async function openSettingsHub(page){
 try{
  // Invalid credentials never unlock the tracker.
  const rejected=await openFor('OWNER');
- await rejected.page.locator('#centralUsername').selectOption('JAN');
+ await rejected.page.locator('#centralUsername').selectOption('DEV');
  await pinpad(rejected.page,'9999');
  await rejected.page.locator('#unlockBtn').click();
  await rejected.page.waitForFunction(()=>document.querySelector('#authMsg').textContent.includes('Invalid username or PIN'),{timeout:5000});
@@ -233,15 +254,58 @@ try{
  // OWNER login and central versioned persistence.
  const owner=await openFor('OWNER');
  await signIn(owner.page);
- assert.equal(await owner.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),true,'JAN root OWNER sees the Central Data Bank menu entry');
+ assert.equal(await owner.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),true,'DEV root OWNER sees the Central Data Bank menu entry');
  assert.equal(await owner.page.locator('#authGate').isVisible(),false,'central login closes after authentication');
+ // Jan remains a normal operational USER rather than a root/admin identity.
+ const janOperational=await openFor('USER','1357','Jan');
+ await signIn(janOperational.page,'1357','Jan');
+ await janOperational.page.locator('.nav-menu > summary').click();
+ assert.equal(await janOperational.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'Jan USER does not see the Central Data Bank admin entry');
+ assert.equal(await janOperational.page.locator('#plantOperatorToggle').isVisible(),true,'Jan USER retains the Jan operational plant toggle inside the expanded navigation menu');
+ await openSettingsHub(janOperational.page);
+ assert.equal(await janOperational.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'Jan USER cannot open root-only Access and Rights');
+ await janOperational.context.close();
+
+ // Exercise the complete one-time legacy JAN root migration through the application UI.
+ const legacyRootFixture=makeBank();
+ legacyRootFixture.users=[{username:'JAN',displayName:'Jan',tier:'OWNER',enabled:true,pinSalt:'preserved-root-salt',pinHash:'preserved-root-hash'}];
+ const migration=await openFor('OWNER','2468','JAN',legacyRootFixture,1);
+ await signIn(migration.page,'2468','JAN');
+ await openSettingsHub(migration.page);
+ await migration.page.locator('[data-settings-open="users"]').click();
+ await migration.page.locator('#rootAccountMigration').waitFor({state:'visible',timeout:3000});
+ await migration.page.locator('#rootAccountJanPin').fill('9753');
+ migration.page.on('dialog',dialog=>dialog.accept());
+ await Promise.all([
+  migration.page.waitForNavigation({waitUntil:'domcontentloaded'}),
+  migration.page.locator('#splitRootAccountBtn').click()
+ ]);
+ await migration.page.waitForFunction(()=>document.querySelector('#authGate')?.style.display!=='none',{timeout:5000});
+ assert.equal(migration.getBank().users.find(user=>user.tier==='OWNER')?.username,'DEV','migration renames the original OWNER identity to DEV');
+ assert.equal(migration.getBank().users.find(user=>user.tier==='OWNER')?.pinSalt,'preserved-root-salt','migration retains the original root PIN salt');
+ assert.equal(migration.getBank().users.find(user=>user.tier==='OWNER')?.pinHash,'preserved-root-hash','migration retains the original root PIN hash');
+ const migratedJan=migration.getBank().users.find(user=>String(user.username).toUpperCase()==='JAN');
+ assert.equal(migratedJan?.tier,'USER','migration creates Jan as a normal USER');
+ assert.equal(migratedJan?.enabled,true,'new Jan USER account is enabled');
+ assert.notEqual(migratedJan?.pinHash,'9753','new Jan PIN is stored as a hash, not plaintext');
+ assert.equal(await migration.page.evaluate(()=>window.DowntimeCentral.session),null,'migration revokes the browser root session and returns to login');
+ await signIn(migration.page,'2468','DEV');
+ assert.equal(await migration.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),true,'renamed DEV account retains root administration');
+ await migration.context.close();
+ const migratedJanLogin=await openFor('USER','9753','Jan',migration.getBank(),migration.getVersion());
+ await signIn(migratedJanLogin.page,'9753','Jan');
+ await migratedJanLogin.page.locator('.nav-menu > summary').click();
+ assert.equal(await migratedJanLogin.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'new Jan USER account cannot access root administration');
+ assert.equal(await migratedJanLogin.page.locator('#plantOperatorToggle').isVisible(),true,'new Jan USER retains the normal plant operation toggle');
+ await migratedJanLogin.context.close();
+
  // Isolated central API regression: both save-state and save-settings must reject locked station moves.
  const lockedFixture=makeBank();
  lockedFixture.appData.operatorProfiles=JSON.parse(JSON.stringify(lockedFixture.staff.profiles));
  lockedFixture.appData.staffRoster=lockedFixture.staff.roster.slice();
  lockedFixture.staff.profiles.Jan.stationLocked=true;
  lockedFixture.appData.operatorProfiles.Jan.stationLocked=true;
- const lockGuard=await openFor('OWNER','2468','JAN',lockedFixture,1);
+ const lockGuard=await openFor('OWNER','2468','DEV',lockedFixture,1);
  await signIn(lockGuard.page);
  const trackerAttempt=JSON.parse(JSON.stringify(lockGuard.getBank().appData));
  trackerAttempt.operatorProfiles.Jan.station='Station 2 · WOOD';
@@ -332,10 +396,10 @@ try{
  }
  await owner.page.setViewportSize({width:1280,height:900});
  const accessRightsTile=owner.page.locator('[data-settings-open="accessRights"]');
- assert.equal(await accessRightsTile.isVisible(),true,'JAN root OWNER sees the dedicated ACCESS AND RIGHTS Settings destination');
+ assert.equal(await accessRightsTile.isVisible(),true,'DEV root OWNER sees the dedicated ACCESS AND RIGHTS Settings destination');
  await accessRightsTile.click();
- assert.equal(await owner.page.locator('#settingsPanelAccessRights').isVisible(),true,'JAN opens the dedicated tier rights editor');
- assert.equal(await owner.page.locator('#accessRightsTierList [data-access-tier-card]').count(),5,'JAN can configure all five non-root tiers');
+ assert.equal(await owner.page.locator('#settingsPanelAccessRights').isVisible(),true,'DEV opens the dedicated tier rights editor');
+ assert.equal(await owner.page.locator('#accessRightsTierList [data-access-tier-card]').count(),5,'DEV can configure all five non-root tiers');
  assert.equal(await owner.page.locator('#accessRightsTierList [data-access-tier="OWNER"]').count(),0,'root OWNER rights are never editable');
  const adminDeleteRight=owner.page.locator('[data-access-tier="ADMIN"][data-access-right="canDeleteRecords"]');
  assert.equal(await adminDeleteRight.isChecked(),false,'ADMIN delete-record permission starts disabled');
@@ -346,7 +410,7 @@ try{
  });
  await owner.page.locator('#saveAccessRights').click();
  await owner.page.waitForFunction(()=>document.querySelector('#accessRightsStatus')?.textContent.includes('saved centrally'),{timeout:5000});
- assert.equal(owner.getBank().tiers.ADMIN.canDeleteRecords,true,'JAN saves tier rights to central state');
+ assert.equal(owner.getBank().tiers.ADMIN.canDeleteRecords,true,'DEV saves tier rights to central state');
  assert.equal(owner.getBank().tiers.MANAGER.canEditTracker,owner.getBank().tiers.ADMIN.canEditTracker,'MANAGER receives the same tracker-edit right as ADMIN');
  assert.deepEqual(owner.getBank().tiers.MANAGER,owner.getBank().tiers.ADMIN,'MANAGER permission profile exactly matches ADMIN');
  assert.ok(owner.actions.some(item=>item.action==='tiers-save'),'tier rights are saved through the central API');
@@ -370,7 +434,7 @@ try{
  await signIn(manager.page,'2468','MICK');
  assert.equal(await manager.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'MANAGER with ADMIN-equivalent configurable rights cannot see Central Data Bank');
  await openSettingsHub(manager.page);
- assert.equal(await manager.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'MANAGER never gains access to ADMIN/JAN-only Access and Rights');
+ assert.equal(await manager.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'MANAGER never gains access to ADMIN/DEV-only Access and Rights');
  assert.equal(await manager.page.locator('[data-settings-open="areas"]').isVisible(),true,'MANAGER receives ADMIN-equivalent Settings access');
  await manager.page.locator('[data-settings-open="users"]').click();
  await manager.page.locator('#settingsPanelUsers').waitFor({state:'visible'});

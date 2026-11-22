@@ -33,9 +33,9 @@ assert.ok(src.includes('const nextProfile={...existingProfile,...proposedProfile
 assert.ok(src.includes('if(!priv.canViewStaff&&!priv.canManageStaff)return json({error:"Permission denied"},403)'),
   'staff managers can read staff photos while view-only STAFF access is separate');
 
-assert.ok(src.includes('The root OWNER username is fixed as JAN'), 'bootstrap fixes the root account name as JAN');
+assert.ok(src.includes('The root OWNER username is fixed as DEV'), 'bootstrap fixes the root account name as DEV');
 assert.ok(src.includes('Additional OWNER accounts are prohibited'), 'no secondary OWNER accounts can be created');
-assert.ok(src.includes('The JAN root OWNER account cannot be deleted or removed.'), 'JAN root account cannot be deleted');
+assert.ok(src.includes('The DEV root OWNER account cannot be deleted or removed.'), 'DEV root account cannot be deleted');
 assert.ok(src.includes('addStableRecordIds')&&src.includes('candidate?.recordId===recordId'), 'server issues stable record identifiers and blocks manager/supervisor deletion');
 assert.ok(src.includes('!priv.canViewReports||!priv.canDeleteRecords'), 'server preserves archive records for non-deleting roles');
 assert.ok(src.includes('canAddDowntimeReasons:true')&&src.includes('existing.some((old:any)=>String(old).trim().toLowerCase()===value.trim().toLowerCase())'), 'SUPERVISOR can only append new downtime reason presets');
@@ -44,13 +44,13 @@ assert.ok(src.includes('ADMIN:{canEditTracker:true')&&src.includes('canDeleteRec
 assert.ok(src.includes('SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true'),
   'SUPERVISOR can manage STAFF in the server tier defaults');
 const lockedRoles=src.slice(src.indexOf('const lockedRolePrivileges'),src.indexOf('function addStableRecordIds'));
-assert.ok(lockedRoles.includes('OWNER:{canEditTracker:true'), 'JAN root OWNER permissions are fixed');
+assert.ok(lockedRoles.includes('OWNER:{canEditTracker:true'), 'DEV root OWNER permissions are fixed');
 assert.doesNotMatch(lockedRoles, /MANAGER:|SUPERVISOR:|USER:|SPECTATOR:/,
-  'non-root tiers are configurable by JAN rather than locked to hard-coded baselines');
-assert.ok(src.includes('if(tier!=="ADMIN"&&!isJanRoot)return json({error:"Only ADMIN or the JAN root administrator can change tier access and rights"},403);'),
-  'tier rights changes are restricted to the ADMIN tier and JAN root OWNER');
-assert.ok(src.includes('if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN or the JAN root administrator can create accounts or assign user tiers."},403);'),
-  'only ADMIN/JAN may create user accounts or change a users tier');
+  'non-root tiers are configurable by DEV rather than locked to hard-coded baselines');
+assert.ok(src.includes('if(tier!=="ADMIN"&&!isRootOwner)return json({error:"Only ADMIN or the DEV root administrator can change tier access and rights"},403);'),
+  'tier rights changes are restricted to the ADMIN tier and DEV root OWNER');
+assert.ok(src.includes('if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN or the DEV root administrator can create accounts or assign user tiers."},403);'),
+  'only ADMIN/DEV may create user accounts or change a users tier');
 assert.ok(src.includes('if(!priv.canManageUsers)return json({error:"Permission denied"},403);'),
   'other existing account maintenance remains subject to user-management rights');
 assert.ok(src.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&src.includes('typeof supplied[key]!=="boolean"'),
@@ -65,11 +65,19 @@ assert.ok(src.includes('delete nextAppData.quickReasons;delete nextAppData.recen
 
 
 for(const action of ['central-config-state','central-config-save-draft','central-config-publish','central-config-restore-draft'])assert.ok(src.includes('if(action==="'+action+'")'),'configuration control-plane action '+action);
-assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralAdmin'),'configuration control-plane API denies all non-ADMIN/non-JAN tiers');
+assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralAdmin'),'configuration control-plane API denies all non-ADMIN/non-DEV-root tiers');
 assert.ok(src.includes('configState.draft_version')&&src.includes('configState.published_version'),'configuration drafts and published state have independent version pointers');
 assert.ok(src.includes('downtime_central_config_state')&&src.includes('downtime_central_config_history'),'configuration control plane uses isolated tables');
 assert.ok(src.includes('normalizeCentralConfig(body.config)'),'server validates configuration before saving a draft');
 assert.ok(src.includes('action:"central-config-publish"'),'publishing is audited');
 assert.ok(src.includes('action:"central-config-restore-draft"'),'restoring historical configuration is audited');
 
-console.log('Central API security and isolated configuration contracts passed (static source checks).');
+
+assert.ok(src.includes('const isDevRoot=currentUsername==="DEV"&&tier==="OWNER"'),'DEV is the permanent root OWNER identity');
+assert.ok(src.includes('if(action==="root-account-split")'),'one-time account split is a server-side action');
+assert.ok(src.includes('currentUser.username="DEV";currentUser.displayName="DEV"'),'legacy JAN root is renamed to DEV');
+assert.ok(src.includes('bank.users.push({username:"Jan",displayName:"Jan",tier:"USER",enabled:true,pinSalt:salt,pinHash:await hashPin(janPin,salt)})'),'separate standard Jan USER account has a salted, hashed PIN');
+assert.ok(src.includes('if(!Number.isInteger(expectedVersion)||expectedVersion!==Number(row?.version||0))'),'account split uses optimistic version checking');
+assert.ok(src.includes('delete().eq("username",previousRootUsername)'),'old root sessions are revoked after the split');
+assert.ok(!src.includes('isJanRoot'),'obsolete JAN root authorization flag is removed');
+console.log('Central API security, DEV root ownership, account split and configuration contracts passed (static source checks).');

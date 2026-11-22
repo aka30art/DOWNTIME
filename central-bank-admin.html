@@ -115,12 +115,12 @@ small,.muted{color:var(--muted)}
   <div id="setup">
    <div class="eyebrow">INITIAL ROOT IDENTITY</div>
    <div class="field"><label for="setupCode">Bootstrap setup code</label><input id="setupCode" type="password"></div>
-   <div class="field"><label for="setupName">Root account</label><input id="setupName" value="JAN" readonly></div>
+   <div class="field"><label for="setupName">Root account</label><input id="setupName" value="DEV" readonly></div>
    <div class="field"><label for="setupPin">New root PIN · 4–8 digits</label><input id="setupPin" type="password" inputmode="numeric" maxlength="8"></div>
-   <button id="bootstrapBtn" class="primary">INITIALISE JAN OWNER</button>
+   <button id="bootstrapBtn" class="primary">INITIALISE DEV OWNER</button>
   </div>
   <div id="authStatus" class="status" role="status" aria-live="polite"></div>
-  <div class="pagefoot"><span>AUTHORISED IDENTITIES · ADMIN / JAN ONLY</span><span>Protected by central session validation</span></div>
+  <div class="pagefoot"><span>AUTHORISED IDENTITIES · ADMIN / DEV ONLY</span><span>Protected by central session validation</span></div>
  </div>
 </section>
 
@@ -138,7 +138,7 @@ small,.muted{color:var(--muted)}
    <button class="nav" data-section="defaults"><span class="ico">⚙</span>System Defaults</button>
    <div class="navlabel">GOVERNANCE</div>
    <button class="nav" data-section="history"><span class="ico">◷</span>Version History</button>
-   <div class="sidefoot"><strong>ADMIN / JAN AUTHORITY</strong><small>Draft, validate, publish and restore configuration versions. Other accounts are rejected server-side.</small></div>
+   <div class="sidefoot"><strong>ADMIN / DEV AUTHORITY</strong><small>Draft, validate, publish and restore configuration versions. Other accounts are rejected server-side.</small></div>
   </aside>
   <main class="main">
    <div class="topbar">
@@ -160,11 +160,11 @@ small,.muted{color:var(--muted)}
       <div class="cardlist">
        <div class="feature"><strong>01 · Configure</strong><small>Maintain site structure, area registries and standard operational libraries.</small></div>
        <div class="feature"><strong>02 · Save draft</strong><small>Persist a new immutable snapshot without changing the published registry.</small></div>
-       <div class="feature"><strong>03 · Publish</strong><small>Activate a validated registry version through an explicit ADMIN/JAN action.</small></div>
+       <div class="feature"><strong>03 · Publish</strong><small>Activate a validated registry version through an explicit ADMIN/DEV action.</small></div>
        <div class="feature"><strong>04 · Restore</strong><small>Recover any historical snapshot as a new draft, then publish deliberately.</small></div>
       </div>
      </div>
-     <div class="panel"><div class="eyebrow">SEPARATION OF RESPONSIBILITIES</div><h2>Access & Rights stays separate</h2><p>Account identities and the existing tier-permission matrix remain in ACCESS AND RIGHTS. This control room does not create users, edit PINs or duplicate the permission editor. Only ADMIN/JAN can open Access & Rights and change permissions for other users or tiers.</p><div style="margin-top:14px"><span class="pill live">ADMIN / JAN ONLY</span></div></div>
+     <div class="panel"><div class="eyebrow">SEPARATION OF RESPONSIBILITIES</div><h2>Access & Rights stays separate</h2><p>Account identities and the existing tier-permission matrix remain in ACCESS AND RIGHTS. This control room does not create users, edit PINs or duplicate the permission editor. Only ADMIN/DEV can open Access & Rights and change permissions for other users or tiers.</p><div style="margin-top:14px"><span class="pill live">ADMIN / DEV ONLY</span></div></div>
     </div>
    </section>
 
@@ -369,7 +369,7 @@ small,.muted{color:var(--muted)}
  $("loginBtn").addEventListener("click",login);$("pin").addEventListener("keydown",event=>{if(event.key==="Enter")login()});
  $("showSetup").addEventListener("click",()=>$("setup").style.display=$("setup").style.display==="block"?"none":"block");
  $("bootstrapBtn").addEventListener("click",async()=>{
-  try{const result=await call("bootstrap",{bootstrapCode:$("setupCode").value,username:"JAN",pin:$("setupPin").value},false);$("authStatus").textContent=result.message||"Root owner initialised. Sign in as JAN."}
+  try{const result=await call("bootstrap",{bootstrapCode:$("setupCode").value,username:"DEV",pin:$("setupPin").value},false);$("authStatus").textContent=result.message||"Root owner initialised. Sign in as DEV."}
   catch(error){$("authStatus").textContent=error.message}
  });
  $("saveDraftBtn").addEventListener("click",saveDraft);$("publishBtn").addEventListener("click",publish);$("refreshBtn").addEventListener("click",refresh);$("historyRefreshBtn").addEventListener("click",refresh);
