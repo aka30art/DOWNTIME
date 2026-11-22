@@ -238,8 +238,9 @@ try{
  // Jan remains a normal operational USER rather than a root/admin identity.
  const janOperational=await openFor('USER','1357','Jan');
  await signIn(janOperational.page,'1357','Jan');
+ await janOperational.page.locator('.nav-menu > summary').click();
  assert.equal(await janOperational.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'Jan USER does not see the Central Data Bank admin entry');
- assert.equal(await janOperational.page.locator('#plantOperatorToggle').isVisible(),true,'Jan USER retains the Jan operational plant toggle');
+ assert.equal(await janOperational.page.locator('#plantOperatorToggle').isVisible(),true,'Jan USER retains the Jan operational plant toggle inside the expanded navigation menu');
  await openSettingsHub(janOperational.page);
  assert.equal(await janOperational.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'Jan USER cannot open root-only Access and Rights');
  await janOperational.context.close();
