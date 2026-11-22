@@ -16,8 +16,8 @@ await new Promise((ok,fail)=>{server.once('error',fail);server.listen(4173,'127.
 const browser=await chromium.launch({headless:true});
 const errors=[];
 const tiers={
- OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  MANAGER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
@@ -449,6 +449,10 @@ try{
  assert.equal(await owner.page.locator('#smName').inputValue(),'','new STAFF profile template is blank');
  assert.equal(await owner.page.locator('#smOnPlant').isChecked(),true,'new profile defaults ON PLANT');
  await owner.page.locator('#smName').fill('Rita');
+  const ritaGif=Buffer.from('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=','base64');
+  await owner.page.locator('#smFile').setInputFiles({name:'rita.gif',mimeType:'image/gif',buffer:ritaGif});
+  await owner.page.waitForFunction(()=>document.querySelector('#smPreview')?.src.startsWith('data:image/jpeg'),{timeout:5000});
+  assert.equal(await owner.page.locator('#smPhotoSave').isHidden(),true,'new-member photo is committed with the new profile');
  await owner.page.locator('#smStation').selectOption('Station 6 · GENERAL');
  await owner.page.locator('#smOnPlant').uncheck();
  assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'OFF PLANT disables station selection');
@@ -465,6 +469,11 @@ try{
  for(let attempt=0;attempt<40&&(owner.getVersion()<versionBeforeDailyTaskFlow+6||!owner.getBank().staff.profiles.Rita?.stationLocked);attempt++)await owner.page.waitForTimeout(100);
  assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','new staff member and station save centrally');
  assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,true,'station lock persists centrally');
+  assert.equal(owner.getBank().staff.profiles.Rita.photo?.startsWith('data:image/jpeg'),true,'new-member thumbnail is saved centrally');
+  assert.equal(typeof owner.getBank().staff.profiles.Rita.photoPath,'string','new-member original photo is stored centrally');
+  assert.ok(owner.getBank().staff.profiles.Rita.photoPath.startsWith('rita/'),'photo object path is associated with the new profile');
+  assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.length||0),1,'new-member original image is uploaded to private staff storage');
+  assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.[0]?.bucket),'downtime-staff-photos','original photo is uploaded to the private staff photo bucket');
  assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+6,'daily tasks, completions, lock and one staff save advance central version');
  await owner.page.locator('.overview-link').click();
  const ritaCard=owner.page.frameLocator('#overviewFrame').locator('[data-opprofile="RITA"]');
@@ -484,6 +493,38 @@ try{
  assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="6"]').textContent(),'UNASSIGNED','previous station assignment is cleared live');
  await owner.page.locator('#overviewClose').click();
  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
+
+  // Ordinary tracker writes cannot bypass a locked station; explicit unlock is limited to Staff Settings.
+  const attemptedReassignment=JSON.parse(JSON.stringify(owner.getBank().appData));
+  attemptedReassignment.operatorProfiles.Rita.station='Station 5 · GENERAL';
+  await owner.page.evaluate(async({snapshot,version})=>window.DowntimeCentral.saveTracker(snapshot,version),{snapshot:attemptedReassignment,version:owner.getVersion()});
+  assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','locked station resists ordinary tracker save attempts');
+  assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,true,'ordinary tracker saves cannot clear station lock');
+  await openStaffSettings(owner.page);
+  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
+  assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'locked station is disabled when profile reopens');
+  await owner.page.locator('#smLock').uncheck();
+  assert.equal(await owner.page.locator('#smStation').isEnabled(),true,'manual unlock in Staff Settings enables reassignment');
+  await owner.page.locator('#smStation').selectOption('Station 5 · GENERAL');
+  await owner.page.locator('#smOnPlant').uncheck();
+  await owner.page.locator('#smSave').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+  assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 5 · GENERAL','OFF PLANT retains assigned station');
+  assert.equal(owner.getBank().staff.profiles.Rita.onSite,false,'OFF PLANT status persists centrally');
+  assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,false,'manual unlock persists');
+  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
+  await owner.page.locator('#smOnPlant').check();
+  await owner.page.locator('#smSave').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+  assert.equal(owner.getBank().staff.profiles.Rita.onSite,true,'ON PLANT status can be restored');
+  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
+  owner.page.once('dialog',dialog=>dialog.accept());
+  await owner.page.locator('#smPhotoRemove').click();
+  await owner.page.waitForFunction(()=>window.__staffPhotoRemovals?.some(x=>x.path?.startsWith('rita/')),{timeout:5000});
+  for(let attempt=0;attempt<40&&owner.getBank().staff.profiles.Rita?.photoPath;attempt++)await owner.page.waitForTimeout(100);
+  assert.equal(owner.getBank().staff.profiles.Rita.photo,undefined,'REMOVE PHOTO clears thumbnail metadata');
+  assert.equal(owner.getBank().staff.profiles.Rita.photoPath,undefined,'REMOVE PHOTO clears original photo path');
+  assert.equal(await owner.page.locator('#smPhotoRemove').isHidden(),true,'removed photo cannot be removed again');
  assert.equal(await owner.page.locator('.side #logoutBtn').isVisible(),true,'Log Out is available in the top navigation');
  assert.equal(await owner.page.locator('.top #logoutBtn').count(),0,'Log Out is no longer duplicated in the content header');
  await owner.page.locator('.side #logoutBtn').click();
@@ -525,27 +566,29 @@ try{
  assert.ok(user.actions.some(x=>x.action==='logout'),'USER sign-out invalidates the central session');
  await user.context.close();
 
- // SUPERVISOR can edit tracker data but not manage users or STAFF.
- const supervisor=await openFor('SUPERVISOR','2468');
- await signIn(supervisor.page);
- assert.equal(await supervisor.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'SUPERVISOR staff-management permission does not grant Central Data Bank access');
- await supervisor.page.locator('.nav-menu > summary').click();
- assert.equal(await supervisor.page.locator('#addEntry').isDisabled(),false,'SUPERVISOR can edit tracker');
- assert.equal(await supervisor.page.locator('#newStaffName').isVisible().catch(()=>false),false,'STAFF editing is not exposed before selecting the Settings STAFF panel');
- await openStaffSettings(supervisor.page);
- assert.equal(await supervisor.page.locator('#addStaffBtn').isEnabled(),true,'SUPERVISOR can manage STAFF');
- assert.equal(await supervisor.page.locator('[data-settings-open="dailyTasks"]').isVisible(),false,'SUPERVISOR can manage STAFF but not general Settings presets');
- assert.equal(await supervisor.page.locator('#newStaffName').isEnabled(),true,'SUPERVISOR can add staff names');
- await supervisor.page.locator('#newStaffName').fill('Supervisor QA');
- await supervisor.page.locator('#addStaffBtn').click();
- assert.ok(supervisor.getBank().staff.roster.includes('Supervisor QA'),'SUPERVISOR staff changes sync to central roster');
- const supervisorStation=supervisor.page.locator('[aria-label="Station assignment for Supervisor QA"]');
- await supervisorStation.waitFor({state:'visible'});
- assert.equal(await supervisorStation.isEnabled(),true,'SUPERVISOR can assign stations to staff');
- assert.equal(await supervisor.page.locator('[aria-label="Supervisor QA on-site toggle"]').isEnabled(),true,'SUPERVISOR can change on-site presence');
- await supervisor.context.close();
+ // SUPERVISOR can manage STAFF and assignments but not USERS or general Settings presets.
+  const supervisor=await openFor('SUPERVISOR','2468');
+  await signIn(supervisor.page);
+  assert.equal(await supervisor.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'SUPERVISOR staff permission does not grant Central Data Bank access');
+  await supervisor.page.locator('.nav-menu > summary').click();
+  assert.equal(await supervisor.page.locator('#addEntry').isDisabled(),false,'SUPERVISOR can edit tracker');
+  assert.equal(await supervisor.page.locator('#newStaffName').count(),0,'legacy inline add field is removed');
+  await openStaffSettings(supervisor.page);
+  assert.equal(await supervisor.page.locator('#addStaffBtn').isEnabled(),true,'SUPERVISOR can manage STAFF');
+  assert.equal(await supervisor.page.locator('[data-settings-open="dailyTasks"]').isVisible(),false,'SUPERVISOR cannot manage general Settings presets');
+  await supervisor.page.locator('#addStaffBtn').click();
+  assert.equal(await supervisor.page.locator('#smName').inputValue(),'','SUPERVISOR gets the blank Add New Member template');
+  await supervisor.page.locator('#smName').fill('Supervisor QA');
+  await supervisor.page.locator('#smStation').selectOption('Station 4 · SCRAP');
+  await supervisor.page.locator('#smLock').check();
+  await supervisor.page.locator('#smSave').click();
+  await supervisor.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+  assert.ok(supervisor.getBank().staff.roster.includes('Supervisor QA'),'SUPERVISOR changes sync to central roster');
+  assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].station,'Station 4 · SCRAP','SUPERVISOR can assign station in profile modal');
+  assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].stationLocked,true,'SUPERVISOR can lock station in Staff Settings');
+  await supervisor.context.close();
 
- // SPECTATOR receives no staff/assignment/dashboard/report surfaces.
+// SPECTATOR receives no staff/assignment/dashboard/report surfaces.
  const spectator=await openFor('SPECTATOR','2468');
  await signIn(spectator.page);
  assert.equal(await spectator.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'SPECTATOR cannot see the Central Data Bank menu entry');
