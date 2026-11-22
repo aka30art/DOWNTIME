@@ -13,7 +13,7 @@ assert.ok(page.includes('value="JAN" readonly'), 'bootstrap only exposes the fix
 assert.ok(page.includes('ROOT OWNER · PROTECTED'), 'standalone admin UI protects the JAN root OWNER');
 assert.ok(page.includes('centralUsersPanel')&&page.includes('canViewUsers')&&page.includes('canManageUsers'), 'standalone USERS panel follows view and management rights');
 assert.ok(page.includes('centralStaffPanel')&&page.includes('canViewStaff')&&page.includes('canManageStaff')&&page.includes('canManageAssignments'), 'standalone STAFF panel separates view, profile and assignment rights');
-assert.ok(page.includes('staffStation').includes('')||page.includes('staffStation"').includes(''), 'staff station control remains present');
+assert.ok(page.includes('$("staffStation").disabled=!(canManageStaff&&canManageAssignments)'), 'standalone staff station editing requires both profile and assignment permissions');
 assert.ok(page.includes('Access and Rights (JAN only)')&&page.includes('the permanent root OWNER'),
   'standalone tier editor describes JAN-only authority and fixed OWNER rights');
 console.log('Central admin UI contract checks passed (static only).');
