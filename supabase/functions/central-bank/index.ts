@@ -239,41 +239,30 @@ Deno.serve(async(req)=>{
        nextAppData[field]=[...existing,...additions].slice(0,250);
      }
    }
-   if(!priv.canManageStaff){
+   {
      const currentProfiles=bank.staff?.profiles||bank.appData?.operatorProfiles||{};
-     nextAppData.operatorProfiles=structuredClone(currentProfiles);
-     nextAppData.staffRoster=bank.appData?.staffRoster||bank.staff?.roster||[];
-     if(priv.canManageAssignments){
-       for(const [name,incomingProfile] of Object.entries((incoming.operatorProfiles||{}) as Record<string,any>)){
-         if(!Object.prototype.hasOwnProperty.call(currentProfiles,name)||!incomingProfile||typeof incomingProfile!=="object")continue;
-         const existing={...(currentProfiles as any)[name]};
-         const requestedStation=String(incomingProfile.station??incomingProfile.assignedStation??"").slice(0,100);
-         const currentStation=String(existing.station??existing.assignedStation??"");
-         // A locked assignment can only be changed through the Staff Settings save-settings route.
-         if(existing.stationLocked!==true||requestedStation===currentStation){
-           if("station" in incomingProfile)existing.station=requestedStation;
-           else if("assignedStation" in incomingProfile)existing.assignedStation=requestedStation;
-         }
-         existing.stationLocked=existing.stationLocked===true;
-         (nextAppData.operatorProfiles as any)[name]=existing;
+     const incomingProfiles=structuredClone(nextAppData.operatorProfiles||{});
+     const savedProfiles=priv.canManageStaff?incomingProfiles:structuredClone(currentProfiles||{});
+     for(const [name,incomingProfile] of Object.entries(incomingProfiles) as [string,any][]){
+       if(!Object.prototype.hasOwnProperty.call(currentProfiles,name)||!incomingProfile||typeof incomingProfile!=="object"||Array.isArray(incomingProfile))continue;
+       const existing={...(currentProfiles as any)[name]};
+       const merged=priv.canManageStaff?{...incomingProfile}:{...existing};
+       // Assignment metadata and its lock can only be changed by the Staff Settings save-settings route.
+       if(existing.stationLocked===true||!priv.canManageAssignments){
+         if("station" in existing)merged.station=existing.station;else delete merged.station;
+         if("assignedStation" in existing)merged.assignedStation=existing.assignedStation;else delete merged.assignedStation;
        }
+       if("stationLocked" in existing)merged.stationLocked=existing.stationLocked===true;else delete merged.stationLocked;
+       savedProfiles[name]=merged;
      }
-     bank.staff.profiles=nextAppData.operatorProfiles;
-   }else{
-     if(!priv.canManageAssignments){
-       const currentProfiles=bank.staff?.profiles||bank.appData?.operatorProfiles||{};
-       const safeProfiles=structuredClone(nextAppData.operatorProfiles||{});
-       for(const [name,profile] of Object.entries(safeProfiles) as [string,any][]){
-         const existing=(currentProfiles as any)[name]||{};
-         if("station" in existing)profile.station=existing.station;else delete profile.station;
-         if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
-         if("stationLocked" in existing)profile.stationLocked=existing.stationLocked;else delete profile.stationLocked;
-         if("stationLocked" in existing)profile.stationLocked=existing.stationLocked;else delete profile.stationLocked;
-       }
-       nextAppData.operatorProfiles=safeProfiles;
+     nextAppData.operatorProfiles=savedProfiles;
+     if(priv.canManageStaff){
+       bank.staff.profiles=savedProfiles;
+       bank.staff.roster=Array.isArray(nextAppData.staffRoster)?nextAppData.staffRoster:(bank.staff.roster||[]);
+     }else{
+       nextAppData.staffRoster=bank.staff.roster||bank.appData?.staffRoster||[];
+       bank.staff.profiles=savedProfiles;
      }
-     bank.staff.profiles=nextAppData.operatorProfiles||bank.staff.profiles||{};
-     bank.staff.roster=Array.isArray(nextAppData.staffRoster)?nextAppData.staffRoster:(bank.staff.roster||[]);
    }
    if(!priv.canViewReports||!priv.canDeleteRecords)nextAppData.archive=bank.appData?.archive||[];
    bank.appData=nextAppData;bank.statsSource={weeks:nextAppData.weeks||{}};
