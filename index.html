@@ -1624,7 +1624,7 @@ async function saveCentralUserSettings(){
  const existing=(centralBankPayload?.users||[]).find(user=>String(user.username).toLowerCase()===username.toLowerCase());
  const canAssignTier=canAssignStandardAccountTiers(),canAssignDevacc=canAccessCentralBank();
  if(tier==='DEVACC'&&!canAssignDevacc){$('centralUsersStatus').textContent='Only DEV can assign DEVacc tier.';return}
- if((!editingCentralUsername||!existing||existing.tier!==tier)&&!canAssignTier){$('centralUsersStatus').textContent='Only ADMIN and DEVacc can create ordinary accounts or assign standard tiers.';return}
+ if((!editingCentralUsername||!existing||existing.tier!==tier)&&!canAssignTier){$('centralUsersStatus').textContent='DEV, ADMIN and DEVacc can create ordinary accounts or assign standard tiers.';return}
  const payload={username,displayName:displayName||username,tier,enabled:existing?.enabled!==false,version:centralVersion};
  if(pin)payload.pin=pin;
  if(!editingCentralUsername&&!pin){$('centralUsersStatus').textContent='A 4–8 digit PIN is required for a new account.';return}
