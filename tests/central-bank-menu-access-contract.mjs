@@ -8,7 +8,7 @@ const packageJson=JSON.parse(fs.readFileSync('package.json','utf8'));
 
 // The main tracker entry and the standalone control plane share the exact ADMIN/JAN allow-list.
 assert.ok(page.includes("function canAccessCentralBank(){const username=String(centralUser?.username||activeOperator||'').trim().toUpperCase(),tier=privilegeFor(activeOperator);return tier==='ADMIN'||(username==='JAN'&&tier==='OWNER')}"),'allow-list is exact ADMIN tier or JAN root OWNER');
-assert.ok(page.includes("function isJanAccessAdmin(){return canAccessCentralBank()}"),'Access & Rights is now available only to the same ADMIN/JAN allow-list');
+assert.ok(page.includes("function canManageAccessRights(){return canAccessCentralBank()}"),'Access & Rights is now available only to the same ADMIN/JAN allow-list');
 assert.ok(page.includes('id="centralAdminNav" class="nav central-admin-nav" href="central-bank-admin.html" target="_blank" rel="noopener" style="display:none"'),'menu shortcut starts hidden to prevent a pre-auth flash');
 assert.ok(page.includes("if(admin)admin.style.display=canAccessCentralBank()?'':'none';"),'menu shortcut uses strict allow-list');
 assert.ok(!page.includes('centralUsersAdminLink'),'legacy Users-panel link to the former duplicate admin surface is removed');
