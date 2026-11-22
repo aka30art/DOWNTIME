@@ -79,7 +79,8 @@ assert.ok(src.includes('const isDevacc=tier==="DEVACC";')&&src.includes('const i
 assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);'),'whole-bank state is limited to DEV and DEVACC');
 assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),'all configuration control-plane actions share the DEV/DEVACC gate');
 assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Only DEV and DEVACC can change tier access and rights."},403);'),'DEVACC may change tier permissions');
-assert.ok(src.includes('if(newTier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can assign DEVacc."},403);'),'DEVACC may grant DEVACC');
+assert.ok(src.includes('if(newTier==="DEVACC"&&(!existing||existing.tier!=="DEVACC")&&!isDevRoot)return json({error:"Only root DEV can assign DEVacc."},403);'),'only root DEV can grant or promote an account to DEVACC');
+assert.ok(src.includes('if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);'),'DEVACC retains authority to edit existing DEVACC accounts');
 assert.ok(src.includes('if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);'),'DEVACC may modify, disable and restore DEVACC users');
 assert.ok(src.includes('&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can remove DEVacc."},403);'),'DEVACC may remove other DEVACC users');
 assert.ok(!src.includes('Only one DEVacc account is permitted.'),'the one-DEVACC account restriction is removed');

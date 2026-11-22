@@ -107,6 +107,25 @@ window.supabase={createClient:()=>({
    const listed=bank.users?.length?bank.users.filter(user=>user.enabled!==false).map(user=>({username:user.username,displayName:user.displayName||user.username,tier:user.tier})):[{username:'DEV',displayName:'DEV',tier:'OWNER'},{username:'Jan',displayName:'Jan',tier:'USER'},{username:'MICK',displayName:'Mick',tier:username.toUpperCase()==='MICK'?tier:'USER'}];
    return ok({users:listed});
   }
+  if(action==='user-save'){
+   const target=String(req.username||'').trim(),newTier=String(req.tier||'USER');
+   const index=(bank.users||[]).findIndex(user=>String(user.username).toLowerCase()===target.toLowerCase());
+   const existing=index>=0?bank.users[index]:null;
+   const isDevRoot=username.toUpperCase()==='DEV'&&tier==='OWNER';
+   const isRootAuthority=isDevRoot||tier==='DEVACC';
+   if(!(tier==='ADMIN'||isRootAuthority))return ok({error:'Permission denied'},403);
+   if(newTier==='OWNER')return ok({error:'DEV is the only OWNER account.'},403);
+   if(newTier==='DEVACC'&&(!existing||existing.tier!=='DEVACC')&&!isDevRoot)return ok({error:'Only root DEV can assign DEVacc.'},403);
+   if(existing?.tier==='DEVACC'&&!isRootAuthority)return ok({error:'Only DEV and DEVACC can modify DEVacc.'},403);
+   if(existing?.tier==='OWNER')return ok({error:'The root OWNER account is protected.'},403);
+   if(!existing&&!req.pin)return ok({error:'PIN required for new user'},400);
+   if(req.pin&&!/^[0-9]{4,8}$/.test(String(req.pin)))return ok({error:'PIN must be 4-8 digits'},400);
+   const user=existing||{username:target};
+   user.username=target;user.displayName=String(req.displayName||target);user.tier=newTier;user.enabled=req.enabled!==false;
+   if(index>=0)bank.users[index]=user;else bank.users.push(user);
+   version++;
+   return ok({ok:true,version});
+  }
   if(action==='login'){
    if(req.username.toLowerCase()!==username.toLowerCase()||req.pin!==pin)return ok({error:'Invalid username or PIN'},401);
    return ok({token,expiresAt:new Date(Date.now()+3600000).toISOString(),user:{username,displayName:username.toUpperCase()==='DEV'?'DEV':username.toLowerCase()==='jan'?'Jan':'Mick',tier}});
@@ -390,10 +409,25 @@ try{
  await devacc.page.locator('[data-settings-open="users"]').click();
  await devacc.page.locator('#settingsPanelUsers').waitFor({state:'visible'});
  assert.equal(await devacc.page.locator('#centralUsersManager').isVisible(),true,'DEVACC can manage accounts');
- assert.equal(await devacc.page.locator('#centralAccountTier').isDisabled(),false,'DEVACC can assign account tiers');
- assert.equal(await devacc.page.locator('#centralAccountTier option[value="DEVACC"]').isDisabled(),false,'DEVACC can assign DEVACC tier');
+ assert.equal(await devacc.page.locator('#centralAccountTier').isDisabled(),false,'DEVACC can manage standard account tiers');
+ assert.equal(await devacc.page.locator('#centralAccountTier option[value="DEVACC"]').isDisabled(),true,'DEVACC cannot assign the DEVACC tier');
  const devaccTarget=devacc.page.locator('#centralUsersManageList > div').filter({hasText:'DEVacc'});
  assert.ok(await devaccTarget.locator('button').count()>0,'DEVACC can edit, disable or remove DEVACC accounts');
+ await devaccTarget.getByRole('button',{name:'EDIT'}).click();
+ assert.equal(await devacc.page.locator('#centralAccountUsername').inputValue(),'DEVacc','DEVACC can open an existing DEVACC account for editing');
+ assert.equal(await devacc.page.locator('#centralAccountTier').inputValue(),'DEVACC','editing preserves the existing DEVACC tier');
+ assert.equal(await devacc.page.locator('#centralAccountTier option[value="DEVACC"]').isDisabled(),true,'the DEVACC tier remains unavailable for reassignment while editing');
+ await devacc.page.locator('#centralAccountDisplay').fill('DEVacc Updated');
+ await devacc.page.locator('#centralAccountSave').click();
+ await devacc.page.waitForFunction(()=>document.querySelector('#centralUsersStatus')?.textContent.includes('Account updated.'),{timeout:5000});
+ assert.equal(devacc.getBank().users.find(user=>user.username==='DEVacc')?.displayName,'DEVacc Updated','DEVACC can save changes to an existing DEVACC account without reassigning its tier');
+ const forbiddenGrant=await devacc.page.evaluate(async version=>{
+  try{await window.DowntimeCentral.saveUser({username:'DEVacc QA',displayName:'DEVacc QA',tier:'DEVACC',pin:'8642'},version);return null}
+  catch(error){return {status:error.status,message:error.message}}
+ },devacc.getVersion());
+ assert.equal(forbiddenGrant?.status,403,'a direct DEVACC user-save request cannot grant a new DEVACC account');
+ assert.match(forbiddenGrant?.message||'',/Only root DEV can assign DEVacc/,'the API denial identifies root DEV as the sole DEVACC grant authority');
+ assert.equal(devacc.getBank().users.some(user=>user.username==='DEVacc QA'),false,'a denied DEVACC grant does not create an account');
 
  await devacc.context.close();
  const manager=await openFor('MANAGER','2468','MICK',owner.getBank(),owner.getVersion());
