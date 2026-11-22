@@ -313,8 +313,13 @@ try{
  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
  assert.equal(await owner.page.locator('#authGate').isVisible(),false,'Exiting Overview returns to the still-authenticated main app');
  assert.equal(await owner.page.locator('.view.active').count(),1,'The underlying tracker view remains active');
- const immediateTransitionAck=owner.page.locator('#plantTransitionAlertHost button');
- if(await immediateTransitionAck.count())await immediateTransitionAck.click();
+ for(let alertAttempt=0;alertAttempt<6;alertAttempt++){
+  const pendingAlert=owner.page.locator('#plantTransitionAlertHost button');
+  if(!(await pendingAlert.count()))break;
+  await pendingAlert.evaluate(button=>button.click());
+  await owner.page.waitForTimeout(60);
+ }
+ await owner.page.waitForFunction(()=>!document.querySelector('#plantTransitionAlertHost'),{timeout:3000});
  await owner.page.locator('.overview-link').click();
  assert.equal(await owner.page.locator('#overviewOverlay').isVisible(),true,'Overview can be reopened');
  await overview.locator('#overviewFullscreen').focus();
