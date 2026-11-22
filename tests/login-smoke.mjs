@@ -25,6 +25,7 @@ const tiers={
  ASSIGNMENT_ONLY:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:false,canViewReports:false},
  SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
+tiers.DEVACC={...tiers.OWNER};
 function makeBank(){
  const profiles=Object.fromEntries(['Jan','Mick','Gigi','Daz','Shayne'].map((name,i)=>[name,{station:'Station '+(i+1)+' · WOOD',onSite:true,photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}]));
  const roster=Object.keys(profiles);
@@ -425,6 +426,27 @@ try{
  await nonJanAdmin.page.locator('#settingsPanelUsers').waitFor({state:'visible'});
  assert.equal(await nonJanAdmin.page.locator('#centralUsersManager').isVisible(),true,'ADMIN retains ordinary account-management access');
  await nonJanAdmin.context.close();
+ const devaccBank=makeBank();
+ devaccBank.users=[
+  {username:'DEV',displayName:'DEV',tier:'OWNER',enabled:true},
+  {username:'DEVacc',displayName:'DEVacc',tier:'DEVACC',enabled:true},
+  {username:'Jan',displayName:'Jan',tier:'USER',enabled:true},
+  {username:'MICK',displayName:'Mick',tier:'ADMIN',enabled:true}
+ ];
+ const devacc=await openFor('DEVACC','2468','DEVacc',devaccBank);
+ await signIn(devacc.page,'2468','DEVacc');
+ assert.equal(await devacc.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'DEVacc cannot see the root-only Central Data Bank menu entry');
+ await openSettingsHub(devacc.page);
+ assert.equal(await devacc.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'DEVacc cannot open the root-only Access and Rights editor');
+ await devacc.page.locator('[data-settings-open="users"]').click();
+ await devacc.page.locator('#settingsPanelUsers').waitFor({state:'visible'});
+ assert.equal(await devacc.page.locator('#centralUsersManager').isVisible(),true,'DEVacc retains ordinary user-management access');
+ assert.equal(await devacc.page.locator('#centralAccountTier').isDisabled(),false,'DEVacc can assign standard account tiers');
+ assert.equal(await devacc.page.locator('#centralAccountTier option[value="DEVACC"]').isDisabled(),true,'DEVacc cannot assign the DEVACC tier');
+ const protectedDevacc=devacc.page.locator('#centralUsersManageList > div').filter({hasText:'DEVacc'});
+ assert.equal(await protectedDevacc.locator('button').count(),0,'DEVacc cannot edit, disable or remove the DEVACC account');
+ assert.equal(await protectedDevacc.getByText('DEVACC · DEV ONLY').count(),1,'DEVACC account is explicitly marked as root-only managed');
+ await devacc.context.close();
  const manager=await openFor('MANAGER','2468','MICK',owner.getBank(),owner.getVersion());
  await signIn(manager.page,'2468','MICK');
  assert.equal(await manager.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'MANAGER with ADMIN-equivalent configurable rights cannot see Central Data Bank');
