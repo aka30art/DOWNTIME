@@ -32,6 +32,7 @@ assert.ok(tracker.includes("operatorReadOnly||!permission('canDeleteRecords')"),
 assert.ok(tracker.includes('if(previous?.recordId)item.recordId=previous.recordId'), 'editing a downtime record preserves its central identity');
 assert.ok(tracker.includes("station.disabled=!permission('canManageAssignments')"), 'station assignment editing depends only on canManageAssignments, not STAFF administration');
 assert.ok(tracker.includes("station.onchange=()=>{if(!permission('canManageAssignments'))return;"), 'station assignment mutations independently enforce canManageAssignments');
+assert.ok(tracker.includes("...(check.checked||!permission('canManageAssignments')?{}:{station:''})"), 'STAFF presence changes do not clear station assignments without assignment permission');
 assert.ok(api.includes('if(!priv.canManageAssignments){')&&api.includes('if("station" in existing)profile.station=existing.station'), 'central save-state preserves station fields for STAFF administrators without assignment rights');
 assert.ok(tracker.includes("saveCloudReport(){if(!permission('canExportReports'))return"), 'MANAGER can export weekly reports');
 assert.match(tracker,/if\(!permission\('canExportReports'\)\)el\.querySelectorAll\('\[data-report-download\]'\)\.forEach\(button=>button\.style\.display='none'\)/, 'USER cannot export archived weekly reports while retaining report-view access');
