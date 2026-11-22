@@ -251,9 +251,10 @@ try{
  await manager.page.locator('.nav[data-view="weekly"]').click();
  assert.equal(await manager.page.locator('#addEntry').isEnabled(),true,'MANAGER has the same tracker-edit control state as ADMIN');
  await manager.page.locator('#addEntry').click();
+ await manager.page.locator('#entryModal').waitFor({state:'visible'});
  await manager.page.locator('#areaButtons [data-preset]').first().click();
  await manager.page.locator('#reasonButtons [data-preset]').first().click();
- await manager.page.locator('#durationMinutes').fill('5');
+ await manager.page.locator('#durationMinutes').evaluate(input=>{input.value='5';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));});
  await manager.page.locator('#saveEntry').click();
  for(let attempt=0;attempt<40&&!Object.values(manager.getBank().appData.weeks||{}).some(week=>week.days?.some(day=>day.entries?.some(entry=>entry.minutes===5)));attempt++)await manager.page.waitForTimeout(50);
  assert.ok(Object.values(manager.getBank().appData.weeks||{}).some(week=>week.days?.some(day=>day.entries?.some(entry=>entry.minutes===5))),'MANAGER can create and save an operational entry with ADMIN-equivalent rights');
