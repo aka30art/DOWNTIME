@@ -20,6 +20,7 @@ assert.equal(roleProfile(app,'const lockedTierPermissions','OWNER'),roleProfile(
 
 assert.ok(api.includes('const isDevRoot=currentUsername==="DEV"&&tier==="OWNER"'),'root authority requires the exact DEV username and OWNER tier');
 assert.ok(api.includes('const isCentralBankAccess=isDevRoot;'),'only root DEV has the Data Bank capability');
+assert.ok(api.includes('const isCentralAdmin=tier==="ADMIN"||tier==="DEVACC"||isDevRoot;'),'only DEV, ADMIN and DEVACC can create accounts or assign standard tiers; legacy JAN root cannot');
 assert.ok(api.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV only."},403);'),'whole-bank state denies ADMIN and DEVACC');
 assert.ok(api.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),'all configuration routes deny non-DEV identities');
 assert.ok(api.includes('if(!isDevRoot)return json({error:"Only root DEV can change tier access and rights."},403);'),'tier rights mutation is root-only');
