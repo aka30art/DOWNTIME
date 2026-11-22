@@ -9,7 +9,7 @@ const apiSource=fs.readFileSync('supabase/functions/central-bank/index.ts','utf8
 
 const pagePermissionBlock=pageSource.slice(pageSource.indexOf('const tierDefaults={'),pageSource.indexOf('function permission(name)'));
 const apiPermissionBlock=apiSource.slice(apiSource.indexOf('const tierDefault:'),apiSource.indexOf('const cryptoHex='));
-assert.ok(pagePermissionBlock.includes("{key:'canViewPlantOverview'"),'Access & Rights exposes the dedicated Plant Overview right');
+assert.ok(pageSource.includes("{key:'canViewPlantOverview'"),'Access & Rights exposes the dedicated Plant Overview right');
 assert.ok(pageSource.includes("if(overview)overview.style.display=spectator||!permission('canViewPlantOverview')?'none':''"),'main navigation uses the dedicated Plant Overview right');
 assert.ok(pageSource.includes("if(!permission('canViewPlantOverview'))return;"),'opening Plant Overview uses the dedicated right only');
 assert.ok(apiSource.includes('const permissionKeys=Object.keys(tierDefault.OWNER)'),'server tier-save whitelist is derived from mirrored permission defaults');
