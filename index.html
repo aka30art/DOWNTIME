@@ -847,7 +847,7 @@ function applyTierVisibility(){
  if(settingsView)settingsView.style.display=spectator||!anySettingsAccess()?'none':'';
  if(onDuty)onDuty.style.display=spectator||!permission('canViewAssignments')?'none':'';
  if(exportButton)exportButton.style.display=spectator||!permission('canViewReports')?'none':'';
- document.querySelectorAll('.weeklyKpis,.layout aside,.weekly.wide').forEach(el=>{el.style.display=spectator?'none':''});
+ document.querySelectorAll('.weeklyKpis,.layout aside,.weekly.wide').forEach(el=>{el.style.display=spectator||!permission('canViewDashboards')?'none':''});
  renderSettingsHub();
 }
 
@@ -934,7 +934,7 @@ window.addEventListener('message',event=>{
  if(event.data?.type==='DOWNTIME_OVERVIEW_CLOSE')closePlantOverview();
 });
 function canManageSettingsSection(section){
- const rights={users:['canManageUsers'],areas:['canManageAreaPresets'],reasons:['canManageReasonPresets'],schedule:['canManageShiftSchedule'],dailyTasks:['canManageDailyTasks'],staff:['canManageStaff']};
+ const rights={users:['canManageUsers'],areas:['canManageAreaPresets'],reasons:['canManageReasonPresets'],schedule:['canManageShiftSchedule'],dailyTasks:['canManageDailyTasks'],staff:['canManageStaff','canManageAssignments']};
  return permission('canManageSettings')||(rights[section]||[]).some(key=>permission(key))||(section==='reasons'&&permission('canAddDowntimeReasons'));
 }
 function settingsAccess(section){
@@ -1231,12 +1231,12 @@ function renderDailyTaskSettings(){
   const name=document.createElement('span');name.textContent=task;row.appendChild(name);
   if(!canEdit)return;
   const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='REMOVE';remove.setAttribute('aria-label','Remove daily task '+task);
-  remove.onclick=()=>{if(!canManageSettingsSection('schedule'))return;state.dailyTaskPresets=state.dailyTaskPresets.filter((item,i)=>i!==index);Object.values(state.weeks||{}).forEach(w=>(w?.days||[]).forEach(d=>{d.dailyTasksDone=(Array.isArray(d.dailyTasksDone)?d.dailyTasksDone:[]).filter(value=>value!==task)}));if(!persistSettings()){$('dailyTaskPresetMsg').textContent='Unable to save the change. Check your central connection.';return}renderDailyTaskSettings();$('dailyTaskPresetMsg').textContent='Removed '+task+'.'};
+  remove.onclick=()=>{if(!canManageSettingsSection('dailyTasks'))return;state.dailyTaskPresets=state.dailyTaskPresets.filter((item,i)=>i!==index);Object.values(state.weeks||{}).forEach(w=>(w?.days||[]).forEach(d=>{d.dailyTasksDone=(Array.isArray(d.dailyTasksDone)?d.dailyTasksDone:[]).filter(value=>value!==task)}));if(!persistSettings()){$('dailyTaskPresetMsg').textContent='Unable to save the change. Check your central connection.';return}renderDailyTaskSettings();$('dailyTaskPresetMsg').textContent='Removed '+task+'.'};
   row.appendChild(remove);list.appendChild(row);
  });
 }
 function addDailyTaskPreset(){
- if(!canManageSettingsSection('schedule'))return;
+ if(!canManageSettingsSection('dailyTasks'))return;
  const input=$('dailyTaskPresetInput'),task=String(input?.value||'').trim();
  if(!task)return;
  if(task.length>100){$('dailyTaskPresetMsg').textContent='Daily tasks must be 100 characters or fewer.';return}
