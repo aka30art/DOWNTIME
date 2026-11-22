@@ -694,7 +694,7 @@ body.overview-overlay-open{overflow:hidden}
     <div class="daily-tasks-progress"><span id="dailyTasksProgressText">0 / 0 COMPLETE</span><div class="daily-tasks-progress-track"><span id="dailyTasksProgressFill"></span></div></div>
     <div id="dailyTasksList" class="daily-tasks-list"></div>
     <div id="dailyTasksEmpty" class="daily-tasks-empty" hidden>No daily tasks have been preset yet. An administrator can create the checklist in Settings.</div>
-    <div class="modalfoot"><button id="closeDailyTasks" class="primary" type="button">DONE</button></div>
+    <div id="dailyTasksLockStatus" class="muted" role="status" style="margin:0 0 10px"></div><div class="modalfoot"><button id="saveDailyTasks" class="primary" type="button">SAVE &amp; LOCK FOR TODAY</button><button id="closeDailyTasks" type="button">DONE</button></div>
   </div>
 </div>
 <div class="modalback report-preview-backdrop" id="reportPreviewModal" aria-hidden="true">
@@ -1231,7 +1231,7 @@ function renderDailyTaskSettings(){
   const name=document.createElement('span');name.textContent=task;row.appendChild(name);
   if(!canEdit)return;
   const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='REMOVE';remove.setAttribute('aria-label','Remove daily task '+task);
-  remove.onclick=()=>{if(!canManageSettingsSection('dailyTasks'))return;state.dailyTaskPresets=state.dailyTaskPresets.filter((item,i)=>i!==index);Object.values(state.weeks||{}).forEach(w=>(w?.days||[]).forEach(d=>{d.dailyTasksDone=(Array.isArray(d.dailyTasksDone)?d.dailyTasksDone:[]).filter(value=>value!==task)}));if(!persistSettings()){$('dailyTaskPresetMsg').textContent='Unable to save the change. Check your central connection.';return}renderDailyTaskSettings();$('dailyTaskPresetMsg').textContent='Removed '+task+'.'};
+  remove.onclick=()=>{if(!canManageSettingsSection('dailyTasks'))return;state.dailyTaskPresets=state.dailyTaskPresets.filter((item,i)=>i!==index);Object.values(state.weeks||{}).forEach(w=>(w?.days||[]).forEach(d=>{if(d.dailyTasksLocked)return;d.dailyTasksDone=(Array.isArray(d.dailyTasksDone)?d.dailyTasksDone:[]).filter(value=>value!==task)}));if(!persistSettings()){$('dailyTaskPresetMsg').textContent='Unable to save the change. Check your central connection.';return}renderDailyTaskSettings();$('dailyTaskPresetMsg').textContent='Removed '+task+'.'};
   row.appendChild(remove);list.appendChild(row);
  });
 }
@@ -1243,29 +1243,41 @@ function addDailyTaskPreset(){
  state.dailyTaskPresets=Array.isArray(state.dailyTaskPresets)?state.dailyTaskPresets:[];
  if(state.dailyTaskPresets.some(value=>String(value).trim().toLowerCase()===task.toLowerCase())){$('dailyTaskPresetMsg').textContent='That daily task already exists.';return}
  state.dailyTaskPresets=[...state.dailyTaskPresets,task];
- if(!persistSettings()){$('dailyTaskPresetMsg').textContent='Unable to save the task. Check your central connection.';return}
- input.value='';renderDailyTaskSettings();$('dailyTaskPresetMsg').textContent='Added '+task+'.';
-}
-function renderDailyTasksPopup(){
- const tasks=Array.isArray(state.dailyTaskPresets)?state.dailyTaskPresets:[],completed=Array.isArray(day().dailyTasksDone)?day().dailyTasksDone:[];
+ if(!persistSettings()){$('dailfunction renderDailyTasksPopup(){
+ const locked=!!day().dailyTasksLocked;
+ const tasks=locked&&Array.isArray(day().dailyTasksSnapshot)?day().dailyTasksSnapshot:(Array.isArray(state.dailyTaskPresets)?state.dailyTaskPresets:[]);
+ const completed=Array.isArray(day().dailyTasksDone)?day().dailyTasksDone:[];
  const list=$('dailyTasksList'),empty=$('dailyTasksEmpty');list.replaceChildren();
- $('dailyTasksDay').textContent=DAYS[selected].toUpperCase()+' · '+prettyDate(day().date);
+ $('dailyTasksDay').textContent=DAYS[selected].toUpperCase()+' · '+prettyDate(day().date)+(locked?' · LOCKED':'');
  $('dailyTasksProgressText').textContent=completed.filter(value=>tasks.includes(value)).length+' / '+tasks.length+' COMPLETE';
  $('dailyTasksProgressFill').style.width=(tasks.length?completed.filter(value=>tasks.includes(value)).length/tasks.length*100:0)+'%';
  empty.hidden=tasks.length>0;
+ const status=$('dailyTasksLockStatus'),save=$('saveDailyTasks');
+ if(status)status.textContent=locked?'Saved and locked for today. This checklist cannot be changed.':'Review the checklist, then Save & Lock to freeze it for today.';
+ if(save){save.disabled=locked||!permission('canEditTracker')||!tasks.length;save.textContent=locked?'SAVED · LOCKED':'SAVE & LOCK FOR TODAY';}
  tasks.forEach(task=>{
   const label=document.createElement('label');label.className='daily-task-item'+(completed.includes(task)?' is-complete':'');
-  const check=document.createElement('input');check.type='checkbox';check.checked=completed.includes(task);check.disabled=!permission('canEditTracker');check.setAttribute('aria-label','Complete task: '+task);
+  const check=document.createElement('input');check.type='checkbox';check.checked=completed.includes(task);check.disabled=locked||!permission('canEditTracker');check.setAttribute('aria-label','Complete task: '+task);
   const text=document.createElement('span');text.textContent=task;label.append(check,text);list.appendChild(label);
-  check.onchange=()=>{if(!permission('canEditTracker'))return;const done=new Set(Array.isArray(day().dailyTasksDone)?day().dailyTasksDone:[]);if(check.checked)done.add(task);else done.delete(task);day().dailyTasksDone=[...done];if(!persist()){$('dailyTasksProgressText').textContent='Unable to save task completion';return}renderDailyTasksPopup()};
+  check.onchange=()=>{if(locked||!permission('canEditTracker'))return;const done=new Set(Array.isArray(day().dailyTasksDone)?day().dailyTasksDone:[]);if(check.checked)done.add(task);else done.delete(task);day().dailyTasksDone=[...done];if(!persist()){$('dailyTasksProgressText').textContent='Unable to save task completion';return}renderDailyTasksPopup()};
  });
+}
+function saveAndLockDailyTasks(){
+ if(day().dailyTasksLocked||!permission('canEditTracker'))return;
+ const tasks=Array.isArray(state.dailyTaskPresets)?[...state.dailyTaskPresets]:[];
+ if(!tasks.length)return;
+ day().dailyTasksSnapshot=tasks;
+ day().dailyTasksDone=(Array.isArray(day().dailyTasksDone)?day().dailyTasksDone:[]).filter(value=>tasks.includes(value));
+ day().dailyTasksLocked=true;
+ if(!persist()){day().dailyTasksLocked=false;delete day().dailyTasksSnapshot;$('dailyTasksLockStatus').textContent='Unable to save lock. Check your central connection.';return;}
+ renderDailyTasksPopup();
 }
 function openDailyTasks(){renderDailyTasksPopup();const modal=$('dailyTasksModal');modal.classList.add('show');modal.setAttribute('aria-hidden','false');$('closeDailyTasks').focus()}
 function closeDailyTasks(){const modal=$('dailyTasksModal');modal.classList.remove('show');modal.setAttribute('aria-hidden','true');$('openDailyTasks').focus()}
 $('addDailyTaskPresetBtn').onclick=addDailyTaskPreset;
 $('dailyTaskPresetInput').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();addDailyTaskPreset()}});
 $('openDailyTasks').onclick=openDailyTasks;
-$('closeDailyTasks').onclick=closeDailyTasks;$('closeDailyTasksX').onclick=closeDailyTasks;
+$('saveDailyTasks').onclick=saveAndLockDailyTasks;$('closeDailyTasks').onclick=closeDailyTasks;$('closeDailyTasksX').onclick=closeDailyTasks;
 $('dailyTasksModal').addEventListener('click',event=>{if(event.target===$('dailyTasksModal'))closeDailyTasks()});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('dailyTasksModal').classList.contains('show'))closeDailyTasks()});
 function renderReasonPresetSettings(){
