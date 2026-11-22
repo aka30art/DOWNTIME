@@ -1243,7 +1243,10 @@ function addDailyTaskPreset(){
  state.dailyTaskPresets=Array.isArray(state.dailyTaskPresets)?state.dailyTaskPresets:[];
  if(state.dailyTaskPresets.some(value=>String(value).trim().toLowerCase()===task.toLowerCase())){$('dailyTaskPresetMsg').textContent='That daily task already exists.';return}
  state.dailyTaskPresets=[...state.dailyTaskPresets,task];
- if(!persistSettings()){$('dailfunction renderDailyTasksPopup(){
+ if(!persistSettings()){$('dailyTaskPresetMsg').textContent='Unable to save the task. Check your central connection.';return}
+ input.value='';renderDailyTaskSettings();$('dailyTaskPresetMsg').textContent='Added '+task+'.';
+}
+function renderDailyTasksPopup(){
  const locked=!!day().dailyTasksLocked;
  const tasks=locked&&Array.isArray(day().dailyTasksSnapshot)?day().dailyTasksSnapshot:(Array.isArray(state.dailyTaskPresets)?state.dailyTaskPresets:[]);
  const completed=Array.isArray(day().dailyTasksDone)?day().dailyTasksDone:[];
