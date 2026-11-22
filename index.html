@@ -802,9 +802,9 @@ const lockedTierPermissions={
 };
 function permission(name){const tier=privilegeFor(activeOperator),locked=lockedTierPermissions[tier];if(locked&&Object.prototype.hasOwnProperty.call(locked,name))return locked[name];const custom=centralBankPayload?.tiers?.[tier];return typeof custom?.[name]==='boolean'?custom[name]:!!tierDefaults[tier]?.[name]}
 function canManageAccessRights(){return canAccessCentralBank()}
-function canAccessCentralBank(){const username=String(centralUser?.username||activeOperator||'').trim().toUpperCase(),tier=privilegeFor(activeOperator);return username==='DEV'&&tier==='OWNER'}
+function canAccessCentralBank(){const username=String(centralUser?.username||'').trim().toUpperCase(),tier=String(centralUser?.tier||'').trim().toUpperCase();return username==='DEV'&&tier==='OWNER'}
 function canAssignStandardAccountTiers(){const tier=String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase();return tier==='ADMIN'||tier==='DEVACC'||canAccessCentralBank()}
-function canRunRootAccountSplit(){const username=String(centralUser?.username||activeOperator||'').trim().toUpperCase(),tier=String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase();return tier==='OWNER'&&(username==='DEV'||username==='JAN')}
+function canRunRootAccountSplit(){const username=String(centralUser?.username||'').trim().toUpperCase(),tier=String(centralUser?.tier||'').trim().toUpperCase();return tier==='OWNER'&&(username==='DEV'||username==='JAN')}
 function syncDevaccTierOption(select=$('centralAccountTier')){const option=select?.querySelector('option[value="DEVACC"]');if(option)option.disabled=!canAccessCentralBank()}
 const ACCESS_RIGHT_GROUPS=[
  {title:'TRACKER & RECORDS',rights:[
