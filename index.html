@@ -784,11 +784,12 @@ let weekStart=mondayOf(today),selected=0,entryDraft={area:'',reason:''},editing=
 let state=load();state.shiftSchedule=state.shiftSchedule||scheduleDefaults();state.shiftPresets=state.shiftPresets||[];state.dailyTaskPresets=Array.isArray(state.dailyTaskPresets)?state.dailyTaskPresets:[];if(typeof state.plantOn!=="boolean")state.plantOn=true;state.undoAction=state.undoAction||null;delete state.quickReasons;delete state.recentReasons;
 let centralUsers=[],centralUser=null,centralBankPayload=null,centralVersion=0,centralReady=false,centralPendingWrites=0,centralPinAttempts=0,centralPinLockUntil=0;
 let activeOperator='',operatorReadOnly=false,operatorAdmin=false;
-const USER_TIERS=['OWNER','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR'];
+const USER_TIERS=['OWNER','DEVACC','ADMIN','MANAGER','SUPERVISOR','USER','SPECTATOR'];
 function staffRoster(){const names=Array.isArray(state?.staffRoster)?state.staffRoster:['Jan','Mick','Gigi','Daz','Shayne'];return [...new Set(names.filter(n=>typeof n==='string'&&n.trim()))]}
 function privilegeFor(n){const u=centralUsers.find(x=>String(x.username).toLowerCase()===String(n||'').toLowerCase());return (n===centralUser?.username?centralUser?.tier:u?.tier)||'USER'}
 const tierDefaults={
  OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ DEVACC:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:false,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:true,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:false,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
@@ -797,10 +798,11 @@ const tierDefaults={
 };
 const lockedTierPermissions={
  OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}
+ DEVACC:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}
 };
 function permission(name){const tier=privilegeFor(activeOperator),locked=lockedTierPermissions[tier];if(locked&&Object.prototype.hasOwnProperty.call(locked,name))return locked[name];const custom=centralBankPayload?.tiers?.[tier];return typeof custom?.[name]==='boolean'?custom[name]:!!tierDefaults[tier]?.[name]}
 function canManageAccessRights(){return canAccessCentralBank()}
-function canAccessCentralBank(){const username=String(centralUser?.username||activeOperator||'').trim().toUpperCase(),tier=privilegeFor(activeOperator);return tier==='ADMIN'||((username==='DEV'||username==='JAN')&&tier==='OWNER')}
+function canAccessCentralBank(){const username=String(centralUser?.username||activeOperator||'').trim().toUpperCase(),tier=privilegeFor(activeOperator);return username==='DEV'&&tier==='OWNER'}
 const ACCESS_RIGHT_GROUPS=[
  {title:'TRACKER & RECORDS',rights:[
   {key:'canEditTracker',label:'Edit tracker',detail:'Create and edit downtime records and daily operational information'},
@@ -833,11 +835,11 @@ const ACCESS_RIGHT_GROUPS=[
   {key:'canExportReports',label:'Export reports',detail:'Download and export weekly report files'}
  ]}
 ];
-const ACCESS_TIER_DESCRIPTIONS={ADMIN:'Broad administrative access, configured by ADMIN / DEV.',MANAGER:'Operational management access, configured by ADMIN / DEV.',SUPERVISOR:'Front-line supervisory access, configured by ADMIN / DEV.',USER:'Standard user access, configured by ADMIN / DEV.',SPECTATOR:'Restricted viewing access, configured by ADMIN / DEV.'};
+const ACCESS_TIER_DESCRIPTIONS={DEVACC:'Locked root-equivalent operational tier; Central Data Bank excluded. Only DEV can assign or revoke.',ADMIN:'Broad administrative access, configured by ADMIN / DEV.',MANAGER:'Operational management access, configured by ADMIN / DEV.',SUPERVISOR:'Front-line supervisory access, configured by ADMIN / DEV.',USER:'Standard user access, configured by ADMIN / DEV.',SPECTATOR:'Restricted viewing access, configured by ADMIN / DEV.'};
 function renderAccessRights(){
  const host=$('accessRightsTierList');if(!host||!canManageAccessRights())return;
  const stored=centralBankPayload?.tiers||tierDefaults;host.replaceChildren();
- USER_TIERS.filter(tier=>tier!=='OWNER').forEach(tier=>{
+ USER_TIERS.filter(tier=>tier!=='OWNER'&&tier!=='DEVACC').forEach(tier=>{
   const profile={...tierDefaults[tier],...(stored[tier]||{})};
   const card=document.createElement('section');card.className='access-rights-tier';card.dataset.accessTierCard=tier;
   const head=document.createElement('div');head.className='access-rights-tier-head';
@@ -1523,7 +1525,7 @@ function resetCentralUserForm(){
  if(display)display.value='';
  if(tier)tier.value='USER';
  if(pin)pin.value='';
- const canAssignTier=canAccessCentralBank();
+ const canAssignTier=permission('canManageUsers')||canAccessCentralBank();
  if(tier)tier.disabled=!canAssignTier;
  if($('centralAccountFormTitle'))$('centralAccountFormTitle').textContent='ADD USER ACCOUNT';
  if($('centralAccountSave')){$('centralAccountSave').textContent='ADD USER';$('centralAccountSave').disabled=!canAssignTier;}
@@ -1533,7 +1535,7 @@ function resetCentralUserForm(){
 function renderCentralUserSettings(){
  const host=$('centralUsersManager'),list=$('centralUsersManageList');
  if(!host||!list)return;
- const canManage=permission('canManageUsers'),canView=canManage||permission('canViewUsers'),canAssignTier=canAccessCentralBank();
+ const canManage=permission('canManageUsers'),canView=canManage||permission('canViewUsers'),canAssignTier=canManage||canAccessCentralBank();
  host.style.display=canView?'block':'none';
  const currentUsername=String(centralUser?.username||activeOperator||'').trim().toUpperCase(),currentTier=String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase();
  const janOperationalExists=(centralBankPayload?.users||[]).some(user=>String(user.username||'').trim().toUpperCase()==='JAN'&&user.tier==='USER'&&user.enabled!==false);
@@ -1615,6 +1617,7 @@ async function saveCentralUserSettings(){
  if(!username){$('centralUsersStatus').textContent='Enter a username.';return}
  const existing=(centralBankPayload?.users||[]).find(user=>String(user.username).toLowerCase()===username.toLowerCase());
  const canAssignTier=canAccessCentralBank();
+ if(tier==='DEVACC'&&!canAccessCentralBank){$('centralUsersStatus').textContent='Only DEV can assign DEVacc tier.';return}
  if((!editingCentralUsername||!existing||existing.tier!==tier)&&!canAssignTier){$('centralUsersStatus').textContent='Only ADMIN / DEV can create accounts or assign user tiers.';return}
  const payload={username,displayName:displayName||username,tier,enabled:existing?.enabled!==false,version:centralVersion};
  if(pin)payload.pin=pin;
