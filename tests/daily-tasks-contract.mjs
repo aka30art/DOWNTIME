@@ -34,8 +34,10 @@ assert.match(html, /if\(!permission\('canEditTracker'\)\)return/,
   'only roles allowed to edit tracker data may change task completion');
 assert.match(html, /state\.dailyTaskPresets=\[\.\.\.state\.dailyTaskPresets,task\]/,
   'new task presets must be stored in the central tracker state');
-assert.match(html, /function settingsAccess\(section\)\{[^}]*section==='dailyTasks'\)return permission\('canManageSettings'\)/,
-  'only settings managers may access Daily Tasks preset management');
+assert.match(html, /function canManageSettingsSection\\(section\\)[\\s\\S]*dailyTasks:\\['canManageDailyTasks'\\]/,
+  'Daily Tasks preset management has its own configurable permission');
+assert.match(html, /function renderDailyTaskSettings\\(\\)[\\s\\S]*canManageSettingsSection\\('dailyTasks'\\)/,
+  'Daily Tasks editor controls use the section-specific edit right');
 assert.match(api, /if\(Array\.isArray\(bank\.appData\?\.dailyTaskPresets\)\)nextAppData\.dailyTaskPresets=bank\.appData\.dailyTaskPresets;else delete nextAppData\.dailyTaskPresets/,
   'the central API must preserve task presets when a non-settings role saves task completion');
 assert.doesNotMatch(html, /id="quickReasonButtons"|id="quickReasonAdminList"|id="addQuickReasonBtn"|id="newQuickReason"/,
