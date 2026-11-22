@@ -375,8 +375,8 @@ try{
  await accessRightsTile.click();
  assert.equal(await owner.page.locator('#settingsPanelAccessRights').isVisible(),true,'DEV opens the dedicated tier rights editor');
  assert.equal(await owner.page.locator('#accessRightsTierList [data-access-tier-card]').count(),7,'DEV can see Access & Rights cards for all seven tiers');
- assert.equal(await owner.page.locator('#accessRightsTierList [data-access-tier="OWNER"]').count(),1,'root OWNER has a dedicated Plant Power permission row');
- assert.equal(await owner.page.locator('#accessRightsTierList [data-access-tier="DEVACC"]').count(),1,'root-equivalent DEVACC has a dedicated Plant Power permission row');
+ assert.equal(await owner.page.locator('#accessRightsTierList [data-access-tier-card="OWNER"]').count(),1,'root OWNER has a dedicated tier card for Plant Power configuration');
+ assert.equal(await owner.page.locator('#accessRightsTierList [data-access-tier-card="DEVACC"]').count(),1,'root-equivalent DEVACC has a dedicated tier card for Plant Power configuration');
  const ownerPlantPower=owner.page.locator('[data-access-tier="OWNER"][data-access-right="canControlPlantPower"]');
  const devaccPlantPower=owner.page.locator('[data-access-tier="DEVACC"][data-access-right="canControlPlantPower"]');
  assert.equal(await ownerPlantPower.isEnabled(),true,'OWNER Plant Power can be configured separately');
