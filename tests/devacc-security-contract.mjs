@@ -33,6 +33,7 @@ assert.ok(api.includes('if(newTier==="OWNER")return json({error:"DEV is the only
 assert.ok(api.includes('if(existing?.tier==="OWNER")return json({error:"The root OWNER account is protected."},403);'),'root identity is protected from ordinary account-management routes');
 
 assert.ok(app.includes("return username==='DEV'&&tier==='OWNER'"),'main UI Data Bank access is DEV-only');
+assert.ok(app.includes("const username=String(centralUser?.username||'').trim().toUpperCase(),tier=String(centralUser?.tier||'').trim().toUpperCase()"),'Data Bank privilege is derived from the authenticated central identity, not a secondary operator value');
 assert.ok(app.includes("tier==='ADMIN'||tier==='DEVACC'||canAccessCentralBank()"),'ADMIN and DEVACC retain standard account-tier management');
 assert.ok(app.includes('option.disabled=!canAccessCentralBank()'),'DEVACC option is disabled for non-root users');
 assert.ok(app.includes("if(tier==='DEVACC'&&!canAssignDevacc)"),'the DEVACC UI assignment check calls the authorization function');
