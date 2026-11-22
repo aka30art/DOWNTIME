@@ -586,6 +586,15 @@ try{
   assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.length||0),1,'new-member original image is uploaded to private staff storage');
   assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.[0]?.bucket),'downtime-staff-photos','original photo is uploaded to the private staff photo bucket');
  assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+6,'daily tasks, completions, lock and one staff save advance central version');
+ // STAFF profile administration lives in Settings; return to Home Page before exercising its Day to Day control.
+ const homePageNav=owner.page.locator('.nav[data-view="weekly"]');
+ if(!await homePageNav.isVisible()){
+  await owner.page.locator('.nav-menu > summary').click();
+  await homePageNav.waitFor({state:'visible',timeout:3000});
+ }
+ await dismissPlantTransitionAlerts(owner.page);
+ await homePageNav.click();
+ await owner.page.locator('#weekly.view.active').waitFor({state:'visible',timeout:3000});
  // Crew Switchboard exposes only locked, assigned STAFF and saves ON/OFF PLANT to the Central Data Bank.
 const crewMenu=owner.page.locator('.nav-menu');
  if(!await crewMenu.evaluate(node=>node.open))await crewMenu.locator(':scope > summary').click();
