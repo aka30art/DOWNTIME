@@ -355,6 +355,7 @@ Deno.serve(async(req)=>{
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
    const isRootName=username.toUpperCase()==="JAN";
    const existing=idx>=0?bank.users[idx]:null;
+   if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN or the JAN root administrator can create accounts or assign user tiers."},403);
    if(isRootName){
      if(tier!=="OWNER")return json({error:"JAN is protected. Only the OWNER may update JAN credentials."},403);
      if(!existing||existing.tier!=="OWNER"||newTier!=="OWNER"||body.enabled===false)return json({error:"JAN is the immutable root OWNER and cannot be created, demoted or disabled."},400);
