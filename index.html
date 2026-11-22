@@ -903,6 +903,7 @@ function enforceOperatorMode(){operatorReadOnly=!permission('canEditTracker');op
 $('detailDelete').style.display=operatorReadOnly||!permission('canDeleteRecords')?'none':'';
  renderSettingsHub();
 document.querySelectorAll('main input,main select,main textarea').forEach(el=>{if(!el.closest('.settings-panel'))el.disabled=operatorReadOnly});
+['dayDate','plantStart','plantStop'].forEach(id=>{const el=$(id);if(el)el.disabled=operatorReadOnly||!!day().startLocked});if($('breakExcluded'))$('breakExcluded').disabled=true;
 ['saveEntry','photoChoose','photoCamera','photoRemove'].forEach(id=>{const el=$(id);if(el)el.disabled=operatorReadOnly});
 const resetConfirm=$('confirmReset');if(resetConfirm)resetConfirm.disabled=operatorReadOnly||!permission('canManageSettings');
 const supervisorPanel=$('supervisorReasonPanel');if(supervisorPanel)supervisorPanel.style.display=permission('canAddDowntimeReasons')&&!permission('canManageSettings')?'block':'none';
