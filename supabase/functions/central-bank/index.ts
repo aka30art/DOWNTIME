@@ -120,6 +120,8 @@ Deno.serve(async(req)=>{
    if(!priv.canManageSettings){
      if("areas" in (bank.appData||{}))nextAppData.areas=bank.appData.areas;
      if(Array.isArray(bank.appData?.dailyTaskPresets))nextAppData.dailyTaskPresets=bank.appData.dailyTaskPresets;else delete nextAppData.dailyTaskPresets;
+     if("shiftSchedule" in (bank.appData||{}))nextAppData.shiftSchedule=bank.appData.shiftSchedule;else delete nextAppData.shiftSchedule;
+     if("shiftPresets" in (bank.appData||{}))nextAppData.shiftPresets=bank.appData.shiftPresets;else delete nextAppData.shiftPresets;
      delete nextAppData.quickReasons;delete nextAppData.recentReasons;
      for(const field of ["reasons"]){
        if(!priv.canAddDowntimeReasons){if(field in (bank.appData||{}))nextAppData[field]=bank.appData[field];continue;}
@@ -184,6 +186,10 @@ Deno.serve(async(req)=>{
    if(canManageTasks){
      if(!Array.isArray(incoming.dailyTaskPresets))return json({error:"Daily task presets must be an array"},400);
      nextAppData.dailyTaskPresets=cleanList(incoming.dailyTaskPresets,250,100);
+     const allowedTasks=new Set(nextAppData.dailyTaskPresets.map((task:string)=>task.toLowerCase()));
+     const weeks=structuredClone(bank.appData?.weeks||{});
+     for(const week of Object.values(weeks) as any[]){for(const day of (week?.days||[])){if(Array.isArray(day.dailyTasksDone))day.dailyTasksDone=day.dailyTasksDone.filter((task:any)=>typeof task==='string'&&allowedTasks.has(task.toLowerCase()));}}
+     nextAppData.weeks=weeks;
    }
    bank.staff=bank.staff||{roster:[],profiles:{}};
    const currentProfiles=bank.staff.profiles||bank.appData?.operatorProfiles||{};
@@ -214,7 +220,7 @@ Deno.serve(async(req)=>{
      nextAppData.staffRoster=bank.staff.roster||bank.appData?.staffRoster||[];
      bank.staff.profiles=newProfiles;
    }
-   bank.appData=nextAppData;
+   bank.appData=nextAppData;if(canManageTasks)bank.statsSource={weeks:nextAppData.weeks||{}};
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Version conflict; refresh before saving settings"},409);
    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"save-settings",details:{areas:canManageAreas,reasons:canAddReasons,schedule:canManageSchedule,dailyTasks:canManageTasks,staff:canManageStaff,assignments:canManageAssignments}});
