@@ -104,7 +104,7 @@ try{
  await page.locator('#logoutBtn').click();
  await page.locator('#workspace').waitFor({state:'hidden'});
  assert.equal(await page.locator('#workspace').isVisible(),false,'logout closes the admin workspace');
- await page.locator('#username').fill('MANAGER');
+ await page.locator('#username').fill('ADMIN');
  await page.locator('#pin').fill('1234');
  await page.locator('#loginBtn').click();
  await page.getByText('Central Data Bank access is restricted',{exact:false}).waitFor();
