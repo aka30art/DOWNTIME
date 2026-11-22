@@ -29,19 +29,40 @@ function makeBank(){
  const profiles=Object.fromEntries(['Jan','Mick','Gigi','Daz','Shayne'].map((name,i)=>[name,{station:'Station '+(i+1)+' · WOOD',onSite:true,photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}]));
  return {appData:{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360','Other'],reasons:['Blockage'],archive:[],plantOn:true,dailyTaskPresets:[]},users:[],tiers,staff:{roster:Object.keys(profiles),profiles},statsSource:{weeks:{}}};
 }
+async function dismissPlantTransitionAlerts(page){
+ const host=page.locator('#plantTransitionAlertHost');
+ for(let attempt=0;attempt<30;attempt++){
+  if(!(await host.count())){
+   await page.waitForTimeout(80);
+   if(!(await host.count()))return;
+   continue;
+  }
+  const acknowledgement=host.getByRole('button',{name:'ACKNOWLEDGE'});
+  try{
+   await acknowledgement.waitFor({state:'visible',timeout:1500});
+   await acknowledgement.click({timeout:1500});
+  }catch(error){
+   if(!(await host.count()))continue;
+   await page.waitForTimeout(100);
+  }
+  await page.waitForTimeout(100);
+ }
+ throw new Error('Plant transition alerts did not drain after acknowledgement.');
+}
 async function clickOverview(page){
  const link=page.locator('.overview-link');
- for(let attempt=0;attempt<5;attempt++){
-  const ack=page.locator('#plantTransitionAlertHost button');
-  if(await ack.count()){await ack.first().click();continue;}
-  try{await link.click({timeout:2500});return}
+ for(let attempt=0;attempt<10;attempt++){
+  await dismissPlantTransitionAlerts(page);
+  try{await link.click({timeout:1800});return}
   catch(error){
-   const pendingAck=page.locator('#plantTransitionAlertHost button');
-   if(!(await pendingAck.count()))throw error;
-   await pendingAck.first().click({timeout:2500});
+   if(await page.locator('#plantTransitionAlertHost').count()){
+    await dismissPlantTransitionAlerts(page);
+    continue;
+   }
+   throw error;
   }
  }
- throw new Error('Plant transition alert did not clear before opening Plant Overview.');
+ throw new Error('Plant transition alert repeatedly blocked Plant Overview navigation.');
 }
 async function openFor(tier,pin='2468',username='JAN',initialBank=null,initialVersion=1){
  const context=await browser.newContext();
@@ -121,8 +142,6 @@ window.supabase={createClient:()=>({
    return ok({version,updatedAt:new Date().toISOString()});
   }
   if(action==='save-settings'){
-   const diagnosticBefore=bank.staff.profiles.Rita?{...bank.staff.profiles.Rita}:null;
-   const incomingRita=req.appData?.operatorProfiles?.Rita?{...req.appData.operatorProfiles.Rita}:null;
    if(Number(req.version)!==version)return ok({error:'Version conflict; refresh before saving Settings'},409);
    const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
    const canManageAreas=rights.canManageSettings===true||rights.canManageAreaPresets===true;
@@ -180,9 +199,12 @@ async function signIn(page,pin='2468',username='JAN'){
 }
 
 async function openStaffSettings(page){
+ await dismissPlantTransitionAlerts(page);
  const menu=page.locator('.nav-menu');
  if(!await menu.evaluate(node=>node.open))await menu.locator(':scope > summary').click();
+ await dismissPlantTransitionAlerts(page);
  await page.locator('.nav[data-view="settings"]').click();
+ await dismissPlantTransitionAlerts(page);
  await page.locator('[data-settings-open="staff"]').click();
  await page.locator('#staffRosterList').waitFor({state:'visible'});
 }
@@ -443,7 +465,8 @@ try{
  const daySetup=owner.page.locator('.day-setup');
  if(!await daySetup.evaluate(node=>node.open))await daySetup.locator(':scope > summary').click();
  await owner.page.locator('#dayTabs [data-day="0"]').click();
- await owner.page.locator('#openDailyTasks').click();
+ await dismissPlantTransitionAlerts(owner.page);
+  await owner.page.locator('#openDailyTasks').click();
  assert.equal((await owner.page.locator('#dailyTasksDay').textContent()).trim().startsWith('MONDAY ·'),true,'the task fixture is explicitly operating on Monday');
  assert.equal(await owner.page.locator('#dailyTasksModal').isVisible(),true,'clipboard opens the Daily Tasks popup');
  assert.equal(await owner.page.locator('#dailyTasksList input[type="checkbox"]').count(),2,'popup displays all preset tasks');
