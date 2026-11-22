@@ -422,17 +422,24 @@ try{
  assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+5,'daily task presets, two day-specific completions and the daily lock are versioned central writes');
  await owner.page.locator('#closeDailyTasks').click();
 
- // STAFF additions and station assignments must immediately appear in the already-open Overview iframe.
+ // STAFF modal creation and locked station assignment immediately sync to the open Overview iframe.
  await openStaffSettings(owner.page);
- await owner.page.locator('#newStaffName').fill('Rita');
  await owner.page.locator('#addStaffBtn').click();
- const ritaStation=owner.page.locator('[aria-label="Station assignment for Rita"]');
- await ritaStation.waitFor({state:'visible'});
- assert.equal(await ritaStation.inputValue(),'','new STAFF member starts unassigned');
- await ritaStation.selectOption('Station 6 · GENERAL');
- for(let attempt=0;attempt<40&&!owner.getBank().staff.profiles.Rita?.station;attempt++)await owner.page.waitForTimeout(100);
- assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','station assignment is saved centrally');
- assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+7,'daily task presets, day completions, the daily lock and STAFF operations all advance central version');
+ assert.equal(await owner.page.locator('#staffModalBackdrop').isVisible(),true,'Add New Member opens the modal');
+ assert.equal(await owner.page.locator('#smName').inputValue(),'','new STAFF profile template is blank');
+ await owner.page.locator('#smName').fill('Rita');
+ await owner.page.locator('#smStation').selectOption('Station 6 · GENERAL');
+ await owner.page.locator('#smLock').check();
+ assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'locked station cannot be edited');
+ await owner.page.locator('#smLock').uncheck();
+ assert.equal(await owner.page.locator('#smStation').isEnabled(),true,'station can be changed after unlock');
+ await owner.page.locator('#smStation').selectOption('Station 6 · GENERAL');
+ await owner.page.locator('#smLock').check();
+ await owner.page.locator('#smSave').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+ assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 6 · GENERAL','new staff member and station save centrally');
+ assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,true,'station lock persists centrally');
+ assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+6,'daily tasks, completions, lock and one staff save advance central version');
  await owner.page.locator('.overview-link').click();
  const ritaCard=owner.page.frameLocator('#overviewFrame').locator('[data-opprofile="RITA"]');
  await ritaCard.waitFor({state:'visible',timeout:3000});
