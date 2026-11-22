@@ -43,7 +43,7 @@ try{
   if(body.action==='logout'){await route.fulfill({json:{ok:true}});return;}
   if(body.action==='central-config-state'){
    const user=activeTestUser==='DEV'?{username:'DEV',displayName:'DEV',tier:'OWNER'}:{username:activeTestUser,displayName:activeTestUser,tier:activeTestUser==='DEVACC'?'DEVACC':'ADMIN'};
-   if(user.username!=='DEV'||user.tier!=='OWNER'){await route.fulfill({status:403,json:{error:'Central Data Bank access is restricted to DEV only.'}});return;}
+   if(!((user.username==='DEV'&&user.tier==='OWNER')||user.tier==='DEVACC')){await route.fulfill({status:403,json:{error:'Central Data Bank access is restricted to DEV and DEVACC only.'}});return;}
    await route.fulfill({json:state(user)});return;
   }
   if(body.action==='central-config-save-draft'){
@@ -112,11 +112,19 @@ try{
  await page.locator('#username').fill('DEVACC');
  await page.locator('#pin').fill('1234');
  await page.locator('#loginBtn').click();
- await page.getByText('Central Data Bank access is restricted',{exact:false}).waitFor();
- assert.equal(await page.locator('#workspace').isVisible(),false,'DEVACC is rejected when server returns HTTP 403');
+ await page.locator('#view-overview').waitFor({state:'visible'});
+ assert.equal(await page.locator('#workspace').isVisible(),true,'DEVACC is admitted to the Central Data Bank');
+ assert.ok((await page.locator('#identity').textContent()).includes('DEVACC'),'DEVACC identity is shown in the control room');
+ await page.locator('[data-section="organisation"]').click();
+ await page.locator('#companyName').fill('DEVACC authority validation');
+ await page.locator('#saveDraftBtn').click();
+ await page.getByText('Draft saved as version v4.',{exact:false}).waitFor();
+ assert.equal(await page.locator('#draftKpi').textContent(),'v4','DEVACC can save configuration drafts');
+ assert.equal(await page.locator('#publishedKpi').textContent(),'v2','DEVACC draft save does not publish the registry');
  assert.ok(calls.includes('central-config-save-draft')&&calls.includes('central-config-publish')&&calls.includes('central-config-restore-draft'),'draft, publish and restore actions were exercised');
  assert.ok(!calls.includes('central-admin-state')&&!calls.includes('get-state'),'configuration UI never requests tracker or legacy admin state');
- console.log('PASS: Central Data Bank Admin browser QA — DEV root login, draft save, separate publish, restore-as-draft, mobile layout, logout, and ADMIN/DEVACC HTTP 403.');
+ console.log('PASS: Central Data Bank Admin browser QA — DEV and DEVACC login, draft save, explicit publish, restore-as-draft, mobile layout, logout, and ADMIN denial.');
+
 } finally {
  await browser.close();
  await new Promise(resolve=>server.close(resolve));

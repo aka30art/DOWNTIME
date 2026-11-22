@@ -25,8 +25,8 @@ for(const tier of ['OWNER','DEVACC','ADMIN','MANAGER','SUPERVISOR','USER','SPECT
 }
 
 assert.match(page,/function canManageAccessRights\(\)\{return canAccessCentralBank\(\)\}/,'Access and Rights shares the central admin identity gate');
-assert.match(page,/return username==='DEV'&&tier==='OWNER'/,'only root DEV can access Access and Rights');
-assert.match(api,/const isLegacyJanRoot=currentUsername==="JAN"&&tier==="OWNER"/,'legacy JAN root support is limited to the one-time migration state');
+assert.match(page,/return \(username==='DEV'&&tier==='OWNER'\)\|\|tier==='DEVACC'/,'DEVACC has the same Access and Rights authority as root DEV');
+assert.doesNotMatch(api,/isLegacyJanRoot|root-account-split/,'legacy JAN migration path is retired');
 assert.match(page,/function canManageSettingsSection\(section\)/,'shared Settings edit permission resolver');
 assert.match(page,/function settingsAccess\(section\)/,'shared Settings section visibility resolver');
 assert.match(page,/function anySettingsAccess\(\)/,'Settings navigation follows section rights');
@@ -43,7 +43,7 @@ assert.match(api,/if\(action==="save-settings"\)[\s\S]*const canManageAreas=priv
 assert.match(api,/const canManageSchedule=priv\.canManageSettings\|\|priv\.canManageShiftSchedule/,'server enforces schedule edit permission');
 assert.match(api,/const canManageTasks=priv\.canManageSettings\|\|priv\.canManageDailyTasks/,'server enforces daily-task edit permission');
 assert.match(api,/const canManageReasons=priv\.canManageSettings\|\|priv\.canManageReasonPresets/,'server enforces reason preset edit permission');
-assert.match(api,/if\(!isDevRoot\)return json\(\{error:"Only root DEV can change tier access and rights\."\},403\)/,'tier permission grants are root DEV-only');
+assert.match(api,/if\(!isCentralBankAccess\)return json\(\{error:"Only DEV and DEVACC can change tier access and rights\."\},403\)/,'tier permission grants require DEV or DEVACC root authority');
 assert.match(api,/OWNER:\{canEditTracker:true/,'OWNER default permissions remain fixed in the central API');
 
 const overviewPermissionBlock=page.slice(page.indexOf('const tierDefaults={'),page.indexOf('function permission(name)'));

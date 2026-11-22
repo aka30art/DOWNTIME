@@ -646,12 +646,12 @@ body.overview-overlay-open{overflow:hidden}
     </div>
     <div id="settingsOwnerAccess" class="settings-owner-access" hidden>
       <div class="settings-owner-access-head">
-        <div><div class="settings-eyebrow">DEV / DEVACC · ROOT-EQUIVALENT ADMINISTRATION</div><p>Central tier privileges can only be changed by the permanent root DEV account.</p></div>
-        <span class="pill">DEV ONLY</span>
+        <div><div class="settings-eyebrow">DEV / DEVACC · ROOT-EQUIVALENT ADMINISTRATION</div><p>DEV and DEVACC have identical authority to change central tier privileges. The permanent DEV OWNER identity remains protected.</p></div>
+        <span class="pill">DEV / DEVACC ACCESS</span>
       </div>
       <button class="settings-card settings-owner-access-card" type="button" data-settings-open="accessRights" aria-controls="settingsPanelAccessRights" aria-expanded="false">
         <span class="settings-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 8.8 8 11 4.6-2.2 8-6 8-11V5l-8-3Z"/><path d="m8.5 12 2.3 2.3 4.8-5"/></svg></span>
-        <span class="settings-card-copy"><strong>ACCESS AND RIGHTS</strong><small>Configure tier permissions, privileges and access to DOWNTIME features</small><em>DEV ROOT ADMINISTRATION ONLY</em></span>
+        <span class="settings-card-copy"><strong>ACCESS AND RIGHTS</strong><small>Configure tier permissions, privileges and access to DOWNTIME features</small><em>DEV / DEVACC ROOT-EQUIVALENT ADMINISTRATION</em></span>
         <span class="settings-card-arrow" aria-hidden="true">›</span>
       </button>
     </div>
@@ -837,7 +837,7 @@ const ACCESS_RIGHT_GROUPS=[
   {key:'canExportReports',label:'Export reports',detail:'Download and export weekly report files'}
  ]}
 ];
-const ACCESS_TIER_DESCRIPTIONS={DEVACC:'Locked root-equivalent operational tier; Central Data Bank excluded. Only DEV can assign or revoke.',ADMIN:'Broad administrative access, configured by root DEV in Access & Rights.',MANAGER:'Operational management access, configured by root DEV in Access & Rights.',SUPERVISOR:'Front-line supervisory access, configured by root DEV in Access & Rights.',USER:'Standard user access, configured by root DEV in Access & Rights.',SPECTATOR:'Restricted viewing access, configured by root DEV in Access & Rights.'};
+const ACCESS_TIER_DESCRIPTIONS={DEVACC:'Root-equivalent authority, identical to DEV. Only DEV and DEVACC can assign or revoke.',ADMIN:'Broad administrative access, configured by DEV or DEVACC in Access & Rights.',MANAGER:'Operational management access, configured by DEV or DEVACC in Access & Rights.',SUPERVISOR:'Front-line supervisory access, configured by DEV or DEVACC in Access & Rights.',USER:'Standard user access, configured by DEV or DEVACC in Access & Rights.',SPECTATOR:'Restricted viewing access, configured by DEV or DEVACC in Access & Rights.'};
 function renderAccessRights(){
  const host=$('accessRightsTierList');if(!host||!canManageAccessRights())return;
  const stored=centralBankPayload?.tiers||tierDefaults;host.replaceChildren();

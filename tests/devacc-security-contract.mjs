@@ -3,42 +3,45 @@ import fs from 'node:fs';
 
 const api=fs.readFileSync('supabase/functions/central-bank/index.ts','utf8');
 const app=fs.readFileSync('index.html','utf8');
+const client=fs.readFileSync('central-bank-client.js','utf8');
 const packageJson=JSON.parse(fs.readFileSync('package.json','utf8'));
 
 function roleProfile(source,container,name){
   const start=source.indexOf(container);
   assert.notEqual(start,-1,container+' exists');
-  const tail=source.slice(start);
-  const match=tail.match(new RegExp(name+':\\{([^}]*)\\}'));
+  const match=source.slice(start).match(new RegExp(name+':\\{([^}]*)\\}'));
   assert.ok(match,name+' profile exists in '+container);
   return match[1];
 }
-assert.equal(roleProfile(api,'const tierDefault','OWNER'),roleProfile(api,'const tierDefault','DEVACC'),'DEVACC server defaults exactly match root operational rights');
-assert.equal(roleProfile(api,'const lockedRolePrivileges','OWNER'),roleProfile(api,'const lockedRolePrivileges','DEVACC'),'DEVACC server privileges are immutable and root-equivalent');
-assert.equal(roleProfile(app,'const tierDefaults','OWNER'),roleProfile(app,'const tierDefaults','DEVACC'),'DEVACC browser defaults match root operational rights');
-assert.equal(roleProfile(app,'const lockedTierPermissions','OWNER'),roleProfile(app,'const lockedTierPermissions','DEVACC'),'DEVACC browser permissions are locked to root-equivalent operational rights');
+assert.equal(roleProfile(api,'const tierDefault','OWNER'),roleProfile(api,'const tierDefault','DEVACC'),'DEVACC backend defaults match DEV');
+assert.equal(roleProfile(api,'const lockedRolePrivileges','OWNER'),roleProfile(api,'const lockedRolePrivileges','DEVACC'),'DEVACC locked backend privileges match DEV');
+assert.equal(roleProfile(app,'const tierDefaults','OWNER'),roleProfile(app,'const tierDefaults','DEVACC'),'DEVACC frontend defaults match DEV');
+assert.equal(roleProfile(app,'const lockedTierPermissions','OWNER'),roleProfile(app,'const lockedTierPermissions','DEVACC'),'DEVACC locked frontend rights match DEV');
 
-assert.ok(api.includes('const isDevRoot=currentUsername==="DEV"&&tier==="OWNER"'),'root authority requires the exact DEV username and OWNER tier');
-assert.ok(api.includes('const isCentralBankAccess=isDevRoot;'),'only root DEV has the Data Bank capability');
-assert.ok(api.includes('const isCentralAdmin=tier==="ADMIN"||tier==="DEVACC"||isDevRoot;'),'only DEV, ADMIN and DEVACC can create accounts or assign standard tiers; legacy JAN root cannot');
-assert.ok(api.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV only."},403);'),'whole-bank state denies ADMIN and DEVACC');
-assert.ok(api.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),'all configuration routes deny non-DEV identities');
-assert.ok(api.includes('if(!isDevRoot)return json({error:"Only root DEV can change tier access and rights."},403);'),'tier rights mutation is root-only');
+assert.ok(api.includes('const isDevRoot=currentUsername==="DEV"&&tier==="OWNER";'),'root identity requires exact DEV username and OWNER tier');
+assert.ok(api.includes('const isDevacc=tier==="DEVACC";'),'authenticated DEVACC tier is recognised');
+assert.ok(api.includes('const isRootAuthority=isDevRoot||isDevacc;'),'DEV and DEVACC share root authority');
+assert.ok(api.includes('const isCentralAdmin=tier==="ADMIN"||isRootAuthority;'),'DEVACC receives root-equivalent account management');
+assert.ok(api.includes('const isCentralBankAccess=isRootAuthority;'),'DEVACC receives root-equivalent Central Data Bank access');
+assert.ok(api.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);'),'Data Bank state is available only to DEV and DEVACC');
+assert.ok(api.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),'all configuration routes enforce the DEV/DEVACC authority boundary');
+assert.ok(api.includes('if(!isCentralBankAccess)return json({error:"Only DEV and DEVACC can change tier access and rights."},403);'),'DEVACC can administer tier permissions');
+assert.ok(api.includes('if(newTier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can assign DEVacc."},403);'),'DEVACC can grant DEVACC');
+assert.ok(api.includes('if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);'),'DEVACC can modify, disable and restore DEVACC accounts');
+assert.ok(api.includes('&&u.tier==="DEVACC")&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can remove DEVacc."},403);'),'DEVACC can remove other DEVACC accounts');
+assert.ok(!api.includes('Only one DEVacc account is permitted.'),'there is no one-DEVACC account cap');
+assert.ok(api.includes('if(newTier==="OWNER")return json({error:"DEV is the only OWNER account. Additional OWNER accounts are prohibited."},403);'),'DEVACC cannot create another OWNER identity');
+assert.ok(api.includes('if(!isDevRoot)return json({error:"Only root DEV can update root credentials."},403);'),'only the actual DEV root can update root credentials');
+assert.ok(api.includes('The DEV root OWNER account cannot be deleted or removed.'),'DEV OWNER cannot be deleted');
 
-assert.ok(api.includes('if(newTier==="DEVACC"&&!isDevRoot)return json({error:"Only DEV can assign DEVacc."},403);'),'only DEV can grant DEVACC');
-assert.ok(api.includes('if(existing?.tier==="DEVACC"&&!isDevRoot)return json({error:"Only DEV can modify DEVacc."},403);'),'only DEV can modify, disable or restore DEVACC');
-assert.ok(api.includes('&&u.tier==="DEVACC")&&!isDevRoot)return json({error:"Only DEV can remove DEVacc."},403);'),'only DEV can delete DEVACC');
-assert.ok(api.includes('if(newTier==="DEVACC"&&bank.users.some((u:any)=>u!==existing&&u.tier==="DEVACC"))return json({error:"Only one DEVacc account is permitted."},409);'),'one DEVACC account maximum');
-assert.ok(api.includes('if(newTier==="OWNER")return json({error:"DEV is the only OWNER account. Additional OWNER accounts are prohibited."},403);'),'DEVACC cannot mint another root account');
-assert.ok(api.includes('if(existing?.tier==="OWNER")return json({error:"The root OWNER account is protected."},403);'),'root identity is protected from ordinary account-management routes');
+assert.ok(app.includes("return (username==='DEV'&&tier==='OWNER')||tier==='DEVACC'"),'frontend recognises DEVACC as root-equivalent');
+assert.ok(app.includes("function canManageAccessRights(){return canAccessCentralBank()}"),'DEVACC can access Access and Rights');
+assert.ok(app.includes('option.disabled=!canAccessCentralBank()'),'DEVACC selector is enabled only for root-equivalent identities');
+assert.ok(app.includes('DEVACC has the same administrative authority as DEV'),'account-management copy documents root-equivalent authority');
+assert.ok(!app.includes('rootAccountMigration')&&!app.includes('rootAccountJanPin')&&!app.includes('splitRootAccountBtn'),'legacy split UI and PIN field are removed');
+assert.ok(!app.includes('runRootAccountSplit')&&!app.includes('canRunRootAccountSplit'),'legacy split handlers are removed');
+assert.ok(!api.includes('root-account-split')&&!api.includes('isLegacyJanRoot'),'legacy split API and JAN root path are removed');
+assert.ok(!client.includes('root-account-split')&&!client.includes('splitRootAccount'),'legacy split browser method is removed');
+assert.ok(packageJson.scripts['test:central-bank'].includes('tests/devacc-security-contract.mjs'),'DEVACC contract runs in CI');
 
-assert.ok(app.includes("return username==='DEV'&&tier==='OWNER'"),'main UI Data Bank access is DEV-only');
-assert.ok(app.includes("const username=String(centralUser?.username||'').trim().toUpperCase(),tier=String(centralUser?.tier||'').trim().toUpperCase()"),'Data Bank privilege is derived from the authenticated central identity, not a secondary operator value');
-assert.ok(app.includes("tier==='ADMIN'||tier==='DEVACC'||canAccessCentralBank()"),'ADMIN and DEVACC retain standard account-tier management');
-assert.ok(app.includes('option.disabled=!canAccessCentralBank()'),'DEVACC option is disabled for non-root users');
-assert.ok(app.includes("if(tier==='DEVACC'&&!canAssignDevacc)"),'the DEVACC UI assignment check calls the authorization function');
-assert.ok(app.includes("protectedDevacc=user.tier==='DEVACC'&&!canAccessCentralBank()"),'DEVACC account controls are hidden from non-DEV');
-assert.ok(app.includes("if(!canRunRootAccountSplit())return;"),'legacy account split retains its separate DEV/JAN transition gate');
-assert.ok(packageJson.scripts['test:central-bank'].includes('tests/devacc-security-contract.mjs'),'DEVACC security contract is included in the central-bank suite');
-
-console.log('DEVACC root-equivalent operational rights, DEV-only management and Data Bank boundary contracts passed.');
+console.log('PASS: DEVACC has DEV-equivalent operational, account-management, Access & Rights and Central Data Bank authority; DEV OWNER remains immutable.');
