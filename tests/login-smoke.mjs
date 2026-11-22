@@ -563,8 +563,11 @@ try{
   assert.equal(await owner.page.locator('#smPhotoSave').isHidden(),true,'new-member photo is committed with the new profile');
  await owner.page.locator('#smStation').selectOption('Station 6 · GENERAL');
  await owner.page.locator('#smOnPlant').uncheck();
- assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'OFF PLANT disables station selection');
+ assert.equal(await owner.page.locator('#smStation').isEnabled(),true,'OFF PLANT does not disable station selection');
+ await owner.page.locator('#smStation').selectOption('Station 5 · GENERAL');
+ assert.equal(await owner.page.locator('#smStation').inputValue(),'Station 5 · GENERAL','OFF PLANT staff can choose a configured station');
  await owner.page.locator('#smOnPlant').check();
+ await owner.page.locator('#smStation').selectOption('Station 6 · GENERAL');
  assert.equal(await owner.page.locator('#smStation').isEnabled(),true,'ON PLANT restores station selection when unlocked');
  await owner.page.locator('#smLock').check();
  assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'locked station cannot be edited');
@@ -598,8 +601,9 @@ try{
   assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'locked station is disabled when profile reopens');
   await owner.page.locator('#smLock').uncheck();
   assert.equal(await owner.page.locator('#smStation').isEnabled(),true,'manual unlock in Staff Settings enables reassignment');
-  await owner.page.locator('#smStation').selectOption('Station 5 · GENERAL');
   await owner.page.locator('#smOnPlant').uncheck();
+  assert.equal(await owner.page.locator('#smStation').isEnabled(),true,'OFF PLANT profile keeps the station picker available after unlock');
+  await owner.page.locator('#smStation').selectOption('Station 5 · GENERAL');
   await owner.page.locator('#smSave').click();
   await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
   for(let attempt=0;attempt<40&&(owner.getBank().staff.profiles.Rita?.station!=='Station 5 · GENERAL'||owner.getBank().staff.profiles.Rita?.onSite!==false);attempt++)await owner.page.waitForTimeout(100);
