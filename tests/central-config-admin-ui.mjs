@@ -36,6 +36,7 @@ try{
   }
   const body=request.postDataJSON();calls.push(body.action);
   if(body.action==='login'){
+   activeTestUser=String(body.username||'ADMIN').toUpperCase();
    await route.fulfill({json:{token:'test-session-token',expiresAt:new Date(Date.now()+3600000).toISOString(),user:{username:body.username,displayName:body.username,tier:body.username.toUpperCase()==='MANAGER'?'MANAGER':'ADMIN'}}});return;
   }
   if(body.action==='logout'){await route.fulfill({json:{ok:true}});return;}
