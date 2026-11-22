@@ -48,12 +48,16 @@ const overviewPermissionBlock=page.slice(page.indexOf('const tierDefaults={'),pa
 const apiOverviewPermissionBlock=api.slice(api.indexOf('const tierDefault:'),api.indexOf('const cryptoHex='));
 assert.ok(page.includes("{key:'canViewPlantOverview'"),'dedicated Plant Overview right is exposed in the existing editor');
 assert.ok(api.includes('const permissionKeys=Object.keys(tierDefault.OWNER)'),'server tier updates validate the permission against the existing permission whitelist');
-for(const tier of ['OWNER','ADMIN','MANAGER','SUPERVISOR','USER']){
-  assert.match(overviewPermissionBlock,new RegExp(tier+':\\\\{[^}]*canViewPlantOverview:true'),'frontend Plant Overview default for '+tier);
-  assert.match(apiOverviewPermissionBlock,new RegExp(tier+':\\\\{[^}]*canViewPlantOverview:true'),'server Plant Overview default for '+tier);
+function permissionRole(source,tier){
+  const start=source.indexOf(tier+':{');if(start<0)return '';
+  const end=source.indexOf('}',start);return end<0?'':source.slice(start,end+1);
 }
-assert.match(overviewPermissionBlock,/SPECTATOR:\\{[^}]*canViewPlantOverview:false/,'frontend SPECTATOR cannot open Plant Overview');
-assert.match(apiOverviewPermissionBlock,/SPECTATOR:\\{[^}]*canViewPlantOverview:false/,'server SPECTATOR cannot open Plant Overview');
+for(const tier of ['OWNER','ADMIN','MANAGER','SUPERVISOR','USER']){
+  assert.ok(permissionRole(overviewPermissionBlock,tier).includes('canViewPlantOverview:true'),'frontend Plant Overview default for '+tier);
+  assert.ok(permissionRole(apiOverviewPermissionBlock,tier).includes('canViewPlantOverview:true'),'server Plant Overview default for '+tier);
+}
+assert.ok(permissionRole(overviewPermissionBlock,'SPECTATOR').includes('canViewPlantOverview:false'),'frontend SPECTATOR cannot open Plant Overview');
+assert.ok(permissionRole(apiOverviewPermissionBlock,'SPECTATOR').includes('canViewPlantOverview:false'),'server SPECTATOR cannot open Plant Overview');
 assert.ok(page.includes("if(!permission('canViewPlantOverview'))return;"),'opening Plant Overview uses its dedicated right');
 assert.ok(page.includes("if(overview)overview.style.display=spectator||!permission('canViewPlantOverview')?'none':''"),'Plant Overview navigation uses its dedicated right');
 
