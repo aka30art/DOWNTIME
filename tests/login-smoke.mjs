@@ -312,6 +312,7 @@ try{
  await owner.page.locator('#smSave').click();
  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:5000});
  assert.equal(owner.getBank().staff.profiles.Jan.station,'Station 7 · GENERAL','STAFF station reassignment is confirmed in the central data bank');
+ await owner.page.locator('#settingsPanelStaff [data-settings-back]').click();
  await owner.page.locator('[data-settings-open="stations"]').click();
  assert.equal(await owner.page.locator('#stationManagerList > div').count(),7,'saved station configuration is reloaded in Station Manager');
  await owner.page.locator('#settingsPanelStations [data-settings-back]').click();
