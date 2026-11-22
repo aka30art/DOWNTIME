@@ -247,8 +247,14 @@ Deno.serve(async(req)=>{
        for(const [name,incomingProfile] of Object.entries((incoming.operatorProfiles||{}) as Record<string,any>)){
          if(!Object.prototype.hasOwnProperty.call(currentProfiles,name)||!incomingProfile||typeof incomingProfile!=="object")continue;
          const existing={...(currentProfiles as any)[name]};
-         if("station" in incomingProfile)existing.station=String(incomingProfile.station||"").slice(0,100);
-         else if("assignedStation" in incomingProfile)existing.assignedStation=String(incomingProfile.assignedStation||"").slice(0,100);
+         const requestedStation=String(incomingProfile.station??incomingProfile.assignedStation??"").slice(0,100);
+         const currentStation=String(existing.station??existing.assignedStation??"");
+         // A locked assignment can only be changed through the Staff Settings save-settings route.
+         if(existing.stationLocked!==true||requestedStation===currentStation){
+           if("station" in incomingProfile)existing.station=requestedStation;
+           else if("assignedStation" in incomingProfile)existing.assignedStation=requestedStation;
+         }
+         existing.stationLocked=existing.stationLocked===true;
          (nextAppData.operatorProfiles as any)[name]=existing;
        }
      }
@@ -281,7 +287,7 @@ Deno.serve(async(req)=>{
    const canManageReasons=priv.canManageSettings||priv.canManageReasonPresets;
    const canManageSchedule=priv.canManageSettings||priv.canManageShiftSchedule;
    const canManageTasks=priv.canManageSettings||priv.canManageDailyTasks;
-   const canManageStaff=!!priv.canManageStaff,canManageAssignments=!!priv.canManageAssignments||canManageStaff;
+   const canManageStaff=!!priv.canManageStaff,canManageAssignments=!!priv.canManageAssignments;
    const canAddReasons=canManageReasons||!!priv.canAddDowntimeReasons;
    if(!(canManageAreas||canAddReasons||canManageSchedule||canManageTasks||canManageStaff||canManageAssignments))return json({error:"Permission denied"},403);
    const nextAppData={...(bank.appData||{})};
@@ -332,9 +338,15 @@ Deno.serve(async(req)=>{
      for(const [name,profile] of Object.entries((incoming.operatorProfiles||{}) as Record<string,any>)){
        if(!Object.prototype.hasOwnProperty.call(newProfiles,name)||!profile||typeof profile!=="object"||Array.isArray(profile))continue;
        const existing={...(newProfiles as any)[name]};
-       if("station" in profile)existing.station=String(profile.station||"").slice(0,100);
-       else if("assignedStation" in profile)existing.assignedStation=String(profile.assignedStation||"").slice(0,100);
-       if("stationLocked" in profile)existing.stationLocked=profile.stationLocked===true;
+       const wasLocked=existing.stationLocked===true,willBeLocked=profile.stationLocked===true;
+       const requestedStation=String(profile.station??profile.assignedStation??"").slice(0,100);
+       const currentStation=String(existing.station??existing.assignedStation??"");
+       // Reassigning a locked member requires an explicit unlock in this Staff Settings transaction.
+       if(!wasLocked||!willBeLocked||requestedStation===currentStation){
+         if("station" in profile)existing.station=requestedStation;
+         else if("assignedStation" in profile)existing.assignedStation=requestedStation;
+       }
+       if("stationLocked" in profile)existing.stationLocked=willBeLocked;
        (newProfiles as any)[name]=existing;
      }
      nextAppData.operatorProfiles=newProfiles;
@@ -423,6 +435,15 @@ Deno.serve(async(req)=>{
    const {data,error}=await db.storage.from("downtime-staff-photos").createSignedUrl(path,120);
    if(error)return json({error:error.message},404);
    return json({url:data.signedUrl});
+ }
+ if(action==="staff-photo-remove"){
+   if(!priv.canManageStaff)return json({error:"Permission denied"},403);
+   const path=String(body.path||"").trim(),parts=path.split("/");
+   if(parts.length!==2||!/^[a-z0-9_-]{1,80}$/i.test(parts[0])||!/^[0-9a-f-]{36}$/i.test(parts[1]))return json({error:"Invalid staff photo path"},400);
+   const {error}=await db.storage.from("downtime-staff-photos").remove([path]);
+   if(error)return json({error:error.message},500);
+   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"staff-photo-remove",details:{path}});
+   return json({ok:true});
  }
  if(action==="set-plant-status"){
    if(!priv.canEditTracker)return json({error:"Permission denied"},403);
