@@ -19,7 +19,7 @@ const tiers={
  OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageSettings:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  MANAGER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
@@ -50,13 +50,15 @@ window.supabase={createClient:()=>({
     order:async()=>({data:table==='downtime_reports'?[{id:'weekly-report-qa',week_start:'2026-11-16',file_name:'Downtime_2026-11-16_Weekly.pdf',file_size_bytes:18432,operators:{Monday:'Jan'},storage_path:'2026-11-16/weekly-report-qa.pdf'}]:[],error:null})
    }),
    storage:{from:bucket=>({
-    download:async path=>{window.__weeklyReportDownloads=window.__weeklyReportDownloads||[];window.__weeklyReportDownloads.push({bucket,path});const stream='BT /F1 26 Tf 70 760 Td (WEEKLY REPORT PREVIEW QA) Tj 0 -45 Td /F1 15 Tf (Week of 16 November 2026) Tj ET\n';let pdf='%PDF-1.4\n';const offsets=[0];const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Length '+stream.length+' >>\nstream\n'+stream+'endstream'];objects.forEach((object,index)=>{offsets.push(pdf.length);pdf+=(index+1)+' 0 obj\n'+object+'\nendobj\n'});const xref=pdf.length;pdf+='xref\n0 6\n0000000000 65535 f \n'+offsets.slice(1).map(offset=>String(offset).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';return {data:new Blob([pdf],{type:'application/pdf'}),error:null}}
+    download:async path=>{window.__weeklyReportDownloads=window.__weeklyReportDownloads||[];window.__weeklyReportDownloads.push({bucket,path});const stream='BT /F1 26 Tf 70 760 Td (WEEKLY REPORT PREVIEW QA) Tj 0 -45 Td /F1 15 Tf (Week of 16 November 2026) Tj ET\n';let pdf='%PDF-1.4\n';const offsets=[0];const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Length '+stream.length+' >>\nstream\n'+stream+'endstream'];objects.forEach((object,index)=>{offsets.push(pdf.length);pdf+=(index+1)+' 0 obj\n'+object+'\nendobj\n'});const xref=pdf.length;pdf+='xref\n0 6\n0000000000 65535 f \n'+offsets.slice(1).map(offset=>String(offset).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';return {data:new Blob([pdf],{type:'application/pdf'}),error:null}},
+    uploadToSignedUrl:async(path,token,file,options)=>{window.__staffPhotoUploads=window.__staffPhotoUploads||[];window.__staffPhotoUploads.push({bucket,path,type:file?.type,size:file?.size,contentType:options?.contentType});return {data:{path},error:null}},
+    remove:async paths=>{window.__staffPhotoRemovals=window.__staffPhotoRemovals||[];window.__staffPhotoRemovals.push({bucket,paths});return {data:(paths||[]).map(name=>({name})),error:null}}
    })}
   })};
  });
  let bank=initialBank?JSON.parse(JSON.stringify(initialBank)):makeBank(),version=initialVersion,token='central-session-'+username;
  const actions=[];
- await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank',async route=>{
+ let staffPhotoSequence=1;\n await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank',async route=>{
   const req=route.request().postDataJSON(),action=req.action;
   actions.push({action,body:req});
   const ok=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
@@ -64,6 +66,25 @@ window.supabase={createClient:()=>({
   if(action==='login'){
    if(req.username!==username||req.pin!==pin)return ok({error:'Invalid username or PIN'},401);
    return ok({token,expiresAt:new Date(Date.now()+3600000).toISOString(),user:{username,displayName:username==='JAN'?'Jan':'Mick',tier}});
+  }
+  if(action==='staff-photo-url'){
+   const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
+   if(!rights.canManageStaff)return ok({error:'Permission denied'},403);
+   const slug=String(req.name||'').toLowerCase().replace(/[^a-z0-9_-]/g,'-')||'staff';
+   const path=slug+'/'+('00000000-0000-4000-8000-'+String(staffPhotoSequence++).padStart(12,'0'));
+   return ok({path,token:'signed-photo-token',signedUrl:'https://storage.test/'+path});
+  }
+  if(action==='staff-photo-read'){
+   const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
+   if(!rights.canViewStaff&&!rights.canManageStaff)return ok({error:'Permission denied'},403);
+   return ok({url:'https://storage.test/'+req.path});
+  }
+  if(action==='staff-photo-remove'){
+   const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
+   if(!rights.canManageStaff)return ok({error:'Permission denied'},403);
+   window.__staffPhotoRemovals=window.__staffPhotoRemovals||[];
+   window.__staffPhotoRemovals.push({path:req.path});
+   return ok({ok:true});
   }
   if(action==='get-state'){
    const copy=JSON.parse(JSON.stringify(bank));
@@ -78,8 +99,7 @@ window.supabase={createClient:()=>({
    const effectiveRights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
    if(!effectiveRights.canEditTracker)return ok({error:'Permission denied'},403);
    if(Number(req.version)!==version)return ok({error:'Version conflict; refresh before saving'},409);
-   bank.appData=req.appData;
-   if(effectiveRights.canManageStaff){bank.staff.profiles=req.appData.operatorProfiles||bank.staff.profiles;bank.staff.roster=req.appData.staffRoster||bank.staff.roster}
+   const currentProfiles=bank.staff.profiles||bank.appData.operatorProfiles||{},incomingProfiles=req.appData.operatorProfiles||{},profiles=effectiveRights.canManageStaff?JSON.parse(JSON.stringify(incomingProfiles)):JSON.parse(JSON.stringify(currentProfiles));for(const [name,incoming] of Object.entries(incomingProfiles)){if(!Object.prototype.hasOwnProperty.call(currentProfiles,name)||!incoming||typeof incoming!=='object')continue;const old=currentProfiles[name]||{},merged=effectiveRights.canManageStaff?{...incoming}:{...old};if(old.stationLocked===true||!effectiveRights.canManageAssignments){if('station' in old)merged.station=old.station;else delete merged.station;if('assignedStation' in old)merged.assignedStation=old.assignedStation;else delete merged.assignedStation}if('stationLocked' in old)merged.stationLocked=old.stationLocked===true;else delete merged.stationLocked;profiles[name]=merged}req.appData.operatorProfiles=profiles;if(effectiveRights.canManageStaff){bank.staff.roster=req.appData.staffRoster||bank.staff.roster}else req.appData.staffRoster=bank.staff.roster||[];bank.staff.profiles=profiles;bank.appData=req.appData;
    version++;
    return ok({version,updatedAt:new Date().toISOString()});
   }
@@ -92,7 +112,7 @@ window.supabase={createClient:()=>({
    const canManageSchedule=rights.canManageSettings===true||rights.canManageShiftSchedule===true;
    const canManageTasks=rights.canManageSettings===true||rights.canManageDailyTasks===true;
    const canManageStaff=rights.canManageStaff===true;
-   const canManageAssignments=rights.canManageAssignments===true||canManageStaff;
+   const canManageAssignments=rights.canManageAssignments===true;
    if(!(canManageAreas||canAddReasons||canManageSchedule||canManageTasks||canManageStaff||canManageAssignments))return ok({error:'Permission denied'},403);
    const next={...bank.appData};
    if(canManageAreas)next.areas=req.appData.areas;
@@ -100,8 +120,8 @@ window.supabase={createClient:()=>({
    else if(canAddReasons){const existing=next.reasons||[];next.reasons=[...existing,...(req.appData.reasons||[]).filter(value=>!existing.includes(value))]}
    if(canManageSchedule){next.shiftSchedule=req.appData.shiftSchedule;next.shiftPresets=req.appData.shiftPresets}
    if(canManageTasks)next.dailyTaskPresets=req.appData.dailyTaskPresets;
-   if(canManageStaff){next.operatorProfiles=req.appData.operatorProfiles;next.staffRoster=req.appData.staffRoster;bank.staff.profiles=req.appData.operatorProfiles;bank.staff.roster=req.appData.staffRoster}
-   else if(canManageAssignments){next.operatorProfiles={...(next.operatorProfiles||{})};for(const [name,profile] of Object.entries(req.appData.operatorProfiles||{})){if(next.operatorProfiles[name])next.operatorProfiles[name]={...next.operatorProfiles[name],station:profile.station}}}
+   if(canManageStaff){const currentProfiles=bank.staff.profiles||next.operatorProfiles||{},newProfiles=JSON.parse(JSON.stringify(req.appData.operatorProfiles||currentProfiles));if(!canManageAssignments){for(const [name,profile] of Object.entries(newProfiles)){const old=currentProfiles[name]||{};if('station' in old)profile.station=old.station;else delete profile.station;if('assignedStation' in old)profile.assignedStation=old.assignedStation;else delete profile.assignedStation;if('stationLocked' in old)profile.stationLocked=old.stationLocked;else delete profile.stationLocked}}next.operatorProfiles=newProfiles;next.staffRoster=req.appData.staffRoster;bank.staff.profiles=newProfiles;bank.staff.roster=req.appData.staffRoster}
+   else if(canManageAssignments){const profiles={...(next.operatorProfiles||{})};for(const [name,profile] of Object.entries(req.appData.operatorProfiles||{})){if(!profiles[name])continue;const old=profiles[name],requested=profile.station??profile.assignedStation??'',current=old.station??old.assignedStation??'';if(old.stationLocked!==true||!profile.stationLocked||requested===current){if('station' in profile)old.station=requested;else if('assignedStation' in profile)old.assignedStation=requested}if('stationLocked' in old)old.stationLocked=old.stationLocked===true;profiles[name]=old}next.operatorProfiles=profiles;bank.staff.profiles=profiles}
    bank.appData=next;version++;
    return ok({version,updatedAt:new Date().toISOString()});
   }
