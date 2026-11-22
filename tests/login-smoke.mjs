@@ -641,7 +641,7 @@ try{
  // SUPERVISOR can manage STAFF and assignments but not USERS or general Settings presets.
   const supervisor=await openFor('SUPERVISOR','2468');
   await signIn(supervisor.page);
-  assert.equal(await supervisor.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'SUPERVISOR staff-management permission does not grant Central Data Bank access');
+  assert.equal(await supervisor.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'SUPERVISOR staff permission does not grant Central Data Bank access');
   await supervisor.page.locator('.nav-menu > summary').click();
   assert.equal(await supervisor.page.locator('#addEntry').isDisabled(),false,'SUPERVISOR can edit tracker');
   assert.equal(await supervisor.page.locator('#newStaffName').count(),0,'legacy inline add field is removed');
