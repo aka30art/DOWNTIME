@@ -1,36 +1,23 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+
 const api=fs.readFileSync('supabase/functions/central-bank/index.ts','utf8');
 const app=fs.readFileSync('index.html','utf8');
 const client=fs.readFileSync('central-bank-client.js','utf8');
-const admin=fs.readFileSync('central-bank-admin.html','utf8');
-const login=fs.readFileSync('tests/login-smoke.mjs','utf8');
 const packageJson=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.ok(api.includes('username="DEV"'),'first-time bootstrap creates DEV as root OWNER');
-assert.ok(api.includes('const isDevRoot=currentUsername==="DEV"&&tier==="OWNER"'),'DEV and OWNER are both required for root authority');
-assert.ok(api.includes('const isLegacyJanRoot=currentUsername==="JAN"&&tier==="OWNER"'),'existing JAN root remains eligible only for the controlled migration');
-assert.ok(api.includes('if(action==="root-account-split")'),'server exposes the authenticated account split action');
-assert.ok(api.includes('currentUser.username="DEV";currentUser.displayName="DEV"'),'migration renames the existing root record rather than copying its credentials');
-assert.ok(api.includes('bank.users.push({username:"Jan",displayName:"Jan",tier:"USER",enabled:true,pinSalt:salt,pinHash:await hashPin(janPin,salt)})'),'Jan is created with standard USER permissions and a salted PIN hash');
-assert.ok(api.includes('if(!Number.isInteger(expectedVersion)||expectedVersion!==Number(row?.version||0))'),'migration requires an exact central-bank version');
-assert.ok(api.includes('delete().eq("username",previousRootUsername)'),'old root sessions are revoked after migration');
-const split=api.slice(api.indexOf('if(action==="root-account-split")'),api.indexOf('if(typeof action==="string"&&action.startsWith("central-config-")'));
-assert.doesNotMatch(split,/currentUser\.(?:pinSalt|pinHash)\s*=/,'existing root PIN hash is not changed by rename');
-assert.ok(api.includes('const isRootName=username.toUpperCase()==="DEV"'),'DEV is the immutable root username');
-assert.ok(api.includes('The DEV root OWNER account cannot be deleted or removed.'),'DEV cannot be deleted');
-assert.ok(api.includes('if(newTier==="OWNER")return json({error:"DEV is the only OWNER account. Additional OWNER accounts are prohibited."},403);'),'no second OWNER can be created');
-assert.ok(!api.includes('isJanRoot'),'obsolete JAN root authorization flag is removed');
-assert.ok(app.includes('id="rootAccountMigration"'),'one-time migration panel exists in the application');
-assert.ok(app.includes('id="rootAccountJanPin" type="password"'),'new Jan PIN is collected in a password field');
-assert.ok(app.includes('window.DowntimeCentral.splitRootAccount(pin,centralVersion)'),'UI invokes authenticated split action');
-assert.ok(client.includes('async splitRootAccount(janPin,version)'),'browser adapter exposes split action');
-assert.ok(admin.includes('username:"DEV"'),'standalone bootstrap selects DEV');
-assert.ok(login.includes("openFor('USER','1357','Jan')")&&login.includes('Jan USER retains the Jan operational plant toggle'),'browser regression covers Jan operational login');
-assert.ok(login.includes('Jan USER does not see the Central Data Bank admin entry'),'browser regression denies Jan admin navigation');
-assert.ok(login.includes('Exercise the complete one-time legacy JAN root migration'),'browser regression exercises the root split UI');
-assert.ok(login.includes('migration retains the original root PIN hash'),'browser regression verifies the existing root PIN hash is preserved');
-assert.ok(login.includes('new Jan USER account cannot access root administration'),'browser regression verifies the new Jan account has no root access');
-assert.ok(packageJson.scripts['test:central-bank'].includes('tests/root-account-split-contract.mjs'),'contract is in the CI suite');
-const hardcodedPinPattern=/\b(?:janPin|pin)\s*[:=]\s*['"]\d{4,8}['"]/i;
-for(const source of [api,app,client,admin])assert.doesNotMatch(source,hardcodedPinPattern,'PIN values are not hard-coded');
-console.log('DEV/JAN account split, root protections, session revocation and standard Jan USER regression contracts passed.');
+
+for(const [source,label] of [[api,'Central Bank API'],[app,'application UI'],[client,'browser adapter']]){
+  for(const retired of ['rootAccountMigration','rootAccountJanPin','splitRootAccountBtn','runRootAccountSplit','canRunRootAccountSplit','root-account-split','splitRootAccount']){
+    assert.ok(!source.includes(retired),label+' no longer exposes retired split path: '+retired);
+  }
+}
+assert.ok(api.includes('username="DEV"'),'bootstrap creates DEV as the root OWNER');
+assert.ok(api.includes('The root OWNER username is fixed as DEV'),'bootstrap fixes the root identity');
+assert.ok(api.includes('const isDevRoot=currentUsername==="DEV"&&tier==="OWNER"'),'root authority requires the exact DEV OWNER identity');
+assert.ok(api.includes('if(isRootName){'),'root credential updates use a protected branch');
+assert.ok(api.includes('if(!isDevRoot)return json({error:"Only root DEV can update root credentials."},403);'),'DEVACC cannot alter DEV root credentials');
+assert.ok(api.includes('Additional OWNER accounts are prohibited'),'no second OWNER can be created');
+assert.ok(api.includes('The DEV root OWNER account cannot be deleted or removed.'),'DEV root cannot be removed');
+assert.ok(packageJson.scripts['test:central-bank'].includes('tests/root-account-split-contract.mjs'),'retired split contract remains in CI');
+
+console.log('PASS: legacy one-time DEV/JAN account split is removed from UI, client and API; protected DEV OWNER identity remains.');

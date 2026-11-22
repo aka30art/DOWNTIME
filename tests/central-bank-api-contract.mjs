@@ -47,11 +47,11 @@ const lockedRoles=src.slice(src.indexOf('const lockedRolePrivileges'),src.indexO
 assert.ok(lockedRoles.includes('OWNER:{canEditTracker:true'), 'DEV root OWNER permissions are fixed');
 assert.doesNotMatch(lockedRoles, /MANAGER:|SUPERVISOR:|USER:|SPECTATOR:/,
   'non-root tiers are configurable by DEV rather than locked to hard-coded baselines');
-assert.ok(src.includes('if(!isDevRoot)return json({error:"Only root DEV can change tier access and rights."},403);'),
-  'tier rights changes are restricted to root DEV only');
-assert.ok(src.includes('const isCentralAdmin=tier==="ADMIN"||tier==="DEVACC"||isDevRoot;'),'standard account creation and tier changes exclude the legacy JAN root');
-assert.ok(src.includes('if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEVacc or the DEV root administrator can create accounts or assign user tiers."},403);'),
-  'ADMIN, DEVacc and DEV may manage standard user tiers; DEV-only tier guard protects DEVacc');
+assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Only DEV and DEVACC can change tier access and rights."},403);'),
+  'tier rights changes are restricted to DEV and DEVACC root authority');
+assert.ok(src.includes('const isCentralAdmin=tier==="ADMIN"||isRootAuthority;'),'ADMIN and root-equivalent identities can manage account tiers');
+assert.ok(src.includes('if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEV and DEVACC can create accounts or assign user tiers."},403);'),
+  'ADMIN and root-equivalent DEV/DEVACC may manage account tiers');
 assert.ok(src.includes('if(!priv.canManageUsers)return json({error:"Permission denied"},403);'),
   'other existing account maintenance remains subject to user-management rights');
 assert.ok(src.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&src.includes('typeof supplied[key]!=="boolean"'),
@@ -75,15 +75,24 @@ assert.ok(src.includes('action:"central-config-restore-draft"'),'restoring histo
 
 
 assert.ok(src.includes('const isDevRoot=currentUsername==="DEV"&&tier==="OWNER"'),'DEV is the permanent root OWNER identity');
-assert.ok(src.includes('if(action==="root-account-split")'),'one-time account split is a server-side action');
-assert.ok(src.includes('currentUser.username="DEV";currentUser.displayName="DEV"'),'legacy JAN root is renamed to DEV');
-assert.ok(src.includes('bank.users.push({username:"Jan",displayName:"Jan",tier:"USER",enabled:true,pinSalt:salt,pinHash:await hashPin(janPin,salt)})'),'separate standard Jan USER account has a salted, hashed PIN');
-assert.ok(src.includes('if(!Number.isInteger(expectedVersion)||expectedVersion!==Number(row?.version||0))'),'account split uses optimistic version checking');
-assert.ok(src.includes('delete().eq("username",previousRootUsername)'),'old root sessions are revoked after the split');
-assert.ok(!src.includes('isJanRoot'),'obsolete JAN root authorization flag is removed');
-assert.ok(src.includes('const isCentralBankAccess=isDevRoot;'),'only the authenticated DEV OWNER identity is a Data Bank principal');
-assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV only."},403);'),'whole-bank administrative payload is DEV-only');
-assert.ok(src.includes('if(newTier==="DEVACC"&&!isDevRoot)return json({error:"Only DEV can assign DEVacc."},403);'),'only DEV can assign the DEVACC tier');
-assert.ok(src.includes('if(existing?.tier==="DEVACC"&&!isDevRoot)return json({error:"Only DEV can modify DEVacc."},403);'),'only DEV can modify, disable or restore the DEVACC account');
-assert.ok(src.includes('&&!isDevRoot)return json({error:"Only DEV can remove DEVacc."},403);'),'only DEV can delete the DEVACC account');
-console.log('Central API security, DEV root ownership, account split and configuration contracts passed (static source checks).');
+assert.ok(src.includes('const isDevacc=tier==="DEVACC";')&&src.includes('const isRootAuthority=isDevRoot||isDevacc;')&&src.includes('const isCentralBankAccess=isRootAuthority;'),'DEVACC is a root-equivalent Data Bank principal');
+assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);'),'whole-bank state is limited to DEV and DEVACC');
+assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),'all configuration control-plane actions share the DEV/DEVACC gate');
+assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Only DEV and DEVACC can change tier access and rights."},403);'),'DEVACC may change tier permissions');
+assert.ok(src.includes('if(newTier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can assign DEVacc."},403);'),'DEVACC may grant DEVACC');
+assert.ok(src.includes('if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);'),'DEVACC may modify, disable and restore DEVACC users');
+assert.ok(src.includes('&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can remove DEVacc."},403);'),'DEVACC may remove other DEVACC users');
+assert.ok(!src.includes('Only one DEVacc account is permitted.'),'the one-DEVACC account restriction is removed');
+assert.ok(src.includes('if(newTier==="OWNER")return json({error:"DEV is the only OWNER account. Additional OWNER accounts are prohibited."},403);'),'root-equivalent accounts cannot create a second OWNER');
+assert.ok(src.includes('if(!isDevRoot)return json({error:"Only root DEV can update root credentials."},403);'),'only DEV can update its permanent root credentials');
+assert.ok(src.includes('The DEV root OWNER account cannot be deleted or removed.'),'DEV root cannot be deleted');
+assert.ok(!src.includes('root-account-split')&&!src.includes('isLegacyJanRoot'),'obsolete JAN split authorization is removed');
+
+assert.ok(src.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&src.includes('typeof supplied[key]!=="boolean"'),'tier rights updates validate the permission whitelist and boolean values');
+assert.ok(src.includes('action:"tiers-save",details:{tiers:tiers.filter(role=>role!=="OWNER"&&role!=="DEVACC")}'),'tier changes are audited and immutable root-equivalent tiers are excluded');
+for(const action of ['central-config-state','central-config-save-draft','central-config-publish','central-config-restore-draft'])assert.ok(src.includes('if(action==="'+action+'")'),'configuration control-plane action '+action);
+assert.ok(src.includes('configState.draft_version')&&src.includes('configState.published_version'),'configuration drafts and published state have independent version pointers');
+assert.ok(src.includes('downtime_central_config_state')&&src.includes('downtime_central_config_history'),'configuration control plane uses isolated tables');
+assert.ok(src.includes('normalizeCentralConfig(body.config)'),'configuration is validated server-side before saving');
+assert.ok(src.includes('action:"central-config-publish"')&&src.includes('action:"central-config-restore-draft"'),'publish and restore actions are separately audited');
+console.log('Central API security, DEVACC root equivalence, immutable DEV OWNER and configuration contracts passed (static source checks).');
