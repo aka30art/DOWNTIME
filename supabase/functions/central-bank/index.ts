@@ -327,15 +327,15 @@ Deno.serve(async(req)=>{
      for(const [name,profile] of Object.entries((incoming.operatorProfiles||{}) as Record<string,any>)){
        if(!Object.prototype.hasOwnProperty.call(newProfiles,name)||!profile||typeof profile!=="object"||Array.isArray(profile))continue;
        const existing={...(newProfiles as any)[name]};
-       const wasLocked=existing.stationLocked===true,willBeLocked=profile.stationLocked===true;
+       const wasLocked=existing.stationLocked===true,hasLockValue="stationLocked" in profile,willBeLocked=hasLockValue?profile.stationLocked===true:wasLocked;
        const requestedStation=String(profile.station??profile.assignedStation??"").slice(0,100);
        const currentStation=String(existing.station??existing.assignedStation??"");
        // Reassigning a locked member requires an explicit unlock in this Staff Settings transaction.
-       if(!wasLocked||!willBeLocked||requestedStation===currentStation){
+       if(!wasLocked||(hasLockValue&&profile.stationLocked===false)||requestedStation===currentStation){
          if("station" in profile)existing.station=requestedStation;
          else if("assignedStation" in profile)existing.assignedStation=requestedStation;
        }
-       if("stationLocked" in profile)existing.stationLocked=willBeLocked;
+       if(hasLockValue)existing.stationLocked=willBeLocked;else if(wasLocked)existing.stationLocked=true;
        (newProfiles as any)[name]=existing;
      }
      nextAppData.operatorProfiles=newProfiles;
