@@ -93,7 +93,7 @@ assert.ok(src.includes('The DEV root OWNER account cannot be deleted or removed.
 assert.ok(!src.includes('root-account-split')&&!src.includes('isLegacyJanRoot'),'obsolete JAN split authorization is removed');
 
 assert.ok(src.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&src.includes('typeof supplied[key]!=="boolean"'),'tier rights updates validate the permission whitelist and boolean values');
-assert.ok(src.includes('action:"tiers-save",details:{tiers:tiers.filter(role=>role!=="OWNER"&&role!=="DEVACC")}'),'tier changes are audited and immutable root-equivalent tiers are excluded');
+assert.ok(src.includes('action:"tiers-save",details:{tiers}'),'tier permission changes across all seven roles, including root PLANT POWER overrides, are audited');
 for(const action of ['central-config-state','central-config-save-draft','central-config-publish','central-config-restore-draft'])assert.ok(src.includes('if(action==="'+action+'")'),'configuration control-plane action '+action);
 assert.ok(src.includes('configState.draft_version')&&src.includes('configState.published_version'),'configuration drafts and published state have independent version pointers');
 assert.ok(src.includes('downtime_central_config_state')&&src.includes('downtime_central_config_history'),'configuration control plane uses isolated tables');
