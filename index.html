@@ -1607,7 +1607,7 @@ async function saveCentralUserSettings(){
  if(!username){$('centralUsersStatus').textContent='Enter a username.';return}
  const existing=(centralBankPayload?.users||[]).find(user=>String(user.username).toLowerCase()===username.toLowerCase());
  const canAssignTier=canAssignStandardAccountTiers(),canAssignDevacc=isRootDevAccount();
- if(tier==='DEVACC'&&!canAssignDevacc){$('centralUsersStatus').textContent='Only root DEV can assign DEVacc tier.';return}
+ if(tier==='DEVACC'&&(!existing||existing.tier!=='DEVACC')&&!canAssignDevacc){$('centralUsersStatus').textContent='Only root DEV can assign DEVacc tier.';return}
  if((!editingCentralUsername||!existing||existing.tier!==tier)&&!canAssignTier){$('centralUsersStatus').textContent='DEV and DEVACC can manage all account tiers; ADMIN can manage standard tiers.';return}
  const payload={username,displayName:displayName||username,tier,enabled:existing?.enabled!==false,version:centralVersion};
  if(pin)payload.pin=pin;

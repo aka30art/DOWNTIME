@@ -394,7 +394,7 @@ Deno.serve(async(req)=>{
      if(!existing||existing.tier!=="OWNER"||newTier!=="OWNER"||body.enabled===false)return json({error:"DEV is the immutable root OWNER and cannot be created, demoted or disabled."},400);
    }else{
      if(newTier==="OWNER")return json({error:"DEV is the only OWNER account. Additional OWNER accounts are prohibited."},403);
-     if(newTier==="DEVACC"&&!isDevRoot)return json({error:"Only root DEV can assign DEVacc."},403);
+     if(newTier==="DEVACC"&&(!existing||existing.tier!=="DEVACC")&&!isDevRoot)return json({error:"Only root DEV can assign DEVacc."},403);
      if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);
      if(existing?.tier==="OWNER")return json({error:"The root OWNER account is protected."},403);
    }
