@@ -138,7 +138,7 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
        const title=document.createElement('strong');title.textContent=station.name.toUpperCase();
        const category=document.createElement('span');category.textContent=station.category;
        const assigned=names.filter(name=>{const profile=profileForName(profiles,name);return profile.onSite!==false&&resolveProfileStation(profile,stations)?.id===station.id}).map(name=>name.toUpperCase());
-       const namesBox=document.createElement('small');namesBox.className='stationassigned';namesBox.textContent=assigned.length?assigned.join(', '):(station.active===false?'INACTIVE':'UNASSIGNED');
+       const namesBox=document.createElement('small');namesBox.className='stationassigned';namesBox.dataset.stationId=station.id;const legacyStationNumber=String(station.id||'').match(/^station-(\d+)$/);if(legacyStationNumber)namesBox.dataset.stationassigned=legacyStationNumber[1];namesBox.textContent=assigned.length?assigned.join(', '):(station.active===false?'INACTIVE':'UNASSIGNED');
        if(station.active===false){bay.style.opacity='.58';bay.title='Inactive station · retained for existing assignments and history'}
        bay.append(title,category,namesBox);column.appendChild(bay);
      });
