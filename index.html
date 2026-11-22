@@ -1572,7 +1572,7 @@ function renderCentralUserSettings(){
     $('centralAccountPin').value='';
     $('centralAccountFormTitle').textContent='EDIT USER · '+user.username;
     $('centralAccountSave').textContent='SAVE CHANGES';$('centralAccountSave').disabled=false;$('centralAccountCancel').style.display='inline-block';
-    if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'DEV and DEVACC have full tier authority. ADMIN can manage standard tiers.':'Tier assignment is reserved to DEV, DEVACC and ADMIN; this account tier is locked.';
+    if($('centralAccountTierHint'))$('centralAccountTierHint').textContent=canAssignTier?'DEV and DEVACC have full tier authority. ADMIN can manage standard tiers.':'Tier changes are restricted; the existing account tier is preserved.';
     $('centralUsersStatus').textContent='Leave PIN blank to keep the current PIN.';
     $('centralAccountFormTitle').scrollIntoView({behavior:'smooth',block:'nearest'});
    };actions.appendChild(edit);
