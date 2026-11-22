@@ -44,4 +44,23 @@ assert.match(api,/const canManageReasons=priv\.canManageSettings\|\|priv\.canMan
 assert.match(api,/if\(tier!=="ADMIN"&&!isJanRoot\)return json\(\{error:"Only ADMIN or the JAN root administrator can change tier access and rights"\},403\)/,'tier permission grants are restricted to ADMIN and JAN');
 assert.match(api,/OWNER:\{canEditTracker:true/,'OWNER default permissions remain fixed in the central API');
 
+const overviewPermissionBlock=page.slice(page.indexOf('const tierDefaults={'),page.indexOf('function permission(name)'));
+const apiOverviewPermissionBlock=api.slice(api.indexOf('const tierDefault:'),api.indexOf('const cryptoHex='));
+assert.ok(page.includes("{key:'canViewPlantOverview'"),'dedicated Plant Overview right is exposed in the existing editor');
+assert.ok(api.includes('const permissionKeys=Object.keys(tierDefault.OWNER)'),'server tier updates validate the permission against the existing permission whitelist');
+function permissionRole(source,tier){
+  const start=source.indexOf(tier+':{');if(start<0)return '';
+  const end=source.indexOf('}',start);return end<0?'':source.slice(start,end+1);
+}
+function frontendPermissionRole(tier){return permissionRole(overviewPermissionBlock,tier);}
+function serverPermissionRole(tier){return permissionRole(apiOverviewPermissionBlock,tier);}
+for(const tier of ['OWNER','ADMIN','MANAGER','SUPERVISOR','USER']){
+  assert.ok(frontendPermissionRole(tier).includes('canViewPlantOverview:true'),'frontend Plant Overview default for '+tier);
+  assert.ok(serverPermissionRole(tier).includes('canViewPlantOverview:true'),'server Plant Overview default for '+tier);
+}
+assert.ok(permissionRole(overviewPermissionBlock,'SPECTATOR').includes('canViewPlantOverview:false'),'frontend SPECTATOR cannot open Plant Overview');
+assert.ok(permissionRole(apiOverviewPermissionBlock,'SPECTATOR').includes('canViewPlantOverview:false'),'server SPECTATOR cannot open Plant Overview');
+assert.ok(page.includes("if(!permission('canViewPlantOverview'))return;"),'opening Plant Overview uses its dedicated right');
+assert.ok(page.includes("if(overview)overview.style.display=spectator||!permission('canViewPlantOverview')?'none':''"),'Plant Overview navigation uses its dedicated right');
+
 console.log('PASS: granular Settings visibility/edit rights, tracker-independent settings persistence, central API enforcement, and ADMIN/JAN permission administration.');
