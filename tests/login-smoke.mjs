@@ -105,6 +105,7 @@ window.supabase={createClient:()=>({
   const ok=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
   if(action==='list-users'){
    const listed=bank.users?.length?bank.users.filter(user=>user.enabled!==false).map(user=>({username:user.username,displayName:user.displayName||user.username,tier:user.tier})):[{username:'DEV',displayName:'DEV',tier:'OWNER'},{username:'Jan',displayName:'Jan',tier:'USER'},{username:'MICK',displayName:'Mick',tier:username.toUpperCase()==='MICK'?tier:'USER'}];
+   if(!listed.some(user=>user.username.toLowerCase()===username.toLowerCase()))listed.push({username,displayName:username,tier});
    return ok({users:listed});
   }
   if(action==='user-save'){
