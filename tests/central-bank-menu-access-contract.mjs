@@ -9,7 +9,8 @@ const packageJson=JSON.parse(fs.readFileSync('package.json','utf8'));
 assert.ok(page.includes("return (username==='DEV'&&tier==='OWNER')||tier==='DEVACC'"),'DEVACC shares the DEV root access allow-list');
 assert.ok(page.includes('function canManageAccessRights(){return canAccessCentralBank()}'),'Access & Rights is available to DEV and DEVACC');
 assert.ok(page.includes("if(admin)admin.style.display=canAccessCentralBank()?'':'none';"),'Central Data Bank navigation uses the root-equivalent allow-list');
-assert.ok(page.includes('option.disabled=!canAccessCentralBank()'),'only DEV and DEVACC can assign the DEVACC tier');
+assert.ok(page.includes("function isRootDevAccount(){return String(centralUser?.username||activeOperator||'').trim().toUpperCase()==='DEV'&&String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase()==='OWNER'}"),'the tier grant selector requires the exact root DEV/OWNER identity');
+assert.ok(page.includes('option.disabled=!isRootDevAccount()'),'the DEVACC tier option is enabled only for root DEV');
 assert.ok(page.includes("protectedDevacc=user.tier==='DEVACC'&&!canAccessCentralBank()"),'DEVACC accounts are not protected from another root-equivalent administrator');
 assert.ok(!page.includes('rootAccountMigration')&&!page.includes('splitRootAccountBtn'),'retired split panel is absent');
 
