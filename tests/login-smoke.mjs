@@ -168,6 +168,7 @@ try{
  // OWNER login and central versioned persistence.
  const owner=await openFor('OWNER');
  await signIn(owner.page);
+ assert.equal(await owner.page.locator('#centralAdminNav').isVisible(),true,'JAN root OWNER sees the Central Data Bank menu entry');
  assert.equal(await owner.page.locator('#authGate').isVisible(),false,'central login closes after authentication');
 
  await owner.page.locator('.nav-menu > summary').click();
@@ -233,14 +234,20 @@ try{
  await owner.page.locator('#settingsPanelAccessRights [data-settings-back]').click();
  const nonJanAdmin=await openFor('ADMIN','2468','MICK');
  await signIn(nonJanAdmin.page,'2468','MICK');
+ assert.equal(await nonJanAdmin.page.locator('#centralAdminNav').isVisible(),true,'ADMIN tier can see the Central Data Bank menu entry');
  await openSettingsHub(nonJanAdmin.page);
  assert.equal(await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'non-JAN ADMIN cannot see Access and Rights');
  await nonJanAdmin.context.close();
  const manager=await openFor('MANAGER','2468','MICK',owner.getBank(),owner.getVersion());
  await signIn(manager.page,'2468','MICK');
+ assert.equal(await manager.page.locator('#centralAdminNav').isVisible(),false,'MANAGER with ADMIN-equivalent configurable rights cannot see Central Data Bank');
  await openSettingsHub(manager.page);
  assert.equal(await manager.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'MANAGER never gains access to JAN-only Access and Rights');
  assert.equal(await manager.page.locator('[data-settings-open="areas"]').isVisible(),true,'MANAGER receives ADMIN-equivalent Settings access');
+ await manager.page.locator('[data-settings-open="users"]').click();
+ await manager.page.locator('#settingsPanelUsers').waitFor({state:'visible'});
+ assert.equal(await manager.page.locator('#centralUsersAdminLink').isVisible(),false,'later USERS panel rendering cannot restore the Central Data Bank shortcut for MANAGER');
+ await manager.page.locator('#settingsPanelUsers [data-settings-back]').click();
  await manager.page.locator('[data-settings-open="areas"]').click();
  assert.equal(await manager.page.locator('#newAreaPreset').isEnabled(),true,'MANAGER can edit Area Presets when granted ADMIN-equivalent rights');
  await manager.page.locator('#newAreaPreset').fill('Manager QA Bay');
@@ -441,6 +448,7 @@ try{
  await owner.page.locator('.side #logoutBtn').click();
  await owner.page.waitForFunction(()=>document.querySelector('#authGate').style.display!=='none');
  await owner.page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
+ assert.equal(await owner.page.locator('#centralAdminNav').isVisible(),false,'Central Data Bank entry is hidden immediately after logout');
  assert.equal(await owner.page.locator('#authGate h2').textContent(),'DOWNTIME · CENTRAL LOGIN','Log Out returns OWNER to the central USER login screen');
  assert.ok(owner.actions.some(x=>x.action==='logout'),'Log Out calls the central logout endpoint');
  await owner.context.close();
@@ -448,6 +456,7 @@ try{
  // USER is fully informed but cannot edit or submit anything.
  const user=await openFor('USER','2468');
  await signIn(user.page);
+ assert.equal(await user.page.locator('#centralAdminNav').isVisible(),false,'USER cannot see the Central Data Bank menu entry');
 
  await user.page.locator('.nav-menu > summary').click();
  await user.page.locator('.nav[data-view="reports"]').click();
@@ -478,6 +487,7 @@ try{
  // SUPERVISOR can edit tracker data but not manage users or STAFF.
  const supervisor=await openFor('SUPERVISOR','2468');
  await signIn(supervisor.page);
+ assert.equal(await supervisor.page.locator('#centralAdminNav').isVisible(),false,'SUPERVISOR staff-management permission does not grant Central Data Bank access');
  await supervisor.page.locator('.nav-menu > summary').click();
  assert.equal(await supervisor.page.locator('#addEntry').isDisabled(),false,'SUPERVISOR can edit tracker');
  assert.equal(await supervisor.page.locator('#newStaffName').isVisible().catch(()=>false),false,'STAFF editing is not exposed before selecting the Settings STAFF panel');
@@ -497,6 +507,7 @@ try{
  // SPECTATOR receives no staff/assignment/dashboard/report surfaces.
  const spectator=await openFor('SPECTATOR','2468');
  await signIn(spectator.page);
+ assert.equal(await spectator.page.locator('#centralAdminNav').isVisible(),false,'SPECTATOR cannot see the Central Data Bank menu entry');
  await spectator.page.locator('.nav-menu > summary').click();
  assert.equal(await spectator.page.locator('.nav[data-view="staff"]').count(),0,'STAFF is not a standalone navigation item');
  assert.equal(await spectator.page.locator('.nav[data-view="settings"]').isVisible(),false,'SPECTATOR cannot open Settings');
