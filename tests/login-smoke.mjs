@@ -75,10 +75,11 @@ window.supabase={createClient:()=>({
    return ok({payload:copy,user:{username,displayName:username==='JAN'?'Jan':'Mick',tier},version,updatedAt:new Date().toISOString()});
   }
   if(action==='save-state'){
-   if(!tiers[tier].canEditTracker)return ok({error:'Permission denied'},403);
+   const effectiveRights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
+   if(!effectiveRights.canEditTracker)return ok({error:'Permission denied'},403);
    if(Number(req.version)!==version)return ok({error:'Version conflict; refresh before saving'},409);
    bank.appData=req.appData;
-   if(tiers[tier].canManageStaff){bank.staff.profiles=req.appData.operatorProfiles||bank.staff.profiles;bank.staff.roster=req.appData.staffRoster||bank.staff.roster}
+   if(effectiveRights.canManageStaff){bank.staff.profiles=req.appData.operatorProfiles||bank.staff.profiles;bank.staff.roster=req.appData.staffRoster||bank.staff.roster}
    version++;
    return ok({version,updatedAt:new Date().toISOString()});
   }
