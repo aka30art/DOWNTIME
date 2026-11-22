@@ -248,6 +248,14 @@ try{
  for(let attempt=0;attempt<40&&!manager.getBank().appData.areas.includes('Manager QA Bay');attempt++)await manager.page.waitForTimeout(50);
  assert.ok(manager.getBank().appData.areas.includes('Manager QA Bay'),'MANAGER Settings save succeeds without relying on tracker save-state permission');
  assert.ok(manager.actions.some(action=>action.action==='save-settings'),'MANAGER uses the dedicated central Settings save route');
+ manager.getBank().tiers.MANAGER.canManageSettings=false;
+ manager.getBank().tiers.MANAGER.canManageAreaPresets=false;
+ const revokedVersion=manager.getVersion()+1;manager.setVersion(revokedVersion);
+ await manager.page.evaluate(version=>window.__downtimeEmitBroadcast({payload:{version,updated_at:new Date().toISOString()}}),revokedVersion);
+ await manager.page.waitForFunction(()=>document.querySelector('#newAreaPreset')?.disabled===true,{timeout:5000});
+ assert.equal(await manager.page.locator('[data-settings-open="areas"]').isVisible(),true,'MANAGER keeps read access when edit permission is revoked');
+ assert.equal(await manager.page.locator('#newAreaPreset').isDisabled(),true,'live central permission change revokes Settings edit controls without a new login');
+ assert.equal(await manager.page.locator('#authGate').isVisible(),false,'live permission changes do not force a logout');
  await manager.page.locator('.nav[data-view="weekly"]').click();
  assert.equal(await manager.page.locator('#addEntry').isEnabled(),true,'MANAGER has the same tracker-edit control state as ADMIN');
  await manager.page.locator('#addEntry').click();
