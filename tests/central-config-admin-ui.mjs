@@ -100,6 +100,7 @@ try{
  assert.equal(overflow,false,'mobile control room has no horizontal page overflow');
 
  await page.locator('#logoutBtn').click();
+ await page.locator('#workspace').waitFor({state:'hidden'});
  assert.equal(await page.locator('#workspace').isVisible(),false,'logout closes the admin workspace');
  await page.locator('#username').fill('MANAGER');
  await page.locator('#pin').fill('1234');
