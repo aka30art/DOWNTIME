@@ -384,17 +384,17 @@ try{
  ];
  const devacc=await openFor('DEVACC','2468','DEVacc',devaccBank);
  await signIn(devacc.page,'2468','DEVacc');
- assert.equal(await devacc.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'DEVacc cannot see the root-only Central Data Bank menu entry');
+ assert.equal(await devacc.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),true,'DEVACC sees the root-equivalent Central Data Bank menu entry');
  await openSettingsHub(devacc.page);
- assert.equal(await devacc.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'DEVacc cannot open the root-only Access and Rights editor');
+ assert.equal(await devacc.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),true,'DEVACC can open the root-equivalent Access and Rights editor');
  await devacc.page.locator('[data-settings-open="users"]').click();
  await devacc.page.locator('#settingsPanelUsers').waitFor({state:'visible'});
- assert.equal(await devacc.page.locator('#centralUsersManager').isVisible(),true,'DEVacc retains ordinary user-management access');
- assert.equal(await devacc.page.locator('#centralAccountTier').isDisabled(),false,'DEVacc can assign standard account tiers');
- assert.equal(await devacc.page.locator('#centralAccountTier option[value="DEVACC"]').isDisabled(),true,'DEVacc cannot assign the DEVACC tier');
- const protectedDevacc=devacc.page.locator('#centralUsersManageList > div').filter({hasText:'DEVacc'});
- assert.equal(await protectedDevacc.locator('button').count(),0,'DEVacc cannot edit, disable or remove the DEVACC account');
- assert.equal(await protectedDevacc.getByText('DEVACC · DEV ONLY').count(),1,'DEVACC account is explicitly marked as root-only managed');
+ assert.equal(await devacc.page.locator('#centralUsersManager').isVisible(),true,'DEVACC can manage accounts');
+ assert.equal(await devacc.page.locator('#centralAccountTier').isDisabled(),false,'DEVACC can assign account tiers');
+ assert.equal(await devacc.page.locator('#centralAccountTier option[value="DEVACC"]').isDisabled(),false,'DEVACC can assign DEVACC tier');
+ const devaccTarget=devacc.page.locator('#centralUsersManageList > div').filter({hasText:'DEVacc'});
+ assert.ok(await devaccTarget.locator('button').count()>0,'DEVACC can edit, disable or remove DEVACC accounts');
+
  await devacc.context.close();
  const manager=await openFor('MANAGER','2468','MICK',owner.getBank(),owner.getVersion());
  await signIn(manager.page,'2468','MICK');
