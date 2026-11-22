@@ -189,7 +189,7 @@ window.supabase={createClient:()=>({
    return ok({version,updatedAt:new Date().toISOString()});
   }
   if(action==='tiers-save'){
-   if(!(tier==='ADMIN'||(username==='DEV'&&tier==='OWNER')))return ok({error:'Only ADMIN or DEV can change tier rights'},403);
+   if(!(username.toUpperCase()==='DEV'&&tier==='OWNER'))return ok({error:'Only root DEV can change tier rights'},403);
    if(Number(req.version)!==version)return ok({error:'Version conflict'},409);
    bank.tiers=req.tiers;version++;
    return ok({ok:true,version});
@@ -418,17 +418,12 @@ try{
  await owner.page.locator('#settingsPanelAccessRights [data-settings-back]').click();
  const nonJanAdmin=await openFor('ADMIN','2468','MICK');
  await signIn(nonJanAdmin.page,'2468','MICK');
- assert.equal(await nonJanAdmin.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),true,'ADMIN tier can see the Central Data Bank menu entry');
+ assert.equal(await nonJanAdmin.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'ADMIN tier cannot see the DEV-only Central Data Bank menu entry');
  await openSettingsHub(nonJanAdmin.page);
- assert.equal(await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),true,'ADMIN tier can see Access and Rights');
- await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').click();
- assert.equal(await nonJanAdmin.page.locator('#settingsPanelAccessRights').isVisible(),true,'ADMIN opens the Access and Rights editor');
- const userGrant=nonJanAdmin.page.locator('[data-access-tier="USER"][data-access-right="canDeleteRecords"]');
- await userGrant.check();
- await nonJanAdmin.page.locator('#saveAccessRights').click();
- await nonJanAdmin.page.waitForFunction(()=>document.querySelector('#accessRightsStatus')?.textContent.includes('saved centrally'),{timeout:5000});
- assert.equal(nonJanAdmin.getBank().tiers.USER.canDeleteRecords,true,'ADMIN can grant a permission to another tier through Access and Rights');
- assert.ok(nonJanAdmin.actions.some(item=>item.action==='tiers-save'),'ADMIN permission grants use the central tiers-save action');
+ assert.equal(await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'ADMIN cannot access the root-only Access and Rights editor');
+ await nonJanAdmin.page.locator('[data-settings-open="users"]').click();
+ await nonJanAdmin.page.locator('#settingsPanelUsers').waitFor({state:'visible'});
+ assert.equal(await nonJanAdmin.page.locator('#centralUsersManager').isVisible(),true,'ADMIN retains ordinary account-management access');
  await nonJanAdmin.context.close();
  const manager=await openFor('MANAGER','2468','MICK',owner.getBank(),owner.getVersion());
  await signIn(manager.page,'2468','MICK');
