@@ -521,7 +521,8 @@ try{
   await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
   owner.page.once('dialog',dialog=>dialog.accept());
   await owner.page.locator('#smPhotoRemove').click();
-  await owner.page.waitForFunction(()=>owner.getPhotoRemovals().some(x=>x.path?.startsWith('rita/')),{timeout:5000});
+  for(let attempt=0;attempt<40&&!owner.getPhotoRemovals().some(x=>x.path?.startsWith('rita/'));attempt++)await owner.page.waitForTimeout(100);
+  assert.ok(owner.getPhotoRemovals().some(x=>x.path?.startsWith('rita/')),'REMOVE PHOTO requests secure deletion of the original storage object');
   for(let attempt=0;attempt<40&&owner.getBank().staff.profiles.Rita?.photoPath;attempt++)await owner.page.waitForTimeout(100);
   assert.equal(owner.getBank().staff.profiles.Rita.photo,undefined,'REMOVE PHOTO clears thumbnail metadata');
   assert.equal(owner.getBank().staff.profiles.Rita.photoPath,undefined,'REMOVE PHOTO clears original photo path');
