@@ -6,12 +6,12 @@ const headers={"Access-Control-Allow-Origin":allowedOrigin,"Access-Control-Allow
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers});
 const tiers=["OWNER","ADMIN","MANAGER","SUPERVISOR","USER","SPECTATOR"];
 const tierDefault:Record<string,Record<string,boolean>>={
- OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true,canManageSettings:false,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
- SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
+ OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ ADMIN:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ MANAGER:{canEditTracker:true,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:false,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SUPERVISOR:{canEditTracker:true,canManageUsers:false,canManageStaff:true,canManageAssignments:true,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:true,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:true,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:false,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
+ SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canViewUsers:false,canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:false,canManageReasonPresets:false,canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
 const cryptoHex=(bytes:Uint8Array)=>Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 const digest=async(s:string)=>cryptoHex(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s))));
@@ -19,7 +19,7 @@ async function hashPin(pin:string,salt:string){const key=await crypto.subtle.imp
 async function verifyPin(pin:string,user:any){return user?.pinSalt&&user?.pinHash&&await hashPin(pin,user.pinSalt)===user.pinHash}
 function safeUser(u:any){return {username:u.username,tier:u.tier,enabled:u.enabled!==false,displayName:u.displayName||u.username}}
 const lockedRolePrivileges:Record<string,Record<string,boolean>>={
- OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}
+ OWNER:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}
 };
 function addStableRecordIds(weeks:any){
  const copy=structuredClone(weeks||{});
@@ -93,7 +93,7 @@ Deno.serve(async(req)=>{
  if(!currentUser)return json({error:"Account disabled"},401);
  const tier=currentUser.tier,storedPrivileges=bank.tiers[tier]||{},priv={...tierDefault[tier],...storedPrivileges};
  if(lockedRolePrivileges[tier])Object.assign(priv,lockedRolePrivileges[tier]);
- if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canDeleteRecords&&priv.canViewDashboards)restrictedData.weeks=addStableRecordIds(restrictedData.weeks||{});if(!priv.canViewStaff){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}if(!priv.canViewAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.areas;delete restrictedData.reasons;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
+ if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers||priv.canViewUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canDeleteRecords&&priv.canViewDashboards)restrictedData.weeks=addStableRecordIds(restrictedData.weeks||{});if(!priv.canViewStaff&&!priv.canManageStaff&&!priv.canManageAssignments){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}else if(!priv.canViewStaff&&!priv.canManageStaff&&priv.canManageAssignments){const assignmentProfiles=publicBank.staff?.profiles||{};const minimalProfiles=Object.fromEntries(Object.entries(assignmentProfiles).map(([name,profile]:any)=>[name,{name,onSite:profile?.onSite!==false,station:String(profile?.station||profile?.assignedStation||"").slice(0,100)}]));publicBank.staff={roster:publicBank.staff?.roster||[],profiles:minimalProfiles};restrictedData.staffRoster=publicBank.staff.roster;restrictedData.operatorProfiles=minimalProfiles;}if(!priv.canViewAssignments&&!priv.canManageAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff||priv.canManageStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!(priv.canViewAreaPresets||priv.canManageAreaPresets||priv.canManageSettings))delete restrictedData.areas;if(!(priv.canViewReasonPresets||priv.canManageReasonPresets||priv.canAddDowntimeReasons||priv.canManageSettings))delete restrictedData.reasons;if(!(priv.canViewShiftSchedule||priv.canManageShiftSchedule||priv.canManageSettings)){delete restrictedData.shiftSchedule;delete restrictedData.shiftPresets;}if(!(priv.canViewDailyTasks||priv.canManageDailyTasks||priv.canManageSettings))delete restrictedData.dailyTaskPresets;if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
  if(action==="save-state"){
    if(!priv.canEditTracker)return json({error:"Permission denied"},403);
    const incoming=body?.appData;if(!incoming||typeof incoming!=="object"||Array.isArray(incoming))return json({error:"appData required"},400);
@@ -120,6 +120,8 @@ Deno.serve(async(req)=>{
    if(!priv.canManageSettings){
      if("areas" in (bank.appData||{}))nextAppData.areas=bank.appData.areas;
      if(Array.isArray(bank.appData?.dailyTaskPresets))nextAppData.dailyTaskPresets=bank.appData.dailyTaskPresets;else delete nextAppData.dailyTaskPresets;
+     if("shiftSchedule" in (bank.appData||{}))nextAppData.shiftSchedule=bank.appData.shiftSchedule;else delete nextAppData.shiftSchedule;
+     if("shiftPresets" in (bank.appData||{}))nextAppData.shiftPresets=bank.appData.shiftPresets;else delete nextAppData.shiftPresets;
      delete nextAppData.quickReasons;delete nextAppData.recentReasons;
      for(const field of ["reasons"]){
        if(!priv.canAddDowntimeReasons){if(field in (bank.appData||{}))nextAppData[field]=bank.appData[field];continue;}
@@ -144,6 +146,16 @@ Deno.serve(async(req)=>{
      }
      bank.staff.profiles=nextAppData.operatorProfiles;
    }else{
+     if(!priv.canManageAssignments){
+       const currentProfiles=bank.staff?.profiles||bank.appData?.operatorProfiles||{};
+       const safeProfiles=structuredClone(nextAppData.operatorProfiles||{});
+       for(const [name,profile] of Object.entries(safeProfiles) as [string,any][]){
+         const existing=(currentProfiles as any)[name]||{};
+         if("station" in existing)profile.station=existing.station;else delete profile.station;
+         if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
+       }
+       nextAppData.operatorProfiles=safeProfiles;
+     }
      bank.staff.profiles=nextAppData.operatorProfiles||bank.staff.profiles||{};
      bank.staff.roster=Array.isArray(nextAppData.staffRoster)?nextAppData.staffRoster:(bank.staff.roster||[]);
    }
@@ -153,8 +165,79 @@ Deno.serve(async(req)=>{
    if(error||!write)return json({error:"Version conflict; refresh before saving"},409);
    return json({version:(row?.version||0)+1,updatedAt:new Date().toISOString()});
  }
+ if(action==="save-settings"){
+   const incoming=body?.appData;if(!incoming||typeof incoming!=="object"||Array.isArray(incoming))return json({error:"appData required"},400);
+   const canManageAreas=priv.canManageSettings||priv.canManageAreaPresets;
+   const canManageReasons=priv.canManageSettings||priv.canManageReasonPresets;
+   const canManageSchedule=priv.canManageSettings||priv.canManageShiftSchedule;
+   const canManageTasks=priv.canManageSettings||priv.canManageDailyTasks;
+   const canManageStaff=!!priv.canManageStaff,canManageAssignments=!!priv.canManageAssignments||canManageStaff;
+   const canAddReasons=canManageReasons||!!priv.canAddDowntimeReasons;
+   if(!(canManageAreas||canAddReasons||canManageSchedule||canManageTasks||canManageStaff||canManageAssignments))return json({error:"Permission denied"},403);
+   const nextAppData={...(bank.appData||{})};
+   const cleanList=(value:any,maxItems:number,maxLength:number)=>Array.isArray(value)?value.filter((item:any)=>typeof item==="string"&&item.trim()).slice(0,maxItems).map((item:string)=>item.trim().slice(0,maxLength)):[];
+   if(canManageAreas){
+     if(!Array.isArray(incoming.areas))return json({error:"Area presets must be an array"},400);
+     nextAppData.areas=cleanList(incoming.areas,250,60);
+   }
+   if(canManageReasons){
+     if(!Array.isArray(incoming.reasons))return json({error:"Reason presets must be an array"},400);
+     nextAppData.reasons=cleanList(incoming.reasons,250,60);
+   }else if(canAddReasons){
+     const existing=cleanList(bank.appData?.reasons||[],250,60),incomingReasons=cleanList(incoming.reasons||existing,250,60);
+     const additions=incomingReasons.filter((value:string)=>!existing.some((old:string)=>old.toLowerCase()===value.toLowerCase()));
+     nextAppData.reasons=[...existing,...additions].slice(0,250);
+   }
+   if(canManageSchedule){
+     if(!incoming.shiftSchedule||typeof incoming.shiftSchedule!=="object"||Array.isArray(incoming.shiftSchedule))return json({error:"Shift schedule must be an object"},400);
+     nextAppData.shiftSchedule=incoming.shiftSchedule;
+     nextAppData.shiftPresets=Array.isArray(incoming.shiftPresets)?incoming.shiftPresets.filter((p:any)=>p&&typeof p==="object"&&!Array.isArray(p)&&typeof p.name==="string"&&p.config&&typeof p.config==="object").slice(0,50):[];
+   }
+   if(canManageTasks){
+     if(!Array.isArray(incoming.dailyTaskPresets))return json({error:"Daily task presets must be an array"},400);
+     nextAppData.dailyTaskPresets=cleanList(incoming.dailyTaskPresets,250,100);
+     const allowedTasks=new Set(nextAppData.dailyTaskPresets.map((task:string)=>task.toLowerCase()));
+     const weeks=structuredClone(bank.appData?.weeks||{});
+     for(const week of Object.values(weeks) as any[]){for(const day of (week?.days||[])){if(Array.isArray(day.dailyTasksDone))day.dailyTasksDone=day.dailyTasksDone.filter((task:any)=>typeof task==='string'&&allowedTasks.has(task.toLowerCase()));}}
+     nextAppData.weeks=weeks;
+   }
+   bank.staff=bank.staff||{roster:[],profiles:{}};
+   const currentProfiles=bank.staff.profiles||bank.appData?.operatorProfiles||{};
+   if(canManageStaff){
+     if(incoming.operatorProfiles&&typeof incoming.operatorProfiles!=="object"||Array.isArray(incoming.operatorProfiles))return json({error:"Invalid staff profiles"},400);
+     if(!Array.isArray(incoming.staffRoster))return json({error:"Invalid staff roster"},400);
+     const newProfiles=structuredClone(incoming.operatorProfiles||currentProfiles);
+     if(!canManageAssignments){
+       for(const [name,profile] of Object.entries(newProfiles) as [string,any][]){
+         const existing=(currentProfiles as any)[name]||{};
+         if("station" in existing)profile.station=existing.station;else delete profile.station;
+         if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
+       }
+     }
+     nextAppData.operatorProfiles=newProfiles;
+     nextAppData.staffRoster=cleanList(incoming.staffRoster,250,80);
+     bank.staff.profiles=newProfiles;bank.staff.roster=nextAppData.staffRoster.slice();
+   }else if(canManageAssignments){
+     const newProfiles=structuredClone(currentProfiles||{});
+     for(const [name,profile] of Object.entries((incoming.operatorProfiles||{}) as Record<string,any>)){
+       if(!Object.prototype.hasOwnProperty.call(newProfiles,name)||!profile||typeof profile!=="object"||Array.isArray(profile))continue;
+       const existing={...(newProfiles as any)[name]};
+       if("station" in profile)existing.station=String(profile.station||"").slice(0,100);
+       else if("assignedStation" in profile)existing.assignedStation=String(profile.assignedStation||"").slice(0,100);
+       (newProfiles as any)[name]=existing;
+     }
+     nextAppData.operatorProfiles=newProfiles;
+     nextAppData.staffRoster=bank.staff.roster||bank.appData?.staffRoster||[];
+     bank.staff.profiles=newProfiles;
+   }
+   bank.appData=nextAppData;if(canManageTasks)bank.statsSource={weeks:nextAppData.weeks||{}};
+   const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
+   if(error||!write)return json({error:"Version conflict; refresh before saving settings"},409);
+   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"save-settings",details:{areas:canManageAreas,reasons:canAddReasons,schedule:canManageSchedule,dailyTasks:canManageTasks,staff:canManageStaff,assignments:canManageAssignments}});
+   return json({ok:true,version:(row?.version||0)+1,updatedAt:new Date().toISOString()});
+ }
  if(action==="users"){
-   if(!priv.canManageUsers)return json({error:"Permission denied"},403);
+   if(!priv.canViewUsers&&!priv.canManageUsers)return json({error:"Permission denied"},403);
    return json({users:bank.users.map(safeUser),tiers:bank.tiers});
  }
  if(action==="user-save"){
@@ -198,7 +281,14 @@ Deno.serve(async(req)=>{
    if(!priv.canManageStaff)return json({error:"Permission denied"},403);
    const name=String(body.name||"").trim();if(!name||name.length>80)return json({error:"Staff name required"},400);
    bank.staff.profiles=bank.staff.profiles||{};bank.staff.roster=bank.staff.roster||[];
-   bank.staff.profiles[name]={...(bank.staff.profiles[name]||{}),...(body.profile||{}),name};
+   const existingProfile=bank.staff.profiles[name]||bank.appData?.operatorProfiles?.[name]||{};
+   const proposedProfile=body.profile&&typeof body.profile==="object"&&!Array.isArray(body.profile)?body.profile:{};
+   const nextProfile={...existingProfile,...proposedProfile,name};
+   if(!priv.canManageAssignments){
+     if("station" in existingProfile)nextProfile.station=existingProfile.station;else delete nextProfile.station;
+     if("assignedStation" in existingProfile)nextProfile.assignedStation=existingProfile.assignedStation;else delete nextProfile.assignedStation;
+   }
+   bank.staff.profiles[name]=nextProfile;
    if(!bank.staff.roster.includes(name))bank.staff.roster.push(name);
    bank.appData.operatorProfiles=bank.appData.operatorProfiles||{};bank.appData.operatorProfiles[name]=bank.staff.profiles[name];
    bank.appData.staffRoster=bank.staff.roster.slice();
@@ -217,7 +307,7 @@ Deno.serve(async(req)=>{
  }
  if(action==="staff-photo-read"){
    const path=String(body.path||"");if(!path||path.length>300)return json({error:"Invalid path"},400);
-   if(!priv.canViewStaff)return json({error:"Permission denied"},403);
+   if(!priv.canViewStaff&&!priv.canManageStaff)return json({error:"Permission denied"},403);
    const {data,error}=await db.storage.from("downtime-staff-photos").createSignedUrl(path,120);
    if(error)return json({error:error.message},404);
    return json({url:data.signedUrl});

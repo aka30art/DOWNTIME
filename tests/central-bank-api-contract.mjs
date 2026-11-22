@@ -11,8 +11,8 @@ assert.ok(src.includes('failedCount||0)>=5'),'server enforces a five-attempt acc
 assert.ok(src.includes('Try again in five minutes.'),'server lockout window is communicated');
 assert.ok(src.includes('await db.from("downtime_central_sessions").delete().eq("username",existing?.username||username)'), 'updating a USER revokes their prior active sessions');
 assert.ok(src.includes('await db.from("downtime_central_sessions").delete().eq("username",target)'),'deleting a USER revokes their active sessions');
-assert.ok(src.includes('priv.canManageUsers?bank.users.map(safeUser):[safeUser(currentUser)]'),'ordinary users cannot enumerate other USER accounts');
-assert.ok(src.includes('if(!priv.canViewAssignments)'),'assignment redaction is enforced server-side');
+assert.ok(src.includes('priv.canManageUsers||priv.canViewUsers?bank.users.map(safeUser):[safeUser(currentUser)]'),'only USERS viewers/managers can enumerate accounts');
+assert.ok(src.includes('if(!priv.canViewAssignments&&!priv.canManageAssignments)'),'assignment redaction is enforced server-side unless manage access is granted');
 assert.ok(src.includes('if(!priv.canViewDashboards)'),'dashboard redaction is enforced server-side');
 assert.ok(src.includes('if(!priv.canViewReports)delete restrictedData.archive'),'report redaction is enforced server-side');
 assert.ok(src.includes('if(!priv.canEditTracker)return json({error:"Permission denied"},403)'),'plant status and tracker writes are tier gated');
@@ -21,8 +21,16 @@ assert.ok(src.includes('MANAGER:{canEditTracker:true'), 'MANAGER can create and 
 assert.ok(src.includes('SUPERVISOR:{canEditTracker:true')&&src.includes('canManageAssignments:true'), 'SUPERVISOR can edit existing station assignments');
 assert.ok(src.includes('lockedRolePrivileges')&&src.includes('OWNER:{canEditTracker:true'), 'the root OWNER permissions remain immutable on the server');
 assert.ok(src.includes('Object.fromEntries(tiers.map(tier=>[tier,{...tierDefault[tier],...(storedTiers[tier]||{})}]))')&&src.includes('Object.assign(b.tiers[tier],permissions)'), 'persisted tier payload is normalized to the approved fixed role baselines');
-assert.ok(src.includes('USER:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}'), 'USER has full visibility and no mutation privileges');
-assert.ok(src.includes('SPECTATOR:{canEditTracker:false,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canManageSettings:false,canAddDowntimeReasons:false,canDeleteRecords:false,canExportReports:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}'), 'SPECTATOR has restricted visibility and no mutation privileges');
+assert.match(src,/USER:\{canEditTracker:false,[^}]*canViewAreaPresets:false,[^}]*canViewDailyTasks:false/,'USER default includes section-level Settings denials');
+assert.match(src,/SPECTATOR:\{canEditTracker:false,[^}]*canViewAreaPresets:false,[^}]*canViewDailyTasks:false/,'SPECTATOR default includes section-level Settings denials');
+assert.ok(src.includes('if(action==="save-settings")')&&src.includes('const canManageAreas=priv.canManageSettings||priv.canManageAreaPresets')&&src.includes('const canManageTasks=priv.canManageSettings||priv.canManageDailyTasks'),'Settings writes are authorized by granular section permissions independently of tracker edit rights');
+assert.match(src,/if\(!priv\.canManageAssignments\)[\s\S]*if\("station" in existing\)profile\.station=existing\.station/,
+  'generic tracker saves cannot overwrite staff station assignments without assignment permission');
+assert.ok(src.includes('const nextProfile={...existingProfile,...proposedProfile,name};')&&src.includes('if(!priv.canManageAssignments){'),
+  'legacy staff-save action independently protects station assignments');
+assert.ok(src.includes('if(!priv.canViewStaff&&!priv.canManageStaff)return json({error:"Permission denied"},403)'),
+  'staff managers can read staff photos while view-only STAFF access is separate');
+
 assert.ok(src.includes('The root OWNER username is fixed as JAN'), 'bootstrap fixes the root account name as JAN');
 assert.ok(src.includes('Additional OWNER accounts are prohibited'), 'no secondary OWNER accounts can be created');
 assert.ok(src.includes('The JAN root OWNER account cannot be deleted or removed.'), 'JAN root account cannot be deleted');

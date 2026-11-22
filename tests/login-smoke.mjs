@@ -27,7 +27,7 @@ function makeBank(){
  const profiles=Object.fromEntries(['Jan','Mick','Gigi','Daz','Shayne'].map((name,i)=>[name,{station:'Station '+(i+1)+' · WOOD',onSite:true,photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}]));
  return {appData:{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360','Other'],reasons:['Blockage'],archive:[],plantOn:true,dailyTaskPresets:[]},users:[],tiers,staff:{roster:Object.keys(profiles),profiles},statsSource:{weeks:{}}};
 }
-async function openFor(tier,pin='2468',username='JAN'){
+async function openFor(tier,pin='2468',username='JAN',initialBank=null,initialVersion=1){
  const context=await browser.newContext();
  const page=await context.newPage();
  page.on('pageerror',e=>errors.push(e.message));
@@ -54,7 +54,7 @@ window.supabase={createClient:()=>({
    })}
   })};
  });
- let bank=makeBank(),version=1,token='central-session-'+username;
+ let bank=initialBank?JSON.parse(JSON.stringify(initialBank)):makeBank(),version=initialVersion,token='central-session-'+username;
  const actions=[];
  await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank',async route=>{
   const req=route.request().postDataJSON(),action=req.action;
@@ -75,11 +75,34 @@ window.supabase={createClient:()=>({
    return ok({payload:copy,user:{username,displayName:username==='JAN'?'Jan':'Mick',tier},version,updatedAt:new Date().toISOString()});
   }
   if(action==='save-state'){
-   if(!tiers[tier].canEditTracker)return ok({error:'Permission denied'},403);
+   const effectiveRights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
+   if(!effectiveRights.canEditTracker)return ok({error:'Permission denied'},403);
    if(Number(req.version)!==version)return ok({error:'Version conflict; refresh before saving'},409);
    bank.appData=req.appData;
-   if(tiers[tier].canManageStaff){bank.staff.profiles=req.appData.operatorProfiles||bank.staff.profiles;bank.staff.roster=req.appData.staffRoster||bank.staff.roster}
+   if(effectiveRights.canManageStaff){bank.staff.profiles=req.appData.operatorProfiles||bank.staff.profiles;bank.staff.roster=req.appData.staffRoster||bank.staff.roster}
    version++;
+   return ok({version,updatedAt:new Date().toISOString()});
+  }
+  if(action==='save-settings'){
+   if(Number(req.version)!==version)return ok({error:'Version conflict; refresh before saving Settings'},409);
+   const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
+   const canManageAreas=rights.canManageSettings===true||rights.canManageAreaPresets===true;
+   const canManageReasons=rights.canManageSettings===true||rights.canManageReasonPresets===true;
+   const canAddReasons=canManageReasons||rights.canAddDowntimeReasons===true;
+   const canManageSchedule=rights.canManageSettings===true||rights.canManageShiftSchedule===true;
+   const canManageTasks=rights.canManageSettings===true||rights.canManageDailyTasks===true;
+   const canManageStaff=rights.canManageStaff===true;
+   const canManageAssignments=rights.canManageAssignments===true||canManageStaff;
+   if(!(canManageAreas||canAddReasons||canManageSchedule||canManageTasks||canManageStaff||canManageAssignments))return ok({error:'Permission denied'},403);
+   const next={...bank.appData};
+   if(canManageAreas)next.areas=req.appData.areas;
+   if(canManageReasons)next.reasons=req.appData.reasons;
+   else if(canAddReasons){const existing=next.reasons||[];next.reasons=[...existing,...(req.appData.reasons||[]).filter(value=>!existing.includes(value))]}
+   if(canManageSchedule){next.shiftSchedule=req.appData.shiftSchedule;next.shiftPresets=req.appData.shiftPresets}
+   if(canManageTasks)next.dailyTaskPresets=req.appData.dailyTaskPresets;
+   if(canManageStaff){next.operatorProfiles=req.appData.operatorProfiles;next.staffRoster=req.appData.staffRoster;bank.staff.profiles=req.appData.operatorProfiles;bank.staff.roster=req.appData.staffRoster}
+   else if(canManageAssignments){next.operatorProfiles={...(next.operatorProfiles||{})};for(const [name,profile] of Object.entries(req.appData.operatorProfiles||{})){if(next.operatorProfiles[name])next.operatorProfiles[name]={...next.operatorProfiles[name],station:profile.station}}}
+   bank.appData=next;version++;
    return ok({version,updatedAt:new Date().toISOString()});
   }
   if(action==='tiers-save'){
@@ -196,9 +219,15 @@ try{
  const adminDeleteRight=owner.page.locator('[data-access-tier="ADMIN"][data-access-right="canDeleteRecords"]');
  assert.equal(await adminDeleteRight.isChecked(),false,'ADMIN delete-record permission starts disabled');
  await adminDeleteRight.check();
+ await owner.page.evaluate(()=>{
+  const admin=document.querySelector('[data-access-tier-card="ADMIN"]'),manager=document.querySelector('[data-access-tier-card="MANAGER"]');
+  admin.querySelectorAll('input[data-access-right]').forEach(source=>{const target=manager.querySelector('[data-access-right="'+source.dataset.accessRight+'"]');if(target)target.checked=source.checked});
+ });
  await owner.page.locator('#saveAccessRights').click();
  await owner.page.waitForFunction(()=>document.querySelector('#accessRightsStatus')?.textContent.includes('saved centrally'),{timeout:5000});
  assert.equal(owner.getBank().tiers.ADMIN.canDeleteRecords,true,'JAN saves tier rights to central state');
+ assert.equal(owner.getBank().tiers.MANAGER.canEditTracker,owner.getBank().tiers.ADMIN.canEditTracker,'MANAGER receives the same tracker-edit right as ADMIN');
+ assert.deepEqual(owner.getBank().tiers.MANAGER,owner.getBank().tiers.ADMIN,'MANAGER permission profile exactly matches ADMIN');
  assert.ok(owner.actions.some(item=>item.action==='tiers-save'),'tier rights are saved through the central API');
  await owner.page.screenshot({path:resolve('artifacts/settings-hub/access-rights-1280px.png')});
  await owner.page.locator('#settingsPanelAccessRights [data-settings-back]').click();
@@ -207,6 +236,38 @@ try{
  await openSettingsHub(nonJanAdmin.page);
  assert.equal(await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'non-JAN ADMIN cannot see Access and Rights');
  await nonJanAdmin.context.close();
+ const manager=await openFor('MANAGER','2468','MICK',owner.getBank(),owner.getVersion());
+ await signIn(manager.page,'2468','MICK');
+ await openSettingsHub(manager.page);
+ assert.equal(await manager.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'MANAGER never gains access to JAN-only Access and Rights');
+ assert.equal(await manager.page.locator('[data-settings-open="areas"]').isVisible(),true,'MANAGER receives ADMIN-equivalent Settings access');
+ await manager.page.locator('[data-settings-open="areas"]').click();
+ assert.equal(await manager.page.locator('#newAreaPreset').isEnabled(),true,'MANAGER can edit Area Presets when granted ADMIN-equivalent rights');
+ await manager.page.locator('#newAreaPreset').fill('Manager QA Bay');
+ await manager.page.locator('#addAreaPresetBtn').click();
+ for(let attempt=0;attempt<40&&!manager.getBank().appData.areas.includes('Manager QA Bay');attempt++)await manager.page.waitForTimeout(50);
+ assert.ok(manager.getBank().appData.areas.includes('Manager QA Bay'),'MANAGER Settings save succeeds without relying on tracker save-state permission');
+ assert.ok(manager.actions.some(action=>action.action==='save-settings'),'MANAGER uses the dedicated central Settings save route');
+ manager.getBank().tiers.MANAGER.canManageSettings=false;
+ manager.getBank().tiers.MANAGER.canManageAreaPresets=false;
+ const revokedVersion=manager.getVersion()+1;manager.setVersion(revokedVersion);
+ await manager.page.evaluate(version=>window.__downtimeEmitBroadcast({payload:{version,updated_at:new Date().toISOString()}}),revokedVersion);
+ await manager.page.waitForFunction(()=>document.querySelector('#newAreaPreset')?.disabled===true,{timeout:5000});
+ assert.equal(await manager.page.locator('#settingsPanelAreas').isVisible(),true,'MANAGER keeps the open Area Presets panel visible after edit permission is revoked');
+ assert.equal(await manager.page.locator('#newAreaPreset').isDisabled(),true,'live central permission change revokes Settings edit controls without a new login');
+ assert.equal(await manager.page.locator('#authGate').isVisible(),false,'live permission changes do not force a logout');
+ await manager.page.locator('.nav[data-view="weekly"]').click();
+ assert.equal(await manager.page.locator('#addEntry').isEnabled(),true,'MANAGER has the same tracker-edit control state as ADMIN');
+ await manager.page.locator('#addEntry').click();
+ await manager.page.locator('#entryModal').waitFor({state:'visible'});
+ await manager.page.locator('#areaButtons [data-preset]').first().click();
+ await manager.page.locator('#reasonButtons [data-preset]').first().click();
+ await manager.page.locator('#durationMinutes').evaluate(input=>{input.value='5';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));});
+ await manager.page.locator('#saveEntry').evaluate(button=>button.click());
+ for(let attempt=0;attempt<40&&!Object.values(manager.getBank().appData.weeks||{}).some(week=>week.days?.some(day=>day.entries?.some(entry=>entry.minutes===5)));attempt++)await manager.page.waitForTimeout(50);
+ assert.ok(Object.values(manager.getBank().appData.weeks||{}).some(week=>week.days?.some(day=>day.entries?.some(entry=>entry.minutes===5))),'MANAGER can create and save an operational entry with ADMIN-equivalent rights');
+ assert.ok(manager.actions.some(action=>action.action==='save-state'),'MANAGER operational edits use the tracker save route');
+ await manager.context.close();
  await owner.page.locator('[data-settings-open="areas"]').click();
  await owner.page.locator('#areaPresetAdminList [data-area-name]').first().waitFor({state:'visible',timeout:5000});
  const configuredAreas=['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360','Other'];
@@ -217,11 +278,11 @@ try{
  await owner.page.locator('#addAreaPresetBtn').click();
  await owner.page.locator('#areaPresetAdminList [data-area-preset="QA Test Bay"]').waitFor({state:'visible',timeout:3000});
  for(let attempt=0;attempt<40&&!owner.getBank().appData.areas.includes('QA Test Bay');attempt++)await owner.page.waitForTimeout(50);
- assert.ok(owner.getBank().appData.areas.includes('QA Test Bay'),'new AREA PRESET is saved through the central state');
+ assert.ok(owner.getBank().appData.areas.includes('QA Test Bay'),'new AREA PRESET is saved through the central settings route');
  await owner.page.locator('#areaPresetAdminList button[aria-label="Remove area QA Test Bay"]').click();
  await owner.page.waitForFunction(()=>!document.querySelector('#areaPresetAdminList [data-area-preset="QA Test Bay"]'),{timeout:3000});
  for(let attempt=0;attempt<40&&owner.getBank().appData.areas.includes('QA Test Bay');attempt++)await owner.page.waitForTimeout(50);
- assert.equal(owner.getBank().appData.areas.includes('QA Test Bay'),false,'removed AREA PRESET is saved through the central state');
+ assert.equal(owner.getBank().appData.areas.includes('QA Test Bay'),false,'removed AREA PRESET is saved through the central settings route');
  await owner.page.locator('.nav[data-view="weekly"]').click();
  await owner.page.locator('#addEntry').click();
  assert.deepEqual(await owner.page.locator('#areaButtons [data-preset]').evaluateAll(nodes=>nodes.map(node=>node.dataset.preset)),configuredAreas,
@@ -252,6 +313,8 @@ try{
  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
  assert.equal(await owner.page.locator('#authGate').isVisible(),false,'Exiting Overview returns to the still-authenticated main app');
  assert.equal(await owner.page.locator('.view.active').count(),1,'The underlying tracker view remains active');
+ const immediateTransitionAck=owner.page.locator('#plantTransitionAlertHost button');
+ if(await immediateTransitionAck.count())await immediateTransitionAck.click();
  await owner.page.locator('.overview-link').click();
  assert.equal(await owner.page.locator('#overviewOverlay').isVisible(),true,'Overview can be reopened');
  await overview.locator('#overviewFullscreen').focus();
@@ -277,8 +340,8 @@ try{
  await owner.page.locator('#newAreaPreset').fill('Central Sync Test');
  await owner.page.locator('#addAreaPresetBtn').click();
  await owner.page.waitForFunction(()=>document.body.textContent.includes('Central Sync Test'));
- for(let i=0;i<30&&!owner.actions.some(x=>x.action==='save-state');i++)await owner.page.waitForTimeout(100);
- assert.ok(owner.actions.some(x=>x.action==='save-state'),'tracker changes must write through central save-state API');
+ for(let i=0;i<30&&!owner.actions.some(x=>x.action==='save-settings'&&x.body.appData.areas?.includes('Central Sync Test'));i++)await owner.page.waitForTimeout(100);
+ assert.ok(owner.actions.some(x=>x.action==='save-settings'&&x.body.appData.areas?.includes('Central Sync Test')),'AREA PRESETS must use the independent central save-settings route');
  assert.ok(owner.getBank().appData.areas.includes('Central Sync Test'),'central bank mock should retain the edited tracker setting');
  assert.equal(owner.getVersion(),versionBeforePlantAndTrackerEdits+2,'plant status and tracker edits must each advance the compare-and-swap version');
 
@@ -292,6 +355,7 @@ try{
  await owner.page.locator('#addDailyTaskPresetBtn').click();
  for(let attempt=0;attempt<40&&owner.getBank().appData.dailyTaskPresets?.length!==2;attempt++)await owner.page.waitForTimeout(100);
  assert.deepEqual(owner.getBank().appData.dailyTaskPresets,['Check guards and safety covers','Inspect emergency stops'],'daily task presets sync to the central bank');
+ assert.ok(owner.actions.filter(x=>x.action==='save-settings'&&Array.isArray(x.body.appData.dailyTaskPresets)).length>=2,'daily task presets use the settings-specific write action');
  const ownerMenu=owner.page.locator('.nav-menu');
  if(!await ownerMenu.evaluate(node=>node.open))await ownerMenu.locator(':scope > summary').click();
  await owner.page.locator('.nav[data-view="weekly"]').click();
@@ -315,7 +379,7 @@ try{
  await owner.page.setViewportSize({width:390,height:844});
  await mkdir(resolve('artifacts/stage-3'),{recursive:true});
  await owner.page.locator('#dailyTasksModal').screenshot({path:resolve('artifacts/stage-3/daily-tasks-popup-390px.png')});
- console.log('PASS: Daily Tasks presets and day-specific completions persist through central save-state');
+ console.log('PASS: Daily Tasks presets use save-settings and day-specific completions use save-state');
  await owner.page.locator('#closeDailyTasks').click();
  await owner.page.locator('#dayTabs [data-day="1"]').click();
  await owner.page.locator('#openDailyTasks').click();
