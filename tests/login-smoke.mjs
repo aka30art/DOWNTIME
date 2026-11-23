@@ -263,7 +263,7 @@ window.supabase={createClient:()=>({
   const root=username.toUpperCase()==='DEV'&&tier==='OWNER';
   const canManage=root||hubTier==='DEVACC'||hubTier==='ADMIN';
   const users=getMockUsers();
-  if(action==='my-access')return ok({user:{username,displayName:username,legacyTier:tier,hubTier},canManageSettings:canManage,canAccessYardHub:true,sections:yardHubConfig.tiers[hubTier],permissionVersion:yardHubPermissionVersion});
+  if(action==='my-access')return ok({user:{username,displayName:username,legacyTier:tier,hubTier},canManageSettings:canManage,canManageCentralUsers:tiers[tier]?.canManageUsers===true,canAccessYardHub:true,sections:yardHubConfig.tiers[hubTier],permissionVersion:yardHubPermissionVersion});
   if(action==='settings-state'){
    if(!canManage)return ok({error:'Permission denied'},403);
    return ok({
