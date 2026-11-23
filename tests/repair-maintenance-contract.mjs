@@ -45,11 +45,11 @@ assert.match(index,/id="launchRepairMaintenanceBtn"/,'YARD HUB needs the R&M til
 assert.match(index,/repair-maintenance-launch\.js/,'YARD HUB must load the R&M launcher');
 
 // A removed control must not throw during DOMContentLoaded and prevent init() from running.
-const domReady=app.match(/document\\.addEventListener\\('DOMContentLoaded',\\(\\)=>\\{([\\s\\S]*?)\\n  \\}\\);/)?.[1]||'';
+const domReady=app.match(/document\.addEventListener\('DOMContentLoaded',\(\)=>\{([\s\S]*?)\n  \}\);/)?.[1]||'';
 assert.ok(domReady,'R&M app must initialise from DOMContentLoaded');
-for(const match of domReady.matchAll(/\\$\\(['"]([^'"]+)['"]\\)(\\?\\.|\\.)/g)){
+for(const match of domReady.matchAll(/\$\(['"]([^'"]+)['"]\)(\?\.|\.)/g)){
   const [,id,access]=match;
-  if(!html.includes(`id="${id}"`))assert.equal(access,'?.',`removed DOM element "${id}" must have a guarded listener binding`);
+  if(!html.includes(\`id="\${id}"\`))assert.equal(access,'?.',\`removed DOM element "\${id}" must have a guarded listener binding\`);
 }
 
 for(const path of ['../repair-maintenance-app.js','../repair-maintenance-launch.js']){
