@@ -106,4 +106,5 @@ assert.ok(html.includes('centralBankPayload=result.payload') && html.includes('c
 assert.ok(ui.includes('await window.refreshDowntimeCentralDirectory()'), 'Hub user changes refresh the already-loaded DOWNTIME page before the next save');
 assert.ok(!html.includes('window.refreshDowntimeCentralDirectory=async function(){const result=await window.DowntimeCentral.state();centralBankPayload=result.payload;state=centralAppData(centralBankPayload)'), 'central-user refresh does not replace the live DOWNTIME tracker state');
 
+assert.ok(html.includes("function returnToYardHub()") && html.includes("window.dispatchEvent(new Event('yard-hub:shown'))"), 'returning from DOWNTIME refreshes Hub section permissions');
 console.log('YARD HUB Settings isolation, identity compatibility, permission enforcement and DOWNTIME protection contracts passed.');
