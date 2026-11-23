@@ -123,6 +123,8 @@ try {
   }
   assert.equal(await page.locator('#fullscreenBtn').count(), 0, 'App-wide Full Screen control must be removed');
   assert.equal(await page.locator('.overview-overlay-head').count(), 0, 'Redundant top Plant Overview header must be removed');
+  assert.equal(await page.locator('#overviewFrame').getAttribute('allow'), null, 'Overview iframe must not permit fullscreen');
+  assert.equal(source.includes('.overview-overlay-head{'), false, 'Removed Overview header styling must not remain');
   assert.equal(source.includes('app-fullscreen'), false, 'App-wide Full Screen mode styling must be removed');
   assert.equal(await page.locator('.nav-items #logoutBtn').evaluate(node => getComputedStyle(node).display !== 'none'), true);
 
