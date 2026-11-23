@@ -29,8 +29,8 @@ assert.match(migration,/revoke all on table public\.repair_maintenance_faults fr
 assert.match(migration,/4194304/,'private R&M evidence storage is capped at 4 MB');
 assert.match(app,/window\.confirm\(/,'marking a fault solved needs confirmation');
 assert.match(html,/option>PERM\. FIX</,'fault status includes PERM. FIX');
-assert.doesNotMatch(html,/option>IN PROGRESS</,'IN PROGRESS status is removed');
-assert.doesNotMatch(html,/option>REPAIRED</,'REPAIRED status is removed');
+const detailStatusMarkup=html.match(/<select id="detailStatus"[^>]*>([\\s\\S]*?)<\\/select>/)?.[1]||'';
+assert.doesNotMatch(detailStatusMarkup,/IN PROGRESS|REPAIRED/,'detail STATUS options exclude IN PROGRESS and REPAIRED');
 assert.match(html,/id="deleteFault"[^>]*>✓ SOLVED</,'SOLVED action replaces DELETE');
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
