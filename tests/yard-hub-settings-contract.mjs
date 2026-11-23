@@ -85,4 +85,18 @@ assert.match(centralClient,/async saveTracker\(appData,version\)/);
 assert.match(centralClient,/async saveUser\(data,version\)/);
 assert.match(centralClient,/async saveTiers\(tiers,version\)/);
 
+
+ // Regression: Hub-only tier changes must never write the legacy DOWNTIME user bank or revoke sessions.
+ assert.ok(hubApi.includes('const canAccessYardHub = legacyPermissions.canAccessYardHub !== false'), 'YARD HUB entry rights are checked separately');
+ assert.ok(hubApi.includes('if (!canAccessYardHub)'), 'server denies Hub settings access when Yard Hub entry access is disabled');
+ assert.ok(hubApi.includes('canManageCentralUsers'), 'settings API returns the existing Central Users management capability');
+ assert.ok(hubApi.includes('["DEVACC", "OWNER", "ADMIN"].includes(previousTier)'), 'non-root administrators cannot demote protected OWNER/DEVACC/ADMIN tiers');
+ assert.ok(hubApi.includes('Administrators cannot change their own YARD HUB tier.'), 'admins cannot change their own Hub tier directly');
+ assert.ok(hubApi.includes('Administrators cannot remove their own YARD HUB tier assignment.'), 'admins cannot remove their own Hub tier directly');
+ assert.doesNotMatch(hubApi,/\\.from\\("downtime_central_bank"\\)\\.(update|insert|delete)/,'Hub settings service cannot mutate the DOWNTIME user bank');
+ assert.match(ui,/const centralChanges=!existing[\\s\\S]*?if\\(centralChanges\\)\\{[\\s\\S]*?DowntimeCentral\\.saveUser/,'DOWNTIME user API is called only when central account fields actually change');
+ assert.match(ui,/YARD HUB TIER SAVED\\. DOWNTIME USER DATA WAS NOT CHANGED\\./,'Hub-only tier save confirms no DOWNTIME mutation');
+ assert.match(ui,/state\\?\\.canManageCentralUsers!==true/,'new user creation requires the existing Central Users right');
+ assert.match(config,/\\[functions\\.yard-hub-settings-api\\][\\s\\S]*?verify_jwt\\s*=\\s*false/,'YARD HUB API validates the existing opaque session itself');
+
 console.log('YARD HUB Settings isolation, identity compatibility, permission enforcement and DOWNTIME protection contracts passed.');
