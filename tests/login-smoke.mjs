@@ -135,6 +135,14 @@ window.supabase={createClient:()=>({
    if(req.username.toLowerCase()!==username.toLowerCase()||req.pin!==pin)return ok({error:'Invalid username or PIN'},401);
    return ok({token,expiresAt:new Date(Date.now()+3600000).toISOString(),user:{username,displayName:username.toUpperCase()==='DEV'?'DEV':username.toLowerCase()==='jan'?'Jan':'Mick',tier}});
   }
+  if(action==='staff-original-upload'){
+   const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
+   if(!rights.canManageStaff)return ok({error:'Permission denied'},403);
+   const staffKey=String(req.staffKey||'').toLowerCase();
+   if(!/^[a-z0-9]{1,30}$/.test(staffKey))return ok({error:'Invalid STAFF destination'},400);
+   if(req.mimeType!=='image/png'||!req.base64)return ok({error:'Invalid PNG payload'},415);
+   return ok({ok:true,staff:staffKey,path:'assets/staff/originals/'+staffKey+'/original.png',commitSha:'mock-commit-sha'});
+  }
   if(action==='staff-photo-url'){
    const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
    if(!rights.canManageStaff)return ok({error:'Permission denied'},403);
@@ -795,7 +803,7 @@ const crewMenu=owner.page.locator('.nav-menu');
   await owner.page.locator('#smFile').setInputFiles({name:'rita-replacement.gif',mimeType:'image/gif',buffer:replacementGif});
   await owner.page.waitForFunction(()=>document.querySelector('#smPreview')?.src.startsWith('data:image/jpeg'),{timeout:5000});
   await owner.page.locator('#smPhotoSave').click();
-  await owner.page.waitForFunction(()=>document.querySelector('#smMsg')?.textContent==='Photo saved.',{timeout:5000});
+  await owner.page.waitForFunction(()=>['Photo saved.','Original photo uploaded to GitHub and profile saved.'].includes(document.querySelector('#smMsg')?.textContent),{timeout:5000});
   assert.ok(owner.getBank().staff.profiles.Rita.photo?.startsWith('data:image/jpeg'),'existing profile SAVE PHOTO stores replacement thumbnail');
   assert.ok(owner.getBank().staff.profiles.Rita.photoPath?.startsWith('rita/'),'existing profile SAVE PHOTO stores original photo path');
   assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.length||0),2,'existing profile replacement uploads a second original photo');

@@ -454,6 +454,27 @@ Deno.serve(async(req)=>{
    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"staff-save",details:{name}});
    return json({ok:true,version:(row?.version||0)+1});
  }
+ if(action==="staff-original-upload"){
+   if(!priv.canManageStaff)return json({error:"Permission denied"},403);
+   const slug=String(body.staffKey||"").trim().toLowerCase();
+   if(!/^[a-z0-9]{1,30}$/.test(slug))return json({error:"Invalid STAFF destination"},400);
+   if(body.mimeType!=="image/png")return json({error:"Only PNG originals are accepted"},415);
+   const encoded=String(body.base64||"");
+   if(!encoded||encoded.length>7_000_000||!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded))return json({error:"PNG upload is missing or exceeds the 5 MB limit"},413);
+   let bytes:Uint8Array;try{bytes=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0))}catch{return json({error:"Invalid base64 image"},400)}
+   if(bytes.length<8||bytes.length>5*1024*1024)return json({error:"PNG must be between 8 bytes and 5 MB"},413);
+   const signature=[137,80,78,71,13,10,26,10];if(signature.some((v,i)=>bytes[i]!==v))return json({error:"PNG signature validation failed"},415);
+   const token=Deno.env.get("GITHUB_STAFF_IMAGE_TOKEN");if(!token)return json({error:"GitHub originals upload is not configured on the server"},503);
+   const path="assets/staff/originals/"+slug+"/original.png",api="https://api.github.com/repos/aka30art/DOWNTIME/contents/"+path;
+   const ghHeaders={"Authorization":"Bearer "+token,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json"};
+   let currentSha:string|undefined;const get=await fetch(api+"?ref=main",{headers:ghHeaders});
+   if(get.ok){const current=await get.json();currentSha=current.sha}else if(get.status!==404)return json({error:"GitHub destination lookup failed"},502);
+   const payload:any={message:"Update STAFF original photo: "+slug,content:encoded,branch:"main"};if(currentSha)payload.sha=currentSha;
+   const put=await fetch(api,{method:"PUT",headers:ghHeaders,body:JSON.stringify(payload)});
+   if(!put.ok){let detail="GitHub rejected the image update";try{const err=await put.json();if(err?.message)detail=String(err.message).slice(0,180)}catch{}return json({error:detail},502)}
+   const saved=await put.json();await db.from("downtime_central_audit").insert({username:currentUser.username,action:"staff-original-upload",details:{staff:slug,path,bytes:bytes.length,commit:saved?.commit?.sha||null}});
+   return json({ok:true,staff:slug,path,commitSha:saved?.commit?.sha||null});
+ }
  if(action==="staff-photo-url"){
    if(!priv.canManageStaff)return json({error:"Permission denied"},403);
    const name=String(body.name||"").trim();if(!name)return json({error:"Staff name required"},400);
