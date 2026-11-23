@@ -57,7 +57,7 @@
   }
   async function configureButton(){
     if(accessRefresh)return accessRefresh;
-    accessRefresh=refreshHubAccess().finally(()=>{accessRefresh=null});
+    accessRefresh=refreshHubAccess().finally(()=>{const button=$('yardHubSettingsBtn');if(button)button.dataset.accessChecked='true';accessRefresh=null});
     return accessRefresh;
   }
   async function loadState(){
@@ -132,6 +132,7 @@
     const me=String(currentUser()?.username||'').toLowerCase();
     users.forEach(user=>{
       const row=element('article','yard-hub-user-row');
+      row.dataset.username=user.username;
       const identity=element('div','yard-hub-user-identity');
       identity.appendChild(element('strong','',user.displayName||user.username));
       identity.appendChild(element('small','',user.username));
