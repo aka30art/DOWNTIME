@@ -58,8 +58,13 @@
     }
   }
   async function configureButton(){
+    const button=$('yardHubSettingsBtn');
+    if(!currentSession()?.token){
+      if(button){button.hidden=true;button.dataset.accessChecked='false'}
+      return null;
+    }
     if(accessRefresh)return accessRefresh;
-    accessRefresh=refreshHubAccess().finally(()=>{const button=$('yardHubSettingsBtn');if(button)button.dataset.accessChecked='true';accessRefresh=null});
+    accessRefresh=refreshHubAccess().finally(()=>{if(button)button.dataset.accessChecked='true';accessRefresh=null});
     return accessRefresh;
   }
   async function loadState(){
