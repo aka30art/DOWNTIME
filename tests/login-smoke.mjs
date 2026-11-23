@@ -256,7 +256,7 @@ async function signIn(page,pin='2468',username='DEV'){
  assert.equal(await page.locator('.yard-tile[data-app="repair-maintenance"]').isEnabled(),true,'R&M unlocks after the existing DOWNTIME session passes its module permission check');
   if(!repairMaintenanceBootTested){
    await Promise.all([
-    page.waitForURL(/repair-maintenance\\.html(?:\\?.*)?$/,{timeout:5000}),
+    page.waitForURL(/repair-maintenance\.html(?:\?.*)?$/,{timeout:5000}),
     page.locator('#launchRepairMaintenanceBtn').click()
    ]);
    await page.locator('#selectorView').waitFor({state:'visible',timeout:5000});
