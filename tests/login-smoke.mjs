@@ -30,6 +30,7 @@ const tiers={
  SPECTATOR:{canEditTracker:false,canControlPlantPower:true,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
 tiers.DEVACC={...tiers.OWNER};
+for(const permissions of Object.values(tiers))permissions.canAccessYardHub=true;
 function makeBank(){
  const profiles=Object.fromEntries(['Jan','Mick','Gigi','Daz','Shayne'].map((name,i)=>[name,{station:'Station '+(i+1)+' · WOOD',onSite:true,photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}]));
  const roster=Object.keys(profiles);
