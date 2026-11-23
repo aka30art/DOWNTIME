@@ -87,10 +87,13 @@ const fullAdmin=helper(()=>true);
 for(const section of requiredTiles)assert.equal(fullAdmin.settingsAccess(section),true);
 assert.equal(fullAdmin.settingsAccess('accessRights'),false,'a role without the ADMIN/JAN identity allow-list cannot access tier rights');
 assert.equal(accessHelpers(()=>false,()=>true).settingsAccess('accessRights'),true,'ADMIN tier or JAN root OWNER allow-list can access Access and Rights');
-const manageAccessRightsMatch=html.match(/function canManageAccessRights\\(\\)\\{[^}]*\\}/);
-assert.ok(manageAccessRightsMatch,'Access and Rights permission gate must be present');
+const manageAccessRightsStart=html.indexOf('function canManageAccessRights(){');
+assert.notEqual(manageAccessRightsStart,-1,'Access and Rights permission gate must be present');
+const manageAccessRightsEnd=html.indexOf('}',manageAccessRightsStart)+1;
+const manageAccessRightsSource=html.slice(manageAccessRightsStart,manageAccessRightsEnd);
+assert.ok(manageAccessRightsSource.endsWith('}'),'Access and Rights permission gate source must be complete');
 const accessRightsGate=new Function('centralUser','activeOperator','privilegeFor','canAccessCentralBank','permission',
-  manageAccessRightsMatch[0]+'; return canManageAccessRights;');
+  manageAccessRightsSource+'; return canManageAccessRights;');
 const rightsGate=(tier,delegated,root=false)=>accessRightsGate(
   {tier},'contract-user',()=>tier,()=>root,name=>name==='canManageAccessRights'&&delegated
 )();
