@@ -23,7 +23,9 @@
   }
   function setBusy(value){
     saving=value;
-    ['yardHubUserSave','yardHubUserStatus','yardHubTierSave','yardHubUserAdd'].forEach(id=>{const b=$(id);if(b)b.disabled=value});
+    ['yardHubUserSave','yardHubUserStatus','yardHubTierSave'].forEach(id=>{const b=$(id);if(b)b.disabled=value});
+    const addUser=$('yardHubUserAdd');
+    if(addUser)addUser.disabled=value||state?.canManageCentralUsers!==true;
   }
   async function callApi(action,body={}){
     const session=currentSession();
@@ -149,7 +151,7 @@
       edit.addEventListener('click',()=>openUserModal(user));
       actions.appendChild(edit);
       const status=element('button','yard-hub-small-button '+(user.enabled===false?'':'danger'),user.enabled===false?'RE-ENABLE':'DISABLE');
-      status.type='button';status.disabled=saving||isSelf||protectedUser||(String(user.username).toUpperCase()==='DEV');
+      status.type='button';status.disabled=saving||state.canManageCentralUsers!==true||isSelf||protectedUser||(String(user.username).toUpperCase()==='DEV');
       status.addEventListener('click',()=>setUserEnabled(user,user.enabled===false));
       actions.appendChild(status);
       row.append(identity,meta,actions);host.appendChild(row);
@@ -239,7 +241,7 @@
     }finally{setBusy(false)}
   }
   async function setUserEnabled(user,enabled){
-    if(saving||!state||String(user.username).toLowerCase()===String(currentUser()?.username||'').toLowerCase())return;
+    if(saving||!state||state.canManageCentralUsers!==true||String(user.username).toLowerCase()===String(currentUser()?.username||'').toLowerCase())return;
     const action=enabled?'RE-ENABLE':'DISABLE';
     if(!window.confirm(action+' '+user.username+'? This will revoke their current sessions.'))return;
     setBusy(true);setStatus((enabled?'RE-ENABLING ':'DISABLING ')+user.username+'…');
