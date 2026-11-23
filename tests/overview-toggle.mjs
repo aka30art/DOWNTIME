@@ -38,16 +38,12 @@ try {
     assert.equal(await page.locator('#plantLabel').textContent(), 'PLANT ON', 'read-only view should show initial sample status');
     await page.close();
   }
-  // Exit navigation and fullscreen controls are present and functional.
+  // Exit navigation remains functional; app-wide Full Screen is intentionally removed.
   {
     const page=await open('JAN');
     assert.equal(await page.locator('#exitOverview').getAttribute('href'),'index.html','Exit Overview returns to homepage');
-    const fs=page.locator('#overviewFullscreen');
-    await fs.click();
-    assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('overview-fullscreen')),true,'fullscreen turns on');
-    assert.equal(await fs.textContent(),'⛶ EXIT FULL SCREEN','button label reflects fullscreen state');
-    await fs.click();
-    assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('overview-fullscreen')),false,'fullscreen turns off');
+    assert.equal(await page.locator('#overviewFullscreen').count(),0,'Plant Overview must not expose a Full Screen control');
+    assert.equal(overviewHtml.includes('overview-fullscreen'),false,'Plant Overview fullscreen mode styling and toggle must be removed');
     await page.close();
   }
   // Overview plant alerts: OFF persists until ON, then ON alert auto-dismisses after ten seconds.
@@ -67,7 +63,7 @@ try {
     assert.equal(await page.locator('#overviewPlantAlertHost').count(),0,'ON popup automatically closes after ten seconds');
     await page.close();
   }
-  console.log('PASS: JAN/MICK plant toggle, restricted roles, exit Overview, fullscreen, and status popup auto-dismiss.');
+  console.log('PASS: JAN/MICK plant toggle, restricted roles, exit Overview without fullscreen, and status popup auto-dismiss.');
 } finally {
   await browser.close();
   await new Promise(resolveClose => server.close(resolveClose));
