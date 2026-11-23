@@ -431,7 +431,7 @@ try{
  await signIn(nonJanAdmin.page,'2468','MICK');
  assert.equal(await nonJanAdmin.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'ADMIN tier cannot see the DEV-only Central Data Bank menu entry');
  await openSettingsHub(nonJanAdmin.page);
- assert.equal(await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'ADMIN cannot access the root-only Access and Rights editor');
+ assert.equal(await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),true,'delegated ADMIN can access the Access and Rights editor');
  await nonJanAdmin.page.locator('[data-settings-open="users"]').click();
  await nonJanAdmin.page.locator('#settingsPanelUsers').waitFor({state:'visible'});
  assert.equal(await nonJanAdmin.page.locator('#centralUsersManager').isVisible(),true,'ADMIN retains ordinary account-management access');
