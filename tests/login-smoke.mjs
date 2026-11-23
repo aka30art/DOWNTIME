@@ -256,6 +256,8 @@ window.supabase={createClient:()=>({
   return result;
  };
  await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/yard-hub-settings-api',async route=>{
+  const origin='http://127.0.0.1:4173';
+  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':origin,'access-control-allow-headers':'apikey, content-type, x-downtime-session','access-control-allow-methods':'POST, OPTIONS','vary':'Origin'}});
   const req=route.request().postDataJSON(),action=req.action;
   yardHubApiActions.push({action,body:req});
   const ok=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
