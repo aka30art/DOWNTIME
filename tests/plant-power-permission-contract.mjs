@@ -27,11 +27,12 @@ for(const tier of tiers){
   assert.match(roleProfile(overview.slice(overview.indexOf('const tier=user?.tier'),overview.indexOf('const rights=')),tier),/canControlPlantPower:true/,'Overview fallback grants Plant Power to '+tier);
 }
 
-// Every tier is represented in Access & Rights. Root roles may edit only this
-// one right; all their other immutable root privileges remain locked.
+// Root can see every tier; delegated ADMIN can see only the four lower tiers.
+ // Root roles may edit only Plant Power; their other immutable privileges stay locked.
 assert.ok(page.includes("{key:'canControlPlantPower',label:'PLANT POWER'"),'Access & Rights contains the PLANT POWER checkbox');
-assert.ok(page.includes('USER_TIERS.forEach(tier=>{'),'Access & Rights renders every tier, including OWNER and DEVACC');
-assert.ok(page.includes("toggle.disabled=!!(lockedTierPermissions[tier]&&Object.prototype.hasOwnProperty.call(lockedTierPermissions[tier],right.key))"),'immutable root rights remain read-only');
+assert.ok(page.includes("const root=canAccessCentralBank(),visibleTiers=root?USER_TIERS:['MANAGER','SUPERVISOR','USER','SPECTATOR'];"),'root sees all tier profiles while delegated ADMIN is restricted to lower tiers');
+assert.ok(page.includes('visibleTiers.forEach(tier=>{'),'Access & Rights renders only the profiles allowed to the current authority');
+assert.ok(page.includes("toggle.disabled=adminLocked||(!root&&right.key==='canManageAccessRights')||!!(lockedTierPermissions[tier]&&Object.prototype.hasOwnProperty.call(lockedTierPermissions[tier],right.key))"),'ADMIN cannot edit its own profile or the delegation right, and immutable root rights remain read-only');
 assert.ok(page.includes("rootProfile.canControlPlantPower=plantPower.checked"),'the Plant Power value is saved independently for root tiers');
 for(const tier of ['OWNER','DEVACC']){
   assert.doesNotMatch(roleProfile(pageLocked,tier),/canControlPlantPower/,'root Plant Power is not hard-locked in frontend '+tier);

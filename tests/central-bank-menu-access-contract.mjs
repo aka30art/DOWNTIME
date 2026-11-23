@@ -7,7 +7,7 @@ const api=fs.readFileSync('supabase/functions/central-bank/index.ts','utf8');
 const packageJson=JSON.parse(fs.readFileSync('package.json','utf8'));
 
 assert.ok(page.includes("return (username==='DEV'&&tier==='OWNER')||tier==='DEVACC'"),'DEVACC shares the DEV root access allow-list');
-assert.ok(page.includes('function canManageAccessRights(){return canAccessCentralBank()}'),'Access & Rights is available to DEV and DEVACC');
+assert.ok(page.includes("function canManageAccessRights(){const tier=String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase();return canAccessCentralBank()||(tier==='ADMIN'&&permission('canManageAccessRights'))}"),'Access & Rights is available to root DEV/DEVACC and delegated ADMIN only');
 assert.ok(page.includes("if(admin)admin.style.display=canAccessCentralBank()?'':'none';"),'Central Data Bank navigation uses the root-equivalent allow-list');
 assert.ok(page.includes("function isRootDevAccount(){return String(centralUser?.username||activeOperator||'').trim().toUpperCase()==='DEV'&&String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase()==='OWNER'}"),'the tier grant selector requires the exact root DEV/OWNER identity');
 assert.ok(page.includes('option.disabled=!isRootDevAccount()'),'the DEVACC tier option is enabled only for root DEV');

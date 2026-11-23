@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const app=fs.readFileSync('index.html','utf8');
+const api=fs.readFileSync('supabase/functions/central-bank/index.ts','utf8');
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+assert.match(app,/ADMIN:\{[^}]*canManageAccessRights:true/,'ADMIN delegation enabled by default');
+for(const tier of ['MANAGER','SUPERVISOR','USER','SPECTATOR'])assert.match(app,new RegExp(tier+':\\{[^}]*canManageAccessRights:false'),'delegation starts disabled for '+tier);
+assert.ok(app.includes("function canManageAccessRights(){const tier=String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase();return canAccessCentralBank()||(tier==='ADMIN'&&permission('canManageAccessRights'))}"),'only root or an explicitly delegated ADMIN may enter Access and Rights');
+assert.match(app,/visibleTiers=root\?USER_TIERS:\['MANAGER','SUPERVISOR','USER','SPECTATOR'\]/,'ADMIN sees only allowed tiers');
+assert.match(app,/adminLocked=tier==='ADMIN'&&!root/,'ADMIN profile is read-only to ADMIN');
+assert.match(app,/editableTiers=root\?USER_TIERS:\['MANAGER','SUPERVISOR','USER','SPECTATOR'\]/,'ADMIN submits only lower tiers');
+assert.match(app,/if\(root\|\|toggle\.dataset\.accessRight!=='canManageAccessRights'\)/,'only root can change delegation checkbox');
+assert.match(api,/const isAccessRightsAdmin=tier==="ADMIN"&&priv\.canManageAccessRights===true/,'backend checks explicit delegated permission for the ADMIN tier');
+assert.match(api,/const editableRoles=isCentralBankAccess\?tiers:\["MANAGER","SUPERVISOR","USER","SPECTATOR"\]/,'backend scopes ADMIN edits');
+assert.match(api,/if\(role==="ADMIN"&&!isCentralBankAccess\)return json\(\{error:"ADMIN tier is immutable to ADMIN accounts\."\},403\)/,'ADMIN cannot edit own tier');
+assert.match(api,/if\(key==="canManageAccessRights"&&!isCentralBankAccess\)/,'ADMIN cannot delegate this permission');
+assert.ok(pkg.scripts['test:central-bank'].includes('tests/admin-access-rights-delegation.mjs'),'delegation contract is included in CI');
+console.log('PASS: ADMIN Access and Rights delegation is scoped and backend-enforced; self-elevation and root tiers are protected.');
