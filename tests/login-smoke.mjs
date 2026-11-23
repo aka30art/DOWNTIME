@@ -400,9 +400,7 @@ try{
  assert.equal(await owner.page.locator('#yardHub').isVisible(),true,'returning from DOWNTIME restores YARD HUB before testing Hub Settings');
  // YARD HUB SETTINGS is additive: section tiers and Hub user assignments never alter DOWNTIME tier data.
  await owner.page.waitForFunction(()=>{const button=document.querySelector('#yardHubSettingsBtn');return button?.dataset.accessChecked==='true'&&!button.hidden},{timeout:5000});
- const settingsButtonDebug=await owner.page.locator('#yardHubSettingsBtn').evaluate(el=>({hidden:el.hidden,display:getComputedStyle(el).display,visibility:getComputedStyle(el).visibility,opacity:getComputedStyle(el).opacity,rect:(()=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}})(),parent:el.parentElement?.className,parentDisplay:el.parentElement?getComputedStyle(el.parentElement).display:null,hubVisible:!!document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,session:!!window.DowntimeCentral?.session?.token,api:window.YARD_HUB_SETTINGS_API}));
- console.log('YARD HUB SETTINGS ACCESS DEBUG',JSON.stringify({button:settingsButtonDebug,actions:owner.getYardHubApiActions()}));
- assert.equal(await owner.page.locator('#yardHubSettingsBtn').isVisible(),true,'DEV root can open YARD HUB Settings');
+  assert.equal(await owner.page.locator('#yardHubSettingsBtn').isVisible(),true,'DEV root can open YARD HUB Settings');
  const originalDowntimeTierPayload=JSON.stringify(owner.getBank().tiers);
  const originalDowntimeCentralVersion=owner.getVersion();
  await owner.page.locator('#yardHubSettingsBtn').click();
