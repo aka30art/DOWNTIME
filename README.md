@@ -22,3 +22,10 @@ A dependency-free weekly downtime recording app designed for GitHub Pages.
 This first version stores active weeks and the report archive in the browser's local storage. Use the same browser/device for continuity. It does not sync data between devices or users. PDF export uses the browser print dialog; select **Save as PDF**. 
 
 PDF export opens the browser's print dialog. The app does not automatically reset or archive a week because the browser cannot tell whether a user saved the PDF or cancelled printing. Reset/archive needs a separate explicit action or server-backed download flow.
+
+
+## YARD HUB application platform
+
+After central USER authentication, the application opens **YARD HUB — YARD OPERATIONS CORE** as the application launcher. The existing DOWNTIME tracker is launched from the first tile and remains in the same authenticated session. A persistent YARD HUB control returns the user to the launcher; sign-out is available from both the hub and DOWNTIME.
+
+FLOOR, CHECK SHEETS, and REPAIR & MAINTENANCE are reserved module tiles and remain disabled until their applications are implemented. The hub is the authenticated entry shell; it does not replace or migrate DOWNTIME records, permissions, Supabase state, or the Central Bank API.

@@ -85,6 +85,10 @@ jobs:
           set -eu
           curl --fail --silent --show-error --location --retry 8 --retry-delay 5 --retry-all-errors "$LIVE_URL" -o /tmp/live-site.html
           grep -q 'centralUsername' /tmp/live-site.html
+          grep -q 'id="yardHub"' /tmp/live-site.html
+          grep -q 'id="launchDowntimeBtn"' /tmp/live-site.html
+          grep -q 'data-app="floor"' /tmp/live-site.html
+          grep -q 'id="backToYardHub"' /tmp/live-site.html
           grep -q 'central-bank-client.js' /tmp/live-site.html
           grep -q 'DOWNTIME_CENTRAL_API' /tmp/live-site.html
           grep -q 'DowntimeCentral.login(username,pin)' /tmp/live-site.html

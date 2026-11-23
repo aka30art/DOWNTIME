@@ -481,18 +481,118 @@ body.overview-overlay-open{overflow:hidden}
  .crew-switch-toggle{min-width:0;width:86px;padding:9px 5px;font-size:9px}
 }
 </style>
+<style>
+
+/* YARD HUB · authenticated application launcher */
+.yard-hub{min-height:100vh;padding:clamp(14px,3.4vw,42px);background:radial-gradient(ellipse at 12% -15%,#19334a 0,#0a1b2b 44%,#06131f 100%);color:#f4f7fa}
+.yard-hub[hidden]{display:none!important}
+.yard-hub-inner{width:min(1480px,100%);margin:0 auto}
+.yard-hero{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:202px;padding:32px clamp(18px,4vw,48px);margin-bottom:26px;overflow:hidden;border:1px solid #30465b;border-radius:18px;background:linear-gradient(110deg,#071828 0%,#0c2033 56%,#101f30 100%);box-shadow:0 20px 55px #0005}
+.yard-hero:before{content:"";position:absolute;z-index:-1;inset:0 0 0 54%;opacity:.78;background:linear-gradient(130deg,transparent 0 20%,#30465a 20% 32%,transparent 32%),repeating-linear-gradient(0deg,transparent 0 23px,#63768a18 24px 25px),repeating-linear-gradient(90deg,transparent 0 39px,#63768a18 40px 41px)}
+.yard-hero:after{content:"";position:absolute;z-index:-1;top:-40%;right:29%;width:100px;height:190%;transform:rotate(37deg);background:#ffd21a;box-shadow:0 0 0 18px #ffd21a20}
+.yard-hero-content{min-width:0}
+.yard-wordmark{display:flex;align-items:baseline;gap:14px;font-size:clamp(42px,6vw,82px);line-height:.95;font-weight:1000;font-style:italic;letter-spacing:-3px}
+.yard-wordmark:before{content:"";display:block;width:19px;height:60px;transform:skew(-34deg);background:#ffd21a;flex:0 0 auto}
+.yard-wordmark span{color:#f5f7fa}
+.yard-wordmark strong{color:#ffd21a}
+.yard-wordmark sup{font-size:13px;vertical-align:top;margin-left:3px;letter-spacing:0}
+.yard-tagline{margin:14px 0 0 34px;color:#dce5ed;font-size:clamp(10px,1.2vw,15px);font-weight:800;letter-spacing:clamp(3px,.65vw,8px)}
+.yard-hero-rule{width:58px;height:1px;margin:20px 0 0 34px;background:#8494a3}
+.yard-session{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;padding:10px 12px;border:1px solid #536579;border-radius:12px;background:#071522b8;backdrop-filter:blur(8px)}
+.yard-session-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.yard-session-copy span{font-size:9px;font-weight:850;letter-spacing:1px;color:#9eafbe}
+.yard-session-copy strong{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff;font-size:13px}
+.yard-logout{min-height:42px;padding:9px 13px;border-color:#ffd21a;background:transparent;color:#ffd21a;font-size:11px;letter-spacing:.5px}
+.yard-logout:hover{background:#ffd21a;color:#102033}
+.yard-modules-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 2px 13px}
+.yard-modules-heading strong{font-size:12px;font-weight:950;letter-spacing:1.8px;color:#ffd21a}
+.yard-modules-heading span{font-size:11px;color:#91a4b5}
+.yard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.yard-tile{position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(112px,.8fr) 1fr;align-items:center;gap:20px;min-width:0;min-height:238px;padding:28px 30px;text-align:left;overflow:hidden;border:1px solid #63768a;border-radius:17px;background:linear-gradient(145deg,#10273d 0%,#0a1d30 74%,#0a1a2a 100%);box-shadow:0 12px 28px #0003;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+.yard-tile:after{content:"";position:absolute;z-index:-1;right:-1px;bottom:-1px;width:110px;height:100px;background:#ffd21a;clip-path:polygon(100% 0,100% 100%,0 100%);opacity:.95}
+.yard-tile-active{cursor:pointer}
+.yard-tile-active:hover{transform:translateY(-3px);border-color:#ffd21a;box-shadow:0 18px 38px #0005,0 0 0 1px #ffd21a35}
+.yard-tile-active:focus-visible{outline:3px solid #fff;outline-offset:4px}
+.yard-tile-locked{cursor:not-allowed;border-color:#415367;background:linear-gradient(145deg,#12263a,#0c1b2b 82%);filter:saturate(.55)}
+.yard-tile-locked:after{opacity:.55}
+.yard-tile-index{position:absolute;top:20px;left:22px;color:#ffd21a;font-size:21px;font-weight:950;letter-spacing:.5px}
+.yard-tile-index:after{content:"";display:block;width:38px;height:5px;margin-top:6px;border-radius:5px;background:#ffd21a}
+.yard-tile-icon{display:grid;place-items:center;width:100%;min-width:0;color:#f5f7fa}
+.yard-tile-icon svg{display:block;width:min(104px,100%);height:104px;overflow:visible;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.yard-tile-icon .accent{stroke:#ffd21a}
+.yard-tile-divider{width:1px;height:108px;background:#738397;position:absolute;left:42%;top:50%;transform:translateY(-50%);opacity:.8}
+.yard-tile-copy{min-width:0;padding-left:8px}
+.yard-tile-copy strong{display:block;color:#f7f8fa;font-size:clamp(21px,2.4vw,34px);line-height:1.08;font-weight:950;letter-spacing:.3px;overflow-wrap:anywhere}
+.yard-tile-copy small{display:block;margin-top:11px;color:#9eafbe;font-size:11px;line-height:1.4;font-weight:700;letter-spacing:.55px}
+.yard-tile-status{display:inline-flex;align-items:center;gap:6px;margin-top:14px;color:#ffdf42;font-size:9px;font-weight:950;letter-spacing:1.15px}
+.yard-tile-status:before{content:"";width:7px;height:7px;border-radius:50%;background:#ffd21a;box-shadow:0 0 10px #ffd21a99}
+.yard-tile-locked .yard-tile-status{color:#91a1b2}
+.yard-tile-locked .yard-tile-status:before{background:#8291a0;box-shadow:none}
+.yard-hub-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:23px;padding:12px 3px;border-top:1px solid #2a4155;color:#8295a7;font-size:10px;letter-spacing:.5px}
+.yard-return-button{width:100%;margin:0 0 10px;text-align:left;border-color:#856d1d;color:#ffd21a;background:#1c2b35}
+@media(max-width:760px){.yard-hero{align-items:flex-start;flex-direction:column;min-height:0;padding:27px 22px}.yard-session{align-self:stretch;justify-content:space-between}.yard-hero:before{inset:0 0 0 40%}.yard-grid{gap:12px}.yard-tile{min-height:200px;padding:26px 18px;grid-template-columns:minmax(90px,.75fr) 1fr;gap:12px}.yard-tile-index{top:16px;left:17px}.yard-tile-icon svg{height:82px}.yard-tile-divider{left:39%;height:90px}.yard-tile-copy{padding-left:5px}.yard-tile-copy strong{font-size:clamp(19px,3.2vw,26px)}}
+@media(max-width:540px){.yard-hub{padding:10px}.yard-hero{gap:20px;padding:23px 16px;margin-bottom:18px}.yard-wordmark{font-size:48px;gap:10px;letter-spacing:-2px}.yard-wordmark:before{width:12px;height:40px}.yard-tagline{margin:10px 0 0 24px;font-size:9px;letter-spacing:3px}.yard-hero-rule{margin:15px 0 0 24px}.yard-grid{grid-template-columns:1fr;gap:10px}.yard-tile{grid-template-columns:92px minmax(0,1fr);min-height:145px;padding:21px 17px}.yard-tile-index{top:13px;left:15px;font-size:16px}.yard-tile-index:after{width:30px;height:4px;margin-top:4px}.yard-tile-icon svg{width:68px;height:68px}.yard-tile-divider{left:31%;height:70px}.yard-tile-copy{padding-left:8px}.yard-tile-copy strong{font-size:22px}.yard-tile-copy small{margin-top:6px;font-size:9px}.yard-tile-status{margin-top:8px;font-size:8px}.yard-tile:after{width:75px;height:68px}.yard-modules-heading{margin-bottom:10px}.yard-modules-heading span{font-size:9px}.yard-hub-footer{font-size:9px;flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){.yard-tile{transition:none}.yard-tile-active:hover{transform:none}}
+
+</style>
 </head>
 <body><div id="authGate"><div class="authbox"><h2>DOWNTIME · CENTRAL LOGIN</h2><p class="muted">Select your central USER account and enter your PIN.</p><label for="centralUsername">USERNAME</label><select id="centralUsername" class="input" aria-label="Central username"><option value="">Loading central USERS…</option></select><input id="teamPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="4–8 digit PIN" aria-label="Central account PIN"><div class="pinpad" data-pinpad="teamPin"><div class="pinpad-grid"><button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="clear">CLEAR</button><button type="button" data-key="0">0</button><button type="button" data-key="back">⌫</button></div></div><button id="unlockBtn" class="primary">SIGN IN</button><button type="button" id="refreshAppBtn" class="quiet" style="width:100%;margin-top:8px">REFRESH USER LIST</button><div id="authMsg" role="status" aria-live="polite"></div></div></div>
 <div id="operatorGate" style="display:none"></div>
 <div id="spectatorView" style="display:none"></div>
+
+<section id="yardHub" class="yard-hub" hidden aria-label="YARD HUB application launcher">
+  <div class="yard-hub-inner">
+    <header class="yard-hero">
+      <div class="yard-hero-content">
+        <div class="yard-wordmark"><span>YARD</span><strong>HUB<sup>®</sup></strong></div>
+        <p class="yard-tagline">YARD OPERATIONS CORE</p>
+        <div class="yard-hero-rule" aria-hidden="true"></div>
+      </div>
+      <div class="yard-session">
+        <div class="yard-session-copy"><span>AUTHENTICATED USER</span><strong id="yardHubUsername">—</strong></div>
+        <button id="yardHubLogoutBtn" class="yard-logout" type="button">LOG OUT</button>
+      </div>
+    </header>
+    <div class="yard-modules-heading"><strong>APPLICATIONS</strong><span>SELECT A MODULE TO CONTINUE</span></div>
+    <section class="yard-grid" aria-label="Yard applications">
+      <button class="yard-tile yard-tile-active" id="launchDowntimeBtn" data-app="downtime" type="button" aria-label="Open DOWNTIME application">
+        <span class="yard-tile-index">01</span>
+        <span class="yard-tile-icon" aria-hidden="true"><svg viewBox="0 0 100 100"><rect x="15" y="20" width="65" height="65" rx="9"/><path d="M30 10v20M65 10v20M16 39h63"/><path d="M30 53h11M52 53h11M30 67h11M52 67h11"/><circle class="accent" cx="73" cy="73" r="17"/><path class="accent" d="M73 63v11l7 4"/></svg></span>
+        <span class="yard-tile-divider" aria-hidden="true"></span>
+        <span class="yard-tile-copy"><strong>DOWNTIME</strong><small>PLANT DOWNTIME &amp; OPERATIONS</small><span class="yard-tile-status">LIVE APPLICATION</span></span>
+      </button>
+      <button class="yard-tile yard-tile-locked" data-app="floor" type="button" disabled aria-describedby="yardFloorStatus">
+        <span class="yard-tile-index">02</span>
+        <span class="yard-tile-icon" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M8 28 50 7l42 21-42 22Z"/><path class="accent" d="m12 48 38 20 38-20M12 66l38 20 38-20"/></svg></span>
+        <span class="yard-tile-divider" aria-hidden="true"></span>
+        <span class="yard-tile-copy"><strong>FLOOR</strong><small>FLOOR &amp; YARD OPERATIONS</small><span class="yard-tile-status" id="yardFloorStatus">COMING LATER</span></span>
+      </button>
+      <button class="yard-tile yard-tile-locked" data-app="check-sheets" type="button" disabled aria-describedby="yardCheckSheetsStatus">
+        <span class="yard-tile-index">03</span>
+        <span class="yard-tile-icon" aria-hidden="true"><svg viewBox="0 0 100 100"><rect x="17" y="15" width="66" height="76" rx="8"/><path d="M35 15v-6a8 8 0 0 1 16 0v6"/><path class="accent" d="m30 39 6 6 10-12M53 42h17M30 59l6 6 10-12M53 62h17M30 79l6 6 10-12M53 82h17"/></svg></span>
+        <span class="yard-tile-divider" aria-hidden="true"></span>
+        <span class="yard-tile-copy"><strong>CHECK SHEETS</strong><small>INSPECTIONS &amp; COMPLIANCE</small><span class="yard-tile-status" id="yardCheckSheetsStatus">COMING LATER</span></span>
+      </button>
+      <button class="yard-tile yard-tile-locked" data-app="repair-maintenance" type="button" disabled aria-describedby="yardRepairStatus">
+        <span class="yard-tile-index">04</span>
+        <span class="yard-tile-icon" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M18 22a25 25 0 0 0 29 32l31 31a9 9 0 0 0 13-13L60 41a25 25 0 0 0-32-29l15 15-14 14Z"/><path class="accent" d="m28 60-13 13a9 9 0 0 0 13 13l13-13"/></svg></span>
+        <span class="yard-tile-divider" aria-hidden="true"></span>
+        <span class="yard-tile-copy"><strong>REPAIR &amp; MAINTENANCE</strong><small>REPAIRS, DEFECTS &amp; MAINTENANCE</small><span class="yard-tile-status" id="yardRepairStatus">COMING LATER</span></span>
+      </button>
+    </section>
+    <footer class="yard-hub-footer"><span>YARD HUB · YARD OPERATIONS CORE</span><span>ONE PLATFORM · MODULAR APPLICATIONS</span></footer>
+  </div>
+</section>
+
 <div class="shell">
 <aside class="side">
 <div class="brand"><b>///</b> PLANT<br>DOWNTIME<br>TRACKER</div>
+<button id="backToYardHub" class="nav yard-return-button" type="button">▦ &nbsp; YARD HUB</button>
 <details class="nav-menu">
 <summary><span>MENU</span><span class="disclosure-chevron" aria-hidden="true">⌄</span></summary>
 <div class="nav-items">
 <div id="menuAccount" class="menu-account" hidden><span>LOGGED IN AS</span><strong id="menuAccountName">—</strong></div>
-<button class="nav active" data-view="weekly">▦ &nbsp; Home Page</button>
+<button class="nav active" data-view="weekly">▦ &nbsp; DOWNTIME</button>
 <button class="nav" data-view="reports">▤ &nbsp; WEEKLY Reports</button>
 
 <button class="nav" data-view="settings">⚙ &nbsp; Settings</button>
@@ -1570,12 +1670,18 @@ $('crewSwitchboardBtn').onclick=crewSwitchboardOpen;
 $('unlockStartBtn').onclick=()=>{if(!isAdmin()||!day().startLocked)return;if(!confirm('Unlock Daily Setup for '+DAYS[selected]+'?'))return;day().startLocked=false;day().startLockedAt=null;persistSettings();render();enforceOperatorMode();$('operatorAdminMsg').textContent='Daily setup unlocked by '+activeOperator+'.'};document.querySelectorAll('[data-pinpad]').forEach(pad=>{const input=$(pad.dataset.pinpad);if(!input)return;input.readOnly=true;pad.querySelectorAll('[data-key]').forEach(btn=>btn.onclick=()=>{const key=btn.dataset.key;if(key==='clear')input.value='';else if(key==='back')input.value=input.value.slice(0,-1);else if(input.value.length<input.maxLength)input.value+=key;});});
 async function loadCentralUsers(){const select=$('centralUsername');if(select)select.innerHTML='<option value="">Loading central USERS…</option>';try{const result=await window.DowntimeCentral.listUsers();centralUsers=Array.isArray(result.users)?result.users:[];renderOperatorChoices();if(!centralUsers.length)$('authMsg').textContent='No central USERS exist yet. Initialize the first OWNER in Central Data Bank.';else $('authMsg').textContent='Select your account and enter your PIN.';return centralUsers}catch(error){centralUsers=[];renderOperatorChoices();$('authMsg').textContent='CENTRAL LOGIN UNAVAILABLE · '+(error.message||'Central service is not reachable.');throw error}}
 async function legacyCloudClient(){const client=await loadSupabaseClient();if(!client)return null;try{const current=await client.auth.getSession();if(!current?.data?.session){const auth=await client.auth.signInAnonymously();if(auth.error)throw auth.error}await startCentralRealtimeSync(client)}catch(error){console.warn('Ancillary report/evidence cloud session unavailable.',error)}return client}
-function showCentralApp(){$('authGate').style.display='none';$('operatorGate').style.display='none';const shell=document.querySelector('.shell');if(shell)shell.style.display='';document.querySelectorAll('.nav[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view==='weekly'));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='weekly'));$('subtitle').textContent='Weekly recording sheet · Monday–Saturday';selected=(today.getDay()+6)%7;if(selected>5)selected=0;render();enforceOperatorMode();applyTierVisibility()}
+function showCentralApp(){$('authGate').style.display='none';$('operatorGate').style.display='none';const shell=document.querySelector('.shell');if(shell)shell.style.display='none';const hub=$('yardHub');if(hub){hub.hidden=false;hub.style.display='block'}const identity=centralUser?.displayName||centralUser?.username||activeOperator||'USER';const label=$('yardHubUsername');if(label)label.textContent=String(identity).toUpperCase()}
+function launchDowntime(){if(!centralUser?.username)return;const hub=$('yardHub');if(hub){hub.hidden=true;hub.style.display='none'}const shell=document.querySelector('.shell');if(shell)shell.style.display='';document.querySelectorAll('.nav[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view==='weekly'));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='weekly'));$('subtitle').textContent='Weekly recording sheet · Monday–Saturday';selected=(today.getDay()+6)%7;if(selected>5)selected=0;render();enforceOperatorMode();applyTierVisibility()}
+function returnToYardHub(){const shell=document.querySelector('.shell');if(shell)shell.style.display='none';const hub=$('yardHub');if(hub){hub.hidden=false;hub.style.display='block'}}
 async function unlockTracker(){const pin=$('teamPin').value,username=$('centralUsername').value;if(Date.now()<centralPinLockUntil){$('authMsg').textContent='Too many attempts. Try again in 30 seconds.';return}if(!username||!pin){$('authMsg').textContent='Select a USER and enter the PIN.';return}if(pin.length<4||pin.length>8||!/^[0-9]{4,8}$/.test(pin)){$('authMsg').textContent='PIN must contain 4–8 digits.';return}$('unlockBtn').disabled=true;$('authMsg').textContent='Verifying central account…';try{centralUser=await window.DowntimeCentral.login(username,pin);activeOperator=centralUser.username;await cloudInit();if(!centralReady)throw new Error('Central state could not be loaded.');centralPinAttempts=0;$('teamPin').value='';showCentralApp();cloudStatus('CENTRAL · connected');legacyCloudClient().catch(()=>null)}catch(error){centralPinAttempts++;$('teamPin').value='';$('authMsg').textContent=error.message||'Central sign-in failed.';if(centralPinAttempts>=5){centralPinLockUntil=Date.now()+30000;centralPinAttempts=0;$('authMsg').textContent='Too many sign-in attempts. Locked for 30 seconds.'}}finally{$('unlockBtn').disabled=false}}
 async function resumeCentralSession(){if(!window.DowntimeCentral.session?.token)return;try{centralUser=window.DowntimeCentral.session.user;activeOperator=centralUser?.username||'';await cloudInit();if(centralReady){showCentralApp();legacyCloudClient().catch(()=>null)}}catch(error){console.warn('Stored central session could not be resumed.',error);await window.DowntimeCentral.logout().catch(()=>{});centralUser=null;activeOperator='';loadCentralUsers().catch(()=>{})}}
 $('unlockBtn').onclick=unlockTracker;$('teamPin').addEventListener('keydown',e=>{if(e.key==='Enter')unlockTracker()});
 $('refreshAppBtn').onclick=()=>{loadCentralUsers().catch(()=>{})};
-$('logoutBtn')?.addEventListener('click',async()=>{try{stopCentralRealtimeSync();await window.DowntimeCentral.logout()}finally{if(managementPollTimer)clearInterval(managementPollTimer);centralReady=false;cloudReady=false;centralUser=null;centralBankPayload=null;activeOperator='';operatorReadOnly=false;$('authGate').style.display='grid';const centralAdminNav=$('centralAdminNav');if(centralAdminNav)centralAdminNav.style.display='none';const shell=document.querySelector('.shell');if(shell)shell.style.display='';$('teamPin').value='';loadCentralUsers().catch(()=>{})}});
+async function logoutCentralSession(){try{stopCentralRealtimeSync();await window.DowntimeCentral.logout()}finally{if(managementPollTimer)clearInterval(managementPollTimer);centralReady=false;cloudReady=false;centralUser=null;centralBankPayload=null;activeOperator='';operatorReadOnly=false;const hub=$('yardHub');if(hub){hub.hidden=true;hub.style.display='none'}const shell=document.querySelector('.shell');if(shell)shell.style.display='none';$('authGate').style.display='grid';const centralAdminNav=$('centralAdminNav');if(centralAdminNav)centralAdminNav.style.display='none';$('teamPin').value='';loadCentralUsers().catch(()=>{})}}
+$('logoutBtn')?.addEventListener('click',logoutCentralSession);
+$('yardHubLogoutBtn')?.addEventListener('click',logoutCentralSession);
+$('launchDowntimeBtn')?.addEventListener('click',launchDowntime);
+$('backToYardHub')?.addEventListener('click',returnToYardHub);
 function managementRole(){return permission('canEditTracker')||permission('canManageSettings')}
 function managementEntryKey(dayKey,entry){return dayKey+'|'+JSON.stringify({area:entry.area||'',reason:entry.reason||'',hours:Number(entry.hours)||0,minutes:Number(entry.minutes)||0})}
 function addedEntries(previous,next){const added=[];for(const [weekKey,weekData] of Object.entries(next?.weeks||{})){const oldWeek=previous?.weeks?.[weekKey];(weekData?.days||[]).forEach((d,dayIndex)=>{const oldDay=oldWeek?.days?.[dayIndex],oldCounts={};(oldDay?.entries||[]).forEach(e=>{const k=managementEntryKey(weekKey+'-'+dayIndex,e);oldCounts[k]=(oldCounts[k]||0)+1});(d.entries||[]).forEach(e=>{const k=managementEntryKey(weekKey+'-'+dayIndex,e);if(oldCounts[k])oldCounts[k]--;else added.push({weekKey,dayIndex,entry:e})})})}return added}
