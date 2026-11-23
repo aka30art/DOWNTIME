@@ -79,6 +79,11 @@ Deno.serve(async (req: Request) => {
   if (hubAccessError && !missingHubTable) {
     return json({ error: "YARD HUB permissions are temporarily unavailable." }, 503);
   }
+  // Only the pre-migration missing-table case may use legacy R&M rights.
+  // A present table with a missing seed row is a configuration failure and must deny access.
+  if (!hubAccessError && !hubAccessRow?.payload) {
+    return json({ error: "YARD HUB permissions are temporarily unavailable." }, 503);
+  }
   if (!hubAccessError && hubAccessRow?.payload) {
     const hubTier = String(hubAccessRow.payload?.userTiers?.[String(user.username).toLowerCase()] || "USER").toUpperCase();
     const mode = hubAccessRow.payload?.tiers?.[hubTier]?.repairMaintenance;

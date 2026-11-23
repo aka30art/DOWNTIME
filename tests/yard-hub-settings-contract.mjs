@@ -76,6 +76,7 @@ assert.match(rmApi,/permissions\.canEditRepairMaintenance = mode === "EDIT"/);
 assert.match(rmApi,/permissions\.canDeleteRepairMaintenance = mode === "EDIT"/);
 assert.match(rmApi,/permissions\.canExportRepairMaintenanceReports = mode === "READ" \|\| mode === "EDIT"/);
 assert.match(rmApi,/missingHubTable/,'pre-migration fallback preserves existing R&M access behaviour');
+assert.match(rmApi,/if \(!hubAccessError && !hubAccessRow\?\.payload\)/,'a present but unseeded Hub permission store fails closed');
 assert.match(rmApi,/YARD HUB permissions are temporarily unavailable/,'unexpected Hub permission-store errors fail closed');
 
 // These two existing DOWNTIME-critical files are not altered by the Hub Settings implementation.
