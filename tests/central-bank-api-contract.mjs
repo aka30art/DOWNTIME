@@ -50,8 +50,8 @@ const lockedRoles=src.slice(src.indexOf('const lockedRolePrivileges'),src.indexO
 assert.ok(lockedRoles.includes('OWNER:{canEditTracker:true'), 'DEV root OWNER permissions are fixed');
 assert.doesNotMatch(lockedRoles, /MANAGER:|SUPERVISOR:|USER:|SPECTATOR:/,
   'non-root tiers are configurable by DEV rather than locked to hard-coded baselines');
-assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Only DEV and DEVACC can change tier access and rights."},403);'),
-  'tier rights changes are restricted to DEV and DEVACC root authority');
+assert.ok(src.includes("const isAccessRightsAdmin= tier===\"ADMIN\"&&priv.canManageAccessRights===true")&&src.includes("const editableRoles=isCentralBankAccess?tiers:[\"MANAGER\",\"SUPERVISOR\",\"USER\",\"SPECTATOR\"]"),
+  "tier rights changes allow root or delegated ADMIN scope only");
 assert.ok(src.includes('const isCentralAdmin=tier==="ADMIN"||isRootAuthority;'),'ADMIN and root-equivalent identities can manage account tiers');
 assert.ok(src.includes('if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEV and DEVACC can create accounts or assign user tiers."},403);'),
   'ADMIN and root-equivalent DEV/DEVACC may manage account tiers');
@@ -59,8 +59,8 @@ assert.ok(src.includes('if(!priv.canManageUsers)return json({error:"Permission d
   'other existing account maintenance remains subject to user-management rights');
 assert.ok(src.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&src.includes('typeof supplied[key]!=="boolean"'),
   'tier rights updates validate the permission whitelist and boolean values');
-assert.ok(src.includes('action:"tiers-save",details:{tiers}'),
-  'tier rights changes, including the Plant Power exception for root tiers, are audited');
+assert.ok(src.includes('action:"tiers-save",details:{tiers:editableRoles.reduce'),
+  "tier rights changes are audited with the permitted role scope");
 
 assert.ok(src.includes('if(Array.isArray(bank.appData?.dailyTaskPresets))nextAppData.dailyTaskPresets=bank.appData.dailyTaskPresets;else delete nextAppData.dailyTaskPresets'),
   'non-settings roles can complete daily tasks but cannot edit the preset list');
@@ -81,7 +81,7 @@ assert.ok(src.includes('const isDevRoot=currentUsername==="DEV"&&tier==="OWNER"'
 assert.ok(src.includes('const isDevacc=tier==="DEVACC";')&&src.includes('const isRootAuthority=isDevRoot||isDevacc;')&&src.includes('const isCentralBankAccess=isRootAuthority;'),'DEVACC is a root-equivalent Data Bank principal');
 assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);'),'whole-bank state is limited to DEV and DEVACC');
 assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),'all configuration control-plane actions share the DEV/DEVACC gate');
-assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Only DEV and DEVACC can change tier access and rights."},403);'),'DEVACC may change tier permissions');
+assert.ok(src.includes("const isAccessRightsAdmin= tier===\"ADMIN\"&&priv.canManageAccessRights===true"),"delegated ADMIN permission is checked server-side");
 assert.ok(src.includes('if(newTier==="DEVACC"&&(!existing||existing.tier!=="DEVACC")&&!isDevRoot)return json({error:"Only root DEV can assign DEVacc."},403);'),'only root DEV can grant or promote an account to DEVACC');
 assert.ok(src.includes('if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);'),'DEVACC retains authority to edit existing DEVACC accounts');
 assert.ok(src.includes('if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);'),'DEVACC may modify, disable and restore DEVACC users');
@@ -93,7 +93,7 @@ assert.ok(src.includes('The DEV root OWNER account cannot be deleted or removed.
 assert.ok(!src.includes('root-account-split')&&!src.includes('isLegacyJanRoot'),'obsolete JAN split authorization is removed');
 
 assert.ok(src.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&src.includes('typeof supplied[key]!=="boolean"'),'tier rights updates validate the permission whitelist and boolean values');
-assert.ok(src.includes('action:"tiers-save",details:{tiers}'),'tier permission changes across all seven roles, including root PLANT POWER overrides, are audited');
+assert.ok(src.includes('action:"tiers-save",details:{tiers:editableRoles.reduce'),"tier changes are audited by permitted scope");
 for(const action of ['central-config-state','central-config-save-draft','central-config-publish','central-config-restore-draft'])assert.ok(src.includes('if(action==="'+action+'")'),'configuration control-plane action '+action);
 assert.ok(src.includes('configState.draft_version')&&src.includes('configState.published_version'),'configuration drafts and published state have independent version pointers');
 assert.ok(src.includes('downtime_central_config_state')&&src.includes('downtime_central_config_history'),'configuration control plane uses isolated tables');
