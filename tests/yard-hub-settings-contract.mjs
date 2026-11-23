@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const html=fs.readFileSync('index.html','utf8');
+const config=fs.readFileSync('supabase/config.toml','utf8');
 const ui=fs.readFileSync('yard-hub-settings.js','utf8');
 const css=fs.readFileSync('yard-hub-settings.css','utf8');
 const migration=fs.readFileSync('supabase/migrations/20261123212500_yard_hub_access_control.sql','utf8');
