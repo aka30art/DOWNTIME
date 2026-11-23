@@ -272,7 +272,7 @@
         const controls=element('div','yard-hub-checks');
         ['READ','EDIT'].forEach(mode=>{
           const label=element('label','yard-hub-check-option '+mode.toLowerCase());
-          const box=document.createElement('input');box.type='checkbox';box.checked=current===mode;box.disabled=!editable;
+          const box=document.createElement('input');box.type='checkbox';box.checked=current===mode;box.disabled=!editable;box.dataset.hubTier=role;box.dataset.hubSection=section.key;box.dataset.hubMode=mode;
           box.addEventListener('change',()=>{
             if(!editable)return;
             workingPayload.tiers[role][section.key]=box.checked?mode:(workingPayload.tiers[role][section.key]===mode?'NONE':workingPayload.tiers[role][section.key]);
