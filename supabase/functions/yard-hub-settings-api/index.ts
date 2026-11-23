@@ -65,7 +65,13 @@ function normalizeTierPermissions(input: any, current: any, editableRoles: reado
       nextTiers[role][key] = mode;
     }
   }
-  return { schemaVersion: 1, tiers: nextTiers };
+  return {
+    schemaVersion: 1,
+    tiers: nextTiers,
+    userTiers: current?.userTiers && typeof current.userTiers === "object" && !Array.isArray(current.userTiers)
+      ? structuredClone(current.userTiers)
+      : {},
+  };
 }
 
 Deno.serve(async (req: Request) => {
