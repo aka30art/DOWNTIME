@@ -11,7 +11,7 @@
     {key:'OTHER_EQUIPMENT',label:'OTHER EQUIPMENT',sub:'ADDITIONAL MACHINERY'}
   ];
   const PRIORITIES=['HIGH','MEDIUM','LOW'];
-  const STATUSES=['OPEN','IN PROGRESS','REPAIRED'];
+  const STATUSES=['OPEN','PERM. FIX'];
   const $=id=>document.getElementById(id);
   let access=null,currentMachine=null,currentFault=null,faults=[],busy=false;
   const sessionToken=()=>window.DowntimeCentral?.session?.token||'';
@@ -91,7 +91,7 @@
       renderDetailPriority();renderEvidence(result.attachments||[]);renderNotes(result.notes||[]);
       const editable=access.canEditRepairMaintenance===true;
       ['detailStatus','detailPriority','updateFault','toggleNoteComposer','detailAddNote','attachFile','addPhoto'].forEach(id=>{const e=$(id);if(e)e.disabled=!editable});
-      $('deleteFault').hidden=access.canDeleteRepairMaintenance!==true;
+      $('deleteFault').hidden=access.canEditRepairMaintenance!==true;
       showOverlay('detailsOverlay');
     }catch(error){say(error.message,'dashboardStatus','error')}
   }
@@ -107,7 +107,7 @@
   function startNote(){if(!currentFault)return;$('noteComposer').classList.add('open');$('noteText').focus()}
   async function saveNote(){const note=$('noteText').value.trim();if(!currentFault||!note)return;const button=$('saveNote');button.disabled=true;try{await api('note-add',{faultId:currentFault.id,note});$('noteText').value='';$('noteComposer').classList.remove('open');await refreshDetails()}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false}}
   async function doUpload(file,kind){if(!currentFault||!file)return;const button=kind==='PHOTO'?$('addPhoto'):$('attachFile');button.disabled=true;try{await uploadFile(currentFault.id,file,kind);await refreshDetails();say(`${kind==='PHOTO'?'Photo':'File'} attached successfully.`,'dashboardStatus','ok')}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false;$('photoInput').value='';$('fileInput').value=''}}
-  async function deleteFault(){if(!currentFault)return;if(!window.confirm(`Delete “${currentFault.fault_name}” and its notes and attachments? This cannot be undone.`))return;const button=$('deleteFault');button.disabled=true;try{await api('delete',{faultId:currentFault.id});closeOverlay('detailsOverlay');await loadMachine(currentMachine.key);say('Fault / defect and its evidence deleted.','dashboardStatus','ok')}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false}}
+  async function deleteFault(){if(!currentFault||busy)return;if(!window.confirm(`Mark “${currentFault.fault_name}” as PERM. FIX? This will keep its record, notes, and attachments.`))return;const button=$('deleteFault');button.disabled=true;button.textContent='SAVING…';try{await api('update',{faultId:currentFault.id,status:'PERM. FIX',priority:currentFault.priority});closeOverlay('detailsOverlay');await loadMachine(currentMachine.key);say('Fault / defect marked PERM. FIX.','dashboardStatus','ok')}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false;button.textContent='✓ SOLVED'}
   function exportReport(){if(access.canExportRepairMaintenanceReports!==true){say('Report export is not permitted for this account.','dashboardStatus','error');return}const date=new Date().toLocaleDateString('en-GB');const rows=orderedFaults().map((f,i)=>`<tr><td>${i+1}</td><td>${safe(f.fault_name)}</td><td>${safe(f.description)}</td><td>${safe(f.priority)}</td><td>${safe(f.status)}</td><td>${safe(new Date(f.created_at).toLocaleString('en-GB'))}</td></tr>`).join('');const win=window.open('','_blank');if(!win){say('Allow pop-ups to export this report as PDF.','dashboardStatus','error');return}win.document.write(`<!doctype html><html><head><title>R&M ${safe(currentMachine.label)} Report</title><meta name=viewport content=width=device-width,initial-scale=1><style>body{font:14px Arial,sans-serif;color:#111;padding:28px}h1{margin:0}h2{margin:8px 0 22px;color:#333}small{color:#555}table{border-collapse:collapse;width:100%;margin-top:20px}th,td{border:1px solid #777;padding:9px;text-align:left;vertical-align:top}th{background:#eee}footer{margin-top:20px;color:#555}@media print{body{padding:0}}</style></head><body><h1>R&M — REPAIRS & MAINTENANCE</h1><h2>${safe(currentMachine.label)} — FAULT REGISTER</h2><small>Report generated: ${safe(date)} · ${faults.length} fault record(s)</small><table><thead><tr><th>No.</th><th>Part / Area of Plant</th><th>Type of Defect</th><th>Priority</th><th>Status</th><th>Created</th></tr></thead><tbody>${rows||'<tr><td colspan=6>No faults currently recorded.</td></tr>'}</tbody></table><footer>YARD HUB · R&M</footer><script>window.onload=()=>window.print();</script></body></html>`);win.document.close();say('PDF report opened. Use Print → Save as PDF.','dashboardStatus','ok')}
   function applyPermissions(){
     const edit=access.canEditRepairMaintenance===true,del=access.canDeleteRepairMaintenance===true,exp=access.canExportRepairMaintenanceReports===true;
