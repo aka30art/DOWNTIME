@@ -26,7 +26,7 @@ for(const key of ['canAccessYardHub','canAccessRepairMaintenance','canEditRepair
 assert.match(migration,/enable row level security/gi);
 assert.match(migration,/public = false/);
 assert.match(migration,/revoke all on table public\.repair_maintenance_faults from public, anon, authenticated/);
-assert.match(migration,/5242880/);
+assert.match(migration,/4194304/,'private R&M evidence storage is capped at 4 MB');
 assert.match(app,/window\.confirm\(/,'fault deletion needs confirmation');
 assert.match(app,/createObjectURL/,'report export needs a downloadable output');
 assert.match(launcher,/yard-hub:shown/,'launcher must respond to the existing HUB becoming visible');
