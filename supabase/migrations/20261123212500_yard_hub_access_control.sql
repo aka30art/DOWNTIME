@@ -38,18 +38,24 @@ grant usage, select on sequence public.yard_hub_access_audit_id_seq to service_r
 insert into public.yard_hub_tier_config (id, payload, version, updated_by)
 values (
   1,
-  '{
-    "schemaVersion": 1,
-    "tiers": {
-      "OWNER":      {"floor":"NONE","checkSheets":"NONE","repairMaintenance":"EDIT"},
-      "DEVACC":     {"floor":"NONE","checkSheets":"NONE","repairMaintenance":"EDIT"},
-      "ADMIN":      {"floor":"NONE","checkSheets":"NONE","repairMaintenance":"EDIT"},
-      "MANAGER":    {"floor":"NONE","checkSheets":"NONE","repairMaintenance":"EDIT"},
-      "SUPERVISOR": {"floor":"NONE","checkSheets":"NONE","repairMaintenance":"EDIT"},
-      "USER":       {"floor":"NONE","checkSheets":"NONE","repairMaintenance":"NONE"},
-      "SPECTATOR":  {"floor":"NONE","checkSheets":"NONE","repairMaintenance":"NONE"}
-    }
-  }'::jsonb,
+  jsonb_build_object(
+    'schemaVersion', 1,
+    'tiers', jsonb_build_object(
+      'OWNER',      jsonb_build_object('floor','NONE','checkSheets','NONE','repairMaintenance','EDIT'),
+      'DEVACC',     jsonb_build_object('floor','NONE','checkSheets','NONE','repairMaintenance','EDIT'),
+      'ADMIN',      jsonb_build_object('floor','NONE','checkSheets','NONE','repairMaintenance','EDIT'),
+      'MANAGER',    jsonb_build_object('floor','NONE','checkSheets','NONE','repairMaintenance','EDIT'),
+      'SUPERVISOR', jsonb_build_object('floor','NONE','checkSheets','NONE','repairMaintenance','EDIT'),
+      'USER',       jsonb_build_object('floor','NONE','checkSheets','NONE','repairMaintenance','NONE'),
+      'SPECTATOR',  jsonb_build_object('floor','NONE','checkSheets','NONE','repairMaintenance','NONE')
+    ),
+    'userTiers', coalesce((
+      select jsonb_object_agg(lower(trim(account->>'username')), upper(coalesce(account->>'tier','USER')))
+      from public.downtime_central_bank bank
+      cross join lateral jsonb_array_elements(coalesce(bank.payload->'users','[]'::jsonb)) account
+      where bank.id=1 and nullif(trim(account->>'username'),'') is not null
+    ), '{}'::jsonb)
+  ),
   1,
   'SYSTEM'
 )
