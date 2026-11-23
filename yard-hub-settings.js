@@ -69,6 +69,8 @@
     myCanManageSettings=true;
     workingPayload=JSON.parse(JSON.stringify(result.tierPermissions));
     renderUsers();renderTierCards();updateTierSaveState();
+    const addUser=$('yardHubUserAdd');
+    if(addUser)addUser.disabled=saving||result.canManageCentralUsers!==true;
     return result;
   }
   function setHomeVisible(settings){
@@ -177,14 +179,18 @@
     $('yardHubUserForm').reset();
     $('yardHubUserModal').hidden=false;
     $('yardHubUserModalTitle').textContent=user?'EDIT USER':'ADD USER';
+    const canManageCentralUsers=state?.canManageCentralUsers===true;
+    if(!user&&!canManageCentralUsers){setStatus('Your administrator account does not have the existing Central Users management right.','error');return}
     $('yardHubUserUsername').value=user?.username||'';
-    $('yardHubUserUsername').disabled=!!user;
+    $('yardHubUserUsername').disabled=!!user||!canManageCentralUsers;
     $('yardHubUserDisplay').value=user?.displayName||'';
+    $('yardHubUserDisplay').disabled=!canManageCentralUsers;
     $('yardHubUserPin').value='';
     $('yardHubUserPin').required=!user;
+    $('yardHubUserPin').disabled=!canManageCentralUsers;
     $('yardHubUserPin').placeholder=user?'Leave blank to keep current PIN':'4–8 digit PIN';
     $('yardHubUserEnabled').checked=user?.enabled!==false;
-    $('yardHubUserEnabled').disabled=false;
+    $('yardHubUserEnabled').disabled=!canManageCentralUsers;
     $('yardHubUserDowntimeTier').textContent=user?(user.legacyTier||'USER'):'USER · SAFE DEFAULT';
     $('yardHubUserHubTier').replaceChildren();
     allowedHubTiers(user?.hubTier,user?.username||'').forEach(role=>{
@@ -196,7 +202,7 @@
       ?'DOWNTIME tier is preserved exactly. Changes below affect YARD HUB only.'
       :'New accounts are created with the restricted DOWNTIME USER tier. Choose a separate YARD HUB tier.';
     $('yardHubUserSave').textContent=user?'SAVE USER':'ADD USER';
-    $('yardHubUserStatus').hidden=!user;
+    $('yardHubUserStatus').hidden=!user||!canManageCentralUsers;
     if(user)$('yardHubUserStatus').textContent=user.enabled===false?'RE-ENABLE ACCOUNT':'DISABLE ACCOUNT';
     $('yardHubUserUsername').focus();
   }
@@ -214,6 +220,13 @@
     const enabled=$('yardHubUserEnabled').checked;
     const existing=editingUsername?state.users.find(user=>String(user.username).toLowerCase()===editingUsername.toLowerCase()):null;
     const downtimeTier=existing?.legacyTier||'USER';
+    const centralChanges=!existing||
+      displayName!==(existing.displayName||existing.username)||
+      pin.length>0||
+      enabled!==(existing.enabled!==false);
+    if(centralChanges&&state.canManageCentralUsers!==true){
+      setStatus('Central account details are controlled by the existing Central Users permission. YARD HUB tier assignment remains separate.','error');return;
+    }
     if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username)){setStatus('Username must be 2–32 letters, numbers, dots, underscores or hyphens.','error');return}
     if(!displayName||displayName.length>80){setStatus('Enter a display name of up to 80 characters.','error');return}
     if(pin&&(!/^[0-9]{4,8}$/.test(pin))){setStatus('PIN must contain 4–8 digits.','error');return}
@@ -226,17 +239,24 @@
     if(hubTier==='DEVACC'&&(!isRootAdmin()||!rootDev())){setStatus('Only root DEV can assign the DEVACC YARD HUB tier.','error');return}
     const userData={username,displayName,tier:downtimeTier,enabled};
     if(pin)userData.pin=pin;
-    setBusy(true);setStatus('SAVING CENTRAL USER…');
+    setBusy(true);setStatus(centralChanges?'SAVING CENTRAL USER…':'SAVING YARD HUB TIER…');
+    let centralSaved=false;
     try{
-      const saved=await window.DowntimeCentral.saveUser(userData,state.centralVersion);
-      state.centralVersion=Number(saved.version||state.centralVersion+1);
+      if(centralChanges){
+        const saved=await window.DowntimeCentral.saveUser(userData,state.centralVersion);
+        state.centralVersion=Number(saved.version||state.centralVersion+1);
+        centralSaved=true;
+      }
       const assigned=await callApi('save-user-tier',{username,tier:hubTier,version:state.permissionVersion});
       state.permissionVersion=Number(assigned.version||state.permissionVersion+1);
       closeUserModal();
       await loadState();
-      setStatus('USER ACCOUNT AND YARD HUB TIER SAVED.','ok');
+      setStatus(centralChanges?'CENTRAL USER AND YARD HUB TIER SAVED.':'YARD HUB TIER SAVED. DOWNTIME USER DATA WAS NOT CHANGED.','ok');
     }catch(error){
-      setStatus(error.message||'Unable to save the user account.','error');
+      const detail=centralSaved
+        ?'Central account saved, but the YARD HUB tier was not saved. Its previous tier remains in effect. '
+        :'';
+      setStatus(detail+(error.message||'Unable to save the user account.'),'error');
       try{await loadState()}catch{}
     }finally{setBusy(false)}
   }
