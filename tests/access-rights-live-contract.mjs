@@ -38,7 +38,7 @@ for(const tier of ['OWNER','DEVACC','ADMIN','MANAGER','SUPERVISOR','USER','SPECT
   assert.match(api,new RegExp(tier+':\\{[^}]*canViewAreaPresets:'),'server default profile for '+tier);
 }
 
-assert.match(page,/function canManageAccessRights\(\)\{return canAccessCentralBank\(\)\}/,'Access and Rights shares the central admin identity gate');
+assert.match(page,/function canManageAccessRights\(\)\{return canAccessCentralBank\(\)\|\|permission\('canManageAccessRights'\)\}/,'Access and Rights requires root authority or delegated ADMIN permission');
 assert.match(page,/return \(username==='DEV'&&tier==='OWNER'\)\|\|tier==='DEVACC'/,'DEVACC has the same Access and Rights authority as root DEV');
 assert.doesNotMatch(api,/isLegacyJanRoot|root-account-split/,'legacy JAN migration path is retired');
 assert.match(page,/function canManageSettingsSection\(section\)/,'shared Settings edit permission resolver');
