@@ -33,8 +33,8 @@ const tierDefault: Record<string, Record<string, boolean>> = {
   ADMIN: { canAccessYardHub: true, canAccessRepairMaintenance: true, canEditRepairMaintenance: true, canDeleteRepairMaintenance: true, canExportRepairMaintenanceReports: true },
   MANAGER: { canAccessYardHub: true, canAccessRepairMaintenance: true, canEditRepairMaintenance: true, canDeleteRepairMaintenance: true, canExportRepairMaintenanceReports: true },
   SUPERVISOR: { canAccessYardHub: true, canAccessRepairMaintenance: true, canEditRepairMaintenance: true, canDeleteRepairMaintenance: true, canExportRepairMaintenanceReports: true },
-  USER: { canAccessYardHub: false, canAccessRepairMaintenance: false, canEditRepairMaintenance: false, canDeleteRepairMaintenance: false, canExportRepairMaintenanceReports: false },
-  SPECTATOR: { canAccessYardHub: false, canAccessRepairMaintenance: false, canEditRepairMaintenance: false, canDeleteRepairMaintenance: false, canExportRepairMaintenanceReports: false },
+  USER: { canAccessYardHub: true, canAccessRepairMaintenance: false, canEditRepairMaintenance: false, canDeleteRepairMaintenance: false, canExportRepairMaintenanceReports: false },
+  SPECTATOR: { canAccessYardHub: true, canAccessRepairMaintenance: false, canEditRepairMaintenance: false, canDeleteRepairMaintenance: false, canExportRepairMaintenanceReports: false },
 };
 
 Deno.serve(async (req: Request) => {
@@ -69,6 +69,27 @@ Deno.serve(async (req: Request) => {
   const stored = bank.tiers?.[tier] || {};
   const permissions = { ...(tierDefault[tier] || tierDefault.USER), ...stored };
   if (tier === "OWNER" || tier === "DEVACC") Object.assign(permissions, tierDefault[tier]);
+
+  // R&M section permissions now come from the isolated YARD HUB tier matrix.
+  // Before that additive table exists, retain the exact previous R&M permission
+  // behaviour as a compatibility fallback. A table/query failure after cut-over
+  // fails closed; it must never silently grant access.
+  const { data: hubAccessRow, error: hubAccessError } = await db.from("yard_hub_tier_config")
+    .select("payload").eq("id", 1).maybeSingle();
+  const missingHubTable = hubAccessError?.code === "42P01" || hubAccessError?.code === "PGRST205";
+  if (hubAccessError && !missingHubTable) {
+    return json({ error: "YARD HUB permissions are temporarily unavailable." }, 503);
+  }
+  if (!hubAccessError && hubAccessRow?.payload) {
+    const mode = hubAccessRow.payload?.tiers?.[tier]?.repairMaintenance;
+    if (!["NONE", "READ", "EDIT"].includes(mode)) {
+      return json({ error: "YARD HUB R&M permission profile is invalid." }, 503);
+    }
+    permissions.canAccessRepairMaintenance = mode !== "NONE";
+    permissions.canEditRepairMaintenance = mode === "EDIT";
+    permissions.canDeleteRepairMaintenance = mode === "EDIT";
+    permissions.canExportRepairMaintenanceReports = mode === "READ" || mode === "EDIT";
+  }
   if (!permissions.canAccessYardHub) return json({ error: "YARD HUB access is not enabled for this account." }, 403);
   if (!permissions.canAccessRepairMaintenance) return json({ error: "R&M access is not enabled for this account." }, 403);
 
