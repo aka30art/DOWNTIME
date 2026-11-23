@@ -871,7 +871,7 @@ function renderAccessRights(){
    const legend=document.createElement('legend');legend.textContent=group.title;fieldset.appendChild(legend);
    group.rights.forEach(right=>{
     const label=document.createElement('label');label.className='access-rights-row';
-    const toggle=document.createElement('input');toggle.type='checkbox';toggle.checked=profile[right.key]===true;toggle.disabled=adminLocked||!!(lockedTierPermissions[tier]&&Object.prototype.hasOwnProperty.call(lockedTierPermissions[tier],right.key));toggle.dataset.accessTier=tier;toggle.dataset.accessRight=right.key;toggle.id='access-'+tier.toLowerCase()+'-'+right.key;
+    const toggle=document.createElement('input');toggle.type='checkbox';toggle.checked=profile[right.key]===true;toggle.disabled=adminLocked||(!root&&right.key==='canManageAccessRights')||!!(lockedTierPermissions[tier]&&Object.prototype.hasOwnProperty.call(lockedTierPermissions[tier],right.key));toggle.dataset.accessTier=tier;toggle.dataset.accessRight=right.key;toggle.id='access-'+tier.toLowerCase()+'-'+right.key;
     const copy=document.createElement('span');copy.className='access-rights-copy';
     const name=document.createElement('strong');name.textContent=right.label;
     const detail=document.createElement('small');detail.textContent=right.detail;
