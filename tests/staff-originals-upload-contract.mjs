@@ -22,4 +22,9 @@ assert.doesNotMatch(client,/GITHUB_STAFF_IMAGE_TOKEN/,'GitHub token is not embed
 assert.match(lib,/jan\/original\.png/,'library resolver maps Jan to canonical file');
 assert.match(lib,/mick\/original\.png/,'library resolver maps Mick to canonical file');
 for(const name of staff)assert.ok(manifest.staff[name]?.directory===name, 'Manifest directory mismatch: '+name);
+assert.equal(manifest.dynamicStaffFolders,true,'manifest declares dynamic STAFF folder creation');
+assert.equal(manifest.folderConvention,'<normalized-staff-key>/original.png','new STAFF use normalized folder naming');
+assert.match(lib,/e\?\.file\|\|k\+\x27\/original\.png\x27/,'resolver supports dynamically named STAFF originals');
+assert.match(api,/\^\[a-z0-9\]\{1,30\}\$/,'server validates normalized folder keys');
+assert.match(html,/uploadStaffOriginal\(entered,pendingOperatorLibraryOriginals\.modal\)/,'new STAFF creation uploads original PNG to GitHub');
 console.log('STAFF ORIGINALS UPLOAD contract: PASS');
