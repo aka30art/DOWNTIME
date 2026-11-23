@@ -20,7 +20,7 @@ assert.match(html, /addEventListener\('click',logoutCentralSession\)/, 'sign-out
 assert.match(html, /id="backToYardHub"/, 'DOWNTIME exposes persistent HUB navigation');
 assert.match(html, /<button class="nav active" data-view="weekly">▦ &nbsp; DOWNTIME<\/button>/, 'the former Home Page label is removed');
 assert.match(html, /\.yard-grid\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/, 'desktop hub uses the two-column reference layout');
-assert.match(html, /@media\(max-width:540px\)\{[^}]*\.yard-grid\{grid-template-columns:1fr\}/, 'mobile hub stacks the application tiles');
+assert.match(html, /@media\(max-width:540px\)[\\s\\S]*?\\.yard-grid\\{grid-template-columns:1fr\\}/, 'mobile hub stacks the application tiles');
 assert.match(loginSmoke, /successful login lands on YARD HUB first/, 'browser smoke verifies the post-login landing route');
 assert.match(loginSmoke, /launching DOWNTIME closes YARD HUB/, 'browser smoke verifies module launch');
 assert.ok(packageJson.scripts['test:smoke'].includes('test:yard-hub-contract.mjs'), 'YARD HUB contract is part of the full smoke suite');
