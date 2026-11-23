@@ -121,14 +121,17 @@ Deno.serve(async (req: Request) => {
   const legacyTier = String(user.tier || "USER").toUpperCase();
   const hubTier = assignedHubTier(configRow.payload, user.username);
   const isAdmin = isHubSettingsAdmin(user, hubTier, legacyTier);
+  const legacyPermissions = bank.tiers?.[legacyTier] || {};
+  const canAccessYardHub = legacyPermissions.canAccessYardHub !== false || isRootDev(user, legacyTier);
+  const canManageCentralUsers = legacyPermissions.canManageUsers === true ||
+    legacyTier === "OWNER" || legacyTier === "DEVACC";
 
   if (action === "my-access") {
-    const storedHubAccess = bank.tiers?.[legacyTier]?.canAccessYardHub;
-    const canAccessYardHub = storedHubAccess !== false || isRootDev(user, legacyTier);
     const myPermissions = configRow.payload?.tiers?.[hubTier] || { floor: "NONE", checkSheets: "NONE", repairMaintenance: "NONE" };
     return json({
       user: { ...safeUser(user), legacyTier, hubTier },
-      canManageSettings: isAdmin,
+      canManageSettings: isAdmin && canAccessYardHub,
+      canManageCentralUsers,
       canAccessYardHub,
       sections: {
         floor: myPermissions.floor,
@@ -139,6 +142,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  if (!canAccessYardHub) return json({ error: "YARD HUB access is not enabled for this account." }, 403);
   if (!isAdmin) return json({ error: "YARD HUB SETTINGS is restricted to DEV, DEVACC and ADMIN." }, 403);
 
   if (action === "settings-state") {
@@ -156,6 +160,7 @@ Deno.serve(async (req: Request) => {
       updatedBy: configRow.updated_by,
       updatedAt: configRow.updated_at,
       editableTiers: isRootAdmin(user, hubTier, legacyTier) ? [...tierNames] : [...editableByAdmin],
+      canManageCentralUsers,
     });
   }
 
@@ -176,6 +181,9 @@ Deno.serve(async (req: Request) => {
     }
     const root = isRootAdmin(user, hubTier, legacyTier);
     const previousTier = assignedHubTier(configRow.payload, target.username);
+    if (!root && String(target.username).toLowerCase() === String(user.username).toLowerCase() && nextTier !== previousTier) {
+      return json({ error: "Administrators cannot change their own YARD HUB tier." }, 403);
+    }
     if (!root && !editableByAdmin.includes(nextTier as any) && nextTier !== previousTier) {
       return json({ error: "ADMIN may assign only MANAGER, SUPERVISOR, USER and SPECTATOR YARD HUB tiers." }, 403);
     }
@@ -185,7 +193,7 @@ Deno.serve(async (req: Request) => {
     if (nextTier === "DEVACC" && previousTier !== "DEVACC" && !isRootDev(user, legacyTier)) {
       return json({ error: "Only root DEV may assign the DEVACC YARD HUB tier." }, 403);
     }
-    if (["DEVACC", "OWNER"].includes(hubTier) && target.username !== user.username && !root) {
+    if (["DEVACC", "OWNER", "ADMIN"].includes(previousTier) && target.username !== user.username && !root) {
       return json({ error: "Protected YARD HUB account." }, 403);
     }
     const expectedVersion = Number(body.version);
@@ -217,6 +225,9 @@ Deno.serve(async (req: Request) => {
       return json({ error: "ADMIN cannot remove protected YARD HUB tier assignments." }, 403);
     }
     if (String(target.username).trim().toUpperCase() === "DEV") return json({ error: "The DEV OWNER assignment cannot be removed." }, 403);
+    if (!root && String(target.username).toLowerCase() === String(user.username).toLowerCase()) {
+      return json({ error: "Administrators cannot remove their own YARD HUB tier assignment." }, 403);
+    }
     const expectedVersion = Number(body.version);
     if (!Number.isInteger(expectedVersion) || expectedVersion !== Number(configRow.version)) {
       return json({ error: "YARD HUB permissions changed elsewhere. Refresh and try again." }, 409);
