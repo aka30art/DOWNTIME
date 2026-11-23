@@ -23,7 +23,7 @@ assert.match(html,/data-app="check-sheets" type="button" disabled/,'CHECK SHEETS
 assert.match(html,/id="launchDowntimeBtn" data-app="downtime" type="button"/,'DOWNTIME launcher remains present and enabled');
 
 // Identity and PIN management deliberately reuse the existing central directory and APIs.
-assert.match(ui,/window\.DowntimeCentral\.saveUser\(userData,state\.centralVersion\)/,'Hub user management reuses existing central identity storage');
+assert.ok(ui.includes('window.saveDowntimeCentralUserFromYardHub||window.DowntimeCentral.saveUser'),'Hub user management reuses the existing central identity API through the DOWNTIME write queue');
 assert.match(ui,/window\.DowntimeCentral\?\.session/,'Hub Settings uses the existing opaque central session');
 assert.match(ui,/tier:downtimeTier/,'editing a user preserves the legacy DOWNTIME tier');
 assert.match(ui,/const downtimeTier=existing\?\.legacyTier\|\|'USER'/,'new accounts default to restricted DOWNTIME USER while existing DOWNTIME tiers are preserved');
