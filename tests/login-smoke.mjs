@@ -220,6 +220,11 @@ window.supabase={createClient:()=>({
   return ok({error:'Unknown action'},400);
  });
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
+ await page.route('**/functions/v1/repair-maintenance-api',async route=>{
+  const origin='http://127.0.0.1:4173';
+  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':origin,'access-control-allow-headers':'apikey, content-type, x-downtime-session','access-control-allow-methods':'POST, OPTIONS','vary':'Origin'}});
+  return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':origin,'vary':'Origin'},body:JSON.stringify({user:{username:'DEV',displayName:'DEV',tier:'DEV'},permissions:{canAccessYardHub:true,canAccessRepairMaintenance:true,canEditRepairMaintenance:true,canDeleteRepairMaintenance:true,canExportRepairMaintenanceReports:true}})});
+ });
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
  try{await page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:8000})}catch(error){throw new Error('Central login options failed to populate. Browser errors: '+errors.slice(-10).join(' | ')+'; auth message: '+await page.locator('#authMsg').textContent().catch(()=> 'missing')+'; window adapter: '+await page.evaluate(()=>String(!!window.DowntimeCentral)).catch(()=> 'unavailable')+'; original: '+error.message)}
  return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
@@ -239,7 +244,7 @@ async function signIn(page,pin='2468',username='DEV'){
  assert.equal(await page.locator('#launchDowntimeBtn').isEnabled(),true,'DOWNTIME is the available application');
  assert.equal(await page.locator('.yard-tile[data-app="floor"]').isDisabled(),true,'FLOOR stays unavailable until released');
  assert.equal(await page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until released');
- assert.equal(await page.locator('.yard-tile[data-app="repair-maintenance"]').isDisabled(),true,'REPAIR & MAINTENANCE stays unavailable until released');
+ assert.equal(await page.locator('.yard-tile[data-app="repair-maintenance"]').isEnabled(),true,'R&M unlocks after the existing DOWNTIME session passes its module permission check');
  await page.locator('#launchDowntimeBtn').click();
  await page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
  assert.equal(await page.locator('#yardHub').isVisible(),false,'launching DOWNTIME closes YARD HUB');
