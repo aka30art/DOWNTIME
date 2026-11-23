@@ -70,10 +70,9 @@ Deno.serve(async (req: Request) => {
   const permissions = { ...(tierDefault[tier] || tierDefault.USER), ...stored };
   if (tier === "OWNER" || tier === "DEVACC") Object.assign(permissions, tierDefault[tier]);
 
-  // R&M section permissions now come from the isolated YARD HUB tier matrix.
-  // Before that additive table exists, retain the exact previous R&M permission
-  // behaviour as a compatibility fallback. A table/query failure after cut-over
-  // fails closed; it must never silently grant access.
+  // R&M section permissions use the separate YARD HUB tier assignment and matrix.
+  // Before migration, retain the exact previous R&M behaviour. Other database errors
+  // fail closed, rather than accidentally granting access.
   const { data: hubAccessRow, error: hubAccessError } = await db.from("yard_hub_tier_config")
     .select("payload").eq("id", 1).maybeSingle();
   const missingHubTable = hubAccessError?.code === "42P01" || hubAccessError?.code === "PGRST205";
@@ -81,7 +80,8 @@ Deno.serve(async (req: Request) => {
     return json({ error: "YARD HUB permissions are temporarily unavailable." }, 503);
   }
   if (!hubAccessError && hubAccessRow?.payload) {
-    const mode = hubAccessRow.payload?.tiers?.[tier]?.repairMaintenance;
+    const hubTier = String(hubAccessRow.payload?.userTiers?.[String(user.username).toLowerCase()] || "USER").toUpperCase();
+    const mode = hubAccessRow.payload?.tiers?.[hubTier]?.repairMaintenance;
     if (!["NONE", "READ", "EDIT"].includes(mode)) {
       return json({ error: "YARD HUB R&M permission profile is invalid." }, 503);
     }
