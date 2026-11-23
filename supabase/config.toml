@@ -3,3 +3,6 @@ verify_jwt = true
 
 [functions.central-bank]
 verify_jwt = false
+
+[functions.repair-maintenance-api]
+verify_jwt = false
