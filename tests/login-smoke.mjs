@@ -563,14 +563,12 @@ try{
  await owner.page.waitForFunction(()=>!document.querySelector('#plantTransitionAlertHost'),{timeout:3000});
  await clickOverview(owner.page);
  assert.equal(await owner.page.locator('#overviewOverlay').isVisible(),true,'Overview can be reopened');
- await overview.locator('#overviewFullscreen').focus();
+ assert.equal(await owner.page.locator('#overviewClose').count(),0,'Redundant top Overview header close control must be removed');
+ assert.equal(await overview.locator('#overviewFullscreen').count(),0,'Plant Overview Full Screen control must be removed');
  await owner.page.keyboard.press('Escape');
  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
  await clickOverview(owner.page);
  await owner.page.keyboard.press('Escape');
- await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
- await clickOverview(owner.page);
- await owner.page.locator('#overviewClose').click();
  await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
  assert.equal(owner.context.pages().length,1,'Closing overlay keeps the same app tab');
 
