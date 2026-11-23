@@ -42,7 +42,7 @@
   }
   async function refreshHubAccess(){
     const button=$('yardHubSettingsBtn');
-    if(button)button.hidden=true;
+    if(button){button.hidden=true;button.dataset.accessChecked='false';}
     myHubTier=null;myCanManageSettings=false;
     if(!currentSession()?.token)return null;
     try{
