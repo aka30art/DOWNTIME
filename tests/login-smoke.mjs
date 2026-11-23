@@ -396,6 +396,7 @@ try{
  await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
  assert.equal(await owner.page.locator('#yardHub').isVisible(),false,'relaunching DOWNTIME closes YARD HUB');
  await owner.page.locator('#backToYardHub').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsBtn')?.dataset.accessChecked==='true',{timeout:5000});
  assert.equal(await owner.page.locator('#yardHub').isVisible(),true,'returning from DOWNTIME restores YARD HUB before testing Hub Settings');
  // YARD HUB SETTINGS is additive: section tiers and Hub user assignments never alter DOWNTIME tier data.
  await owner.page.waitForFunction(()=>{const button=document.querySelector('#yardHubSettingsBtn');return button?.dataset.accessChecked==='true'&&!button.hidden},{timeout:5000});
