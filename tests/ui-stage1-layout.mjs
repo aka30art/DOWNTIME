@@ -118,9 +118,14 @@ try {
   await menu.locator(':scope > summary').click();
   assert.equal(await page.locator('.nav-items > .nav').count(), 6, 'All remaining navigation choices stay in the main menu after STAFF moves into Settings');
   assert.equal(await page.locator('[data-settings-open="staff"]').count(), 1, 'STAFF remains available as a Settings destination');
-  for (const id of ['cloudStatus', 'lastSync', 'manualRefreshBtn', 'plantOperatorToggle', 'fullscreenBtn', 'onDuty']) {
+  for (const id of ['cloudStatus', 'lastSync', 'manualRefreshBtn', 'plantOperatorToggle', 'onDuty']) {
     assert.equal(await page.locator('#' + id).count(), 1, 'Retained utility control missing: ' + id);
   }
+  assert.equal(await page.locator('#fullscreenBtn').count(), 0, 'App-wide Full Screen control must be removed');
+  assert.equal(await page.locator('.overview-overlay-head').count(), 0, 'Redundant top Plant Overview header must be removed');
+  assert.equal(await page.locator('#overviewFrame').getAttribute('allow'), null, 'Overview iframe must not permit fullscreen');
+  assert.equal(source.includes('.overview-overlay-head{'), false, 'Removed Overview header styling must not remain');
+  assert.equal(source.includes('app-fullscreen'), false, 'App-wide Full Screen mode styling must be removed');
   assert.equal(await page.locator('.nav-items #logoutBtn').evaluate(node => getComputedStyle(node).display !== 'none'), true);
 
   // Day tabs and fields are retained inside the Day to Day disclosure.
