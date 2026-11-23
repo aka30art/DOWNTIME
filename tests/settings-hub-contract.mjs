@@ -87,7 +87,20 @@ const fullAdmin=helper(()=>true);
 for(const section of requiredTiles)assert.equal(fullAdmin.settingsAccess(section),true);
 assert.equal(fullAdmin.settingsAccess('accessRights'),false,'a role without the ADMIN/JAN identity allow-list cannot access tier rights');
 assert.equal(accessHelpers(()=>false,()=>true).settingsAccess('accessRights'),true,'ADMIN tier or JAN root OWNER allow-list can access Access and Rights');
-assert.ok(html.includes("function canManageAccessRights(){return canAccessCentralBank()||permission('canManageAccessRights')}"),'Access and Rights requires root or delegated ADMIN permission');
+const manageAccessRightsMatch=html.match(/function canManageAccessRights\\(\\)\\{[^}]*\\}/);
+assert.ok(manageAccessRightsMatch,'Access and Rights permission gate must be present');
+const accessRightsGate=new Function('centralUser','activeOperator','privilegeFor','canAccessCentralBank','permission',
+  manageAccessRightsMatch[0]+'; return canManageAccessRights;');
+const rightsGate=(tier,delegated,root=false)=>accessRightsGate(
+  {tier},'contract-user',()=>tier,()=>root,name=>name==='canManageAccessRights'&&delegated
+)();
+assert.equal(rightsGate('ADMIN',true),true,'ADMIN with explicit delegation permission can manage lower-tier profiles');
+assert.equal(rightsGate('ADMIN',false),false,'ADMIN without delegation permission cannot manage tier profiles');
+for(const tier of ['MANAGER','SUPERVISOR','USER','SPECTATOR']){
+  assert.equal(rightsGate(tier,true),false,tier+' cannot inherit delegated Access and Rights management from a copied permission profile');
+}
+assert.equal(rightsGate('OWNER',false,true),true,'root OWNER retains unrestricted Access and Rights authority');
+assert.equal(rightsGate('DEVACC',false,true),true,'root DEVACC retains unrestricted Access and Rights authority');
 assert.ok(!html.includes('centralUsersAdminLink'),'obsolete Central Data Bank link is removed from the USERS panel');
 
 assert.match(html, /function showSettingsHub\(\)/, 'back navigation must return to the Settings hub');
