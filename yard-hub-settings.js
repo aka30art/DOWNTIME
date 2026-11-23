@@ -251,6 +251,10 @@
         const saved=await window.DowntimeCentral.saveUser(userData,state.centralVersion);
         state.centralVersion=Number(saved.version||state.centralVersion+1);
         centralSaved=true;
+        if(typeof window.refreshDowntimeCentralDirectory==='function'){
+          try{await window.refreshDowntimeCentralDirectory()}
+          catch(error){console.warn('DOWNTIME central user cache refresh will retry when the tracker is reopened.',error)}
+        }
       }
       const assigned=await callApi('save-user-tier',{username,tier:hubTier,version:state.permissionVersion});
       state.permissionVersion=Number(assigned.version||state.permissionVersion+1);
