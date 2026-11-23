@@ -25,7 +25,7 @@ assert.ok(api.includes('const isCentralAdmin=tier==="ADMIN"||isRootAuthority;'),
 assert.ok(api.includes('const isCentralBankAccess=isRootAuthority;'),'DEVACC receives root-equivalent Central Data Bank access');
 assert.ok(api.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);'),'Data Bank state is available only to DEV and DEVACC');
 assert.ok(api.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),'all configuration routes enforce the DEV/DEVACC authority boundary');
-assert.ok(api.includes("const isAccessRightsAdmin= tier===\"ADMIN\"&&priv.canManageAccessRights===true")&&api.includes("const editableRoles=isCentralBankAccess?tiers:[\"MANAGER\",\"SUPERVISOR\",\"USER\",\"SPECTATOR\"]"),"ADMIN delegated tier scope is enforced server-side");
+assert.ok(api.includes("const isAccessRightsAdmin=tier===\"ADMIN\"&&priv.canManageAccessRights===true")&&api.includes("const editableRoles=isCentralBankAccess?tiers:[\"MANAGER\",\"SUPERVISOR\",\"USER\",\"SPECTATOR\"]"),"ADMIN delegated tier scope is enforced server-side");
 assert.ok(api.includes('if(newTier==="DEVACC"&&(!existing||existing.tier!=="DEVACC")&&!isDevRoot)return json({error:"Only root DEV can assign DEVacc."},403);'),'only root DEV can grant or change to DEVACC tier');
 assert.ok(app.includes("if(tier===\'DEVACC\'&&(!existing||existing.tier!==\'DEVACC\')&&!canAssignDevacc)"),"DEVACC can still edit existing DEVACC accounts without re-granting tier");
 assert.ok(api.includes('if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);'),'DEVACC can modify, disable and restore DEVACC accounts');
@@ -36,7 +36,7 @@ assert.ok(api.includes('if(!isDevRoot)return json({error:"Only root DEV can upda
 assert.ok(api.includes('The DEV root OWNER account cannot be deleted or removed.'),'DEV OWNER cannot be deleted');
 
 assert.ok(app.includes("return (username==='DEV'&&tier==='OWNER')||tier==='DEVACC'"),'frontend recognises DEVACC as root-equivalent');
-assert.ok(app.includes("function canManageAccessRights(){return canAccessCentralBank()}"),'DEVACC can access Access and Rights');
+assert.ok(app.includes("function canManageAccessRights(){const tier=String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase();return canAccessCentralBank()||(tier==='ADMIN'&&permission('canManageAccessRights'))}"),'DEVACC can access Access and Rights');
 assert.ok(app.includes("function isRootDevAccount(){return String(centralUser?.username||activeOperator||'').trim().toUpperCase()==='DEV'&&String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase()==='OWNER'}"),"root DEV identity helper exists");
 assert.ok(app.includes("option.disabled=!isRootDevAccount()"),"DEVACC tier option is disabled for non-root accounts");
 assert.ok(app.includes("canAssignDevacc=isRootDevAccount()"),"frontend blocks DEVACC grants unless root DEV");
