@@ -174,7 +174,7 @@ Deno.serve(async (req: Request) => {
     const target = (Array.isArray(bank.users) ? bank.users : []).find((account: any) =>
       String(account.username || "").toLowerCase() === targetUsername.toLowerCase()
     );
-    if (!target || target.enabled === false) return json({ error: "Active central user account not found." }, 404);
+    if (!target) return json({ error: "Central user account not found." }, 404);
     const targetLegacyTier = String(target.tier || "USER").toUpperCase();
     if (String(target.username).trim().toUpperCase() === "DEV" && targetLegacyTier === "OWNER" && nextTier !== "OWNER") {
       return json({ error: "The DEV root account must remain assigned to the OWNER YARD HUB tier." }, 403);
