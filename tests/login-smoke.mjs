@@ -9,13 +9,17 @@ const overviewHtml=await readFile(resolve('plant-overview-preview.html'),'utf8')
 const adapter=await readFile(resolve('central-bank-client.js'),'utf8');
 const staffImageLibrary=await readFile(resolve('assets/staff/staff-image-library.js'),'utf8');
 const repairMaintenanceLauncher=await readFile(resolve('repair-maintenance-launch.js'),'utf8');
+const repairMaintenanceHtml=await readFile(resolve('repair-maintenance.html'),'utf8');
+const repairMaintenanceApp=await readFile(resolve('repair-maintenance-app.js'),'utf8');
 const server=createServer((req,res)=>{
   const pathname=String(req.url||'').split('?')[0];
-  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js';
+  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js';
   res.writeHead(200,{'content-type':isJavaScript?'application/javascript; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store'});
   if(pathname==='/central-bank-client.js')return res.end(adapter);
   if(pathname==='/assets/staff/staff-image-library.js')return res.end(staffImageLibrary);
   if(pathname==='/repair-maintenance-launch.js')return res.end(repairMaintenanceLauncher);
+  if(pathname==='/repair-maintenance-app.js')return res.end(repairMaintenanceApp);
+  if(pathname==='/repair-maintenance.html')return res.end(repairMaintenanceHtml);
   res.end(pathname==='/plant-overview-preview.html'?overviewHtml:indexHtml);
 });
 await new Promise((ok,fail)=>{server.once('error',fail);server.listen(4173,'127.0.0.1',ok)});
@@ -233,6 +237,7 @@ window.supabase={createClient:()=>({
  return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
+let repairMaintenanceBootTested=false;
 async function signIn(page,pin='2468',username='DEV'){
  await page.locator('#centralUsername').selectOption(username);
  await pinpad(page,pin);
@@ -249,6 +254,19 @@ async function signIn(page,pin='2468',username='DEV'){
  assert.equal(await page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until released');
  await page.waitForFunction(()=>{const tile=document.querySelector('.yard-tile[data-app="repair-maintenance"]');return tile&&!tile.disabled},{timeout:5000});
  assert.equal(await page.locator('.yard-tile[data-app="repair-maintenance"]').isEnabled(),true,'R&M unlocks after the existing DOWNTIME session passes its module permission check');
+  if(!repairMaintenanceBootTested){
+   await Promise.all([
+    page.waitForURL(/repair-maintenance\\.html(?:\\?.*)?$/,{timeout:5000}),
+    page.locator('#launchRepairMaintenanceBtn').click()
+   ]);
+   await page.locator('#selectorView').waitFor({state:'visible',timeout:5000});
+   assert.equal(await page.locator('#loadingView').isVisible(),false,'R&M must leave session verification after a successful access response');
+   assert.equal((await page.locator('#sessionUser').textContent()).trim(),'DEV','R&M must render the user authenticated by the shared YARD HUB session');
+   assert.equal(await page.locator('#accessDenied').evaluate(el=>el.classList.contains('show')),false,'R&M must not show its access-denied state for an authorised session');
+   await page.goBack({waitUntil:'domcontentloaded'});
+   await page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
+   repairMaintenanceBootTested=true;
+  }
  await page.locator('#launchDowntimeBtn').click();
  await page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
  assert.equal(await page.locator('#yardHub').isVisible(),false,'launching DOWNTIME closes YARD HUB');
