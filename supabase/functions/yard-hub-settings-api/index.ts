@@ -175,13 +175,14 @@ Deno.serve(async (req: Request) => {
       return json({ error: "The DEV root account must remain assigned to the OWNER YARD HUB tier." }, 403);
     }
     const root = isRootAdmin(user, hubTier, legacyTier);
-    if (!root && !editableByAdmin.includes(nextTier as any)) {
+    const previousTier = assignedHubTier(configRow.payload, target.username);
+    if (!root && !editableByAdmin.includes(nextTier as any) && nextTier !== previousTier) {
       return json({ error: "ADMIN may assign only MANAGER, SUPERVISOR, USER and SPECTATOR YARD HUB tiers." }, 403);
     }
     if (nextTier === "OWNER" && !(String(target.username).trim().toUpperCase() === "DEV" && targetLegacyTier === "OWNER")) {
       return json({ error: "DEV is the only OWNER YARD HUB account." }, 403);
     }
-    if (nextTier === "DEVACC" && (!root || (hubTier !== "DEVACC" && !isRootDev(user, legacyTier)))) {
+    if (nextTier === "DEVACC" && previousTier !== "DEVACC" && !isRootDev(user, legacyTier)) {
       return json({ error: "Only root DEV may assign the DEVACC YARD HUB tier." }, 403);
     }
     if (["DEVACC", "OWNER"].includes(hubTier) && target.username !== user.username && !root) {
@@ -191,7 +192,6 @@ Deno.serve(async (req: Request) => {
     if (!Number.isInteger(expectedVersion) || expectedVersion !== Number(configRow.version)) {
       return json({ error: "YARD HUB permissions changed elsewhere. Refresh and try again." }, 409);
     }
-    const previousTier = assignedHubTier(configRow.payload, target.username);
     const nextPayload = structuredClone(configRow.payload);
     nextPayload.userTiers = nextPayload.userTiers && typeof nextPayload.userTiers === "object" ? nextPayload.userTiers : {};
     nextPayload.userTiers[String(target.username).toLowerCase()] = nextTier;
