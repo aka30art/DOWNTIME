@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const html=fs.readFileSync('index.html','utf8');
+const overview=fs.readFileSync('plant-overview-preview.html','utf8');
+const library=fs.readFileSync('assets/staff/staff-image-library.js','utf8');
+const manifest=JSON.parse(fs.readFileSync('assets/staff/staff-images.json','utf8'));
+assert.match(html,/staff-image-library\.js/);
+assert.match(html,/DowntimeStaffImages\.apply\(/);
+assert.ok(overview.includes('staff-image-library.js'),'Plant Overview loads the shared staff image library');
+assert.ok(overview.includes('DowntimeStaffImages?.resolve(name)'),'Plant Overview prefers the canonical original photo');
+assert.match(library,/signedStaffPhotoRead/);
+for(const name of ['jan','mick','gigi','daz','shayne'])assert.ok(manifest.staff[name],`Missing staff entry: ${name}`);
+console.log('STAFF IMAGE LIBRARY contract: PASS');

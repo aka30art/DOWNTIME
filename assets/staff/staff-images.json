@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "library": "DOWNTIME STAFF IMAGE LIBRARY",
+  "basePath": "assets/staff/originals/",
+  "preserveOriginals": true,
+  "staff": {
+    "jan": {"filename":"jan.jpg","available":false},
+    "mick": {"filename":"mick.jpg","available":false},
+    "gigi": {"filename":"gigi.jpg","available":false},
+    "daz": {"filename":"daz.jpg","available":false},
+    "shayne": {"filename":"shayne.jpg","available":false}
+  }
+}

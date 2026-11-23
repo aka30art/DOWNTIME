@@ -1,0 +1,1 @@
+Place original staff portrait files in this directory. Preserve original resolution and quality.\n
