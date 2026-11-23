@@ -11,15 +11,20 @@ const staffImageLibrary=await readFile(resolve('assets/staff/staff-image-library
 const repairMaintenanceLauncher=await readFile(resolve('repair-maintenance-launch.js'),'utf8');
 const repairMaintenanceHtml=await readFile(resolve('repair-maintenance.html'),'utf8');
 const repairMaintenanceApp=await readFile(resolve('repair-maintenance-app.js'),'utf8');
+const yardHubSettingsScript=await readFile(resolve('yard-hub-settings.js'),'utf8');
+const yardHubSettingsCss=await readFile(resolve('yard-hub-settings.css'),'utf8');
 const server=createServer((req,res)=>{
   const pathname=String(req.url||'').split('?')[0];
-  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js';
-  res.writeHead(200,{'content-type':isJavaScript?'application/javascript; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store'});
+  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js'||pathname==='/yard-hub-settings.js';
+  const isCss=pathname==='/yard-hub-settings.css';
+  res.writeHead(200,{'content-type':isJavaScript?'application/javascript; charset=utf-8':isCss?'text/css; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store'});
   if(pathname==='/central-bank-client.js')return res.end(adapter);
   if(pathname==='/assets/staff/staff-image-library.js')return res.end(staffImageLibrary);
   if(pathname==='/repair-maintenance-launch.js')return res.end(repairMaintenanceLauncher);
   if(pathname==='/repair-maintenance-app.js')return res.end(repairMaintenanceApp);
   if(pathname==='/repair-maintenance.html')return res.end(repairMaintenanceHtml);
+  if(pathname==='/yard-hub-settings.js')return res.end(yardHubSettingsScript);
+  if(pathname==='/yard-hub-settings.css')return res.end(yardHubSettingsCss);
   res.end(pathname==='/plant-overview-preview.html'?overviewHtml:indexHtml);
 });
 await new Promise((ok,fail)=>{server.once('error',fail);server.listen(4173,'127.0.0.1',ok)});
@@ -225,6 +230,76 @@ window.supabase={createClient:()=>({
   }
   if(action==='logout')return ok({ok:true});
   return ok({error:'Unknown action'},400);
+ });
+ const yardHubConfig={
+  schemaVersion:1,
+  tiers:{
+   OWNER:{floor:'NONE',checkSheets:'NONE',repairMaintenance:'EDIT'},
+   DEVACC:{floor:'NONE',checkSheets:'NONE',repairMaintenance:'EDIT'},
+   ADMIN:{floor:'NONE',checkSheets:'NONE',repairMaintenance:'EDIT'},
+   MANAGER:{floor:'NONE',checkSheets:'NONE',repairMaintenance:'EDIT'},
+   SUPERVISOR:{floor:'NONE',checkSheets:'NONE',repairMaintenance:'EDIT'},
+   USER:{floor:'NONE',checkSheets:'NONE',repairMaintenance:'NONE'},
+   SPECTATOR:{floor:'NONE',checkSheets:'NONE',repairMaintenance:'NONE'}
+  },
+  userTiers:{dev:'OWNER',jan:'USER',mick:username.toUpperCase()==='MICK'?tier:'USER'}
+ };
+ let yardHubPermissionVersion=1;
+ const yardHubApiActions=[];
+ const getMockUsers=()=>{
+  const result=bank.users?.length?bank.users.map(user=>({username:user.username,displayName:user.displayName||user.username,tier:user.tier,enabled:user.enabled!==false})): [
+   {username:'DEV',displayName:'DEV',tier:'OWNER',enabled:true},
+   {username:'Jan',displayName:'Jan',tier:'USER',enabled:true},
+   {username:'MICK',displayName:'Mick',tier:username.toUpperCase()==='MICK'?tier:'USER',enabled:true}
+  ];
+  if(!result.some(user=>user.username.toLowerCase()===username.toLowerCase()))result.push({username,displayName:username,tier,enabled:true});
+  return result;
+ };
+ await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/yard-hub-settings-api',async route=>{
+  const req=route.request().postDataJSON(),action=req.action;
+  yardHubApiActions.push({action,body:req});
+  const ok=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
+  const hubTier=String(yardHubConfig.userTiers[username.toLowerCase()]||'USER');
+  const root=username.toUpperCase()==='DEV'&&tier==='OWNER';
+  const canManage=root||hubTier==='DEVACC'||hubTier==='ADMIN';
+  const users=getMockUsers();
+  if(action==='my-access')return ok({user:{username,displayName:username,legacyTier:tier,hubTier},canManageSettings:canManage,canAccessYardHub:true,sections:yardHubConfig.tiers[hubTier],permissionVersion:yardHubPermissionVersion});
+  if(action==='settings-state'){
+   if(!canManage)return ok({error:'Permission denied'},403);
+   return ok({
+    user:{username,displayName:username,legacyTier:tier,hubTier},
+    users:users.map(user=>({...user,legacyTier:user.tier,hubTier:yardHubConfig.userTiers[user.username.toLowerCase()]||'USER'})),
+    userTiers:yardHubConfig.userTiers,
+    centralVersion:version,
+    tierPermissions:JSON.parse(JSON.stringify(yardHubConfig)),
+    permissionVersion:yardHubPermissionVersion,
+    editableTiers:root||hubTier==='DEVACC'?Object.keys(yardHubConfig.tiers):['MANAGER','SUPERVISOR','USER','SPECTATOR']
+   });
+  }
+  if(action==='save-tier-settings'){
+   if(!canManage)return ok({error:'Permission denied'},403);
+   if(Number(req.version)!==yardHubPermissionVersion)return ok({error:'Version conflict'},409);
+   const editable=root||hubTier==='DEVACC'?Object.keys(yardHubConfig.tiers):['MANAGER','SUPERVISOR','USER','SPECTATOR'];
+   for(const role of editable){
+    const profile=req.payload?.tiers?.[role];
+    if(!profile)return ok({error:'Missing tier profile'},400);
+    for(const key of ['floor','checkSheets','repairMaintenance'])if(!['NONE','READ','EDIT'].includes(profile[key]))return ok({error:'Invalid permission mode'},400);
+   }
+   yardHubConfig.tiers=JSON.parse(JSON.stringify(req.payload.tiers));
+   yardHubPermissionVersion++;
+   return ok({ok:true,version:yardHubPermissionVersion});
+  }
+  if(action==='save-user-tier'){
+   if(!canManage)return ok({error:'Permission denied'},403);
+   if(Number(req.version)!==yardHubPermissionVersion)return ok({error:'Version conflict'},409);
+   const target=users.find(user=>user.username.toLowerCase()===String(req.username||'').toLowerCase());
+   if(!target)return ok({error:'User not found'},404);
+   if(!root&&!['MANAGER','SUPERVISOR','USER','SPECTATOR'].includes(req.tier))return ok({error:'Protected tier'},403);
+   yardHubConfig.userTiers[target.username.toLowerCase()]=req.tier;
+   yardHubPermissionVersion++;
+   return ok({ok:true,version:yardHubPermissionVersion});
+  }
+  return ok({error:'Unknown YARD HUB settings action'},400);
  });
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
  await page.route('**/functions/v1/repair-maintenance-api',async route=>{
