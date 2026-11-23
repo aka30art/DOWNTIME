@@ -139,7 +139,7 @@ window.supabase={createClient:()=>({
    const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
    if(!rights.canManageStaff)return ok({error:'Permission denied'},403);
    const staffKey=String(req.staffKey||'').toLowerCase();
-   if(!['jan','mick','gigi','daz','shayne'].includes(staffKey))return ok({error:'Unknown STAFF destination'},400);
+   if(!/^[a-z0-9]{1,30}$/.test(staffKey))return ok({error:'Invalid STAFF destination'},400);
    if(req.mimeType!=='image/png'||!req.base64)return ok({error:'Invalid PNG payload'},415);
    return ok({ok:true,staff:staffKey,path:'assets/staff/originals/'+staffKey+'/original.png',commitSha:'mock-commit-sha'});
   }
