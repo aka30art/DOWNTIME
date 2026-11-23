@@ -259,8 +259,8 @@
       await loadState();
       setStatus(centralChanges?'CENTRAL USER AND YARD HUB TIER SAVED.':'YARD HUB TIER SAVED. DOWNTIME USER DATA WAS NOT CHANGED.','ok');
     }catch(error){
-      const detail=centralSaved
-        ?'Central account saved, but the YARD HUB tier was not saved. Its previous tier remains in effect. '
+      const detail=centralSaved||error?.centralUserSaved
+        ?'Central account saved, but the YARD HUB tier was not saved or could not be verified. Refresh the user list before retrying. '
         :'';
       setStatus(detail+(error.message||'Unable to save the user account.'),'error');
       try{await loadState()}catch{}
