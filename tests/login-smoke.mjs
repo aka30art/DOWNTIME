@@ -421,7 +421,7 @@ try{
  await owner.page.locator('#yardHubUserPin').fill('2468');
  await owner.page.locator('#yardHubUserHubTier').selectOption('MANAGER');
  await owner.page.locator('#yardHubUserSave').click();
- await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsStatus')?.textContent.includes('USER ACCOUNT AND YARD HUB TIER SAVED'),{timeout:5000});
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsStatus')?.textContent.includes('CENTRAL USER AND YARD HUB TIER SAVED'),{timeout:5000});
  assert.equal(owner.getBank().users.find(user=>user.username==='YardQA')?.tier,'USER','New Hub user receives the safe DOWNTIME USER tier');
  assert.equal(owner.getYardHubConfig().userTiers.yardqa,'MANAGER','New user receives a separate YARD HUB tier assignment');
  assert.equal(JSON.stringify(owner.getBank().tiers),originalDowntimeTierPayload,'Hub user creation does not alter existing DOWNTIME tier permissions');
