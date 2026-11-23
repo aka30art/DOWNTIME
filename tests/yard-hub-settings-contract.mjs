@@ -101,4 +101,9 @@ assert.match(centralClient,/async saveTiers\(tiers,version\)/);
  assert.ok(ui.includes('state?.canManageCentralUsers!==true'), 'new user creation requires the existing Central Users right');
 assert.match(config,/\[functions\.yard-hub-settings-api\][\s\S]*?verify_jwt\s*=\s*false/,'YARD HUB API validates the existing opaque session itself');
 
+assert.ok(html.includes('window.refreshDowntimeCentralDirectory=async function()'), 'DOWNTIME exposes a central-user-only refresh hook for Hub account changes');
+assert.ok(html.includes('centralBankPayload=result.payload') && html.includes('centralVersion=Number(result.version)'), 'DOWNTIME refresh updates its current bank snapshot and optimistic concurrency version');
+assert.ok(ui.includes('await window.refreshDowntimeCentralDirectory()'), 'Hub user changes refresh the already-loaded DOWNTIME page before the next save');
+assert.ok(!html.includes('window.refreshDowntimeCentralDirectory=async function(){const result=await window.DowntimeCentral.state();centralBankPayload=result.payload;state=centralAppData(centralBankPayload)'), 'central-user refresh does not replace the live DOWNTIME tracker state');
+
 console.log('YARD HUB Settings isolation, identity compatibility, permission enforcement and DOWNTIME protection contracts passed.');
