@@ -457,7 +457,7 @@ Deno.serve(async(req)=>{
  if(action==="staff-original-upload"){
    if(!priv.canManageStaff)return json({error:"Permission denied"},403);
    const slug=String(body.staffKey||"").trim().toLowerCase();
-   if(!["jan","mick","gigi","daz","shayne"].includes(slug))return json({error:"Unknown STAFF destination"},400);
+   if(!/^[a-z0-9]{1,30}$/.test(slug))return json({error:"Invalid STAFF destination"},400);
    if(body.mimeType!=="image/png")return json({error:"Only PNG originals are accepted"},415);
    const encoded=String(body.base64||"");
    if(!encoded||encoded.length>7_000_000||!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded))return json({error:"PNG upload is missing or exceeds the 5 MB limit"},413);
