@@ -29,7 +29,7 @@
     async saveStaff(name,profile,version){return call("staff-save",{name,profile,version})},
     async saveTiers(tiers,version){return call("tiers-save",{tiers,version})},
     async signedStaffPhotoUpload(name){return call("staff-photo-url",{name})},
-    async uploadStaffOriginal(name,pngData){const staffKey=String(name||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"");if(!["jan","mick","gigi","daz","shayne"].includes(staffKey))throw new Error("Unknown STAFF destination.");const base64=String(pngData||"").replace(/^data:image\\/png;base64,/,"");if(!base64||base64.length>7000000)throw new Error("Original PNG exceeds the upload limit (5 MB).");return call("staff-original-upload",{staffKey,mimeType:"image/png",base64})},
+    async uploadStaffOriginal(name,pngData){const staffKey=String(name||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"");if(!["jan","mick","gigi","daz","shayne"].includes(staffKey))throw new Error("Unknown STAFF destination.");const base64=String(pngData||"").replace(/^data:image\/png;base64,/,"");if(!base64||base64.length>7000000)throw new Error("Original PNG exceeds the upload limit (5 MB).");return call("staff-original-upload",{staffKey,mimeType:"image/png",base64})},
     async signedStaffPhotoRead(path){return call("staff-photo-read",{path})},
     async removeStaffPhoto(path){return call("staff-photo-remove",{path})},
     async bootstrap(data){return call("bootstrap",data,null)}
