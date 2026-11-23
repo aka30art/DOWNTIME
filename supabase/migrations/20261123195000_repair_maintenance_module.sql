@@ -33,13 +33,18 @@ create table if not exists public.repair_maintenance_attachments (
   storage_path text not null unique,
   filename text not null check (length(trim(filename)) between 1 and 180),
   mime_type text not null check (mime_type in ('image/jpeg','image/png','image/webp','application/pdf','text/plain')),
-  size_bytes integer not null check (size_bytes between 1 and 5242880),
+  size_bytes integer not null check (size_bytes between 1 and 4194304),
   kind text not null check (kind in ('PHOTO','FILE')),
   created_by text not null,
   created_at timestamptz not null default now()
 );
 create index if not exists repair_maintenance_attachments_fault_created_idx
   on public.repair_maintenance_attachments (fault_id, created_at);
+
+alter table public.repair_maintenance_attachments
+  drop constraint if exists repair_maintenance_attachments_size_bytes_check;
+alter table public.repair_maintenance_attachments
+  add constraint repair_maintenance_attachments_size_bytes_check check (size_bytes between 1 and 4194304);
 
 create table if not exists public.repair_maintenance_audit (
   id bigint generated always as identity primary key,
@@ -68,7 +73,7 @@ grant all on table public.repair_maintenance_audit to service_role;
 grant usage, select on sequence public.repair_maintenance_audit_id_seq to service_role;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('repair-maintenance-evidence', 'repair-maintenance-evidence', false, 5242880,
+values ('repair-maintenance-evidence', 'repair-maintenance-evidence', false, 4194304,
   array['image/jpeg','image/png','image/webp','application/pdf','text/plain'])
 on conflict (id) do update set public = false,
   file_size_limit = excluded.file_size_limit,
