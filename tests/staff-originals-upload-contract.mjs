@@ -14,7 +14,7 @@ assert.match(client,/staff-original-upload/,'client calls secure originals uploa
 assert.match(api,/action==="staff-original-upload"/,'server handles STAFF originals uploads');
 assert.match(api,/priv\.canManageStaff/,'server enforces STAFF management permission');
 assert.match(api,/GITHUB_STAFF_IMAGE_TOKEN/,'GitHub token is server-only');
-assert.match(api,/assets\/staff\/originals\/+slug\+\/original\.png/,'server writes to canonical per-person folder');
+assert.ok(api.includes('"assets/staff/originals/"+slug+"/original.png'),'server writes to canonical per-person folder');
 assert.match(api,/image\/png/,'server validates PNG MIME');
 assert.match(api,/5\*1024\*1024/,'server limits original image payload');
 assert.match(api,/signature validation failed/,'server validates PNG signature');
