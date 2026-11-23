@@ -112,15 +112,15 @@ Deno.serve(async (req: Request) => {
     String(item.username).toLowerCase() === String(session.username).toLowerCase() && item.enabled !== false
   );
   if (!user) return json({ error: "This account is disabled or no longer exists." }, 401);
-  const legacyTier = String(user.tier || "USER").toUpperCase();
-  const hubTier = assignedHubTier(configRow?.payload, user.username);
-  const isAdmin = isHubSettingsAdmin(user, hubTier, legacyTier);
-
   const { data: configRow, error: configError } = await db.from("yard_hub_tier_config")
     .select("payload,version,updated_by,updated_at")
     .eq("id", 1)
     .maybeSingle();
   if (configError || !configRow?.payload) return json({ error: "YARD HUB permission settings are unavailable." }, 503);
+
+  const legacyTier = String(user.tier || "USER").toUpperCase();
+  const hubTier = assignedHubTier(configRow.payload, user.username);
+  const isAdmin = isHubSettingsAdmin(user, hubTier, legacyTier);
 
   if (action === "my-access") {
     const storedHubAccess = bank.tiers?.[legacyTier]?.canAccessYardHub;
