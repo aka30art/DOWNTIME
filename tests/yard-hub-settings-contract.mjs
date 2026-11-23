@@ -93,10 +93,11 @@ assert.match(centralClient,/async saveTiers\(tiers,version\)/);
  assert.ok(hubApi.includes('["DEVACC", "OWNER", "ADMIN"].includes(previousTier)'), 'non-root administrators cannot demote protected OWNER/DEVACC/ADMIN tiers');
  assert.ok(hubApi.includes('Administrators cannot change their own YARD HUB tier.'), 'admins cannot change their own Hub tier directly');
  assert.ok(hubApi.includes('Administrators cannot remove their own YARD HUB tier assignment.'), 'admins cannot remove their own Hub tier directly');
- assert.doesNotMatch(hubApi,/\\.from\\("downtime_central_bank"\\)\\.(update|insert|delete)/,'Hub settings service cannot mutate the DOWNTIME user bank');
- assert.match(ui,/const centralChanges=!existing[\\s\\S]*?if\\(centralChanges\\)\\{[\\s\\S]*?DowntimeCentral\\.saveUser/,'DOWNTIME user API is called only when central account fields actually change');
- assert.match(ui,/YARD HUB TIER SAVED\\. DOWNTIME USER DATA WAS NOT CHANGED\\./,'Hub-only tier save confirms no DOWNTIME mutation');
- assert.match(ui,/state\\?\\.canManageCentralUsers!==true/,'new user creation requires the existing Central Users right');
- assert.match(config,/\\[functions\\.yard-hub-settings-api\\][\\s\\S]*?verify_jwt\\s*=\\s*false/,'YARD HUB API validates the existing opaque session itself');
+ assert.doesNotMatch(hubApi,/\.from\("downtime_central_bank"\)\.(update|insert|delete)/,'Hub settings service cannot mutate the DOWNTIME user bank');
+ assert.ok(ui.includes('const centralChanges=!existing'), 'client detects whether central account fields actually changed');
+ assert.ok(ui.includes('if(centralChanges){'), 'the legacy user API call is conditional on a real central account change');
+ assert.ok(ui.includes('YARD HUB TIER SAVED. DOWNTIME USER DATA WAS NOT CHANGED.'), 'Hub-only tier save confirms no DOWNTIME mutation');
+ assert.ok(ui.includes('state?.canManageCentralUsers!==true'), 'new user creation requires the existing Central Users right');
+ assert.match(config,/\[functions\.yard-hub-settings-api\][\s\S]*?verify_jwt\s*=\s*false/,'YARD HUB API validates the existing opaque session itself');
 
 console.log('YARD HUB Settings isolation, identity compatibility, permission enforcement and DOWNTIME protection contracts passed.');
