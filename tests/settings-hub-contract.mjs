@@ -87,7 +87,7 @@ const fullAdmin=helper(()=>true);
 for(const section of requiredTiles)assert.equal(fullAdmin.settingsAccess(section),true);
 assert.equal(fullAdmin.settingsAccess('accessRights'),false,'a role without the ADMIN/JAN identity allow-list cannot access tier rights');
 assert.equal(accessHelpers(()=>false,()=>true).settingsAccess('accessRights'),true,'ADMIN tier or JAN root OWNER allow-list can access Access and Rights');
-assert.ok(html.includes('function canManageAccessRights(){return canAccessCentralBank()}'),'Access and Rights uses the strict ADMIN/JAN allow-list');
+assert.ok(html.includes("function canManageAccessRights(){return canAccessCentralBank()||permission('canManageAccessRights')}"),'Access and Rights requires root or delegated ADMIN permission');
 assert.ok(!html.includes('centralUsersAdminLink'),'obsolete Central Data Bank link is removed from the USERS panel');
 
 assert.match(html, /function showSettingsHub\(\)/, 'back navigation must return to the Settings hub');
