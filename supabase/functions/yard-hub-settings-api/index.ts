@@ -23,13 +23,18 @@ const safeUser = (user: any) => ({
   enabled: user.enabled !== false,
 });
 
-function isHubSettingsAdmin(user: any, tier: string) {
-  const username = String(user?.username || "").trim().toUpperCase();
-  return (username === "DEV" && tier === "OWNER") || tier === "DEVACC" || tier === "ADMIN";
+function isRootDev(user: any, legacyTier: string) {
+  return String(user?.username || "").trim().toUpperCase() === "DEV" && legacyTier === "OWNER";
 }
-function isRootAdmin(user: any, tier: string) {
-  const username = String(user?.username || "").trim().toUpperCase();
-  return (username === "DEV" && tier === "OWNER") || tier === "DEVACC";
+function isHubSettingsAdmin(user: any, hubTier: string, legacyTier: string) {
+  return isRootDev(user, legacyTier) || hubTier === "DEVACC" || hubTier === "ADMIN";
+}
+function isRootAdmin(user: any, hubTier: string, legacyTier: string) {
+  return isRootDev(user, legacyTier) || hubTier === "DEVACC";
+}
+function assignedHubTier(config: any, username: string) {
+  const saved = String(config?.userTiers?.[String(username || "").trim().toLowerCase()] || "").toUpperCase();
+  return tierNames.includes(saved as any) ? saved : "USER";
 }
 function normalizeTierPermissions(input: any, current: any, editableRoles: readonly string[]) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Tier permissions are required.");
@@ -101,8 +106,9 @@ Deno.serve(async (req: Request) => {
     String(item.username).toLowerCase() === String(session.username).toLowerCase() && item.enabled !== false
   );
   if (!user) return json({ error: "This account is disabled or no longer exists." }, 401);
-  const tier = String(user.tier || "USER").toUpperCase();
-  const isAdmin = isHubSettingsAdmin(user, tier);
+  const legacyTier = String(user.tier || "USER").toUpperCase();
+  const hubTier = assignedHubTier(configRow?.payload, user.username);
+  const isAdmin = isHubSettingsAdmin(user, hubTier, legacyTier);
 
   const { data: configRow, error: configError } = await db.from("yard_hub_tier_config")
     .select("payload,version,updated_by,updated_at")
@@ -111,11 +117,11 @@ Deno.serve(async (req: Request) => {
   if (configError || !configRow?.payload) return json({ error: "YARD HUB permission settings are unavailable." }, 503);
 
   if (action === "my-access") {
-    const storedHubAccess = bank.tiers?.[tier]?.canAccessYardHub;
-    const canAccessYardHub = storedHubAccess !== false || tier === "OWNER" || tier === "DEVACC";
-    const myPermissions = configRow.payload?.tiers?.[tier] || { floor: "NONE", checkSheets: "NONE", repairMaintenance: "NONE" };
+    const storedHubAccess = bank.tiers?.[legacyTier]?.canAccessYardHub;
+    const canAccessYardHub = storedHubAccess !== false || isRootDev(user, legacyTier);
+    const myPermissions = configRow.payload?.tiers?.[hubTier] || { floor: "NONE", checkSheets: "NONE", repairMaintenance: "NONE" };
     return json({
-      user: safeUser(user),
+      user: { ...safeUser(user), legacyTier, hubTier },
       canManageSettings: isAdmin,
       canAccessYardHub,
       sections: {
@@ -131,15 +137,95 @@ Deno.serve(async (req: Request) => {
 
   if (action === "settings-state") {
     return json({
-      user: safeUser(user),
-      users: (Array.isArray(bank.users) ? bank.users : []).map(safeUser).sort((a: any, b: any) => a.username.localeCompare(b.username)),
+      user: { ...safeUser(user), legacyTier, hubTier },
+      users: (Array.isArray(bank.users) ? bank.users : []).map((account: any) => ({
+        ...safeUser(account),
+        legacyTier: String(account.tier || "USER").toUpperCase(),
+        hubTier: assignedHubTier(configRow.payload, account.username),
+      })).sort((a: any, b: any) => a.username.localeCompare(b.username)),
+      userTiers: configRow.payload?.userTiers || {},
       centralVersion: Number(bankRow.version || 0),
       tierPermissions: configRow.payload,
       permissionVersion: Number(configRow.version),
       updatedBy: configRow.updated_by,
       updatedAt: configRow.updated_at,
-      editableTiers: isRootAdmin(user, tier) ? [...tierNames] : [...editableByAdmin],
+      editableTiers: isRootAdmin(user, hubTier, legacyTier) ? [...tierNames] : [...editableByAdmin],
     });
+  }
+
+  if (action === "save-user-tier") {
+    const targetUsername = String(body.username || "").trim();
+    const nextTier = String(body.tier || "").toUpperCase();
+    if (!targetUsername || targetUsername.length > 32 || !/^[A-Za-z0-9_.-]{2,32}$/.test(targetUsername)) {
+      return json({ error: "Valid username required." }, 400);
+    }
+    if (!tierNames.includes(nextTier as any)) return json({ error: "Unknown YARD HUB tier." }, 400);
+    const target = (Array.isArray(bank.users) ? bank.users : []).find((account: any) =>
+      String(account.username || "").toLowerCase() === targetUsername.toLowerCase()
+    );
+    if (!target || target.enabled === false) return json({ error: "Active central user account not found." }, 404);
+    const targetLegacyTier = String(target.tier || "USER").toUpperCase();
+    if (String(target.username).trim().toUpperCase() === "DEV" && targetLegacyTier === "OWNER" && nextTier !== "OWNER") {
+      return json({ error: "The DEV root account must remain assigned to the OWNER YARD HUB tier." }, 403);
+    }
+    const root = isRootAdmin(user, hubTier, legacyTier);
+    if (!root && !editableByAdmin.includes(nextTier as any)) {
+      return json({ error: "ADMIN may assign only MANAGER, SUPERVISOR, USER and SPECTATOR YARD HUB tiers." }, 403);
+    }
+    if (nextTier === "OWNER" && !(String(target.username).trim().toUpperCase() === "DEV" && targetLegacyTier === "OWNER")) {
+      return json({ error: "DEV is the only OWNER YARD HUB account." }, 403);
+    }
+    if (nextTier === "DEVACC" && (!root || (hubTier !== "DEVACC" && !isRootDev(user, legacyTier)))) {
+      return json({ error: "Only root DEV may assign the DEVACC YARD HUB tier." }, 403);
+    }
+    if (["DEVACC", "OWNER"].includes(hubTier) && target.username !== user.username && !root) {
+      return json({ error: "Protected YARD HUB account." }, 403);
+    }
+    const expectedVersion = Number(body.version);
+    if (!Number.isInteger(expectedVersion) || expectedVersion !== Number(configRow.version)) {
+      return json({ error: "YARD HUB permissions changed elsewhere. Refresh and try again." }, 409);
+    }
+    const previousTier = assignedHubTier(configRow.payload, target.username);
+    const nextPayload = structuredClone(configRow.payload);
+    nextPayload.userTiers = nextPayload.userTiers && typeof nextPayload.userTiers === "object" ? nextPayload.userTiers : {};
+    nextPayload.userTiers[String(target.username).toLowerCase()] = nextTier;
+    const { data: savedVersion, error: saveError } = await db.rpc("yard_hub_save_tier_settings", {
+      p_expected_version: expectedVersion,
+      p_next_payload: nextPayload,
+      p_actor: String(user.username),
+    });
+    if (saveError) return json({ error: "Unable to save YARD HUB user tier assignment." }, 503);
+    if (!savedVersion) return json({ error: "YARD HUB permissions changed elsewhere. Refresh and try again." }, 409);
+    return json({ ok: true, previousTier, tier: nextTier, version: Number(savedVersion) });
+  }
+
+  if (action === "remove-user-tier") {
+    const targetUsername = String(body.username || "").trim();
+    if (!targetUsername) return json({ error: "Username required." }, 400);
+    const target = (Array.isArray(bank.users) ? bank.users : []).find((account: any) =>
+      String(account.username || "").toLowerCase() === targetUsername.toLowerCase()
+    );
+    if (!target) return json({ error: "Central user account not found." }, 404);
+    const root = isRootAdmin(user, hubTier, legacyTier);
+    if (!root && !editableByAdmin.includes(assignedHubTier(configRow.payload, target.username) as any)) {
+      return json({ error: "ADMIN cannot remove protected YARD HUB tier assignments." }, 403);
+    }
+    if (String(target.username).trim().toUpperCase() === "DEV") return json({ error: "The DEV OWNER assignment cannot be removed." }, 403);
+    const expectedVersion = Number(body.version);
+    if (!Number.isInteger(expectedVersion) || expectedVersion !== Number(configRow.version)) {
+      return json({ error: "YARD HUB permissions changed elsewhere. Refresh and try again." }, 409);
+    }
+    const nextPayload = structuredClone(configRow.payload);
+    nextPayload.userTiers = nextPayload.userTiers && typeof nextPayload.userTiers === "object" ? nextPayload.userTiers : {};
+    delete nextPayload.userTiers[String(target.username).toLowerCase()];
+    const { data: savedVersion, error: saveError } = await db.rpc("yard_hub_save_tier_settings", {
+      p_expected_version: expectedVersion,
+      p_next_payload: nextPayload,
+      p_actor: String(user.username),
+    });
+    if (saveError) return json({ error: "Unable to remove YARD HUB user tier assignment." }, 503);
+    if (!savedVersion) return json({ error: "YARD HUB permissions changed elsewhere. Refresh and try again." }, 409);
+    return json({ ok: true, version: Number(savedVersion) });
   }
 
   if (action === "save-tier-settings") {
@@ -147,7 +233,7 @@ Deno.serve(async (req: Request) => {
     if (!Number.isInteger(expectedVersion) || expectedVersion !== Number(configRow.version)) {
       return json({ error: "YARD HUB permissions changed elsewhere. Refresh and try again." }, 409);
     }
-    const editableRoles = isRootAdmin(user, tier) ? [...tierNames] : [...editableByAdmin];
+    const editableRoles = isRootAdmin(user, hubTier, legacyTier) ? [...tierNames] : [...editableByAdmin];
     let nextPayload: any;
     try {
       nextPayload = normalizeTierPermissions(body.payload, configRow.payload, editableRoles);
