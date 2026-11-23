@@ -736,7 +736,7 @@ const crewMenu=owner.page.locator('.nav-menu');
  assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="6"]').textContent(),'RITA','station blueprint updates immediately');
 
  
-  await owner.page.locator('#overviewClose').click();
+  await owner.page.frameLocator('#overviewFrame').locator('#exitOverview').click();
   await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
   await openStaffSettings(owner.page);
   await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
@@ -771,7 +771,7 @@ const crewMenu=owner.page.locator('.nav-menu');
   await owner.page.waitForFunction(()=>document.querySelector('#overviewFrame')?.contentWindow?.document?.querySelector('[data-opprofile="RITA"] .station')?.textContent==='Station 6 · GENERAL',{timeout:3000});
   assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="6"]').textContent(),'RITA','remote assignment to an unlocked member propagates live');
   assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="5"]').textContent(),'SHAYNE','previous station is cleared after unlocked reassignment');
-  await owner.page.locator('#overviewClose').click();
+  await owner.page.frameLocator('#overviewFrame').locator('#exitOverview').click();
   await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
   await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
   owner.page.once('dialog',dialog=>dialog.accept());
