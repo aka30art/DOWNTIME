@@ -1,9 +1,12 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "library": "DOWNTIME STAFF IMAGE LIBRARY",
   "basePath": "assets/staff/originals/",
+  "folderConvention": "<normalized-staff-key>/original.png",
   "preserveOriginals": true,
   "uploadFormat": "PNG",
+  "resolutionPolicy": "Preserve uploaded source resolution; app loads original.png directly.",
+  "dynamicStaffFolders": true,
   "staff": {
     "jan": {
       "directory": "jan",
