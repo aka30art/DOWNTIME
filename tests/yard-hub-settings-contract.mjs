@@ -107,4 +107,11 @@ assert.ok(ui.includes('await window.refreshDowntimeCentralDirectory()'), 'Hub us
 assert.ok(!html.includes('window.refreshDowntimeCentralDirectory=async function(){const result=await window.DowntimeCentral.state();centralBankPayload=result.payload;state=centralAppData(centralBankPayload)'), 'central-user refresh does not replace the live DOWNTIME tracker state');
 
 assert.ok(html.includes("function returnToYardHub()") && html.includes("window.dispatchEvent(new Event('yard-hub:shown'))"), 'returning from DOWNTIME refreshes Hub section permissions');
+
+assert.ok(html.includes('window.saveDowntimeCentralUserFromYardHub=function(userData)'), 'Hub central user writes are serialized with DOWNTIME cloud writes');
+assert.ok(html.includes('const task=cloudWrite.then(async()=>{'), 'central user writes wait behind outstanding tracker and settings writes');
+assert.ok(html.includes('cloudSyncFailed)throw new Error'), 'unsynced DOWNTIME data blocks unrelated central user mutations');
+assert.ok(html.includes('await window.refreshDowntimeCentralDirectory()'), 'central user mutations refresh the current Central Bank version before and after saving');
+assert.ok(ui.includes('window.saveDowntimeCentralUserFromYardHub||window.DowntimeCentral.saveUser'), 'Hub user create/edit/disable reuses the serialized DOWNTIME bridge');
+
 console.log('YARD HUB Settings isolation, identity compatibility, permission enforcement and DOWNTIME protection contracts passed.');
