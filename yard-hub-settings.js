@@ -148,14 +148,19 @@
       edit.addEventListener('click',()=>openUserModal(user));
       actions.appendChild(edit);
       const status=element('button','yard-hub-small-button '+(user.enabled===false?'':'danger'),user.enabled===false?'RE-ENABLE':'DISABLE');
-      status.type='button';status.disabled=saving||isSelf||(String(user.username).toUpperCase()==='DEV');
+      status.type='button';status.disabled=saving||isSelf||protectedUser||(String(user.username).toUpperCase()==='DEV');
       status.addEventListener('click',()=>setUserEnabled(user,user.enabled===false));
       actions.appendChild(status);
       row.append(identity,meta,actions);host.appendChild(row);
     });
   }
   function allowedHubTiers(existingTier,username){
-    if(isRootAdmin())return username?.toUpperCase()==='DEV'?['OWNER']:roles.filter(role=>role!=='OWNER');
+    if(isRootAdmin()){
+      const options=roles.filter(role=>role!=='OWNER'&&(role!=='DEVACC'||rootDev()));
+      if(existingTier==='DEVACC'&&!options.includes('DEVACC'))options.unshift('DEVACC');
+      if(username?.toUpperCase()==='DEV')return ['OWNER'];
+      return options;
+    }
     return editableByAdmin.slice();
   }
   function openUserModal(user=null){
