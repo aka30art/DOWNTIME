@@ -152,9 +152,9 @@ Deno.serve(async (req: Request) => {
       if (!kind || !mimeTypes.has(mimeType) || (kind === "PHOTO" && !mimeType.startsWith("image/"))) return json(fail("File type is not supported."), 400);
       const dataUrl = String(body.dataUrl || "");
       const match = dataUrl.match(/^data:([a-z0-9.+-]+\/[a-z0-9.+-]+);base64,([a-z0-9+/=]+)$/i);
-      if (!match || match[1].toLowerCase() !== mimeType || match[2].length > 5_700_000) return json(fail("File data is invalid or exceeds the 5 MB limit."), 400);
+      if (!match || match[1].toLowerCase() !== mimeType || match[2].length > 5_600_000) return json(fail("File data is invalid or exceeds the 4 MB limit."), 400);
       const bytes = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
-      if (!bytes.length || bytes.length > 5 * 1024 * 1024) return json(fail("File exceeds the 5 MB limit."), 400);
+      if (!bytes.length || bytes.length > 4 * 1024 * 1024) return json(fail("File exceeds the 4 MB limit."), 400);
       const safeName = filename.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(-120) || "evidence";
       const storagePath = `${fault.id}/${crypto.randomUUID()}-${safeName}`;
       const { error: uploadError } = await db.storage.from(bucket).upload(storagePath, bytes, { contentType: mimeType, upsert: false });
