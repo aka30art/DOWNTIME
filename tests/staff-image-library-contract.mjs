@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const html=fs.readFileSync('index.html','utf8');
+const library=fs.readFileSync('assets/staff/staff-image-library.js','utf8');
+const manifest=JSON.parse(fs.readFileSync('assets/staff/staff-images.json','utf8'));
+assert.match(html,/staff-image-library\.js/);
+assert.match(html,/DowntimeStaffImages\.apply\(/);
+assert.match(library,/signedStaffPhotoRead/);
+for(const n of ['jan','mick','gigi','daz','shayne'])assert.ok(manifest.staff[n],`Missing staff entry: ${n}`);
+console.log('STAFF IMAGE LIBRARY contract: PASS');
