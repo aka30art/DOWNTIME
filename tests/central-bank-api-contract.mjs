@@ -50,7 +50,7 @@ const lockedRoles=src.slice(src.indexOf('const lockedRolePrivileges'),src.indexO
 assert.ok(lockedRoles.includes('OWNER:{canEditTracker:true'), 'DEV root OWNER permissions are fixed');
 assert.doesNotMatch(lockedRoles, /MANAGER:|SUPERVISOR:|USER:|SPECTATOR:/,
   'non-root tiers are configurable by DEV rather than locked to hard-coded baselines');
-assert.ok(src.includes("const isAccessRightsAdmin= tier===\"ADMIN\"&&priv.canManageAccessRights===true")&&src.includes("const editableRoles=isCentralBankAccess?tiers:[\"MANAGER\",\"SUPERVISOR\",\"USER\",\"SPECTATOR\"]"),
+assert.ok(src.includes("const isAccessRightsAdmin=tier===\"ADMIN\"&&priv.canManageAccessRights===true")&&src.includes("const editableRoles=isCentralBankAccess?tiers:[\"MANAGER\",\"SUPERVISOR\",\"USER\",\"SPECTATOR\"]"),
   "tier rights changes allow root or delegated ADMIN scope only");
 assert.ok(src.includes('const isCentralAdmin=tier==="ADMIN"||isRootAuthority;'),'ADMIN and root-equivalent identities can manage account tiers');
 assert.ok(src.includes('if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEV and DEVACC can create accounts or assign user tiers."},403);'),
@@ -81,7 +81,7 @@ assert.ok(src.includes('const isDevRoot=currentUsername==="DEV"&&tier==="OWNER"'
 assert.ok(src.includes('const isDevacc=tier==="DEVACC";')&&src.includes('const isRootAuthority=isDevRoot||isDevacc;')&&src.includes('const isCentralBankAccess=isRootAuthority;'),'DEVACC is a root-equivalent Data Bank principal');
 assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);'),'whole-bank state is limited to DEV and DEVACC');
 assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),'all configuration control-plane actions share the DEV/DEVACC gate');
-assert.ok(src.includes("const isAccessRightsAdmin= tier===\"ADMIN\"&&priv.canManageAccessRights===true"),"delegated ADMIN permission is checked server-side");
+assert.ok(src.includes("const isAccessRightsAdmin=tier===\"ADMIN\"&&priv.canManageAccessRights===true"),"delegated ADMIN permission is checked server-side");
 assert.ok(src.includes('if(newTier==="DEVACC"&&(!existing||existing.tier!=="DEVACC")&&!isDevRoot)return json({error:"Only root DEV can assign DEVacc."},403);'),'only root DEV can grant or promote an account to DEVACC');
 assert.ok(src.includes('if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);'),'DEVACC retains authority to edit existing DEVACC accounts');
 assert.ok(src.includes('if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);'),'DEVACC may modify, disable and restore DEVACC users');
