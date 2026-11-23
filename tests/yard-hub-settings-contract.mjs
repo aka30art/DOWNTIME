@@ -106,7 +106,7 @@ assert.ok(html.includes('window.refreshDowntimeCentralDirectory=async function()
 assert.ok(html.includes('centralBankPayload=result.payload') && html.includes('centralVersion=Number(result.version)'), 'DOWNTIME refresh updates its current bank snapshot and optimistic concurrency version');
 assert.ok(ui.includes('const saveCentralUser=window.saveDowntimeCentralUserFromYardHub;'), 'Hub user changes use the serialized DOWNTIME central-user write bridge');
 assert.ok(ui.includes("if(typeof saveCentralUser!=='function')throw new Error('Central user mutation bridge is unavailable."), 'Hub user changes fail closed if the serialized bridge is unavailable');
-assert.doesNotMatch(ui,/window\\.DowntimeCentral\\.saveUser\\(/,'Hub UI cannot bypass the serialized central-user bridge');
+assert.ok(!ui.includes('window.DowntimeCentral.saveUser('), 'Hub UI cannot bypass the serialized central-user bridge');
 assert.ok(html.includes('const freshVersion=await window.refreshDowntimeCentralDirectory()') && html.includes('verifiedVersion=await window.refreshDowntimeCentralDirectory()'), 'serialized bridge refreshes Central Bank version before and after account mutation');
 assert.ok(!html.includes('window.refreshDowntimeCentralDirectory=async function(){const result=await window.DowntimeCentral.state();centralBankPayload=result.payload;state=centralAppData(centralBankPayload)'), 'central-user refresh does not replace the live DOWNTIME tracker state');
 
