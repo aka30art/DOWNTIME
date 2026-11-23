@@ -271,6 +271,7 @@ window.supabase={createClient:()=>({
     users:users.map(user=>({...user,legacyTier:user.tier,hubTier:yardHubConfig.userTiers[user.username.toLowerCase()]||'USER'})),
     userTiers:yardHubConfig.userTiers,
     centralVersion:version,
+    canManageCentralUsers:tiers[tier]?.canManageUsers===true,
     tierPermissions:JSON.parse(JSON.stringify(yardHubConfig)),
     permissionVersion:yardHubPermissionVersion,
     editableTiers:root||hubTier==='DEVACC'?Object.keys(yardHubConfig.tiers):['MANAGER','SUPERVISOR','USER','SPECTATOR']
