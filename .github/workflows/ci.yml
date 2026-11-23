@@ -77,3 +77,5 @@ jobs:
         run: deno check --node-modules-dir=auto supabase/functions/central-bank/index.ts
       - name: Type-check the R&M Supabase Edge Function
         run: deno check --node-modules-dir=auto supabase/functions/repair-maintenance-api/index.ts
+      - name: Type-check the YARD HUB Settings Edge Function
+        run: deno check --node-modules-dir=auto supabase/functions/yard-hub-settings-api/index.ts

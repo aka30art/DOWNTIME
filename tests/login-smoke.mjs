@@ -11,15 +11,20 @@ const staffImageLibrary=await readFile(resolve('assets/staff/staff-image-library
 const repairMaintenanceLauncher=await readFile(resolve('repair-maintenance-launch.js'),'utf8');
 const repairMaintenanceHtml=await readFile(resolve('repair-maintenance.html'),'utf8');
 const repairMaintenanceApp=await readFile(resolve('repair-maintenance-app.js'),'utf8');
+const yardHubSettingsScript=await readFile(resolve('yard-hub-settings.js'),'utf8');
+const yardHubSettingsCss=await readFile(resolve('yard-hub-settings.css'),'utf8');
 const server=createServer((req,res)=>{
   const pathname=String(req.url||'').split('?')[0];
-  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js';
-  res.writeHead(200,{'content-type':isJavaScript?'application/javascript; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store'});
+  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js'||pathname==='/yard-hub-settings.js';
+  const isCss=pathname==='/yard-hub-settings.css';
+  res.writeHead(200,{'content-type':isJavaScript?'application/javascript; charset=utf-8':isCss?'text/css; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store'});
   if(pathname==='/central-bank-client.js')return res.end(adapter);
   if(pathname==='/assets/staff/staff-image-library.js')return res.end(staffImageLibrary);
   if(pathname==='/repair-maintenance-launch.js')return res.end(repairMaintenanceLauncher);
   if(pathname==='/repair-maintenance-app.js')return res.end(repairMaintenanceApp);
   if(pathname==='/repair-maintenance.html')return res.end(repairMaintenanceHtml);
+  if(pathname==='/yard-hub-settings.js')return res.end(yardHubSettingsScript);
+  if(pathname==='/yard-hub-settings.css')return res.end(yardHubSettingsCss);
   res.end(pathname==='/plant-overview-preview.html'?overviewHtml:indexHtml);
 });
 await new Promise((ok,fail)=>{server.once('error',fail);server.listen(4173,'127.0.0.1',ok)});
@@ -226,6 +231,79 @@ window.supabase={createClient:()=>({
   if(action==='logout')return ok({ok:true});
   return ok({error:'Unknown action'},400);
  });
+ const yardHubConfig={
+  schemaVersion:1,
+  tiers:{
+   OWNER:{floor:'NONE',checkSheets:'NONE',repairMaintenance:'EDIT'},
+   DEVACC:{floor:'NONE',checkSheets:'NONE',repairMaintenance:'EDIT'},
+   ADMIN:{floor:'NONE',checkSheets:'NONE',repairMaintenance:'EDIT'},
+   MANAGER:{floor:'NONE',checkSheets:'NONE',repairMaintenance:'EDIT'},
+   SUPERVISOR:{floor:'NONE',checkSheets:'NONE',repairMaintenance:'EDIT'},
+   USER:{floor:'NONE',checkSheets:'NONE',repairMaintenance:'NONE'},
+   SPECTATOR:{floor:'NONE',checkSheets:'NONE',repairMaintenance:'NONE'}
+  },
+  userTiers:{dev:'OWNER',jan:'USER',mick:username.toUpperCase()==='MICK'?tier:'USER'}
+ };
+ let yardHubPermissionVersion=1;
+ const yardHubApiActions=[];
+ const getMockUsers=()=>{
+  const result=bank.users?.length?bank.users.map(user=>({username:user.username,displayName:user.displayName||user.username,tier:user.tier,enabled:user.enabled!==false})): [
+   {username:'DEV',displayName:'DEV',tier:'OWNER',enabled:true},
+   {username:'Jan',displayName:'Jan',tier:'USER',enabled:true},
+   {username:'MICK',displayName:'Mick',tier:username.toUpperCase()==='MICK'?tier:'USER',enabled:true}
+  ];
+  if(!result.some(user=>user.username.toLowerCase()===username.toLowerCase()))result.push({username,displayName:username,tier,enabled:true});
+  return result;
+ };
+ await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/yard-hub-settings-api',async route=>{
+  const origin='http://127.0.0.1:4173';
+  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':origin,'access-control-allow-headers':'apikey, content-type, x-downtime-session','access-control-allow-methods':'POST, OPTIONS','vary':'Origin'}});
+  const req=route.request().postDataJSON(),action=req.action;
+  yardHubApiActions.push({action,body:req});
+  const ok=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
+  const hubTier=String(yardHubConfig.userTiers[username.toLowerCase()]||'USER');
+  const root=username.toUpperCase()==='DEV'&&tier==='OWNER';
+  const canManage=root||hubTier==='DEVACC'||hubTier==='ADMIN';
+  const users=getMockUsers();
+  if(action==='my-access')return ok({user:{username,displayName:username,legacyTier:tier,hubTier},canManageSettings:canManage,canManageCentralUsers:tiers[tier]?.canManageUsers===true,canAccessYardHub:true,sections:yardHubConfig.tiers[hubTier],permissionVersion:yardHubPermissionVersion});
+  if(action==='settings-state'){
+   if(!canManage)return ok({error:'Permission denied'},403);
+   return ok({
+    user:{username,displayName:username,legacyTier:tier,hubTier},
+    users:users.map(user=>({...user,legacyTier:user.tier,hubTier:yardHubConfig.userTiers[user.username.toLowerCase()]||'USER'})),
+    userTiers:yardHubConfig.userTiers,
+    centralVersion:version,
+    canManageCentralUsers:tiers[tier]?.canManageUsers===true,
+    tierPermissions:JSON.parse(JSON.stringify(yardHubConfig)),
+    permissionVersion:yardHubPermissionVersion,
+    editableTiers:root||hubTier==='DEVACC'?Object.keys(yardHubConfig.tiers):['MANAGER','SUPERVISOR','USER','SPECTATOR']
+   });
+  }
+  if(action==='save-tier-settings'){
+   if(!canManage)return ok({error:'Permission denied'},403);
+   if(Number(req.version)!==yardHubPermissionVersion)return ok({error:'Version conflict'},409);
+   const editable=root||hubTier==='DEVACC'?Object.keys(yardHubConfig.tiers):['MANAGER','SUPERVISOR','USER','SPECTATOR'];
+   for(const role of editable){
+    const profile=req.payload?.tiers?.[role];
+    if(!profile)return ok({error:'Missing tier profile'},400);
+    for(const key of ['floor','checkSheets','repairMaintenance'])if(!['NONE','READ','EDIT'].includes(profile[key]))return ok({error:'Invalid permission mode'},400);
+   }
+   yardHubConfig.tiers=JSON.parse(JSON.stringify(req.payload.tiers));
+   yardHubPermissionVersion++;
+   return ok({ok:true,version:yardHubPermissionVersion});
+  }
+  if(action==='save-user-tier'){
+   if(!canManage)return ok({error:'Permission denied'},403);
+   if(Number(req.version)!==yardHubPermissionVersion)return ok({error:'Version conflict'},409);
+   const target=users.find(user=>user.username.toLowerCase()===String(req.username||'').toLowerCase());
+   if(!target)return ok({error:'User not found'},404);
+   if(!root&&!['MANAGER','SUPERVISOR','USER','SPECTATOR'].includes(req.tier))return ok({error:'Protected tier'},403);
+   yardHubConfig.userTiers[target.username.toLowerCase()]=req.tier;
+   yardHubPermissionVersion++;
+   return ok({ok:true,version:yardHubPermissionVersion});
+  }
+  return ok({error:'Unknown YARD HUB settings action'},400);
+ });
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
  await page.route('**/functions/v1/repair-maintenance-api',async route=>{
   const origin='http://127.0.0.1:4173';
@@ -234,7 +312,7 @@ window.supabase={createClient:()=>({
  });
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
  try{await page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:8000})}catch(error){throw new Error('Central login options failed to populate. Browser errors: '+errors.slice(-10).join(' | ')+'; auth message: '+await page.locator('#authMsg').textContent().catch(()=> 'missing')+'; window adapter: '+await page.evaluate(()=>String(!!window.DowntimeCentral)).catch(()=> 'unavailable')+'; original: '+error.message)}
- return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
+ return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,getYardHubConfig:()=>yardHubConfig,getYardHubApiActions:()=>yardHubApiActions,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
 let repairMaintenanceBootTested=false;
@@ -317,11 +395,62 @@ try{
  await owner.page.locator('#launchDowntimeBtn').click();
  await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
  assert.equal(await owner.page.locator('#yardHub').isVisible(),false,'relaunching DOWNTIME closes YARD HUB');
+ await owner.page.locator('#backToYardHub').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsBtn')?.dataset.accessChecked==='true',{timeout:5000});
+ assert.equal(await owner.page.locator('#yardHub').isVisible(),true,'returning from DOWNTIME restores YARD HUB before testing Hub Settings');
+ // YARD HUB SETTINGS is additive: section tiers and Hub user assignments never alter DOWNTIME tier data.
+ await owner.page.waitForFunction(()=>{const button=document.querySelector('#yardHubSettingsBtn');return button?.dataset.accessChecked==='true'&&!button.hidden},{timeout:5000});
+  assert.equal(await owner.page.locator('#yardHubSettingsBtn').isVisible(),true,'DEV root can open YARD HUB Settings');
+ const originalDowntimeTierPayload=JSON.stringify(owner.getBank().tiers);
+ const originalDowntimeCentralVersion=owner.getVersion();
+ await owner.page.locator('#yardHubSettingsBtn').click();
+ await owner.page.locator('#yardHubSettingsScreen').waitFor({state:'visible',timeout:5000});
+ assert.equal(await owner.page.locator('#yardHubSettingsUsers').isVisible(),true,'YARD HUB Settings exposes USERS');
+ assert.equal(await owner.page.locator('#yardHubSettingsTiers').isVisible(),true,'YARD HUB Settings exposes TIERS');
+ await owner.page.locator('#yardHubSettingsTiers').click();
+ const managerRead=owner.page.locator('input[data-hub-tier="MANAGER"][data-hub-section="floor"][data-hub-mode="READ"]');
+ const managerEdit=owner.page.locator('input[data-hub-tier="MANAGER"][data-hub-section="floor"][data-hub-mode="EDIT"]');
+ await managerRead.check();
+ assert.equal(await managerEdit.isChecked(),false,'READ and EDIT are mutually exclusive');
+ await managerEdit.check();
+ assert.equal(await managerRead.isChecked(),false,'EDIT implicitly includes READ and clears the separate READ checkbox');
+ await owner.page.locator('#yardHubTierSave').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsStatus')?.textContent.includes('TIER PERMISSIONS SAVED'),{timeout:5000});
+ assert.equal(owner.getYardHubConfig().tiers.MANAGER.floor,'EDIT','Hub tier save writes the isolated Hub permission matrix');
+ assert.equal(JSON.stringify(owner.getBank().tiers),originalDowntimeTierPayload,'YARD HUB tier edits do not modify the DOWNTIME tier payload');
+ assert.equal(owner.getVersion(),originalDowntimeCentralVersion,'YARD HUB tier edits do not increment the DOWNTIME Central Bank version');
+ await owner.page.locator('#yardHubTiersView [data-yard-settings-home]').click();
+ await owner.page.locator('#yardHubSettingsUsers').click();
+ await owner.page.locator('#yardHubUserAdd').click();
+ await owner.page.locator('#yardHubUserUsername').fill('YardQA');
+ await owner.page.locator('#yardHubUserDisplay').fill('Yard QA');
+ await owner.page.locator('#yardHubUserPin').fill('2468');
+ await owner.page.locator('#yardHubUserHubTier').selectOption('MANAGER');
+ await owner.page.locator('#yardHubUserSave').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsStatus')?.textContent.includes('CENTRAL USER AND YARD HUB TIER SAVED'),{timeout:5000});
+ assert.equal(owner.getBank().users.find(user=>user.username==='YardQA')?.tier,'USER','New Hub user receives the safe DOWNTIME USER tier');
+ assert.equal(owner.getYardHubConfig().userTiers.yardqa,'MANAGER','New user receives a separate YARD HUB tier assignment');
+ assert.equal(JSON.stringify(owner.getBank().tiers),originalDowntimeTierPayload,'Hub user creation does not alter existing DOWNTIME tier permissions');
+ assert.ok(owner.getYardHubApiActions().some(call=>call.action==='save-user-tier'&&call.body.username==='YardQA'),'YARD HUB tier assignment is written through the isolated Hub API');
+ await owner.page.locator('#yardHubSettingsBack').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:3000});
+ assert.equal(await owner.page.locator('#launchDowntimeBtn').isEnabled(),true,'DOWNTIME remains available after Hub Settings changes');
+ assert.equal(await owner.page.locator('.yard-tile[data-app="floor"]').isDisabled(),true,'FLOOR stays unavailable until the application is released');
+ assert.equal(await owner.page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until the application is released');
+ assert.equal(await owner.page.locator('#yardHubSettingsBtn').isVisible(),true,'DEV root retains YARD HUB Settings access');
+ await owner.page.locator('#launchDowntimeBtn').click();
+ await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
+ assert.equal(owner.getVersion(),originalDowntimeCentralVersion+1,'Only the intentional central user creation increments the DOWNTIME user-directory version');
+
  // Jan remains a normal operational USER rather than a root/admin identity.
  const janOperational=await openFor('USER','1357','Jan');
  await signIn(janOperational.page,'1357','Jan');
  await janOperational.page.locator('.nav-menu > summary').click();
  assert.equal(await janOperational.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'Jan USER does not see the Central Data Bank admin entry');
+ await janOperational.page.waitForFunction(()=>window.DowntimeCentral?.session?.token,{timeout:5000});
+ await janOperational.page.waitForTimeout(100);
+
+ assert.equal(await janOperational.page.locator('#yardHubSettingsBtn').isVisible(),false,'ordinary USER cannot see YARD HUB Settings');
  assert.equal(await janOperational.page.locator('#plantOperatorToggle').isVisible(),true,'USER tier sees Plant Power when its permission is enabled');
  assert.equal(await janOperational.page.locator('#plantOperatorToggle').textContent(),'PLANT ON · GREEN','USER sees the live plant status');
  await janOperational.page.locator('#plantOperatorToggle').click();

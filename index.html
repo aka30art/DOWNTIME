@@ -535,6 +535,7 @@ body.overview-overlay-open{overflow:hidden}
 @media(prefers-reduced-motion:reduce){.yard-tile{transition:none}.yard-tile-active:hover{transform:none}}
 
 </style>
+<link rel="stylesheet" href="yard-hub-settings.css?v=20261123-1">
 </head>
 <body><div id="authGate"><div class="authbox"><h2>DOWNTIME · CENTRAL LOGIN</h2><p class="muted">Select your central USER account and enter your PIN.</p><label for="centralUsername">USERNAME</label><select id="centralUsername" class="input" aria-label="Central username"><option value="">Loading central USERS…</option></select><input id="teamPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="4–8 digit PIN" aria-label="Central account PIN"><div class="pinpad" data-pinpad="teamPin"><div class="pinpad-grid"><button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="clear">CLEAR</button><button type="button" data-key="0">0</button><button type="button" data-key="back">⌫</button></div></div><button id="unlockBtn" class="primary">SIGN IN</button><button type="button" id="refreshAppBtn" class="quiet" style="width:100%;margin-top:8px">REFRESH USER LIST</button><div id="authMsg" role="status" aria-live="polite"></div></div></div>
 <div id="operatorGate" style="display:none"></div>
@@ -550,6 +551,7 @@ body.overview-overlay-open{overflow:hidden}
       </div>
       <div class="yard-session">
         <div class="yard-session-copy"><span>AUTHENTICATED USER</span><strong id="yardHubUsername">—</strong></div>
+        <button id="yardHubSettingsBtn" class="yard-logout yard-hub-settings-trigger" type="button" hidden>⚙ SETTINGS</button>
         <button id="yardHubLogoutBtn" class="yard-logout" type="button">LOG OUT</button>
       </div>
     </header>
@@ -581,6 +583,72 @@ body.overview-overlay-open{overflow:hidden}
       </button>
     </section>
     <footer class="yard-hub-footer"><span>YARD HUB · YARD OPERATIONS CORE</span><span>ONE PLATFORM · MODULAR APPLICATIONS</span></footer>
+    <section id="yardHubSettingsScreen" class="yard-hub-settings-screen" hidden aria-label="YARD HUB Settings">
+      <header class="yard-hub-settings-heading">
+        <button id="yardHubSettingsBack" type="button" class="yard-hub-back">‹ BACK TO YARD HUB</button>
+        <div class="yard-hub-settings-eyebrow">YARD OPERATIONS CORE · ADMINISTRATION</div>
+        <h1 id="yardHubSettingsTitle">YARD HUB SETTINGS</h1>
+        <p>Manage central user accounts and application-level access separately from DOWNTIME.</p>
+      </header>
+      <div id="yardHubSettingsStatus" class="yard-hub-settings-status" role="status" aria-live="polite"></div>
+      <div id="yardHubSettingsHome" class="yard-hub-settings-home">
+        <button id="yardHubSettingsUsers" type="button" class="yard-hub-settings-card">
+          <span class="yard-hub-settings-card-icon">♙</span>
+          <strong>USERS</strong>
+          <small>Manage central accounts, status and separate YARD HUB tier assignments</small>
+          <span class="yard-hub-settings-card-arrow">›</span>
+        </button>
+        <button id="yardHubSettingsTiers" type="button" class="yard-hub-settings-card">
+          <span class="yard-hub-settings-card-icon">▦</span>
+          <strong>TIERS</strong>
+          <small>Configure READ, EDIT or disabled access for each YARD HUB section</small>
+          <span class="yard-hub-settings-card-arrow">›</span>
+        </button>
+      </div>
+      <div id="yardHubUsersView" class="yard-hub-settings-view" hidden>
+        <div class="yard-hub-view-toolbar">
+          <div><h2>USERS</h2><p>One central account directory. DOWNTIME tier and permissions remain protected.</p></div>
+          <div class="yard-hub-tier-actions"><button type="button" data-yard-settings-home class="yard-hub-secondary">SETTINGS</button><button id="yardHubUserAdd" type="button" class="yard-hub-primary">＋ ADD USER</button></div>
+        </div>
+        <div class="yard-hub-user-columns"><span>ACCOUNT</span><span>ASSIGNED TIERS</span><span>STATUS / ACTIONS</span></div>
+        <div id="yardHubUsersList" class="yard-hub-users-list"></div>
+      </div>
+      <div id="yardHubTiersView" class="yard-hub-settings-view" hidden>
+        <div class="yard-hub-view-toolbar">
+          <div><h2>TIERS</h2><p>EDIT grants read access automatically. Neither selected means the section is disabled.</p></div>
+          <div class="yard-hub-tier-actions">
+            <button type="button" data-yard-settings-home class="yard-hub-secondary">SETTINGS</button>
+            <button id="yardHubTierReset" type="button" class="yard-hub-secondary">RESET CHANGES</button>
+            <button id="yardHubTierSave" type="button" class="yard-hub-primary" disabled>SAVE PERMISSIONS</button>
+          </div>
+        </div>
+        <div id="yardHubTierCards" class="yard-hub-tier-grid"></div>
+        <p class="yard-hub-note">DOWNTIME is intentionally excluded from this permission matrix. Its existing Access &amp; Rights system remains independent and unchanged. FLOOR and CHECK SHEETS stay unavailable until their applications are released.</p>
+      </div>
+      <div id="yardHubUserModal" class="yard-hub-user-modal" hidden role="dialog" aria-modal="true" aria-labelledby="yardHubUserModalTitle">
+        <form id="yardHubUserForm" class="yard-hub-user-form">
+          <div class="yard-hub-user-modal-head">
+            <div><span>YARD HUB ACCOUNT MANAGEMENT</span><h2 id="yardHubUserModalTitle">ADD USER</h2></div>
+            <button id="yardHubUserCancel" type="button" class="yard-hub-modal-close" aria-label="Close user editor">×</button>
+          </div>
+          <label>USERNAME<input id="yardHubUserUsername" required minlength="2" maxlength="32" autocomplete="off"></label>
+          <label>DISPLAY NAME<input id="yardHubUserDisplay" required maxlength="80" autocomplete="off"></label>
+          <div class="yard-hub-protected-tier">
+            <span>DOWNTIME TIER · PROTECTED</span>
+            <strong id="yardHubUserDowntimeTier">USER · SAFE DEFAULT</strong>
+            <small>This value is not editable here. DOWNTIME Access &amp; Rights stays independent.</small>
+          </div>
+          <label>YARD HUB TIER<select id="yardHubUserHubTier" required></select></label>
+          <label>PIN<input id="yardHubUserPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label>
+          <label class="yard-hub-enabled-option"><input id="yardHubUserEnabled" type="checkbox" checked> ACCOUNT ACTIVE</label>
+          <p id="yardHubUserModalHint" class="yard-hub-note"></p>
+          <div class="yard-hub-user-modal-actions">
+            <button id="yardHubUserStatus" type="button" class="yard-hub-secondary" hidden>DISABLE ACCOUNT</button>
+            <button id="yardHubUserSave" type="submit" class="yard-hub-primary">ADD USER</button>
+          </div>
+        </form>
+      </div>
+    </section>
   </div>
 </section>
 
@@ -878,7 +946,7 @@ body.overview-overlay-open{overflow:hidden}
     <iframe id="reportPreviewFrame" class="report-preview-frame" title="Selected weekly PDF report" hidden></iframe>
   </div>
 </div>
-<script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';</script>
+<script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';window.YARD_HUB_SETTINGS_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/yard-hub-settings-api';</script>
 <script src="central-bank-client.js"></script>
 <script src="assets/staff/staff-image-library.js"></script>
 <script>
@@ -1681,7 +1749,7 @@ async function loadCentralUsers(){const select=$('centralUsername');if(select)se
 async function legacyCloudClient(){const client=await loadSupabaseClient();if(!client)return null;try{const current=await client.auth.getSession();if(!current?.data?.session){const auth=await client.auth.signInAnonymously();if(auth.error)throw auth.error}await startCentralRealtimeSync(client)}catch(error){console.warn('Ancillary report/evidence cloud session unavailable.',error)}return client}
 function showCentralApp(){if(!centralUser?.username)return;const hubTier=String(centralUser?.tier||'').toUpperCase();const hubAllowed=hubTier==='OWNER'||hubTier==='DEVACC'||permission('canAccessYardHub');if(!hubAllowed){$('operatorGate').style.display='none';$('authGate').style.display='grid';$('authMsg').textContent='YARD HUB ACCESS IS DISABLED FOR THIS ACCOUNT · CONTACT AN ADMINISTRATOR';const shell=document.querySelector('.shell');if(shell)shell.style.display='none';const hub=$('yardHub');if(hub){hub.hidden=true;hub.style.display='none'}return}$('authGate').style.display='none';$('operatorGate').style.display='none';const shell=document.querySelector('.shell');if(shell)shell.style.display='none';const hub=$('yardHub');if(hub){hub.hidden=false;hub.style.display='block'}const identity=centralUser?.displayName||centralUser?.username||activeOperator||'USER';const label=$('yardHubUsername');if(label)label.textContent=String(identity).toUpperCase();window.dispatchEvent(new Event('yard-hub:shown'))}
 function launchDowntime(){if(!centralUser?.username)return;const hub=$('yardHub');if(hub){hub.hidden=true;hub.style.display='none'}const shell=document.querySelector('.shell');if(shell)shell.style.display='';document.querySelectorAll('.nav[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view==='weekly'));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='weekly'));$('subtitle').textContent='Weekly recording sheet · Monday–Saturday';selected=(today.getDay()+6)%7;if(selected>5)selected=0;render();enforceOperatorMode();applyTierVisibility()}
-function returnToYardHub(){const shell=document.querySelector('.shell');if(shell)shell.style.display='none';const hub=$('yardHub');if(hub){hub.hidden=false;hub.style.display='block'}}
+function returnToYardHub(){const shell=document.querySelector('.shell');if(shell)shell.style.display='none';const hub=$('yardHub');if(hub){hub.hidden=false;hub.style.display='block'}window.dispatchEvent(new Event('yard-hub:shown'))}
 async function unlockTracker(){const pin=$('teamPin').value,username=$('centralUsername').value;if(Date.now()<centralPinLockUntil){$('authMsg').textContent='Too many attempts. Try again in 30 seconds.';return}if(!username||!pin){$('authMsg').textContent='Select a USER and enter the PIN.';return}if(pin.length<4||pin.length>8||!/^[0-9]{4,8}$/.test(pin)){$('authMsg').textContent='PIN must contain 4–8 digits.';return}$('unlockBtn').disabled=true;$('authMsg').textContent='Verifying central account…';try{centralUser=await window.DowntimeCentral.login(username,pin);activeOperator=centralUser.username;await cloudInit();if(!centralReady)throw new Error('Central state could not be loaded.');centralPinAttempts=0;$('teamPin').value='';showCentralApp();cloudStatus('CENTRAL · connected');legacyCloudClient().catch(()=>null)}catch(error){centralPinAttempts++;$('teamPin').value='';$('authMsg').textContent=error.message||'Central sign-in failed.';if(centralPinAttempts>=5){centralPinLockUntil=Date.now()+30000;centralPinAttempts=0;$('authMsg').textContent='Too many sign-in attempts. Locked for 30 seconds.'}}finally{$('unlockBtn').disabled=false}}
 async function resumeCentralSession(){if(!window.DowntimeCentral.session?.token)return;try{centralUser=window.DowntimeCentral.session.user;activeOperator=centralUser?.username||'';await cloudInit();if(centralReady){showCentralApp();legacyCloudClient().catch(()=>null)}}catch(error){console.warn('Stored central session could not be resumed.',error);await window.DowntimeCentral.logout().catch(()=>{});centralUser=null;activeOperator='';loadCentralUsers().catch(()=>{})}}
 $('unlockBtn').onclick=unlockTracker;$('teamPin').addEventListener('keydown',e=>{if(e.key==='Enter')unlockTracker()});
@@ -1809,6 +1877,47 @@ $('centralAccountCancel')?.addEventListener('click',()=>{resetCentralUserForm();
 $('centralUsersRefresh')?.addEventListener('click',()=>refreshCentralUserSettings().catch(error=>{$('centralUsersStatus').textContent=error.message||'Refresh failed.'}));
 $('saveAccessRights')?.addEventListener('click',saveAccessRights);
 async function cloudInit(){cloudStatus('Connecting to central data bank…');const result=await window.DowntimeCentral.state();centralBankPayload=result.payload||{};centralVersion=Number(result.version)||0;centralUser=result.user||centralUser;activeOperator=centralUser?.username||activeOperator;state=centralAppData(centralBankPayload);localStorage.setItem(STORE,JSON.stringify(state));centralReady=true;cloudReady=true;cloudSyncFailed=false;const last=$('lastSync');if(last)last.textContent='Last successful refresh · '+new Date().toLocaleString('en-GB');render();enforceOperatorMode();applyTierVisibility();renderCentralUserSettings();cloudStatus('CENTRAL · synced');startManagementPolling();return true}
+window.refreshDowntimeCentralDirectory=async function(){
+ if(!centralReady||!window.DowntimeCentral?.session?.token)return false;
+ const [result,userResult]=await Promise.all([window.DowntimeCentral.state(),window.DowntimeCentral.listUsers()]);
+ if(!result?.payload)throw new Error('Central user directory refresh returned no payload.');
+ centralBankPayload=result.payload;
+ centralVersion=Number(result.version)||centralVersion;
+ centralUser=result.user||centralUser;
+ centralUsers=Array.isArray(userResult?.users)?userResult.users:centralUsers;
+ renderOperatorChoices();
+ renderCentralUserSettings();
+ return centralVersion;
+};
+window.saveDowntimeCentralUserFromYardHub=function(userData){
+ // Serialize user-directory mutations with DOWNTIME tracker/settings writes.
+ // Mark this as pending so realtime refreshes cannot race the central user save.
+ const task=cloudWrite.then(async()=>{
+  centralPendingWrites++;cloudBusy=true;
+  try{
+   if(!centralReady||!window.DowntimeCentral?.session?.token)throw new Error('DOWNTIME Central session is not ready.');
+   if(cloudSyncFailed)throw new Error('A DOWNTIME change is still unsynced. Resolve the DOWNTIME sync warning before changing central users.');
+   const freshVersion=await window.refreshDowntimeCentralDirectory();
+   if(!freshVersion)throw new Error('Unable to refresh the Central User directory.');
+   const saved=await window.DowntimeCentral.saveUser(userData,centralVersion);
+   let verifiedVersion;
+   try{verifiedVersion=await window.refreshDowntimeCentralDirectory()}
+   catch(error){error.centralUserSaved=true;throw error}
+   if(!verifiedVersion||Number(verifiedVersion)<Number(saved.version||0)){
+    const error=new Error('Central User save could not be verified after refresh.');
+    error.centralUserSaved=true;
+    throw error;
+   }
+   notifyOverviewFrame(centralVersion,saved.updatedAt||null);
+   cloudStatus('CENTRAL · synced');
+   return {...saved,version:Number(verifiedVersion)};
+  }finally{
+   cloudBusy=false;centralPendingWrites=Math.max(0,centralPendingWrites-1);flushCentralRealtimeRefresh();
+  }
+ });
+ cloudWrite=task.then(()=>undefined,()=>undefined);
+ return task;
+};
 function syncCloud(){if(!centralReady||operatorReadOnly||spectatorMode||cloudSyncFailed)return;const snapshot=JSON.parse(JSON.stringify(state));centralPendingWrites++;cloudWrite=cloudWrite.then(async()=>{if(!centralReady||cloudSyncFailed){centralPendingWrites=Math.max(0,centralPendingWrites-1);return}cloudBusy=true;try{const result=await window.DowntimeCentral.saveTracker(snapshot,centralVersion);centralVersion=Number(result.version)||centralVersion;centralBankPayload=centralBankPayload||{};centralBankPayload.appData=snapshot;centralBankPayload.staff=centralBankPayload.staff||{};centralBankPayload.staff.profiles=snapshot.operatorProfiles||centralBankPayload.staff.profiles||{};centralBankPayload.staff.roster=snapshot.staffRoster||centralBankPayload.staff.roster||[];cloudSyncFailed=false;cloudStatus('CENTRAL · synced');notifyOverviewFrame(centralVersion,result.updatedAt)}catch(error){cloudSyncFailed=true;cloudStatus('CENTRAL SYNC FAILED · '+(error.message||'Refresh required'));console.warn('Central tracker save failed; local snapshot retained.',error)}finally{cloudBusy=false;centralPendingWrites=Math.max(0,centralPendingWrites-1);flushCentralRealtimeRefresh()}}).catch(error=>{cloudBusy=false;cloudSyncFailed=true;centralPendingWrites=Math.max(0,centralPendingWrites-1);flushCentralRealtimeRefresh();cloudStatus('CENTRAL SYNC FAILED · '+(error.message||'Refresh required'))})}
 function syncSettingsCloud(){
  if(!centralReady||spectatorMode||cloudSyncFailed)return Promise.resolve(false);
@@ -1858,6 +1967,7 @@ if(window.DowntimeCentral?.session?.token)resumeCentralSession();
 })();
 </script>
 <script src="repair-maintenance-launch.js"></script>
+<script src="yard-hub-settings.js?v=20261123-1"></script>
 </body></html>
 <style>
 

@@ -86,6 +86,16 @@ jobs:
           curl --fail --silent --show-error --location --retry 8 --retry-delay 5 --retry-all-errors "$LIVE_URL" -o /tmp/live-site.html
           grep -q 'centralUsername' /tmp/live-site.html
           grep -q 'id="yardHub"' /tmp/live-site.html
+          grep -q 'id="yardHubSettingsBtn"' /tmp/live-site.html
+          grep -q 'id="yardHubSettingsUsers"' /tmp/live-site.html
+          grep -q 'id="yardHubSettingsTiers"' /tmp/live-site.html
+          grep -q 'yard-hub-settings.js' /tmp/live-site.html
+          grep -q 'yard-hub-settings.css' /tmp/live-site.html
+          curl --fail --silent --show-error --location "$LIVE_URL/yard-hub-settings.js?v=20261123-1" -o /tmp/live-yard-hub-settings.js
+          grep -q 'my-access' /tmp/live-yard-hub-settings.js
+          curl --fail --silent --show-error --location "$LIVE_URL/yard-hub-settings.css?v=20261123-1" -o /tmp/live-yard-hub-settings.css
+          grep -q '.yard-hub-tier-card' /tmp/live-yard-hub-settings.css
+          grep -q 'YARD_HUB_SETTINGS_API' /tmp/live-site.html
           grep -q 'id="launchDowntimeBtn"' /tmp/live-site.html
           grep -q 'data-app="floor"' /tmp/live-site.html
           grep -q 'id="backToYardHub"' /tmp/live-site.html
