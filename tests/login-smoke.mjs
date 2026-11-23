@@ -284,6 +284,12 @@ try{
  await signIn(owner.page);
  assert.equal(await owner.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),true,'DEV root OWNER sees the Central Data Bank menu entry');
  assert.equal(await owner.page.locator('#authGate').isVisible(),false,'central login closes after authentication');
+ await owner.page.locator('#backToYardHub').click();
+ assert.equal(await owner.page.locator('#yardHub').isVisible(),true,'DOWNTIME returns to YARD HUB');
+ assert.equal(await owner.page.locator('.shell').evaluate(el=>getComputedStyle(el).display==='none'),true,'the DOWNTIME shell closes when returning to YARD HUB');
+ await owner.page.locator('#launchDowntimeBtn').click();
+ await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
+ assert.equal(await owner.page.locator('#yardHub').isVisible(),false,'relaunching DOWNTIME closes YARD HUB');
  // Jan remains a normal operational USER rather than a root/admin identity.
  const janOperational=await openFor('USER','1357','Jan');
  await signIn(janOperational.page,'1357','Jan');
@@ -825,9 +831,9 @@ const crewMenu=owner.page.locator('.nav-menu');
   assert.equal(owner.getBank().staff.profiles.Rita.photoPath,undefined,'replacement original can also be removed');
   await owner.page.locator('#smCancel').click();
   await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
- assert.equal(await owner.page.locator('.side #logoutBtn').isVisible(),true,'Log Out is available in the top navigation');
- assert.equal(await owner.page.locator('.top #logoutBtn').count(),0,'Log Out is no longer duplicated in the content header');
- await owner.page.locator('.side #logoutBtn').click();
+ await owner.page.locator('#backToYardHub').click();
+ assert.equal(await owner.page.locator('#yardHub').isVisible(),true,'YARD HUB is available before sign-out');
+ await owner.page.locator('#yardHubLogoutBtn').click();
  await owner.page.waitForFunction(()=>document.querySelector('#authGate').style.display!=='none');
  await owner.page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
  assert.equal(await owner.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display==='none'),true,'Central Data Bank entry is hidden immediately after logout');
