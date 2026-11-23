@@ -79,4 +79,3 @@ jobs:
         run: deno check --node-modules-dir=auto supabase/functions/repair-maintenance-api/index.ts
       - name: Type-check the YARD HUB Settings Edge Function
         run: deno check --node-modules-dir=auto supabase/functions/yard-hub-settings-api/index.ts
-      - name: Type-check the isolated YARD HUB Settings Edge Function
