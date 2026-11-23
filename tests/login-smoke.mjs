@@ -8,12 +8,14 @@ const indexHtml=await readFile(resolve('index.html'),'utf8');
 const overviewHtml=await readFile(resolve('plant-overview-preview.html'),'utf8');
 const adapter=await readFile(resolve('central-bank-client.js'),'utf8');
 const staffImageLibrary=await readFile(resolve('assets/staff/staff-image-library.js'),'utf8');
+const repairMaintenanceLauncher=await readFile(resolve('repair-maintenance-launch.js'),'utf8');
 const server=createServer((req,res)=>{
   const pathname=String(req.url||'').split('?')[0];
-  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js';
+  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js';
   res.writeHead(200,{'content-type':isJavaScript?'application/javascript; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store'});
   if(pathname==='/central-bank-client.js')return res.end(adapter);
   if(pathname==='/assets/staff/staff-image-library.js')return res.end(staffImageLibrary);
+  if(pathname==='/repair-maintenance-launch.js')return res.end(repairMaintenanceLauncher);
   res.end(pathname==='/plant-overview-preview.html'?overviewHtml:indexHtml);
 });
 await new Promise((ok,fail)=>{server.once('error',fail);server.listen(4173,'127.0.0.1',ok)});
