@@ -23,7 +23,7 @@ assert.match(html,/id="launchDowntimeBtn" data-app="downtime" type="button"/,'DO
 
 // Identity and PIN management deliberately reuse the existing central directory and APIs.
 assert.match(ui,/window\.DowntimeCentral\.saveUser\(userData,state\.centralVersion\)/,'Hub user management reuses existing central identity storage');
-assert.match(ui,/window\.DowntimeCentral\.session/,'Hub Settings uses the existing opaque central session');
+assert.match(ui,/window\.DowntimeCentral\?\.session/,'Hub Settings uses the existing opaque central session');
 assert.match(ui,/tier:downtimeTier/,'editing a user preserves the legacy DOWNTIME tier');
 assert.match(ui,/const downtimeTier=existing\?\.legacyTier\|\|'USER'/,'new accounts default to restricted DOWNTIME USER while existing DOWNTIME tiers are preserved');
 assert.match(ui,/save-user-tier/,'Hub tier assignment is stored through the separate Hub API');
