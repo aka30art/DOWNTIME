@@ -248,8 +248,9 @@
     let centralSaved=false;
     try{
       if(centralChanges){
-        const saveCentralUser=window.saveDowntimeCentralUserFromYardHub||window.DowntimeCentral.saveUser;
-        const saved=await saveCentralUser(userData,state.centralVersion);
+        const saveCentralUser=window.saveDowntimeCentralUserFromYardHub;
+        if(typeof saveCentralUser!=='function')throw new Error('Central user mutation bridge is unavailable. Refresh and try again.');
+        const saved=await saveCentralUser(userData);
         state.centralVersion=Number(saved.version||state.centralVersion+1);
         centralSaved=true;
       }
@@ -272,10 +273,11 @@
     if(!window.confirm(action+' '+user.username+'? This will revoke their current sessions.'))return;
     setBusy(true);setStatus((enabled?'RE-ENABLING ':'DISABLING ')+user.username+'…');
     try{
-      const saveCentralUser=window.saveDowntimeCentralUserFromYardHub||window.DowntimeCentral.saveUser;
+      const saveCentralUser=window.saveDowntimeCentralUserFromYardHub;
+        if(typeof saveCentralUser!=='function')throw new Error('Central user mutation bridge is unavailable. Refresh and try again.');
       const result=await saveCentralUser({
         username:user.username,displayName:user.displayName||user.username,tier:user.legacyTier||'USER',enabled
-      },state.centralVersion);
+      });
       state.centralVersion=Number(result.version||state.centralVersion+1);
       await loadState();
       setStatus('ACCOUNT '+(enabled?'RE-ENABLED.':'DISABLED.')+' Existing sessions have been revoked.','ok');

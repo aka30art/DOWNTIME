@@ -104,7 +104,9 @@ assert.match(config,/\[functions\.yard-hub-settings-api\][\s\S]*?verify_jwt\s*=\
 
 assert.ok(html.includes('window.refreshDowntimeCentralDirectory=async function()'), 'DOWNTIME exposes a central-user-only refresh hook for Hub account changes');
 assert.ok(html.includes('centralBankPayload=result.payload') && html.includes('centralVersion=Number(result.version)'), 'DOWNTIME refresh updates its current bank snapshot and optimistic concurrency version');
-assert.ok(ui.includes('window.saveDowntimeCentralUserFromYardHub||window.DowntimeCentral.saveUser'), 'Hub user changes use the serialized DOWNTIME central-user write bridge');
+assert.ok(ui.includes('const saveCentralUser=window.saveDowntimeCentralUserFromYardHub;'), 'Hub user changes use the serialized DOWNTIME central-user write bridge');
+assert.ok(ui.includes("if(typeof saveCentralUser!=='function')throw new Error('Central user mutation bridge is unavailable."), 'Hub user changes fail closed if the serialized bridge is unavailable');
+assert.doesNotMatch(ui,/window\\.DowntimeCentral\\.saveUser\\(/,'Hub UI cannot bypass the serialized central-user bridge');
 assert.ok(html.includes('const freshVersion=await window.refreshDowntimeCentralDirectory()') && html.includes('verifiedVersion=await window.refreshDowntimeCentralDirectory()'), 'serialized bridge refreshes Central Bank version before and after account mutation');
 assert.ok(!html.includes('window.refreshDowntimeCentralDirectory=async function(){const result=await window.DowntimeCentral.state();centralBankPayload=result.payload;state=centralAppData(centralBankPayload)'), 'central-user refresh does not replace the live DOWNTIME tracker state');
 
@@ -114,7 +116,7 @@ assert.ok(html.includes('window.saveDowntimeCentralUserFromYardHub=function(user
 assert.ok(html.includes('const task=cloudWrite.then(async()=>{'), 'central user writes wait behind outstanding tracker and settings writes');
 assert.ok(html.includes('cloudSyncFailed)throw new Error'), 'unsynced DOWNTIME data blocks unrelated central user mutations');
 assert.ok(html.includes('await window.refreshDowntimeCentralDirectory()'), 'central user mutations refresh the current Central Bank version before and after saving');
-assert.ok(ui.includes('window.saveDowntimeCentralUserFromYardHub||window.DowntimeCentral.saveUser'), 'Hub user create/edit/disable reuses the serialized DOWNTIME bridge');
+assert.ok(ui.includes('const saveCentralUser=window.saveDowntimeCentralUserFromYardHub;'), 'Hub user create/edit/disable reuses the serialized DOWNTIME bridge');
 
 console.log('YARD HUB Settings isolation, identity compatibility, permission enforcement and DOWNTIME protection contracts passed.');
 
