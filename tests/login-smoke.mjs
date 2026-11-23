@@ -232,9 +232,21 @@ async function signIn(page,pin='2468',username='DEV'){
  await page.waitForFunction(()=>document.querySelector('#authGate').style.display==='none',{timeout:5000});
  await page.waitForFunction(()=>document.querySelector('#cloudStatus').textContent.includes('CENTRAL'),{timeout:5000});
  await page.waitForFunction(()=>window.__downtimeRealtimeSubscribed===true,{timeout:5000});
- assert.equal(await page.locator('.nav[data-view="weekly"]').evaluate(el=>el.classList.contains('active')),true,'successful login always activates Weekly Sheet navigation');
- assert.equal(await page.locator('#weekly').evaluate(el=>el.classList.contains('active')),true,'successful login always lands on the Weekly Sheet view');
- assert.equal(await page.locator('.view.active').count(),1,'login leaves exactly one active view');
+ assert.equal(await page.locator('#yardHub').isVisible(),true,'successful login lands on YARD HUB first');
+ assert.equal(await page.locator('.shell').evaluate(el=>getComputedStyle(el).display==='none'),true,'DOWNTIME stays closed until the user launches it');
+ assert.equal(await page.locator('#yardHubUsername').textContent().then(value=>value.trim().length>0),true,'YARD HUB identifies the authenticated user');
+ assert.equal(await page.locator('.yard-tile[data-app]').count(),4,'YARD HUB exposes all four application tiles');
+ assert.equal(await page.locator('#launchDowntimeBtn').isEnabled(),true,'DOWNTIME is the available application');
+ assert.equal(await page.locator('.yard-tile[data-app="floor"]').isDisabled(),true,'FLOOR stays unavailable until released');
+ assert.equal(await page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until released');
+ assert.equal(await page.locator('.yard-tile[data-app="repair-maintenance"]').isDisabled(),true,'REPAIR & MAINTENANCE stays unavailable until released');
+ await page.locator('#launchDowntimeBtn').click();
+ await page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
+ assert.equal(await page.locator('#yardHub').isVisible(),false,'launching DOWNTIME closes YARD HUB');
+ assert.equal(await page.locator('.nav[data-view="weekly"]').evaluate(el=>el.classList.contains('active')),true,'DOWNTIME opens its weekly tracker view');
+ assert.equal(await page.locator('#weekly').evaluate(el=>el.classList.contains('active')),true,'DOWNTIME opens its existing tracker dashboard');
+ assert.equal(await page.locator('.view.active').count(),1,'DOWNTIME leaves exactly one active view');
+ assert.match(await page.locator('.nav[data-view="weekly"]').textContent(),/DOWNTIME/,'the old Home Page label is removed from DOWNTIME navigation');
  assert.equal(await page.evaluate(()=>window.__downtimeRealtimeTopic),'downtime-central-state','client subscribes to the central state topic');
  assert.equal(await page.evaluate(()=>window.__downtimeRealtimePrivate),true,'central state topic is private');
 }
