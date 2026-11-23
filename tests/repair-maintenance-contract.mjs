@@ -34,6 +34,7 @@ assert.doesNotMatch(detailStatusMarkup,/IN PROGRESS|REPAIRED/,'detail STATUS opt
 assert.match(html,/id="deleteFault"[^>]*>✓ SOLVED</,'SOLVED action replaces DELETE');
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
+assert.match(html,/repair-maintenance-app\.js\?v=[a-zA-Z0-9._-]+/,'R&M application script URL must be versioned to invalidate stale browser caches after client fixes');
 assert.match(app,/status:'PERM\. FIX'/,'SOLVED marks fault as PERM. FIX');
 assert.match(app,/window\.open\(/,'report export opens a printable report window');
 assert.match(app,/window\.print\(/,'report export invokes the browser print-to-PDF workflow');
