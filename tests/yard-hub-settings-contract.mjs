@@ -116,3 +116,7 @@ assert.ok(html.includes('await window.refreshDowntimeCentralDirectory()'), 'cent
 assert.ok(ui.includes('window.saveDowntimeCentralUserFromYardHub||window.DowntimeCentral.saveUser'), 'Hub user create/edit/disable reuses the serialized DOWNTIME bridge');
 
 console.log('YARD HUB Settings isolation, identity compatibility, permission enforcement and DOWNTIME protection contracts passed.');
+
+assert.ok(html.includes('centralPendingWrites++;cloudBusy=true;'), 'YARD HUB central user mutations also block realtime refreshes');
+assert.ok(html.includes('flushCentralRealtimeRefresh();'), 'realtime refresh resumes after the serialized central user mutation');
+assert.ok(html.includes('error.centralUserSaved=true'), 'partial central-user saves are reported without implying the write failed');
