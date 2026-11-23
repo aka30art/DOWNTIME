@@ -104,7 +104,7 @@ assert.match(config,/\[functions\.yard-hub-settings-api\][\s\S]*?verify_jwt\s*=\
 assert.ok(html.includes('window.refreshDowntimeCentralDirectory=async function()'), 'DOWNTIME exposes a central-user-only refresh hook for Hub account changes');
 assert.ok(html.includes('centralBankPayload=result.payload') && html.includes('centralVersion=Number(result.version)'), 'DOWNTIME refresh updates its current bank snapshot and optimistic concurrency version');
 assert.ok(ui.includes('window.saveDowntimeCentralUserFromYardHub||window.DowntimeCentral.saveUser'), 'Hub user changes use the serialized DOWNTIME central-user write bridge');
-assert.ok(html.includes('const freshVersion=await window.refreshDowntimeCentralDirectory()') && html.includes('const verifiedVersion=await window.refreshDowntimeCentralDirectory()'), 'serialized bridge refreshes Central Bank version before and after account mutation');
+assert.ok(html.includes('const freshVersion=await window.refreshDowntimeCentralDirectory()') && html.includes('verifiedVersion=await window.refreshDowntimeCentralDirectory()'), 'serialized bridge refreshes Central Bank version before and after account mutation');
 assert.ok(!html.includes('window.refreshDowntimeCentralDirectory=async function(){const result=await window.DowntimeCentral.state();centralBankPayload=result.payload;state=centralAppData(centralBankPayload)'), 'central-user refresh does not replace the live DOWNTIME tracker state');
 
 assert.ok(html.includes("function returnToYardHub()") && html.includes("window.dispatchEvent(new Event('yard-hub:shown'))"), 'returning from DOWNTIME refreshes Hub section permissions');
