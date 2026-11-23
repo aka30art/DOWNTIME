@@ -241,13 +241,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 /* OVERVIEW IN-APP MODAL — retain the existing Overview page and data lifecycle. */
 .overview-overlay[hidden]{display:none!important}
 .overview-overlay{position:fixed;inset:0;z-index:10020;display:flex;flex-direction:column;min-width:0;min-height:0;background:#07131c;color:#f3f6f8}
-.overview-overlay-head{height:48px;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 12px 6px 18px;background:#06111a;border-bottom:1px solid #30495a}
-.overview-overlay-title{font-size:12px;font-weight:950;letter-spacing:1.1px;color:#c8d5de}
-.overview-overlay-close{padding:7px 13px;border:1px solid #8d4b42;background:#3a1b1c;color:#fff1ef;border-radius:9px;font-size:12px;font-weight:900}
-.overview-overlay-close:hover{border-color:#ff8e7d;background:#572324}
-.overview-overlay-frame{display:block;flex:1 1 auto;width:100%;height:calc(100dvh - 48px);min-height:0;border:0;background:#07131c}
+.overview-overlay-frame{display:block;flex:1 1 auto;width:100%;height:100dvh;min-height:0;border:0;background:#07131c}
 body.overview-overlay-open{overflow:hidden}
-@media(max-width:600px){.overview-overlay-head{height:44px;min-height:44px;padding:5px 8px 5px 12px}.overview-overlay-title{font-size:10px;letter-spacing:.7px}.overview-overlay-close{padding:7px 10px;font-size:11px}.overview-overlay-frame{height:calc(100dvh - 44px)}}
 /* CENTRAL DATA BANK MENU LINK — match native nav controls */
 .central-admin-nav{display:block;color:var(--text);text-decoration:none;background:linear-gradient(180deg,#243b4c,#152734);border:1px solid #334b5d;border-radius:9px;transition:filter .15s,transform .15s,border-color .15s}
 .central-admin-nav:hover{filter:brightness(1.18);border-color:#648398}
@@ -350,7 +345,7 @@ body.overview-overlay-open{overflow:hidden}
  .nav-items .nav,.central-admin-nav,.logout-nav{min-height:42px}
  .menu-utilities button,.weekly-controls button,.day-lock-actions button,
  .entry-actions button,.modalfoot button,.reportactions button,
- .settings-back,.overview-overlay-close{min-height:42px}
+ .settings-back{min-height:42px}
  .weekly-controls{align-items:stretch}
  .weekly-controls button{display:flex;align-items:center;justify-content:center}
  .entry-actions{align-items:stretch}
@@ -755,7 +750,7 @@ body.overview-overlay-open{overflow:hidden}
 </main></div>
 <div id="overviewOverlay" class="overview-overlay" role="dialog" aria-modal="true" aria-label="Plant Overview" aria-hidden="true" hidden>
   
-  <iframe id="overviewFrame" class="overview-overlay-frame" title="Live Plant Overview" loading="lazy" allow="fullscreen"></iframe>
+  <iframe id="overviewFrame" class="overview-overlay-frame" title="Live Plant Overview" loading="lazy"></iframe>
 </div>
 <div class="modalback" id="detailsModal"><div class="modal detailsmodal"><div class="detailtop"><small id="detailNumber">DOWNTIME ENTRY</small><button id="closeDetails">✕</button></div><h2 id="detailArea">Area</h2><div class="detailbox"><label>Reason</label><p id="detailReason"></p></div><div class="detailbox"><label>Duration</label><strong id="detailDuration"></strong></div><div class="detailbox" id="detailPhotoBox" style="display:none"><label>PHOTO EVIDENCE</label><div id="detailPhotoContent"></div></div><div class="modalfoot"><button id="detailDelete" class="danger">DELETE ENTRY</button><button id="detailEdit" class="primary">EDIT ENTRY</button></div></div></div>
 <div class="modalback" id="entryModal"><div class="modal"><h2>Add downtime entry</h2>
@@ -1060,9 +1055,9 @@ function openPlantOverview(){
  if(!permission('canViewPlantOverview'))return;
  if(!overviewFrame.getAttribute('src'))overviewFrame.src='plant-overview-preview.html?embedded=1';
  overviewOverlay.hidden=false;overviewOverlay.setAttribute('aria-hidden','false');document.body.classList.add('overview-overlay-open');
- overviewLink?.setAttribute('aria-expanded','true');$('overviewClose')?.focus();
+ overviewLink?.setAttribute('aria-expanded','true');
 }
-$('overviewClose')?.addEventListener('click',closePlantOverview);
+
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&overviewOverlay&&!overviewOverlay.hidden){event.preventDefault();closePlantOverview()}});
 window.addEventListener('message',event=>{
  if(event.origin!==location.origin||event.source!==overviewFrame?.contentWindow)return;
