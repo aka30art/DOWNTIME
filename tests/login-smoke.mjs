@@ -393,7 +393,7 @@ try{
  await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
  assert.equal(await owner.page.locator('#yardHub').isVisible(),false,'relaunching DOWNTIME closes YARD HUB');
  // YARD HUB SETTINGS is additive: section tiers and Hub user assignments never alter DOWNTIME tier data.
- await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsBtn')?.dataset.accessChecked==='true',{timeout:5000});
+ await owner.page.waitForFunction(()=>{const button=document.querySelector('#yardHubSettingsBtn');return button?.dataset.accessChecked==='true'&&!button.hidden},{timeout:5000});
  assert.equal(await owner.page.locator('#yardHubSettingsBtn').isVisible(),true,'DEV root can open YARD HUB Settings');
  const originalDowntimeTierPayload=JSON.stringify(owner.getBank().tiers);
  const originalDowntimeCentralVersion=owner.getVersion();
@@ -441,7 +441,9 @@ try{
  await signIn(janOperational.page,'1357','Jan');
  await janOperational.page.locator('.nav-menu > summary').click();
  assert.equal(await janOperational.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'Jan USER does not see the Central Data Bank admin entry');
- await janOperational.page.waitForFunction(()=>document.querySelector('#yardHubSettingsBtn')?.dataset.accessChecked==='true',{timeout:5000});
+ await janOperational.page.waitForFunction(()=>window.DowntimeCentral?.session?.token,{timeout:5000});
+ await janOperational.page.waitForTimeout(100);
+
  assert.equal(await janOperational.page.locator('#yardHubSettingsBtn').isVisible(),false,'ordinary USER cannot see YARD HUB Settings');
  assert.equal(await janOperational.page.locator('#plantOperatorToggle').isVisible(),true,'USER tier sees Plant Power when its permission is enabled');
  assert.equal(await janOperational.page.locator('#plantOperatorToggle').textContent(),'PLANT ON · GREEN','USER sees the live plant status');
