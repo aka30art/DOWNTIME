@@ -57,7 +57,7 @@
     });
   }
   async function loadMachine(key){
-    currentMachine=machine(key);$('machineSelect').value=currentMachine.key;setView('dashboardView');
+    currentMachine=machine(key);setView('dashboardView');
     $('machineTitle')?.replaceChildren(document.createTextNode(currentMachine.label));
     say('Loading live fault register\u2026');$('faultRows').innerHTML='<div class="empty">Loading fault records…</div>';
     try{const result=await api('list',{machineType:currentMachine.key});faults=result.faults||[];renderRows();say(`${faults.length} fault${faults.length===1?'':'s'} loaded · Last refreshed ${new Date().toLocaleTimeString('en-GB')}`,'dashboardStatus','ok')}
@@ -108,12 +108,7 @@
   async function saveNote(){const note=$('noteText').value.trim();if(!currentFault||!note)return;const button=$('saveNote');button.disabled=true;try{await api('note-add',{faultId:currentFault.id,note});$('noteText').value='';$('noteComposer').classList.remove('open');await refreshDetails()}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false}}
   async function doUpload(file,kind){if(!currentFault||!file)return;const button=kind==='PHOTO'?$('addPhoto'):$('attachFile');button.disabled=true;try{await uploadFile(currentFault.id,file,kind);await refreshDetails();say(`${kind==='PHOTO'?'Photo':'File'} attached successfully.`,'dashboardStatus','ok')}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false;$('photoInput').value='';$('fileInput').value=''}}
   async function deleteFault(){if(!currentFault)return;if(!window.confirm(`Delete “${currentFault.fault_name}” and its notes and attachments? This cannot be undone.`))return;const button=$('deleteFault');button.disabled=true;try{await api('delete',{faultId:currentFault.id});closeOverlay('detailsOverlay');await loadMachine(currentMachine.key);say('Fault / defect and its evidence deleted.','dashboardStatus','ok')}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false}}
-  function exportReport(){
-    if(access.canExportRepairMaintenanceReports!==true){say('Report export is not permitted for this account.','dashboardStatus','error');return}
-    const values=[['No.','Machine','Fault / Defect','Description','Priority','Status','Created','Updated'],...faults.map((f,i)=>[i+1,currentMachine.label,f.fault_name,f.description,f.priority,f.status,f.created_at,f.updated_at])];
-    const csv=values.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
-    const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`RM-${currentMachine.key}-fault-register-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);say('Fault register exported.','dashboardStatus','ok');
-  }
+  function exportReport(){if(access.canExportRepairMaintenanceReports!==true){say('Report export is not permitted for this account.','dashboardStatus','error');return}const date=new Date().toLocaleDateString('en-GB');const rows=orderedFaults().map((f,i)=>`<tr><td>${i+1}</td><td>${safe(f.fault_name)}</td><td>${safe(f.description)}</td><td>${safe(f.priority)}</td><td>${safe(f.status)}</td><td>${safe(new Date(f.created_at).toLocaleString('en-GB'))}</td></tr>`).join('');const win=window.open('','_blank');if(!win){say('Allow pop-ups to export this report as PDF.','dashboardStatus','error');return}win.document.write(`<!doctype html><html><head><title>R&M ${safe(currentMachine.label)} Report</title><meta name=viewport content=width=device-width,initial-scale=1><style>body{font:14px Arial,sans-serif;color:#111;padding:28px}h1{margin:0}h2{margin:8px 0 22px;color:#333}small{color:#555}table{border-collapse:collapse;width:100%;margin-top:20px}th,td{border:1px solid #777;padding:9px;text-align:left;vertical-align:top}th{background:#eee}footer{margin-top:20px;color:#555}@media print{body{padding:0}}</style></head><body><h1>R&M — REPAIRS & MAINTENANCE</h1><h2>${safe(currentMachine.label)} — FAULT REGISTER</h2><small>Report generated: ${safe(date)} · ${faults.length} fault record(s)</small><table><thead><tr><th>No.</th><th>Part / Area of Plant</th><th>Type of Defect</th><th>Priority</th><th>Status</th><th>Created</th></tr></thead><tbody>${rows||'<tr><td colspan=6>No faults currently recorded.</td></tr>'}</tbody></table><footer>YARD HUB · R&M</footer><script>window.onload=()=>window.print();</script></body></html>`);win.document.close();say('PDF report opened. Use Print → Save as PDF.','dashboardStatus','ok')}
   function applyPermissions(){
     const edit=access.canEditRepairMaintenance===true,del=access.canDeleteRepairMaintenance===true,exp=access.canExportRepairMaintenanceReports===true;
     ['openCreateFault','updateFault','toggleNoteComposer','detailAddNote','attachFile','addPhoto'].forEach(id=>{const e=$(id);if(e)e.disabled=!edit});
@@ -131,7 +126,7 @@
   }
   document.addEventListener('DOMContentLoaded',()=>{
     document.querySelectorAll('.machine-card').forEach(button=>button.addEventListener('click',()=>loadMachine(button.dataset.machine)));
-    $('machineSelect').addEventListener('change',e=>loadMachine(e.target.value));$('sortSelect').addEventListener('change',renderRows);
+    $('sortSelect').addEventListener('change',renderRows);
     $('backToMachinery').addEventListener('click',renderSelector);$('backToHub').addEventListener('click',()=>{window.location.assign('index.html')});
     $('openCreateFault').addEventListener('click',()=>{if(currentMachine)showOverlay('createOverlay')});$('createForm').addEventListener('submit',createFault);
     $('updateFault').addEventListener('click',updateFault);$('detailPriority').addEventListener('change',renderDetailPriority);
