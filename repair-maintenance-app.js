@@ -66,7 +66,7 @@
   async function readFile(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('Unable to read selected file.'));reader.onload=()=>resolve(String(reader.result||''));reader.readAsDataURL(file)})}
   async function uploadFile(faultId,file,kind){
     if(!file)return;
-    if(file.size>5*1024*1024)throw new Error('File exceeds the 5 MB limit.');
+    if(file.size>4*1024*1024)throw new Error('File exceeds the 4 MB limit.');
     const dataUrl=await readFile(file);
     return api('upload',{faultId,filename:file.name,mimeType:file.type,kind,dataUrl});
   }
