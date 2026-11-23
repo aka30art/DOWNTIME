@@ -18,7 +18,7 @@
   const headers=()=>({'Content-Type':'application/json','apikey':API_KEY,'x-downtime-session':sessionToken()});
   async function api(action,body={}){
     if(!sessionToken())throw new Error('Your YARD HUB session has expired. Return to YARD HUB and sign in again.');
-    const response=await fetch(API,{method:'POST',headers:headers(),body:JSON.stringify({action,...body})});
+    const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),15000);let response;try{response=await fetch(API,{method:'POST',headers:headers(),body:JSON.stringify({action,...body}),signal:controller.signal})}catch(error){if(error.name==='AbortError')throw new Error('Session verification timed out after 15 seconds. Check your connection and retry.');throw new Error('Session verification could not reach the R&M service. Check your connection and retry.')}finally{clearTimeout(timeout)}
     let data={};try{data=await response.json()}catch{}
     if(!response.ok)throw new Error(data.error||`R&M request failed (${response.status}).`);
     return data;
@@ -125,6 +125,7 @@
     }catch(error){$('loadingView').hidden=true;document.querySelector('.frame').hidden=true;$('accessDenied').classList.add('show');$('accessDeniedMessage').textContent=error.message;}
   }
   document.addEventListener('DOMContentLoaded',()=>{
+    $('retrySession')?.addEventListener('click',()=>{document.querySelector('.frame').hidden=false;$('accessDenied').classList.remove('show');$('loadingView').hidden=false;init()});
     document.querySelectorAll('.machine-card').forEach(button=>button.addEventListener('click',()=>loadMachine(button.dataset.machine)));
     $('sortSelect').addEventListener('change',renderRows);
     $('backToMachinery').addEventListener('click',renderSelector);$('backToHub').addEventListener('click',()=>{window.location.assign('index.html')});
