@@ -803,7 +803,7 @@ const crewMenu=owner.page.locator('.nav-menu');
   await owner.page.locator('#smFile').setInputFiles({name:'rita-replacement.gif',mimeType:'image/gif',buffer:replacementGif});
   await owner.page.waitForFunction(()=>document.querySelector('#smPreview')?.src.startsWith('data:image/jpeg'),{timeout:5000});
   await owner.page.locator('#smPhotoSave').click();
-  await owner.page.waitForFunction(()=>document.querySelector('#smMsg')?.textContent==='Original photo uploaded to GitHub and profile saved.',{timeout:5000});
+  await owner.page.waitForFunction(()=>document.querySelector('#smMsg')?.textContent==='Photo saved.',{timeout:5000});
   assert.ok(owner.getBank().staff.profiles.Rita.photo?.startsWith('data:image/jpeg'),'existing profile SAVE PHOTO stores replacement thumbnail');
   assert.ok(owner.getBank().staff.profiles.Rita.photoPath?.startsWith('rita/'),'existing profile SAVE PHOTO stores original photo path');
   assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.length||0),2,'existing profile replacement uploads a second original photo');
