@@ -1,13 +1,34 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "library": "DOWNTIME STAFF IMAGE LIBRARY",
   "basePath": "assets/staff/originals/",
   "preserveOriginals": true,
+  "uploadFormat": "PNG",
   "staff": {
-    "jan": {"filename":"jan.jpg","available":false},
-    "mick": {"filename":"mick.jpg","available":false},
-    "gigi": {"filename":"gigi.jpg","available":false},
-    "daz": {"filename":"daz.jpg","available":false},
-    "shayne": {"filename":"shayne.jpg","available":false}
+    "jan": {
+      "directory": "jan",
+      "filename": "original.png",
+      "available": true
+    },
+    "mick": {
+      "directory": "mick",
+      "filename": "original.png",
+      "available": true
+    },
+    "gigi": {
+      "directory": "gigi",
+      "filename": "original.png",
+      "available": true
+    },
+    "daz": {
+      "directory": "daz",
+      "filename": "original.png",
+      "available": true
+    },
+    "shayne": {
+      "directory": "shayne",
+      "filename": "original.png",
+      "available": true
+    }
   }
 }
