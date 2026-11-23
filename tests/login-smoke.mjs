@@ -421,7 +421,7 @@ try{
  assert.equal(owner.getYardHubConfig().tiers.MANAGER.floor,'EDIT','Hub tier save writes the isolated Hub permission matrix');
  assert.equal(JSON.stringify(owner.getBank().tiers),originalDowntimeTierPayload,'YARD HUB tier edits do not modify the DOWNTIME tier payload');
  assert.equal(owner.getVersion(),originalDowntimeCentralVersion,'YARD HUB tier edits do not increment the DOWNTIME Central Bank version');
- await owner.page.locator('[data-yard-settings-home]').first().click();
+ await owner.page.locator('#yardHubTiersView [data-yard-settings-home]').click();
  await owner.page.locator('#yardHubSettingsUsers').click();
  await owner.page.locator('#yardHubUserAdd').click();
  await owner.page.locator('#yardHubUserUsername').fill('YardQA');
