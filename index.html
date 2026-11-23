@@ -859,7 +859,7 @@ function renderAccessRights(){
  const root=canAccessCentralBank(),visibleTiers=root?USER_TIERS:['MANAGER','SUPERVISOR','USER','SPECTATOR'];
  visibleTiers.forEach(tier=>{
   const profile={...tierDefaults[tier],...(stored[tier]||{})};
-  const rootTier=tier==='OWNER'||tier==='DEVACC',adminLocked=tier==='ADMIN';
+  const rootTier=tier==='OWNER'||tier==='DEVACC',adminLocked=tier==='ADMIN'&&!root;
   const card=document.createElement('section');card.className='access-rights-tier';card.dataset.accessTierCard=tier;
   const head=document.createElement('div');head.className='access-rights-tier-head';
   const title=document.createElement('strong');title.textContent=tier;
@@ -896,7 +896,7 @@ async function saveAccessRights(){
    if(plantPower)rootProfile.canControlPlantPower=plantPower.checked;
    tiers[tier]=rootProfile;return;
   }
-  host.querySelectorAll('[data-access-tier="'+tier+'"]').forEach(toggle=>{if(toggle.dataset.accessRight!=='canManageAccessRights')profile[toggle.dataset.accessRight]=toggle.checked});
+  host.querySelectorAll('[data-access-tier="'+tier+'"]').forEach(toggle=>{if(root||toggle.dataset.accessRight!=='canManageAccessRights')profile[toggle.dataset.accessRight]=toggle.checked});
   tiers[tier]=profile;
  });
  button.disabled=true;status.textContent='Saving tier permissions to the central data bank…';
