@@ -309,7 +309,7 @@ window.supabase={createClient:()=>({
  });
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
  try{await page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:8000})}catch(error){throw new Error('Central login options failed to populate. Browser errors: '+errors.slice(-10).join(' | ')+'; auth message: '+await page.locator('#authMsg').textContent().catch(()=> 'missing')+'; window adapter: '+await page.evaluate(()=>String(!!window.DowntimeCentral)).catch(()=> 'unavailable')+'; original: '+error.message)}
- return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
+ return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,getYardHubConfig:()=>yardHubConfig,getYardHubApiActions:()=>yardHubApiActions,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
 let repairMaintenanceBootTested=false;
@@ -392,11 +392,57 @@ try{
  await owner.page.locator('#launchDowntimeBtn').click();
  await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
  assert.equal(await owner.page.locator('#yardHub').isVisible(),false,'relaunching DOWNTIME closes YARD HUB');
+ // YARD HUB SETTINGS is additive: section tiers and Hub user assignments never alter DOWNTIME tier data.
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsBtn')?.dataset.accessChecked==='true',{timeout:5000});
+ assert.equal(await owner.page.locator('#yardHubSettingsBtn').isVisible(),true,'DEV root can open YARD HUB Settings');
+ const originalDowntimeTierPayload=JSON.stringify(owner.getBank().tiers);
+ const originalDowntimeCentralVersion=owner.getVersion();
+ await owner.page.locator('#yardHubSettingsBtn').click();
+ await owner.page.locator('#yardHubSettingsScreen').waitFor({state:'visible',timeout:5000});
+ assert.equal(await owner.page.locator('#yardHubSettingsUsers').isVisible(),true,'YARD HUB Settings exposes USERS');
+ assert.equal(await owner.page.locator('#yardHubSettingsTiers').isVisible(),true,'YARD HUB Settings exposes TIERS');
+ await owner.page.locator('#yardHubSettingsTiers').click();
+ const managerRead=owner.page.locator('input[data-hub-tier="MANAGER"][data-hub-section="floor"][data-hub-mode="READ"]');
+ const managerEdit=owner.page.locator('input[data-hub-tier="MANAGER"][data-hub-section="floor"][data-hub-mode="EDIT"]');
+ await managerRead.check();
+ assert.equal(await managerEdit.isChecked(),false,'READ and EDIT are mutually exclusive');
+ await managerEdit.check();
+ assert.equal(await managerRead.isChecked(),false,'EDIT implicitly includes READ and clears the separate READ checkbox');
+ await owner.page.locator('#yardHubTierSave').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsStatus')?.textContent.includes('TIER PERMISSIONS SAVED'),{timeout:5000});
+ assert.equal(owner.getYardHubConfig().tiers.MANAGER.floor,'EDIT','Hub tier save writes the isolated Hub permission matrix');
+ assert.equal(JSON.stringify(owner.getBank().tiers),originalDowntimeTierPayload,'YARD HUB tier edits do not modify the DOWNTIME tier payload');
+ assert.equal(owner.getVersion(),originalDowntimeCentralVersion,'YARD HUB tier edits do not increment the DOWNTIME Central Bank version');
+ await owner.page.locator('[data-yard-settings-home]').first().click();
+ await owner.page.locator('#yardHubSettingsUsers').click();
+ await owner.page.locator('#yardHubUserAdd').click();
+ await owner.page.locator('#yardHubUserUsername').fill('YardQA');
+ await owner.page.locator('#yardHubUserDisplay').fill('Yard QA');
+ await owner.page.locator('#yardHubUserPin').fill('2468');
+ await owner.page.locator('#yardHubUserHubTier').selectOption('MANAGER');
+ await owner.page.locator('#yardHubUserSave').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsStatus')?.textContent.includes('USER ACCOUNT AND YARD HUB TIER SAVED'),{timeout:5000});
+ assert.equal(owner.getBank().users.find(user=>user.username==='YardQA')?.tier,'USER','New Hub user receives the safe DOWNTIME USER tier');
+ assert.equal(owner.getYardHubConfig().userTiers.yardqa,'MANAGER','New user receives a separate YARD HUB tier assignment');
+ assert.equal(JSON.stringify(owner.getBank().tiers),originalDowntimeTierPayload,'Hub user creation does not alter existing DOWNTIME tier permissions');
+ assert.ok(owner.getYardHubApiActions().some(call=>call.action==='save-user-tier'&&call.body.username==='YardQA'),'YARD HUB tier assignment is written through the isolated Hub API');
+ await owner.page.locator('#yardHubSettingsBack').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:3000});
+ assert.equal(await owner.page.locator('#launchDowntimeBtn').isEnabled(),true,'DOWNTIME remains available after Hub Settings changes');
+ assert.equal(await owner.page.locator('.yard-tile[data-app="floor"]').isDisabled(),true,'FLOOR stays unavailable until the application is released');
+ assert.equal(await owner.page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until the application is released');
+ assert.equal(await owner.page.locator('#yardHubSettingsBtn').isVisible(),true,'DEV root retains YARD HUB Settings access');
+ await owner.page.locator('#launchDowntimeBtn').click();
+ await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
+ assert.equal(owner.getVersion(),originalDowntimeCentralVersion+1,'Only the intentional central user creation increments the DOWNTIME user-directory version');
+
  // Jan remains a normal operational USER rather than a root/admin identity.
  const janOperational=await openFor('USER','1357','Jan');
  await signIn(janOperational.page,'1357','Jan');
  await janOperational.page.locator('.nav-menu > summary').click();
  assert.equal(await janOperational.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'Jan USER does not see the Central Data Bank admin entry');
+ await janOperational.page.waitForFunction(()=>document.querySelector('#yardHubSettingsBtn')?.dataset.accessChecked==='true',{timeout:5000});
+ assert.equal(await janOperational.page.locator('#yardHubSettingsBtn').isVisible(),false,'ordinary USER cannot see YARD HUB Settings');
  assert.equal(await janOperational.page.locator('#plantOperatorToggle').isVisible(),true,'USER tier sees Plant Power when its permission is enabled');
  assert.equal(await janOperational.page.locator('#plantOperatorToggle').textContent(),'PLANT ON · GREEN','USER sees the live plant status');
  await janOperational.page.locator('#plantOperatorToggle').click();
