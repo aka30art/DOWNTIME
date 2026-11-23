@@ -175,12 +175,12 @@
     if(user&&userIsProtected(user)&&!isRootAdmin()){
       setStatus('This user has a protected YARD HUB tier.','error');return;
     }
+    const canManageCentralUsers=state?.canManageCentralUsers===true;
+    if(!user&&!canManageCentralUsers){setStatus('Your administrator account does not have the existing Central Users management right.','error');return}
     editingUsername=user?String(user.username):null;
     $('yardHubUserForm').reset();
     $('yardHubUserModal').hidden=false;
     $('yardHubUserModalTitle').textContent=user?'EDIT USER':'ADD USER';
-    const canManageCentralUsers=state?.canManageCentralUsers===true;
-    if(!user&&!canManageCentralUsers){setStatus('Your administrator account does not have the existing Central Users management right.','error');return}
     $('yardHubUserUsername').value=user?.username||'';
     $('yardHubUserUsername').disabled=!!user||!canManageCentralUsers;
     $('yardHubUserDisplay').value=user?.displayName||'';
