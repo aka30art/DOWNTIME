@@ -811,7 +811,7 @@ const lockedTierPermissions={
  DEVACC:{canEditTracker:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true}
 };
 function permission(name){const tier=privilegeFor(activeOperator),locked=lockedTierPermissions[tier];if(locked&&Object.prototype.hasOwnProperty.call(locked,name))return locked[name];const custom=centralBankPayload?.tiers?.[tier];return typeof custom?.[name]==='boolean'?custom[name]:!!tierDefaults[tier]?.[name]}
-function canManageAccessRights(){return canAccessCentralBank()}
+function canManageAccessRights(){return canAccessCentralBank()||permission('canManageAccessRights')}
 function canAccessCentralBank(){const username=String(centralUser?.username||'').trim().toUpperCase(),tier=String(centralUser?.tier||'').trim().toUpperCase();return (username==='DEV'&&tier==='OWNER')||tier==='DEVACC'}
 function canAssignStandardAccountTiers(){const tier=String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase();return tier==='ADMIN'||tier==='DEVACC'||canAccessCentralBank()}
 function isRootDevAccount(){return String(centralUser?.username||activeOperator||'').trim().toUpperCase()==='DEV'&&String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase()==='OWNER'}
@@ -825,6 +825,7 @@ const ACCESS_RIGHT_GROUPS=[
   {key:'canDeleteRecords',label:'Delete records',detail:'Permanently delete downtime records and eligible archived data'}
  ]},
  {title:'ADMINISTRATION',rights:[
+  {key:'canManageAccessRights',label:'Manage Access and Rights',detail:'Delegate editing permission profiles for MANAGER, SUPERVISOR, USER and SPECTATOR. Cannot edit own tier or protected root tiers.'},
   {key:'canManageUsers',label:'Manage USERS',detail:'Create, update, disable, activate and remove application accounts'},
   {key:'canManageStaff',label:'Manage STAFF',detail:'Edit staff profiles, roster details, photos and presence'},
   {key:'canManageAssignments',label:'Manage assignments',detail:'Change operator station assignments and assignment controls'},
@@ -855,9 +856,10 @@ const ACCESS_TIER_DESCRIPTIONS={OWNER:'Immutable root OWNER privileges. PLANT PO
 function renderAccessRights(){
  const host=$('accessRightsTierList');if(!host||!canManageAccessRights())return;
  const stored=centralBankPayload?.tiers||tierDefaults;host.replaceChildren();
- USER_TIERS.forEach(tier=>{
+ const root=canAccessCentralBank(),visibleTiers=root?USER_TIERS:['MANAGER','SUPERVISOR','USER','SPECTATOR'];
+ visibleTiers.forEach(tier=>{
   const profile={...tierDefaults[tier],...(stored[tier]||{})};
-  const rootTier=tier==='OWNER'||tier==='DEVACC';
+  const rootTier=tier==='OWNER'||tier==='DEVACC',adminLocked=tier==='ADMIN';
   const card=document.createElement('section');card.className='access-rights-tier';card.dataset.accessTierCard=tier;
   const head=document.createElement('div');head.className='access-rights-tier-head';
   const title=document.createElement('strong');title.textContent=tier;
@@ -869,7 +871,7 @@ function renderAccessRights(){
    const legend=document.createElement('legend');legend.textContent=group.title;fieldset.appendChild(legend);
    group.rights.forEach(right=>{
     const label=document.createElement('label');label.className='access-rights-row';
-    const toggle=document.createElement('input');toggle.type='checkbox';toggle.checked=profile[right.key]===true;toggle.disabled=!!(lockedTierPermissions[tier]&&Object.prototype.hasOwnProperty.call(lockedTierPermissions[tier],right.key));toggle.dataset.accessTier=tier;toggle.dataset.accessRight=right.key;toggle.id='access-'+tier.toLowerCase()+'-'+right.key;
+    const toggle=document.createElement('input');toggle.type='checkbox';toggle.checked=profile[right.key]===true;toggle.disabled=adminLocked||!!(lockedTierPermissions[tier]&&Object.prototype.hasOwnProperty.call(lockedTierPermissions[tier],right.key));toggle.dataset.accessTier=tier;toggle.dataset.accessRight=right.key;toggle.id='access-'+tier.toLowerCase()+'-'+right.key;
     const copy=document.createElement('span');copy.className='access-rights-copy';
     const name=document.createElement('strong');name.textContent=right.label;
     const detail=document.createElement('small');detail.textContent=right.detail;
@@ -885,15 +887,16 @@ async function saveAccessRights(){
  const button=$('saveAccessRights'),status=$('accessRightsStatus'),host=$('accessRightsTierList');
  if(!button||!host||!status)return;
  const source=centralBankPayload?.tiers||tierDefaults,tiers={};
- USER_TIERS.forEach(tier=>{
+ const root=canAccessCentralBank(),editableTiers=root?USER_TIERS:['MANAGER','SUPERVISOR','USER','SPECTATOR'];
+ editableTiers.forEach(tier=>{
   const profile={...tierDefaults[tier],...(source[tier]||{})};
-  if(tier==='OWNER'||tier==='DEVACC'){
+  if(root&&(tier==='OWNER'||tier==='DEVACC')){
    const rootProfile={...tierDefaults[tier],...(source[tier]||{}),...(lockedTierPermissions[tier]||{})};
    const plantPower=host.querySelector('[data-access-tier="'+tier+'"][data-access-right="canControlPlantPower"]');
    if(plantPower)rootProfile.canControlPlantPower=plantPower.checked;
    tiers[tier]=rootProfile;return;
   }
-  host.querySelectorAll('[data-access-tier="'+tier+'"]').forEach(toggle=>{profile[toggle.dataset.accessRight]=toggle.checked});
+  host.querySelectorAll('[data-access-tier="'+tier+'"]').forEach(toggle=>{if(toggle.dataset.accessRight!=='canManageAccessRights')profile[toggle.dataset.accessRight]=toggle.checked});
   tiers[tier]=profile;
  });
  button.disabled=true;status.textContent='Saving tier permissions to the central data bank…';
