@@ -74,7 +74,7 @@ Deno.serve(async (req: Request) => {
 
   const actor = String(user.username);
   const audit = async (event: string, details: Record<string, unknown> = {}) => {
-    await db.from("downtime_central_audit").insert({ username: actor, action: event, details: { module: "R&M", ...details } });
+    await db.from("repair_maintenance_audit").insert({ actor, action: event, details });
   };
   const requireEdit = () => permissions.canEditRepairMaintenance === true;
   const requireDelete = () => permissions.canDeleteRepairMaintenance === true;
@@ -151,8 +151,8 @@ Deno.serve(async (req: Request) => {
       const kind = body.kind === "PHOTO" ? "PHOTO" : body.kind === "FILE" ? "FILE" : "";
       if (!kind || !mimeTypes.has(mimeType) || (kind === "PHOTO" && !mimeType.startsWith("image/"))) return json(fail("File type is not supported."), 400);
       const dataUrl = String(body.dataUrl || "");
-      const match = dataUrl.match(/^data:([a-z0-9.+-]+\\/[a-z0-9.+-]+);base64,([a-z0-9+/=]+)$/i);
-      if (!match || match[1].toLowerCase() !== mimeType || match[2].length > 7_000_000) return json(fail("File data is invalid or exceeds the 5 MB limit."), 400);
+      const match = dataUrl.match(/^data:([a-z0-9.+-]+\/[a-z0-9.+-]+);base64,([a-z0-9+/=]+)$/i);
+      if (!match || match[1].toLowerCase() !== mimeType || match[2].length > 5_700_000) return json(fail("File data is invalid or exceeds the 5 MB limit."), 400);
       const bytes = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
       if (!bytes.length || bytes.length > 5 * 1024 * 1024) return json(fail("File exceeds the 5 MB limit."), 400);
       const safeName = filename.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(-120) || "evidence";
