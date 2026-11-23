@@ -248,13 +248,10 @@
     let centralSaved=false;
     try{
       if(centralChanges){
-        const saved=await window.DowntimeCentral.saveUser(userData,state.centralVersion);
+        const saveCentralUser=window.saveDowntimeCentralUserFromYardHub||window.DowntimeCentral.saveUser;
+        const saved=await saveCentralUser(userData,state.centralVersion);
         state.centralVersion=Number(saved.version||state.centralVersion+1);
         centralSaved=true;
-        if(typeof window.refreshDowntimeCentralDirectory==='function'){
-          try{await window.refreshDowntimeCentralDirectory()}
-          catch(error){console.warn('DOWNTIME central user cache refresh will retry when the tracker is reopened.',error)}
-        }
       }
       const assigned=await callApi('save-user-tier',{username,tier:hubTier,version:state.permissionVersion});
       state.permissionVersion=Number(assigned.version||state.permissionVersion+1);
@@ -275,7 +272,8 @@
     if(!window.confirm(action+' '+user.username+'? This will revoke their current sessions.'))return;
     setBusy(true);setStatus((enabled?'RE-ENABLING ':'DISABLING ')+user.username+'…');
     try{
-      const result=await window.DowntimeCentral.saveUser({
+      const saveCentralUser=window.saveDowntimeCentralUserFromYardHub||window.DowntimeCentral.saveUser;
+      const result=await saveCentralUser({
         username:user.username,displayName:user.displayName||user.username,tier:user.legacyTier||'USER',enabled
       },state.centralVersion);
       state.centralVersion=Number(result.version||state.centralVersion+1);
