@@ -23,6 +23,6 @@ assert.match(html, /\.yard-grid\{display:grid;grid-template-columns:repeat\(2,mi
 assert.match(html, /@media\(max-width:540px\)[\s\S]*?\.yard-grid\{grid-template-columns:1fr;/, 'mobile hub stacks the application tiles');
 assert.match(loginSmoke, /successful login lands on YARD HUB first/, 'browser smoke verifies the post-login landing route');
 assert.match(loginSmoke, /launching DOWNTIME closes YARD HUB/, 'browser smoke verifies module launch');
-assert.ok(packageJson.scripts['test:smoke'].includes('test:yard-hub-contract.mjs'), 'YARD HUB contract is part of the full smoke suite');
+assert.ok(packageJson.scripts['test:smoke'].includes('tests/yard-hub-contract.mjs'), 'YARD HUB contract is part of the full smoke suite');
 
 console.log('YARD HUB platform contract: PASS');
