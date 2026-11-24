@@ -54,7 +54,7 @@ assert.match(app,/canManageRepairMaintenanceMachinery/);
 
 assert.ok(settings.includes("key:'repairMaintenanceMachinery',label:'R&M MACHINERY'"));
 assert.ok(settingsApi.includes('repairMaintenanceMachinery'));
-assert.ok(settingsApi.includes('value.repairMaintenanceMachinery ?? value.repairMaintenance'));
+assert.ok(settingsApi.includes('value[key] ?? value.repairMaintenance'));
 assert.match(settingsApi,/tierPermissions: normalizeTierPermissions/);
 
 assert.match(pdf,/asset_name/);
