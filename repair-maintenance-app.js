@@ -35,7 +35,7 @@
   function closeOverlay(id){$(id)?.classList.remove('open');if(!document.querySelector('.overlay.open'))document.body.style.overflow=''}
   function setBusy(value){busy=value;document.querySelectorAll('button').forEach(b=>{if(b.dataset.busyControl==='true')b.disabled=value})}
   function renderSelector(){setView('selectorView');$('selectorStatus').textContent='Select a machinery category to view its fault register.';}
-  function renderSettingsSelector(){setView('settingsView');$('settingsStatus').textContent='Select a machinery category to configure its R&M settings.';}
+  function renderSettingsSelector(){if(access?.canManageRepairMaintenancePresets!==true){say('R&M SETTINGS permission is required to manage configuration.','selectorStatus','error');return}setView('settingsView');$('settingsStatus').textContent='Select a machinery category to configure its R&M settings.';}
   async function openMachineSettings(key){
     if(access?.canManageRepairMaintenancePresets!==true){say('R&M SETTINGS permission is required to manage machine settings.','settingsStatus','error');return}
     currentMachine=machine(key);machinePresets=[];machineModels=[];
@@ -611,6 +611,7 @@
     $('openCreateFault').hidden=!canCreate;$('openCreateFault').disabled=!canCreate;
     $('deleteFault').hidden=!del;$('openReports').hidden=!exp;$('exportReportButton').hidden=!exp;$('pdfExportsButton').hidden=!exp;
     $('openRmsSettingsShortcut').hidden=access.canManageRepairMaintenancePresets!==true;
+    $('openSettingsWorkspace').hidden=access.canManageRepairMaintenancePresets!==true;
     renderSettingsAssetManager();
   }
   async function init(){
@@ -627,6 +628,7 @@
     $('retrySession')?.addEventListener('click',()=>{document.querySelector('.frame').hidden=false;$('accessDenied').classList.remove('show');$('loadingView').hidden=false;init()});
     document.querySelectorAll('#machineGrid .machine-card[data-machine]').forEach(button=>button.addEventListener('click',()=>loadMachine(button.dataset.machine)));
     $('openRmsSettingsShortcut')?.addEventListener('click',()=>{if(currentMachine)openMachineSettings(currentMachine.key);else renderSettingsSelector()});
+    $('openSettingsWorkspace')?.addEventListener('click',renderSettingsSelector);
     $('backToMachineryFromSettings')?.addEventListener('click',renderSelector);
     document.querySelectorAll('#settingsMachineGrid .machine-card[data-settings-machine]').forEach(button=>button.addEventListener('click',()=>openMachineSettings(button.dataset.settingsMachine)));
     $('machineAssetSelect')?.addEventListener('change',event=>selectMachineAsset(event.target.value));

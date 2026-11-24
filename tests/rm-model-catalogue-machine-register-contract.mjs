@@ -43,5 +43,5 @@ assert.match(html,/The catalogue is the registered-machine list[\s\S]*archived m
 assert.match(html,/repair-maintenance-app\.js\?v=20261124-19/);
 assert.match(app,/function updateAssetSelectorVisibility\([\s\S]*asset_selector_enabled/);
 assert.ok(pkg.includes('node tests/rm-model-catalogue-machine-register-contract.mjs'),'PR133 regression is included in the R&M smoke suite');
-assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-19'),'Pages deployment verification fetches the current R&M app cache version');
+assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-20'),'Pages deployment verification fetches the current R&M app cache version');
 console.log('PR133 model catalogue / registered-machine contracts passed');
