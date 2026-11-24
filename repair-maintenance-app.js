@@ -13,7 +13,7 @@
   const PRIORITIES=['HIGH','MEDIUM','LOW'];
   const STATUSES=['OPEN','PERM. FIX'];
   const $=id=>document.getElementById(id);
-  let access=null,currentMachine=null,currentAsset=null,currentFault=null,faults=[],machinePresets=[],machineModels=[],machineSettings={model_dropdown_enabled:true},modelDropdownDraft=true,assets=[],settingsAssets=[],settingsSelectedAssetId='',unassignedCount=0,unassignedMode=false,editingAssetId=null,editingAssetRecord=null,assetEditorFromSettings=false,assetEditorDashboardVisible=false,busy=false,exportOffset=0,exportsLoading=false;
+  let access=null,currentMachine=null,currentAsset=null,currentFault=null,faults=[],machinePresets=[],machineModels=[],machineSettings={model_dropdown_enabled:true,asset_selector_enabled:true},modelDropdownDraft=true,assetSelectorDraft=true,assets=[],settingsAssets=[],settingsSelectedAssetId='',unassignedCount=0,unassignedMode=false,editingAssetId=null,editingAssetRecord=null,assetEditorFromSettings=false,assetEditorDashboardVisible=false,busy=false,exportOffset=0,exportsLoading=false;
   const sessionToken=()=>window.DowntimeCentral?.session?.token||'';
   const headers=()=>({'Content-Type':'application/json','apikey':API_KEY,'x-downtime-session':sessionToken()});
   async function api(action,body={},timeoutMs=15000){
@@ -117,8 +117,9 @@
       api('model-list',{machineType:currentMachine.key}),
       assetRequest
     ]);
-    machineSettings=settingsResult.settings||{model_dropdown_enabled:true};
+    machineSettings=settingsResult.settings||{model_dropdown_enabled:true,asset_selector_enabled:true};
     modelDropdownDraft=machineSettings.model_dropdown_enabled===true;
+    assetSelectorDraft=machineSettings.asset_selector_enabled===true;
     renderAssetSelect();
     machineModels=Array.isArray(modelsResult.models)?modelsResult.models:[];
     settingsAssets=Array.isArray(assetResult.assets)?assetResult.assets:[];
@@ -129,6 +130,9 @@
     const toggle=$('modelDropdownEnabled'),save=$('saveModelDropdownSettings');
     if(toggle)toggle.checked=modelDropdownDraft;
     if(save)save.disabled=true;
+    const assetToggle=$('assetSelectorEnabled'),assetSave=$('saveAssetSelectorSettings');
+    if(assetToggle)assetToggle.checked=assetSelectorDraft;
+    if(assetSave)assetSave.disabled=true;
     renderMachineModelManager();
     renderSettingsAssetManager();
   }
@@ -145,6 +149,42 @@
   function updateModelDropdownSaveState(){
     const save=$('saveModelDropdownSettings');
     if(save)save.disabled=modelDropdownDraft=== (machineSettings.model_dropdown_enabled===true);
+  }
+  function updateAssetSelectorVisibility(){
+    const host=$('machineAssetControls');
+    if(host)host.hidden=access?.canReadRepairMaintenanceMachinery!==true||machineSettings.asset_selector_enabled!==true;
+  }
+  function updateAssetSelectorSaveState(){
+    const save=$('saveAssetSelectorSettings');
+    if(save)save.disabled=assetSelectorDraft===(machineSettings.asset_selector_enabled===true);
+  }
+  async function saveAssetSelectorSetting(){
+    if(!currentMachine||access?.canManageRepairMaintenancePresets!==true)return;
+    const button=$('saveAssetSelectorSettings');
+    if(!button||assetSelectorDraft===(machineSettings.asset_selector_enabled===true))return;
+    button.disabled=true;button.textContent='SAVING…';
+    try{
+      const result=await api('settings-update',{machineType:currentMachine.key,assetSelectorEnabled:assetSelectorDraft});
+      machineSettings=result.settings||{...machineSettings,asset_selector_enabled:assetSelectorDraft};
+      assetSelectorDraft=machineSettings.asset_selector_enabled===true;
+      $('assetSelectorEnabled').checked=assetSelectorDraft;
+      updateAssetSelectorVisibility();
+      renderAssetSelect();
+      updateAssetSelectorSaveState();
+      const activeCount=assets.filter(asset=>asset.status==='ACTIVE').length;
+      if(!assetSelectorDraft&&!currentAsset&&activeCount>1){
+        setRegisterMessage('The registered-machine menu is disabled in R&M settings. Enable it to choose an individual machine and open its fault register.');
+      }else if(assetSelectorDraft&&!currentAsset&&activeCount>1){
+        setRegisterMessage('Select a registered machine from the dropdown to view its own fault register.');
+      }
+      say(assetSelectorDraft?'Registered-machine menu saved: ENABLED. The dashboard selector is visible.':'Registered-machine menu saved: DISABLED. The dashboard selector is hidden.',machineSettingsStatusTarget(),'ok');
+    }catch(error){
+      updateAssetSelectorSaveState();
+      say(error.message,machineSettingsStatusTarget(),'error');
+    }finally{
+      button.textContent='SAVE SETTINGS';
+      updateAssetSelectorSaveState();
+    }
   }
   async function saveModelDropdownSetting(){
     if(!currentMachine||access?.canManageRepairMaintenancePresets!==true)return;
@@ -247,6 +287,12 @@
     updateModelDropdownSaveState();
     clearStatus('machineSettingsModalStatus');
   }
+  function handleAssetSelectorDraftChange(){
+    if(access?.canManageRepairMaintenancePresets!==true)return;
+    assetSelectorDraft=$('assetSelectorEnabled').checked;
+    updateAssetSelectorSaveState();
+    clearStatus('machineSettingsModalStatus');
+  }
   async function addMachineModel(event){
     event.preventDefault();if(!currentMachine||access?.canManageRepairMaintenancePresets!==true)return;
     const name=$('newModelName').value.trim();if(!name)return;
@@ -276,7 +322,7 @@
       select.appendChild(option);
     });
     if(unassignedCount>0){const legacy=document.createElement('option');legacy.value='__UNASSIGNED__';legacy.textContent='UNASSIGNED / LEGACY FAULTS ('+unassignedCount+')';select.appendChild(legacy)}
-    $('machineAssetControls').hidden=access?.canReadRepairMaintenanceMachinery!==true||machineSettings.model_dropdown_enabled!==true;
+    updateAssetSelectorVisibility();
     select.value=[...select.options].some(option=>option.value===previous)?previous:'';
   }
   async function syncDashboardAssetsAfterSettings(preferredId=''){
@@ -292,12 +338,12 @@
       currentAsset=null;unassignedMode=false;
       const active=assets.filter(asset=>asset.status==='ACTIVE');
       if(active.length===1){$('machineAssetSelect').value=active[0].id;await selectMachineAsset(active[0].id)}
-      else setRegisterMessage(assets.length?'Select an individual machine from the dropdown to view its own fault register.':'No machines are registered in this category yet.');
+      else setRegisterMessage(assets.length?(machineSettings.asset_selector_enabled===true?'Select an individual machine from the dropdown to view its own fault register.':'The registered-machine menu is disabled in R&M settings. Enable it to choose a machine and view its fault register.'):'No machines are registered in this category yet.');
       applyPermissions();
     }
   }
   async function loadMachine(key){
-    currentMachine=machine(key);currentAsset=null;unassignedMode=false;assets=[];unassignedCount=0;machinePresets=[];
+    currentMachine=machine(key);currentAsset=null;unassignedMode=false;assets=[];unassignedCount=0;machinePresets=[];machineSettings={model_dropdown_enabled:true,asset_selector_enabled:true};modelDropdownDraft=true;assetSelectorDraft=true;
     setView('dashboardView');
     const icon=$('machineIcon');if(icon)icon.src=currentMachine.icon;
     $('machineCategoryLabel').textContent=currentMachine.sub;
@@ -312,7 +358,9 @@
         api('asset-list',{machineType:currentMachine.key}),
         api('settings-get',{machineType:currentMachine.key})
       ]);
-      machineSettings=settingsResult.settings||{model_dropdown_enabled:true};
+      machineSettings=settingsResult.settings||{model_dropdown_enabled:true,asset_selector_enabled:true};
+      modelDropdownDraft=machineSettings.model_dropdown_enabled===true;
+      assetSelectorDraft=machineSettings.asset_selector_enabled===true;
       assets=Array.isArray(result.assets)?result.assets:[];
       unassignedCount=Number(result.unassignedCount)||0;
       renderAssetSelect();
@@ -321,18 +369,18 @@
         $('machineAssetSelect').value=active[0].id;
         await selectMachineAsset(active[0].id);
       }else if(active.length>1){
-        setRegisterMessage('Select an individual machine from the dropdown to view its own fault register.');
-        say(active.length+' active machines registered in this category. Select one to continue.','dashboardStatus','ok');
+        setRegisterMessage(machineSettings.asset_selector_enabled===true?'Select an individual machine from the dropdown to view its own fault register.':'The registered-machine menu is disabled in R&M settings. Enable it to choose an individual machine and open its fault register.');
+        say(active.length+' active machines registered in this category.'+(machineSettings.asset_selector_enabled===true?' Select one to continue.':' Menu currently disabled in RMS settings.'),'dashboardStatus','ok');
       }else if(assets.length>0){
-        setRegisterMessage(unassignedCount>0
-          ? 'No active machines. Archived machines remain selectable for history; unassigned legacy faults are also available.'
-          : 'No active machines. Archived machines remain selectable to view their historical fault records.');
+        setRegisterMessage(machineSettings.asset_selector_enabled!==true
+          ?'The registered-machine menu is disabled in R&M settings. Enable it to select an archived machine and view historical faults.'
+          :(unassignedCount>0?'No active machines. Archived machines remain selectable for history; unassigned legacy faults are also available.':'No active machines. Archived machines remain selectable to view their historical fault records.'));
         say('No active machines are registered in this category.','dashboardStatus','ok');
       }else if(unassignedCount>0){
-        setRegisterMessage('No machines are registered yet. Select UNASSIGNED / LEGACY FAULTS to review existing records, or add a machine.');
+        setRegisterMessage(machineSettings.asset_selector_enabled!==true?'The registered-machine menu is disabled in R&M settings. Enable it to review unassigned legacy fault records.':'No machines are registered yet. Select UNASSIGNED / LEGACY FAULTS to review existing records.');
         say(unassignedCount+' existing fault record(s) are not yet assigned to a machine.','dashboardStatus','ok');
       }else{
-        setRegisterMessage('No machines are registered in this category yet. Use ADD MACHINERY to register the first machine.');
+        setRegisterMessage('No machines are registered in this category yet. Use R&M settings to register the first machine.');
         say('Machinery register is ready.','dashboardStatus','ok');
       }
       applyPermissions();
@@ -575,6 +623,8 @@
     $('archiveAssetButton')?.addEventListener('click',archiveCurrentAsset);
     $('modelDropdownEnabled')?.addEventListener('change',handleModelDropdownDraftChange);
     $('saveModelDropdownSettings')?.addEventListener('click',saveModelDropdownSetting);
+    $('assetSelectorEnabled')?.addEventListener('change',handleAssetSelectorDraftChange);
+    $('saveAssetSelectorSettings')?.addEventListener('click',saveAssetSelectorSetting);
     $('modelAddForm')?.addEventListener('submit',addMachineModel);
     $('sortSelect').addEventListener('change',renderRows);
     $('backToMachinery').addEventListener('click',renderSelector);$('backToHub').addEventListener('click',()=>{window.location.assign('index.html')});

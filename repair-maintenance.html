@@ -205,14 +205,25 @@
       </form>
     </section>
     <section class="rms-config-section">
-      <div class="rms-section-heading"><strong>INDIVIDUAL MACHINERY SCROLL-DOWN MENU</strong><span>PER-MACHINERY DISPLAY SETTING</span></div>
+      <div class="rms-section-heading"><strong>MAKE / MODEL DROPDOWN</strong><span>MACHINERY FORM</span></div>
       <label class="rms-toggle-row" for="modelDropdownEnabled">
-        <span><strong>ENABLE SCROLL-DOWN MENU</strong><small>When enabled, the registered-machine scroll-down menu is visible for this category. The MAKE / MODEL field also uses this category's model catalogue. When disabled, the registered-machine menu is hidden and staff can type the make / model.</small></span>
+        <span><strong>ENABLE MAKE / MODEL DROPDOWN</strong><small>When enabled, the MAKE / MODEL field uses this category's model catalogue. When disabled, staff can enter the make / model manually. This setting does not control the registered-machine menu on the dashboard.</small></span>
         <input id="modelDropdownEnabled" type="checkbox" checked>
       </label>
       <div class="rms-toggle-save-row">
         <span class="form-help">Changes are not applied until saved.</span>
         <button class="btn primary" id="saveModelDropdownSettings" type="button" disabled>SAVE SETTINGS</button>
+      </div>
+    </section>
+    <section class="rms-config-section">
+      <div class="rms-section-heading"><strong>REGISTERED MACHINE MENU</strong><span>R&amp;M DASHBOARD</span></div>
+      <label class="rms-toggle-row" for="assetSelectorEnabled">
+        <span><strong>ENABLE SCROLL-DOWN MENU</strong><small>When enabled, the registered-machine selector is visible on the R&amp;M dashboard. When disabled, that selector is hidden. This setting does not change the MAKE / MODEL field.</small></span>
+        <input id="assetSelectorEnabled" type="checkbox" checked>
+      </label>
+      <div class="rms-toggle-save-row">
+        <span class="form-help">Changes are not applied until saved.</span>
+        <button class="btn primary" id="saveAssetSelectorSettings" type="button" disabled>SAVE SETTINGS</button>
       </div>
     </section>
 
@@ -247,5 +258,5 @@
 
 <script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';window.REPAIR_MAINTENANCE_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/repair-maintenance-api';</script>
 <script src="central-bank-client.js"></script>
-<script src="repair-maintenance-app.js?v=20261124-13"></script>
+<script src="repair-maintenance-app.js?v=20261124-14"></script>
 </body></html>
