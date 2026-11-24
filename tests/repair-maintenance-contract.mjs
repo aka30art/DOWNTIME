@@ -78,9 +78,11 @@ assert.ok(api.includes('.eq("machine_type", body.machineType)'),'backend checks 
 assert.ok(api.includes('.eq("is_other", false)'),'backend protects OTHER from deletion');
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-9'),'R&M app script cache is refreshed');
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-10'),'R&M app script cache is refreshed');
 assert.ok(html.includes('id="openRmsSettingsShortcut"'),'RMS settings gear shortcut is present in the header');
 assert.ok(html.includes('id="saveModelDropdownSettings"'),'model dropdown configuration has an explicit save button');
+assert.ok(html.includes('REGISTERED MACHINE · FAULT REGISTER'));
+assert.ok(html.includes('The MAKE / MODEL catalogue is controlled separately in RMS settings.'));
 assert.ok(html.includes('id="settingsAddMachineryButton"')&&html.includes('id="settingsEditMachineryButton"'),'machinery management actions are contained in RMS settings');
 assert.doesNotMatch(html,/id="addMachineryButton"|id="editMachineryButton"|id="openPresets"/,'dashboard no longer contains machinery management buttons');
 assert.match(app,/function saveModelDropdownSetting\(\)/,'MAKE / MODEL dropdown setting is saved explicitly');
