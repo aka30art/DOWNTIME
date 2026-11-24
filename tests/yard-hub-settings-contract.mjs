@@ -3,9 +3,11 @@ import fs from 'node:fs';
 
 const html=fs.readFileSync('index.html','utf8');
 const config=fs.readFileSync('supabase/config.toml','utf8');
+const pagesWorkflow=fs.readFileSync('.github/workflows/pages.yml','utf8');
 const ui=fs.readFileSync('yard-hub-settings.js','utf8');
 const css=fs.readFileSync('yard-hub-settings.css','utf8');
 const migration=fs.readFileSync('supabase/migrations/20261123212500_yard_hub_access_control.sql','utf8');
+const mechanicMigration=fs.readFileSync('supabase/migrations/20261124000000_rm_mechanic_machine_presets.sql','utf8');
 const hubApi=fs.readFileSync('supabase/functions/yard-hub-settings-api/index.ts','utf8');
 const rmApi=fs.readFileSync('supabase/functions/repair-maintenance-api/index.ts','utf8');
 const centralApi=fs.readFileSync('supabase/functions/central-bank/index.ts','utf8');
@@ -23,6 +25,12 @@ assert.match(html,/yard-hub-settings\.css\?v=/,'Hub Settings style asset is vers
 assert.match(html,/data-app="floor" type="button" disabled/,'FLOOR remains unavailable until its application is released');
 assert.match(html,/data-app="check-sheets" type="button" disabled/,'CHECK SHEETS remains unavailable until its application is released');
 assert.match(html,/id="launchDowntimeBtn" data-app="downtime" type="button"/,'DOWNTIME launcher remains present and enabled');
+assert.ok(html.includes('yard-hub-settings.js?v=20261124-1'),'YARD HUB settings client cache is refreshed');
+assert.ok(pagesWorkflow.includes("if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'"),'Pages artifact build runs on PRs for pre-merge validation');
+assert.ok(pagesWorkflow.includes("if: github.ref == 'refs/heads/main'"),'Pages deployment remains restricted to main');
+assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-1'),'live deployment smoke test verifies the updated Hub settings asset');
+assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-1'),'live deployment smoke test verifies the updated R&M app asset');
+assert.ok(ui.includes("'MECHANIC'"),'MECHANIC appears in the YARD HUB tier selector and role list');
 
 // Identity and PIN management deliberately reuse the existing central directory and APIs.
 assert.ok(ui.includes('const saveCentralUser=window.saveDowntimeCentralUserFromYardHub;'),'Hub user management reuses the existing central identity API through the DOWNTIME write queue');
@@ -70,7 +78,9 @@ assert.match(hubApi,/tier === "DEVACC" \|\| hubTier === "ADMIN"|hubTier === "DEV
 assert.match(hubApi,/save-user-tier/);
 assert.match(hubApi,/save-tier-settings/);
 assert.match(hubApi,/db\.rpc\("yard_hub_save_tier_settings"/);
-assert.match(hubApi,/editableByAdmin = \["MANAGER", "SUPERVISOR", "USER", "SPECTATOR"\]/);
+assert.match(hubApi,/editableByAdmin = \["MANAGER", "SUPERVISOR", "MECHANIC", "USER", "SPECTATOR"\]/);
+assert.ok(hubApi.includes('"MECHANIC"'),'YARD HUB tier validator includes MECHANIC');
+assert.ok(hubApi.includes('"SUPERVISOR", "MECHANIC", "USER"'),'YARD HUB admins may assign MECHANIC');
 assert.doesNotMatch(hubApi,/from\("downtime_central_bank"\)\.update/,'Hub API must not write to the DOWNTIME user bank');
 assert.doesNotMatch(hubApi,/from\("downtime_central_sessions"\)\.delete/,'Hub API must not revoke or mutate sessions itself');
 
@@ -80,6 +90,15 @@ assert.match(rmApi,/permissions\.canEditRepairMaintenance = mode === "EDIT"/);
 assert.match(rmApi,/permissions\.canDeleteRepairMaintenance = mode === "EDIT"/);
 assert.match(rmApi,/permissions\.canExportRepairMaintenanceReports = mode === "READ" \|\| mode === "EDIT"/);
 assert.match(rmApi,/missingHubTable/,'pre-migration fallback preserves existing R&M access behaviour');
+assert.ok(rmApi.includes('permissions.canManageRepairMaintenancePresets = permissions.canEditRepairMaintenance === true'),'preset management requires R&M EDIT access');
+assert.ok(rmApi.includes('action === "preset-add"') && rmApi.includes('action === "preset-delete"'),'preset mutations are backend actions');
+assert.ok(mechanicMigration.includes("'floor','NONE','checkSheets','NONE','repairMaintenance','EDIT'"),'MECHANIC defaults to R&M EDIT only');
+assert.ok(mechanicMigration.includes('yard_hub_access_audit'),'MECHANIC tier addition is audited');
+assert.ok(mechanicMigration.includes('enable row level security'),'preset data has RLS enabled');
+assert.ok(mechanicMigration.includes('revoke all on table public.repair_maintenance_machine_presets from public, anon, authenticated'));
+assert.ok(mechanicMigration.includes('grant all on table public.repair_maintenance_machine_presets to service_role'));
+assert.doesNotMatch(mechanicMigration,/update public\.downtime_central_bank/i);
+assert.doesNotMatch(mechanicMigration,/update public\.downtime_shared_state/i);
 assert.match(rmApi,/if \(!hubAccessError && !hubAccessRow\?\.payload\)/,'a present but unseeded Hub permission store fails closed');
 assert.match(rmApi,/YARD HUB permissions are temporarily unavailable/,'unexpected Hub permission-store errors fail closed');
 

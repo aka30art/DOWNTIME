@@ -13,7 +13,7 @@
   const PRIORITIES=['HIGH','MEDIUM','LOW'];
   const STATUSES=['OPEN','PERM. FIX'];
   const $=id=>document.getElementById(id);
-  let access=null,currentMachine=null,currentFault=null,faults=[],busy=false;
+  let access=null,currentMachine=null,currentFault=null,faults=[],machinePresets=[],busy=false;
   const sessionToken=()=>window.DowntimeCentral?.session?.token||'';
   const headers=()=>({'Content-Type':'application/json','apikey':API_KEY,'x-downtime-session':sessionToken()});
   async function api(action,body={}){
@@ -56,12 +56,34 @@
       row.addEventListener('click',()=>openDetails(fault.id,index+1));host.append(row);
     });
   }
+  function renderPresetSelect(){
+    const select=$('newFaultName');if(!select)return;
+    select.replaceChildren();
+    const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='SELECT AREA / PART';placeholder.disabled=true;placeholder.selected=true;select.appendChild(placeholder);
+    machinePresets.forEach(preset=>{const option=document.createElement('option');option.value=preset.id;option.textContent=preset.name;option.dataset.other=preset.is_other?'true':'false';select.appendChild(option)});
+    setOtherAreaVisibility();
+  }
+  function selectedPreset(){return machinePresets.find(preset=>preset.id===$('newFaultName')?.value)||null}
+  function setOtherAreaVisibility(){
+    const other=selectedPreset()?.is_other===true,field=$('newFaultOtherField'),input=$('newFaultOther');
+    if(field)field.hidden=!other;
+    if(input){input.required=other;input.disabled=!other;if(!other)input.value=''}
+  }
+  async function refreshMachinePresets(){
+    if(!currentMachine)return;
+    const result=await api('preset-list',{machineType:currentMachine.key});
+    machinePresets=Array.isArray(result.presets)?result.presets:[];
+    renderPresetSelect();renderPresetManager();
+  }
   async function loadMachine(key){
-    currentMachine=machine(key);setView('dashboardView');
+    currentMachine=machine(key);machinePresets=[];setView('dashboardView');
     $('machineTitle')?.replaceChildren(document.createTextNode(currentMachine.label));
-    say('Loading live fault register\u2026');$('faultRows').innerHTML='<div class="empty">Loading fault records…</div>';
-    try{const result=await api('list',{machineType:currentMachine.key});faults=result.faults||[];renderRows();say(`${faults.length} fault${faults.length===1?'':'s'} loaded · Last refreshed ${new Date().toLocaleTimeString('en-GB')}`,'dashboardStatus','ok')}
-    catch(error){faults=[];renderRows();say(error.message,'dashboardStatus','error')}
+    say('Loading live fault register…');$('faultRows').innerHTML='<div class="empty">Loading fault records…</div>';
+    try{
+      const result=await api('list',{machineType:currentMachine.key});faults=result.faults||[];renderRows();
+      try{await refreshMachinePresets();say(`${faults.length} fault${faults.length===1?'':'s'} loaded · Last refreshed ${new Date().toLocaleTimeString('en-GB')}`,'dashboardStatus','ok')}
+      catch(error){renderPresetSelect();say(`Faults loaded, but machine presets could not be loaded: ${error.message}`,'dashboardStatus','error')}
+    }catch(error){faults=[];renderRows();say(error.message,'dashboardStatus','error')}
   }
   async function readFile(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('Unable to read selected file.'));reader.onload=()=>resolve(String(reader.result||''));reader.readAsDataURL(file)})}
   async function uploadFile(faultId,file,kind){
@@ -71,17 +93,49 @@
     return api('upload',{faultId,filename:file.name,mimeType:file.type,kind,dataUrl});
   }
   async function createFault(event){
-    event.preventDefault();if(busy)return;
-    const name=$('newFaultName').value.trim(),description=$('newFaultDescription').value.trim();
-    if(!name||!description)return;
+    event.preventDefault();if(busy||!currentMachine)return;
+    const preset=selectedPreset(),description=$('newFaultDescription').value.trim(),otherArea=$('newFaultOther').value.trim();
+    if(!preset){say('Select an area / part of machinery.','dashboardStatus','error');return}
+    if(preset.is_other&&!otherArea){say('Enter the machinery area or part.','dashboardStatus','error');$('newFaultOther').focus();return}
+    if(!description)return;
     const button=$('createFaultSave');button.disabled=true;button.textContent='SAVING…';
     try{
-      const result=await api('create',{machineType:currentMachine.key,faultName:name,description,priority:$('newFaultPriority').value,status:$('newFaultStatus').value});
+      const result=await api('create',{machineType:currentMachine.key,presetId:preset.id,otherArea,description,priority:$('newFaultPriority').value,status:$('newFaultStatus').value});
       const photo=$('newFaultPhoto').files?.[0];
       if(photo){try{await uploadFile(result.fault.id,photo,'PHOTO')}catch(error){say(`Fault saved, but photo upload failed: ${error.message}`,'dashboardStatus','error')}}
-      $('createForm').reset();closeOverlay('createOverlay');await loadMachine(currentMachine.key);say('Fault / defect created successfully.','dashboardStatus','ok');
+      $('createForm').reset();renderPresetSelect();closeOverlay('createOverlay');await loadMachine(currentMachine.key);say('Fault / defect created successfully.','dashboardStatus','ok');
     }catch(error){say(error.message,'dashboardStatus','error')}
     finally{button.disabled=false;button.textContent='CREATE FAULT'}
+  }
+  function renderPresetManager(){
+    const host=$('presetItems');if(!host)return;host.replaceChildren();
+    if(!machinePresets.length){const empty=document.createElement('p');empty.className='empty';empty.textContent='No presets configured for this machine.';host.appendChild(empty);return}
+    machinePresets.forEach(preset=>{
+      const row=document.createElement('div');row.className='preset-row';
+      const name=document.createElement('strong');name.textContent=preset.name;row.appendChild(name);
+      if(preset.is_other){const fixed=document.createElement('small');fixed.textContent='DEFAULT · REQUIRED';row.appendChild(fixed)}
+      else{const remove=document.createElement('button');remove.type='button';remove.className='btn danger compact';remove.textContent='REMOVE';remove.addEventListener('click',()=>removeMachinePreset(preset));row.appendChild(remove)}
+      host.appendChild(row);
+    });
+  }
+  async function openPresetManager(){
+    if(!currentMachine||access?.canManageRepairMaintenancePresets!==true)return;
+    try{await refreshMachinePresets();$('presetMachineTitle').textContent=currentMachine.label;showOverlay('presetsOverlay')}
+    catch(error){say(error.message,'dashboardStatus','error')}
+  }
+  async function addMachinePreset(event){
+    event.preventDefault();if(busy||!currentMachine)return;
+    const name=$('newPresetName').value.trim();if(!name)return;
+    const button=$('addPresetSave');button.disabled=true;button.textContent='SAVING…';
+    try{await api('preset-add',{machineType:currentMachine.key,name});$('newPresetName').value='';await refreshMachinePresets();say('Machine preset added.','dashboardStatus','ok')}
+    catch(error){say(error.message,'dashboardStatus','error')}
+    finally{button.disabled=false;button.textContent='ADD PRESET'}
+  }
+  async function removeMachinePreset(preset){
+    if(!currentMachine||!preset||preset.is_other)return;
+    if(!window.confirm(`Remove “${preset.name}” from ${currentMachine.label}? Existing fault records will be retained.`))return;
+    try{await api('preset-delete',{machineType:currentMachine.key,presetId:preset.id});await refreshMachinePresets();say('Machine preset removed. Existing fault records were not changed.','dashboardStatus','ok')}
+    catch(error){say(error.message,'dashboardStatus','error')}
   }
   async function openDetails(id,number){
     try{
@@ -108,11 +162,12 @@
   async function saveNote(){const note=$('noteText').value.trim();if(!currentFault||!note)return;const button=$('saveNote');button.disabled=true;try{await api('note-add',{faultId:currentFault.id,note});$('noteText').value='';$('noteComposer').classList.remove('open');await refreshDetails()}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false}}
   async function doUpload(file,kind){if(!currentFault||!file)return;const button=kind==='PHOTO'?$('addPhoto'):$('attachFile');button.disabled=true;try{await uploadFile(currentFault.id,file,kind);await refreshDetails();say(`${kind==='PHOTO'?'Photo':'File'} attached successfully.`,'dashboardStatus','ok')}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false;$('photoInput').value='';$('fileInput').value=''}}
   async function deleteFault(){if(!currentFault||busy)return;if(!window.confirm(`Mark “${currentFault.fault_name}” as PERM. FIX? This will keep its record, notes, and attachments.`))return;const button=$('deleteFault');button.disabled=true;button.textContent='SAVING…';try{await api('update',{faultId:currentFault.id,status:'PERM. FIX',priority:currentFault.priority});closeOverlay('detailsOverlay');await loadMachine(currentMachine.key);say('Fault / defect marked PERM. FIX.','dashboardStatus','ok')}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false;button.textContent='✓ SOLVED'}}
-  function exportReport(){if(access.canExportRepairMaintenanceReports!==true){say('Report export is not permitted for this account.','dashboardStatus','error');return}const date=new Date().toLocaleDateString('en-GB');const rows=orderedFaults().map((f,i)=>`<tr><td>${i+1}</td><td>${safe(f.fault_name)}</td><td>${safe(f.description)}</td><td>${safe(f.priority)}</td><td>${safe(f.status)}</td><td>${safe(new Date(f.created_at).toLocaleString('en-GB'))}</td></tr>`).join('');const win=window.open('','_blank');if(!win){say('Allow pop-ups to export this report as PDF.','dashboardStatus','error');return}win.document.write(`<!doctype html><html><head><title>R&M ${safe(currentMachine.label)} Report</title><meta name=viewport content=width=device-width,initial-scale=1><style>body{font:14px Arial,sans-serif;color:#111;padding:28px}h1{margin:0}h2{margin:8px 0 22px;color:#333}small{color:#555}table{border-collapse:collapse;width:100%;margin-top:20px}th,td{border:1px solid #777;padding:9px;text-align:left;vertical-align:top}th{background:#eee}footer{margin-top:20px;color:#555}@media print{body{padding:0}}</style></head><body><h1>R&M — REPAIRS & MAINTENANCE</h1><h2>${safe(currentMachine.label)} — FAULT REGISTER</h2><small>Report generated: ${safe(date)} · ${faults.length} fault record(s)</small><table><thead><tr><th>No.</th><th>Part / Area of Plant</th><th>Type of Defect</th><th>Priority</th><th>Status</th><th>Created</th></tr></thead><tbody>${rows||'<tr><td colspan=6>No faults currently recorded.</td></tr>'}</tbody></table><footer>YARD HUB · R&M</footer><script>window.onload=()=>window.print();</script></body></html>`);win.document.close();say('PDF report opened. Use Print → Save as PDF.','dashboardStatus','ok')}
+  function exportReport(){if(access.canExportRepairMaintenanceReports!==true){say('Report export is not permitted for this account.','dashboardStatus','error');return}const date=new Date().toLocaleDateString('en-GB');const rows=orderedFaults().map((f,i)=>`<tr><td>${i+1}</td><td>${safe(f.fault_name)}</td><td>${safe(f.description)}</td><td>${safe(f.priority)}</td><td>${safe(f.status)}</td><td>${safe(new Date(f.created_at).toLocaleString('en-GB'))}</td></tr>`).join('');const win=window.open('','_blank');if(!win){say('Allow pop-ups to export this report as PDF.','dashboardStatus','error');return}win.document.write(`<!doctype html><html><head><title>R&M ${safe(currentMachine.label)} Report</title><meta name=viewport content=width=device-width,initial-scale=1><style>body{font:14px Arial,sans-serif;color:#111;padding:28px}h1{margin:0}h2{margin:8px 0 22px;color:#333}small{color:#555}table{border-collapse:collapse;width:100%;margin-top:20px}th,td{border:1px solid #777;padding:9px;text-align:left;vertical-align:top}th{background:#eee}footer{margin-top:20px;color:#555}@media print{body{padding:0}}</style></head><body><h1>R&M — REPAIRS & MAINTENANCE</h1><h2>${safe(currentMachine.label)} — FAULT REGISTER</h2><small>Report generated: ${safe(date)} · ${faults.length} fault record(s)</small><table><thead><tr><th>No.</th><th>Area / Part of Machinery</th><th>Type of Defect</th><th>Priority</th><th>Status</th><th>Created</th></tr></thead><tbody>${rows||'<tr><td colspan=6>No faults currently recorded.</td></tr>'}</tbody></table><footer>YARD HUB · R&M</footer><script>window.onload=()=>window.print();</script></body></html>`);win.document.close();say('PDF report opened. Use Print → Save as PDF.','dashboardStatus','ok')}
   function applyPermissions(){
     const edit=access.canEditRepairMaintenance===true,del=access.canDeleteRepairMaintenance===true,exp=access.canExportRepairMaintenanceReports===true;
     ['openCreateFault','updateFault','toggleNoteComposer','detailAddNote','attachFile','addPhoto'].forEach(id=>{const e=$(id);if(e)e.disabled=!edit});
     $('deleteFault').hidden=!del;$('exportReport').hidden=!exp;
+    $('openPresets').hidden=access.canManageRepairMaintenancePresets!==true;
   }
   async function init(){
     const session=window.DowntimeCentral?.session;
@@ -129,7 +184,8 @@
     document.querySelectorAll('.machine-card').forEach(button=>button.addEventListener('click',()=>loadMachine(button.dataset.machine)));
     $('sortSelect').addEventListener('change',renderRows);
     $('backToMachinery').addEventListener('click',renderSelector);$('backToHub').addEventListener('click',()=>{window.location.assign('index.html')});
-    $('openCreateFault').addEventListener('click',()=>{if(currentMachine)showOverlay('createOverlay')});$('createForm').addEventListener('submit',createFault);
+    $('openCreateFault').addEventListener('click',()=>{if(currentMachine){renderPresetSelect();showOverlay('createOverlay')}});$('createForm').addEventListener('submit',createFault);
+    $('newFaultName').addEventListener('change',setOtherAreaVisibility);$('openPresets').addEventListener('click',openPresetManager);$('presetAddForm').addEventListener('submit',addMachinePreset);
     $('updateFault').addEventListener('click',updateFault);$('detailPriority').addEventListener('change',renderDetailPriority);
     $('toggleNoteComposer').addEventListener('click',startNote);$('detailAddNote')?.addEventListener('click',startNote);$('saveNote').addEventListener('click',saveNote);$('cancelNote').addEventListener('click',()=>$('noteComposer').classList.remove('open'));
     $('addPhoto').addEventListener('click',()=>$('photoInput').click());$('photoInput').addEventListener('change',e=>doUpload(e.target.files?.[0],'PHOTO'));
