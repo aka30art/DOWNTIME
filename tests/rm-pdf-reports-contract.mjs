@@ -8,10 +8,12 @@ assert.match(html,/id="reportOverlay"/);
 assert.match(html,/id="reportMachineType"/);
 for(const key of machines)assert.ok(html.includes('option value="'+key+'"'),'missing machinery option '+key);
 assert.match(html,/id="generatePdfReport"/);
-assert.match(app,/api\('export-create'/);
+assert.match(app,/api\('export-create'/
+assert.match(app,/assetChoice==='__UNASSIGNED__'/,'PDF generation supports legacy unassigned fault records');
+assert.match(app,/assetChoice\)filters\.assetId=assetChoice/,'PDF generation supports an individual machine'););
 assert.match(api,/action === "export-create"/);
-assert.match(api,/maxRecords=10000/);
-assert.match(api,/range\(offset,offset\+pageSize-1\)/);
+assert.match(api,/maxRecords\s*=\s*10000/);
+assert.match(api,/range\(offset,\s*offset\+pageSize-1\)/);
 assert.match(pdf,/No faults or defects recorded/);
 for(const field of ['fault_name','description','priority','status','created_at'])assert.ok(pdf.includes('f.'+field),'PDF missing '+field);
 console.log('R&M PDF report generation regression: PASS');
