@@ -71,8 +71,11 @@ assert.match(api,/buildRepairMaintenancePdf\(faults, filter, generatedAt, select
 assert.match(migration,/repair_maintenance_pdf_exports/);
 assert.ok(archiveMigration.includes('repair_maintenance_pdf_exports'));
 
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-10'));
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-11'));
 assert.ok(html.includes('id="modelDropdownEnabled"'));
+assert.match(app,/machineAssetControls'\)\.hidden=access\?\.canReadRepairMaintenanceMachinery!==true\|\|machineSettings\.model_dropdown_enabled!==true/,'registered-machine scroll-down menu visibility follows the selected category RMS toggle');
+assert.match(app,/api\('settings-get',\{machineType:currentMachine\.key\}\)/,'dashboard loads the selected category RMS setting before rendering the machine selector');
+assert.match(app,/function renderAssetSelect\(\)[\s\S]*machineSettings\.model_dropdown_enabled!==true/,'all machinery categories apply their own saved dropdown visibility setting');
 assert.ok(html.includes('id="saveModelDropdownSettings"'));
 assert.ok(html.includes('id="settingsAssetSelect"'));
 assert.ok(html.includes('id="settingsAddMachineryButton"'));
