@@ -85,7 +85,12 @@ try{
  await page.getByText('Draft saved as version v2.',{exact:false}).waitFor();
  assert.equal(await page.locator('#draftKpi').textContent(),'v2','saved draft increments only the draft version');
  assert.equal(await page.locator('#publishedKpi').textContent(),'v1','saving a draft does not publish it');
- assert.equal((await page.locator('[data-section="structure"] .navtext').textContent()).trim(),'Facility Map','DEV menu title is configurable and displayed after reload');
+ await page.reload();
+ await page.locator('#username').fill('DEV');
+ await page.locator('#pin').fill('1234');
+ await page.locator('#loginBtn').click();
+ await page.locator('#view-overview').waitFor({state:'visible'});
+ assert.equal((await page.locator('[data-section="structure"] .navtext').textContent()).trim(),'Facility Map','saved DEV menu title persists after a fresh page load and authenticated state fetch');
  assert.equal(await page.locator('#publishBtn').isEnabled(),true,'saved draft can be explicitly published');
 
  page.on('dialog',dialog=>dialog.accept());
