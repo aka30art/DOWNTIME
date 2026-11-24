@@ -30,10 +30,10 @@ assert.match(html,/yard-hub-settings\.css\?v=/,'Hub Settings style asset is vers
 assert.match(html,/data-app="floor" type="button" disabled/,'FLOOR remains unavailable until its application is released');
 assert.match(html,/data-app="check-sheets" type="button" disabled/,'CHECK SHEETS remains unavailable until its application is released');
 assert.match(html,/id="launchDowntimeBtn" data-app="downtime" type="button"/,'DOWNTIME launcher remains present and enabled');
-assert.ok(html.includes('yard-hub-settings.js?v=20261124-3'),'YARD HUB settings client cache is refreshed');
+assert.ok(html.includes('yard-hub-settings.js?v=20261124-4'),'YARD HUB settings client cache is refreshed');
 assert.ok(pagesWorkflow.includes("if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'"),'Pages artifact build runs on PRs for pre-merge validation');
 assert.ok(pagesWorkflow.includes("if: github.ref == 'refs/heads/main'"),'Pages deployment remains restricted to main');
-assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-3'),'live deployment smoke test verifies the updated Hub settings asset');
+assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-4'),'live deployment smoke test verifies the updated Hub settings asset');
 assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-13'),'live deployment smoke test verifies the updated R&M app asset');
 for(const id of ['openRmsSettingsShortcut','saveModelDropdownSettings','settingsAddMachineryButton','machineModelItems','presetItems'])assert.ok(pagesWorkflow.includes(id),'live deployment verification covers current RMS control '+id);
 assert.ok(pagesWorkflow.includes('MACHINERY &amp; MODEL REGISTER') && pagesWorkflow.includes('REGISTERED MACHINE · FAULT REGISTER'),'live deployment verification distinguishes registered assets from make/model catalogue');
