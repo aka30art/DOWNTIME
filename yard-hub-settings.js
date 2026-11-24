@@ -77,6 +77,8 @@
     renderUsers();renderTierCards();updateTierSaveState();
     const addUser=$('yardHubUserAdd');
     if(addUser)addUser.disabled=saving||result.canManageCentralUsers!==true;
+    const addTier=$('yardHubCustomTierAdd');
+    if(addTier)addTier.hidden=!isRootAdmin();
     return result;
   }
   function setHomeVisible(settings){
@@ -205,7 +207,7 @@
     $('yardHubUserDowntimeTier').textContent=user?(user.legacyTier||'USER'):'USER · SAFE DEFAULT';
     $('yardHubUserHubTier').replaceChildren();
     allowedHubTiers(user?.hubTier,user?.username||'').forEach(role=>{
-      const option=element('option','',roleLabels[role]);option.value=role;
+      const option=element('option','',roleLabels[role]||role);option.value=role;
       $('yardHubUserHubTier').appendChild(option);
     });
     $('yardHubUserHubTier').value=user?.hubTier||'USER';
