@@ -12,6 +12,7 @@ assert.match(html,/option value="">ALL MACHINERY/,'all-machinery filter is avail
 for(const key of machines)assert.ok(html.includes('option value="'+key+'"'),'missing report filter '+key);
 assert.match(html,/id="generatePdfReport"/,'report screen exposes PDF generation');
 assert.match(app,/api\('report-list'/,'client calls the report-list API');
+assert.match(app,/id="reportPrintButton"/,'generated report contains its own print-to-PDF action');
 assert.match(app,/access\?\.canExportRepairMaintenanceReports!==true/,'client gates report generation by permission');
 const action=api.match(/if \(action === "report-list"\) \{([\s\S]*?)\n    \}\n\n    if \(action === "get"\)/)?.[1]||'';
 assert.ok(action,'server exposes a dedicated report-list action');
