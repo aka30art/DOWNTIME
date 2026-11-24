@@ -41,12 +41,24 @@
     currentMachine=machine(key);machinePresets=[];machineModels=[];
     settingsSelectedAssetId=currentMachine.key===currentAsset?.machine_type?currentAsset.id:'';
     $('presetMachineTitle').textContent=currentMachine.label;
+    setRmsSettingsTab('machinery');
+    clearStatus('machineSettingsModalStatus');
     try{
       await Promise.all([refreshMachinePresets(),refreshMachineConfiguration()]);
       $('presetMachineTitle').textContent=currentMachine.label;
       showOverlay('presetsOverlay');
       say(currentMachine.label+' settings loaded.',machineSettingsStatusTarget(),'ok');
     }catch(error){say(error.message,'settingsStatus','error')}
+  }
+  function setRmsSettingsTab(tab='machinery'){
+    const selected=tab==='area-parts'?'area-parts':'machinery';
+    document.querySelectorAll('[data-rms-tab]').forEach(button=>{
+      const active=button.dataset.rmsTab===selected;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-selected',active?'true':'false');
+      button.tabIndex=active?0:-1;
+    });
+    document.querySelectorAll('[data-rms-panel]').forEach(panel=>{panel.hidden=panel.dataset.rmsPanel!==selected});
   }
   function machineSettingsStatusTarget(){
     if($('presetsOverlay')?.classList.contains('open'))return 'machineSettingsModalStatus';
@@ -524,6 +536,7 @@
     document.querySelectorAll('#settingsMachineGrid .machine-card[data-settings-machine]').forEach(button=>button.addEventListener('click',()=>openMachineSettings(button.dataset.settingsMachine)));
     $('machineAssetSelect')?.addEventListener('change',event=>selectMachineAsset(event.target.value));
     $('settingsAssetSelect')?.addEventListener('change',event=>{settingsSelectedAssetId=event.target.value;renderSettingsAssetManager()});
+    document.querySelectorAll('[data-rms-tab]').forEach(button=>button.addEventListener('click',()=>setRmsSettingsTab(button.dataset.rmsTab)));
     $('settingsAddMachineryButton')?.addEventListener('click',()=>openAssetEditor());
     $('settingsEditMachineryButton')?.addEventListener('click',()=>openAssetEditor(settingsAssets.find(asset=>asset.id===settingsSelectedAssetId)||null));
     $('assetForm')?.addEventListener('submit',saveAsset);
