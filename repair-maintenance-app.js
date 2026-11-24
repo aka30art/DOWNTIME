@@ -120,8 +120,13 @@
       }else if(active.length>1){
         setRegisterMessage('Select an individual machine from the dropdown to view its own fault register.');
         say(active.length+' active machines registered in this category. Select one to continue.','dashboardStatus','ok');
+      }else if(assets.length>0){
+        setRegisterMessage(unassignedCount>0
+          ? 'No active machines. Archived machines remain selectable for history; unassigned legacy faults are also available.'
+          : 'No active machines. Archived machines remain selectable to view their historical fault records.');
+        say('No active machines are registered in this category.','dashboardStatus','ok');
       }else if(unassignedCount>0){
-        setRegisterMessage('No active machines are registered. Select UNASSIGNED / LEGACY FAULTS to review existing records, or add a machine.');
+        setRegisterMessage('No machines are registered yet. Select UNASSIGNED / LEGACY FAULTS to review existing records, or add a machine.');
         say(unassignedCount+' existing fault record(s) are not yet assigned to a machine.','dashboardStatus','ok');
       }else{
         setRegisterMessage('No machines are registered in this category yet. Use ADD MACHINERY to register the first machine.');
@@ -160,6 +165,7 @@
   function openAssetEditor(asset=null){
     if(access?.canManageRepairMaintenanceMachinery!==true||!currentMachine)return;
     editingAssetId=asset?.id||null;
+    clearStatus('assetStatus');
     $('assetMachineType').textContent=currentMachine.label;
     $('assetName').value=asset?.name||'';
     $('assetCode').value=asset?.asset_code||'';
@@ -248,7 +254,7 @@
   async function openDetails(id,number){
     try{
       const result=await api('get',{faultId:id});currentFault=result.fault;currentFault.displayNumber=number;
-      $('detailNumber').textContent=String(number).padStart(2,'0');$('detailName').textContent=currentFault.fault_name;$('detailMachine').textContent=machine(currentFault.machine_type).label;
+      $('detailNumber').textContent=String(number).padStart(2,'0');$('detailName').textContent=currentFault.fault_name;$('detailMachine').textContent=currentAsset?(currentAsset.asset_code?currentAsset.asset_code+' · ':'')+currentAsset.name:(unassignedMode?'UNASSIGNED / LEGACY FAULTS':machine(currentFault.machine_type).label);
       $('detailDescription').textContent=currentFault.description;const statusSelect=$('detailStatus');statusSelect.querySelectorAll('option[data-legacy="true"]').forEach(option=>option.remove());if(![...statusSelect.options].some(option=>option.value===currentFault.status)){const legacyStatus=document.createElement('option');legacyStatus.value=currentFault.status;legacyStatus.textContent=currentFault.status;legacyStatus.dataset.legacy='true';statusSelect.appendChild(legacyStatus)}statusSelect.value=currentFault.status;$('detailPriority').value=currentFault.priority;clearStatus('detailUpdateStatus');
       renderDetailPriority();renderEvidence(result.attachments||[]);renderNotes(result.notes||[]);
       const editable=access.canEditRepairMaintenance===true;
