@@ -155,8 +155,8 @@ assert.ok(api.includes('permissions.canAddRepairMaintenanceMachinery = machinery
 assert.ok(api.includes('permissions.canCreateRepairMaintenance !== true'),'R&M fault creation is server-side permission-gated');
 assert.ok(app.includes('access.canCreateRepairMaintenance===true'),'R&M interface exposes create action to INPUT tier');
 
-assert.match(html,/<section id="selectorView" class="view operations-mode" hidden>[\\s\\S]*?OPERATIONS WORKSPACE[\\s\\S]*?WORKING AREA/,'operations has a persistent blue workspace identity');
-assert.match(html,/<section id="settingsView" class="view configuration-mode" hidden>[\\s\\S]*?CONFIGURATION WORKSPACE[\\s\\S]*?SETUP AREA/,'configuration selector has a persistent amber workspace identity');
-assert.match(html,/class="dialog configuration-dialog"[\\s\\S]*?CONFIGURATION MODE[\\s\\S]*?NOT THE FAULT REGISTER/,'every machinery configuration modal has an explicit mode warning');
-assert.match(html,/\.configuration-mode \.machine-card\\{[^}]*#332b1d/,'configuration cards use a separate amber administrative visual language');
+assert.match(html,/<section id="selectorView" class="view operations-mode" hidden>[\s\S]*?OPERATIONS WORKSPACE[\s\S]*?WORKING AREA/,'operations has a persistent blue workspace identity');
+assert.match(html,/<section id="settingsView" class="view configuration-mode" hidden>[\s\S]*?CONFIGURATION WORKSPACE[\s\S]*?SETUP AREA/,'configuration selector has a persistent amber workspace identity');
+assert.match(html,/class="dialog configuration-dialog"[\s\S]*?CONFIGURATION MODE[\s\S]*?NOT THE FAULT REGISTER/,'every machinery configuration modal has an explicit mode warning');
+assert.match(html,/\.configuration-mode \.machine-card\{[^}]*#332b1d/,'configuration cards use a separate amber administrative visual language');
 assert.ok(html.includes('shared-ui-system.css?v=20261124-2'),'R&M shared stylesheet cache is refreshed');
