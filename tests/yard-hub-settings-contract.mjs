@@ -28,8 +28,8 @@ assert.match(html,/id="launchDowntimeBtn" data-app="downtime" type="button"/,'DO
 assert.ok(html.includes('yard-hub-settings.js?v=20261124-2'),'YARD HUB settings client cache is refreshed');
 assert.ok(pagesWorkflow.includes("if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'"),'Pages artifact build runs on PRs for pre-merge validation');
 assert.ok(pagesWorkflow.includes("if: github.ref == 'refs/heads/main'"),'Pages deployment remains restricted to main');
-assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-1'),'live deployment smoke test verifies the updated Hub settings asset');
-assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-5'),'live deployment smoke test verifies the updated R&M app asset');
+assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-2'),'live deployment smoke test verifies the updated Hub settings asset');
+assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-6'),'live deployment smoke test verifies the updated R&M app asset');
 assert.ok(ui.includes("'MECHANIC'"),'MECHANIC appears in the YARD HUB tier selector and role list');
 
 // Identity and PIN management deliberately reuse the existing central directory and APIs.
