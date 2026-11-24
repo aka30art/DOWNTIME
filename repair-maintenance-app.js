@@ -155,7 +155,7 @@
       $('modelDropdownEnabled').checked=modelDropdownDraft;
       renderAssetSelect();
       updateModelDropdownSaveState();
-      say(modelDropdownDraft?'MAKE / MODEL dropdown setting saved: ENABLED.':'MAKE / MODEL dropdown setting saved: DISABLED; manual entry is available.',machineSettingsStatusTarget(),'ok');
+      say(modelDropdownDraft?'Individual machinery scroll-down menu ENABLED for this category.':'Individual machinery scroll-down menu DISABLED for this category; the menu is hidden.',machineSettingsStatusTarget(),'ok');
     }catch(error){
       updateModelDropdownSaveState();
       say(error.message,machineSettingsStatusTarget(),'error');
