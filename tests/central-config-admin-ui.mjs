@@ -83,6 +83,10 @@ try{
  await page.locator('#navLabelStructure').fill('Facility Map');
  await page.locator('[data-section="modules"]').click();
  await page.locator('#moduleRegistry').fill('Central Data Bank\nYARD HUB\nRepair & Maintenance\nDEV Diagnostics');
+ await page.locator('[data-section="navigation"]').click();
+ await page.locator('#navLabelModules').fill('Component Catalogue');
+ await page.locator('#navLabelControls').fill('Safety Controls');
+ await page.locator('#navLabelInformation').fill('Diagnostics');
  await page.locator('[data-section="organisation"]').click();
  await page.locator('#companyName').fill('QA Example Company');
  await page.locator('#saveDraftBtn').click();
@@ -96,6 +100,9 @@ try{
  await page.locator('#view-overview').waitFor({state:'visible'});
  assert.equal((await page.locator('[data-section="structure"] .navtext').textContent()).trim(),'Facility Map','saved DEV menu title persists after a fresh page load and authenticated state fetch');
  assert.equal(await page.locator('#moduleRegistry').inputValue(),'Central Data Bank\nYARD HUB\nRepair & Maintenance\nDEV Diagnostics','module registry persists after reload');
+ assert.equal((await page.locator('[data-section="modules"] .navtext').textContent()).trim(),'Component Catalogue','module menu label persists after reload');
+ assert.equal((await page.locator('[data-section="controls"] .navtext').textContent()).trim(),'Safety Controls','system controls menu label persists after reload');
+ assert.equal((await page.locator('[data-section="information"] .navtext').textContent()).trim(),'Diagnostics','system information menu label persists after reload');
  await page.locator('[data-section="controls"]').click();
  assert.ok(await page.getByText('Server-side access is restricted').count(),'system controls document the server-side access boundary');
  await page.locator('[data-section="information"]').click();
