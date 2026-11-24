@@ -11,6 +11,7 @@ for(const selector of ['.machinebar{','.stat{','.faultpanel{','.faultrow{','.dia
 const app=read('../repair-maintenance-app.js');
 const api=read('../supabase/functions/repair-maintenance-api/index.ts');
 const migration=read('../supabase/migrations/20261123195000_repair_maintenance_module.sql');
+const assetsMigration=read('../supabase/migrations/20261124230000_rm_machinery_registry.sql');
 const presetsMigration=read('../supabase/migrations/20261124000000_rm_mechanic_machine_presets.sql');
 const launcher=read('../repair-maintenance-launch.js');
 const index=read('../index.html');
@@ -40,8 +41,8 @@ assert.match(html,/\.machine-art img\{[^}]*object-fit:contain/,'selector icons p
 assert.match(html,/\.machineicon img\{[^}]*filter:brightness\(0\)/,'header icons remain visible on the yellow header panel');
 assert.doesNotMatch(html,/class="machine-art"><svg/,'selector cards no longer use the generic inline machinery drawings');
 
-for(const id of ['selectorView','dashboardView','faultRows','totalCount','highCount','mediumCount','lowCount','createOverlay','reportOverlay','reportMachineType','generatePdfReport','openReports','exportsOverlay','pdfExportsMachineType','pdfExportList','exportReportButton','pdfExportsButton','loadMoreExports','presetsOverlay','presetMachineTitle','presetItems','presetAddForm','newPresetName','addPresetSave','openPresets','newFaultOtherField','newFaultOther','detailsOverlay','detailStatus','detailPriority','photoInput','fileInput','notesList'])assert.ok(html.includes(`id="${id}"`),`missing HTML element ${id}`);
-for(const action of ['access','list','export-create','export-list','export-url','export-delete','preset-list','preset-add','preset-delete','get','create','update','note-add','upload','delete'])assert.ok(api.includes(`action === "${action}"`),`missing API action ${action}`);
+for(const id of ['selectorView','dashboardView','machineAssetControls','machineAssetSelect','addMachineryButton','editMachineryButton','assetOverlay','assetForm','assetName','assetCode','assetMakeModel','assetSaveButton','archiveAssetButton','reportAssetId','pdfExportsAssetId','faultRows','totalCount','highCount','mediumCount','lowCount','createOverlay','reportOverlay','reportMachineType','generatePdfReport','openReports','exportsOverlay','pdfExportsMachineType','pdfExportList','exportReportButton','pdfExportsButton','loadMoreExports','presetsOverlay','presetMachineTitle','presetItems','presetAddForm','newPresetName','addPresetSave','openPresets','newFaultOtherField','newFaultOther','detailsOverlay','detailStatus','detailPriority','photoInput','fileInput','notesList'])assert.ok(html.includes(`id="${id}"`),`missing HTML element ${id}`);
+for(const action of ['access','asset-list','asset-add','asset-update','asset-archive','list','export-create','export-list','export-url','export-delete','preset-list','preset-add','preset-delete','get','create','update','note-add','upload','delete'])assert.ok(api.includes(`action === "${action}"`),`missing API action ${action}`);
 for(const behaviour of ['create','update','note-add','upload','delete','createSignedUrl','remove('])assert.ok(api.includes(behaviour),`missing backend behaviour ${behaviour}`);
 for(const key of ['canAccessYardHub','canAccessRepairMaintenance','canEditRepairMaintenance','canDeleteRepairMaintenance','canExportRepairMaintenanceReports']){
   assert.ok(index.includes(key),`missing HUB UI permission ${key}`);
@@ -76,7 +77,7 @@ assert.ok(api.includes('.eq("machine_type", body.machineType)'),'backend checks 
 assert.ok(api.includes('.eq("is_other", false)'),'backend protects OTHER from deletion');
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-5'),'R&M app script cache is refreshed');
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-6'),'R&M app script cache is refreshed');
 assert.match(app,/status:'PERM\. FIX'/,'SOLVED marks fault as PERM. FIX');
 assert.match(app,/api\('export-create'/,'PDF export creation is handled by the server');
 assert.match(app,/api\('export-list'/,'PDF archive records are loaded from the server');
@@ -98,4 +99,19 @@ for(const match of domReady.matchAll(/\$\(['"]([^'"]+)['"]\)(\?\.|\.)/g)){
 for(const path of ['../repair-maintenance-app.js','../repair-maintenance-launch.js']){
   execFileSync(process.execPath,['--check',new URL(path,import.meta.url).pathname],{stdio:'pipe'});
 }
+assert.ok(assetsMigration.includes('create table if not exists public.repair_maintenance_assets'),'individual machinery uses one registry table');
+assert.ok(assetsMigration.includes('asset_id uuid'),'fault records gain a nullable asset reference');
+assert.ok(assetsMigration.includes('foreign key (asset_id, machine_type)'),'asset references are constrained to their machinery category');
+assert.ok(assetsMigration.includes('enable row level security'));
+assert.ok(assetsMigration.includes('revoke all on table public.repair_maintenance_assets from public, anon, authenticated'));
+assert.ok(assetsMigration.includes('grant all on table public.repair_maintenance_assets to service_role'));
+assert.ok(assetsMigration.includes("f.machine_type = 'KIVERCO_PICKING_LINE'")&&assetsMigration.includes("f.machine_type = 'TANNA_SHREDDER'"),'only known singleton category faults are backfilled automatically');
+assert.ok(assetsMigration.includes('repair_maintenance_pdf_exports_asset_created_idx'),'PDF archive can be filtered by individual machine');
+assert.ok(app.includes("api('asset-list'")&&app.includes("api('asset-add'")&&app.includes("api('asset-update'")&&app.includes("api('asset-archive'"),'R&M UI uses the machinery registry API');
+assert.ok(app.includes('assetId:currentAsset.id'),'new faults are stored against the selected machine');
+assert.ok(app.includes("unassigned:true"),'legacy unassigned faults remain independently viewable');
+assert.ok(app.includes("api('export-create',filters"),'PDF generation supports an individual machine filter');
+assert.ok(api.includes('permissions.canManageRepairMaintenanceMachinery'),'registry mutations are server-authorized');
+assert.ok(api.includes('permissions.canReadRepairMaintenanceMachinery'),'registry reads are server-authorized');
+
 console.log('R&M module contract checks passed.');
