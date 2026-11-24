@@ -19,7 +19,7 @@
 @media print{body{background:#fff!important;color:#111!important}.app{padding:0;max-width:none}.hero,.machinebar,.stats,.faultpanel{print-color-adjust:exact;-webkit-print-color-adjust:exact}.hero-actions,.machine-back,.panel-actions,.bottomline{display:none!important}.faultpanel{box-shadow:none}.overlay{display:none!important}.machinebar{break-after:avoid}}
 .status-fixed:disabled{background:#091923!important;border-color:#334b5d!important;color:#f3f6f8!important;opacity:1!important;font-weight:900;letter-spacing:.5px;cursor:not-allowed}.report-intro{color:var(--muted);font-size:13px;margin:14px 0}.report-summary{display:grid;gap:5px;margin-top:14px;padding:12px 13px;background:#091923;border:1px solid #334b5d;border-radius:10px}.report-summary strong{font-size:10px;letter-spacing:.8px;color:var(--yellow)}.report-summary span{font-size:12px;color:var(--muted);line-height:1.5}.report-icon{font-size:22px}
 .report-actions{display:flex;gap:10px;margin-top:13px}.report-actions .btn{flex:1;min-height:50px;font-size:14px;letter-spacing:.7px}.report-actions .export-report-button{background:var(--yellow);border-color:var(--yellow);color:#071725}.report-actions .archive-report-button{border-color:var(--yellow);color:var(--yellow)}.report-actions button[hidden],.load-more-exports[hidden]{display:none!important}.pdf-exports-dialog{max-width:900px}.pdf-export-list{display:grid;gap:9px;margin-top:13px;max-height:55dvh;overflow:auto}.pdf-export-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px;border:1px solid #425a70;border-radius:10px;background:#10263a}.pdf-export-main{min-width:0}.pdf-export-name{display:block;font-size:13px;font-weight:950;overflow-wrap:anywhere;color:var(--white)}.pdf-export-meta{display:block;margin-top:5px;font-size:10px;line-height:1.5;color:var(--muted)}.pdf-export-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}.pdf-export-actions .btn{min-height:37px;padding:7px 10px;font-size:9px;letter-spacing:.3px}.pdf-export-actions .delete-export{border-color:#b44a4a;color:#ffd5d5}.load-more-exports{width:100%;margin-top:8px;min-height:42px}@media(max-width:620px){.report-actions{display:grid;grid-template-columns:1fr;gap:8px}.report-actions .btn{min-height:47px}.pdf-export-row{grid-template-columns:1fr;gap:9px;padding:10px}.pdf-export-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.pdf-export-actions .btn{width:100%;padding:7px 4px;font-size:8px}}
-</style>
+.machine-asset-controls{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:9px;max-width:100%}.machine-asset-controls label{flex:0 0 auto;color:#9fb4c1;font-size:9px;font-weight:950;letter-spacing:.8px}.machine-asset-controls select{min-width:150px;max-width:100%;min-height:36px;padding:7px 9px;border:1px solid #385568;border-radius:8px;background:#0a1b27;color:#eef3f6;font:inherit;font-size:10px;font-weight:800}.machine-asset-controls button{min-height:35px;padding:7px 10px}.machine-asset-controls[hidden]{display:none!important}#assetStatus{margin-top:10px;min-height:20px}#archiveAssetButton{border-color:#8b4c42;color:#ffc0b8}@media(max-width:620px){.machine-asset-controls{align-items:stretch}.machine-asset-controls label{width:100%}.machine-asset-controls select{width:100%;min-width:0}.machine-asset-controls button{flex:1 1 auto}}</style>
 <link rel="stylesheet" href="shared-ui-system.css?v=20261124-1">
 </head>
 <body>
@@ -44,7 +44,7 @@
   <div class="statusbar" id="selectorStatus" role="status"></div>
 </section>
 <section id="dashboardView" class="view" hidden>
-  <div class="machinebar"><div class="machineicon" aria-hidden="true"><img id="machineIcon" src="assets/rm-icons/kiverco.svg" alt="" decoding="async"></div><div class="machine-header-copy"><span class="machinelabel">MACHINE TYPE</span><strong id="machineTitle">—</strong><button class="machine-cog-button" id="openPresets" type="button" hidden>PRESETS</button></div><button class="machine-back" id="backToMachinery" type="button">← MACHINERY</button></div>
+  <div class="machinebar"><div class="machineicon" aria-hidden="true"><img id="machineIcon" src="assets/rm-icons/kiverco.svg" alt="" decoding="async"></div><div class="machine-header-copy"><span class="machinelabel" id="machineCategoryLabel">MACHINE TYPE</span><strong id="machineTitle">—</strong><div class="machine-asset-controls" id="machineAssetControls" hidden><label for="machineAssetSelect">INDIVIDUAL MACHINE</label><select id="machineAssetSelect"><option value="">SELECT INDIVIDUAL MACHINE</option></select><button class="machine-cog-button" id="addMachineryButton" type="button" hidden>＋ ADD MACHINERY</button><button class="machine-cog-button" id="editMachineryButton" type="button" hidden>EDIT MACHINE</button></div><button class="machine-cog-button" id="openPresets" type="button" hidden>PRESETS</button></div><button class="machine-back" id="backToMachinery" type="button">← MACHINERY</button></div>
   <div class="stats"><div class="stat"><span class="staticon">🔧</span><div><div class="statlabel">TOTAL FAULTS</div><div class="statnum" id="totalCount">0</div></div></div><div class="stat"><span class="staticon">⚠</span><div><div class="statlabel">HIGH</div><div class="statnum" id="highCount">0</div></div></div><div class="stat"><span class="staticon">⚠</span><div><div class="statlabel">MEDIUM</div><div class="statnum" id="mediumCount">0</div></div></div><div class="stat"><span class="staticon">ⓘ</span><div><div class="statlabel">LOW</div><div class="statnum" id="lowCount">0</div></div></div></div>
   <section class="faultpanel"><div class="panelhead"><div class="paneltitle"><span class="panel-slash"></span>FAULTS / DEFECTS</div><label class="sort">SORT: <select id="sortSelect"><option value="priority">PRIORITY</option><option value="newest">NEWEST</option><option value="oldest">OLDEST</option></select></label></div>
     <div class="fault-table-head"><div>#</div><div>FAULT / DEFECT</div><div>DESCRIPTION</div><div>PRIORITY</div></div><div id="faultRows" class="fault-rows"><div class="empty">Loading fault records…</div></div>
@@ -55,6 +55,23 @@
 </section>
 <div class="bottomline"><div class="rule"></div><div class="stripes"><i></i><i></i><i></i></div></div>
 </div><section id="accessDenied" class="access-denied"><h2>ACCESS NOT AVAILABLE</h2><p id="accessDeniedMessage">Your current account does not have permission to access R&amp;M.</p><button class="btn primary" id="retrySession" type="button" style="margin-top:12px">RETRY SESSION VERIFICATION</button><a class="btn" href="index.html" style="display:inline-flex;text-decoration:none;margin-top:12px">RETURN TO YARD HUB</a></section></div>
+
+<!-- R&M individual machinery registry -->
+<div class="overlay" id="assetOverlay" role="dialog" aria-modal="true" aria-labelledby="assetEditorTitle">
+  <div class="dialog" style="max-width:620px">
+    <div class="dialog-head"><div class="dialog-title" id="assetEditorTitle">ADD MACHINERY</div><button class="close" type="button" data-close="assetOverlay" aria-label="Close">×</button></div>
+    <form id="assetForm">
+      <div class="form-grid">
+        <div class="form-field full"><label>MACHINERY CATEGORY</label><div class="form-help" id="assetMachineType">—</div></div>
+        <div class="form-field full"><label for="assetName">MACHINE NAME / TYPE</label><input id="assetName" maxlength="120" required placeholder="e.g. Forklift 01 or JCB 540-140"></div>
+        <div class="form-field"><label for="assetCode">FLEET NUMBER / REGISTRATION</label><input id="assetCode" maxlength="40" placeholder="Optional"></div>
+        <div class="form-field"><label for="assetMakeModel">MAKE / MODEL</label><input id="assetMakeModel" maxlength="120" placeholder="Optional"></div>
+      </div>
+      <div id="assetStatus" class="statusbar" role="status" aria-live="polite"></div>
+      <div class="modal-footer"><button class="btn" type="button" data-close="assetOverlay">CANCEL</button><button class="btn danger" type="button" id="archiveAssetButton" hidden>ARCHIVE MACHINE</button><span class="spacer"></span><button class="btn save" type="submit" id="assetSaveButton">ADD MACHINERY</button></div>
+    </form>
+  </div>
+</div>
 
 <!-- New fault form -->
 <div class="overlay" id="createOverlay" role="dialog" aria-modal="true" aria-labelledby="createTitle"><div class="dialog" style="max-width:650px"><div class="dialog-head"><div class="dialog-title" id="createTitle">ADD FAULT / DEFECT</div><button class="close" type="button" data-close="createOverlay" aria-label="Close">×</button></div>
@@ -74,7 +91,7 @@
       <option value="TELEHANDLER">TELEHANDLER</option>
       <option value="EXCAVATORS_360">360 EXCAVATORS</option>
       <option value="OTHER_EQUIPMENT">OTHER EQUIPMENT</option>
-    </select></div></div>
+    </select></div><div class="form-field full"><label for="reportAssetId">INDIVIDUAL MACHINE</label><select id="reportAssetId" disabled><option value="">ALL MACHINES IN CATEGORY</option></select></div></div>
     <div class="report-summary"><strong>REPORT CONTENT</strong><span>Fault number · Machinery · Area / Part · Defect description · Priority · Status · Date recorded</span></div>
     <div class="modal-footer"><button class="btn" type="button" data-close="reportOverlay">CANCEL</button><button class="btn save" type="button" id="generatePdfReport">GENERATE PDF REPORT</button></div>
   </div>
@@ -86,7 +103,7 @@
 <p class="report-intro">Stored R&amp;M PDF reports. Display or print an exported snapshot, or delete reports when your account has edit access.</p>
 <div class="form-grid"><div class="form-field full"><label for="pdfExportsMachineType">FILTER BY MACHINERY</label><select id="pdfExportsMachineType">
 <option value="">ALL MACHINERY</option><option value="KIVERCO_PICKING_LINE">KIVERCO — PICKING LINE</option><option value="TANNA_SHREDDER">TANNA — SHREDDER</option><option value="FORKLIFT">FORKLIFT</option><option value="TELEHANDLER">TELEHANDLER</option><option value="EXCAVATORS_360">360 EXCAVATORS</option><option value="OTHER_EQUIPMENT">OTHER EQUIPMENT</option>
-</select></div></div><div id="pdfExportList" class="pdf-export-list" aria-live="polite"></div>
+</select></div><div class="form-field full"><label for="pdfExportsAssetId">INDIVIDUAL MACHINE</label><select id="pdfExportsAssetId" disabled><option value="">ALL MACHINES IN CATEGORY</option></select></div></div><div id="pdfExportList" class="pdf-export-list" aria-live="polite"></div>
 <button class="btn compact load-more-exports" id="loadMoreExports" type="button" hidden>LOAD MORE REPORTS</button>
 <div class="modal-footer"><button class="btn" type="button" data-close="exportsOverlay">CLOSE</button></div></div></div>
 <!-- Machine-specific presets -->
@@ -117,5 +134,5 @@
 
 <script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';window.REPAIR_MAINTENANCE_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/repair-maintenance-api';</script>
 <script src="central-bank-client.js"></script>
-<script src="repair-maintenance-app.js?v=20261124-5"></script>
+<script src="repair-maintenance-app.js?v=20261124-6"></script>
 </body></html>

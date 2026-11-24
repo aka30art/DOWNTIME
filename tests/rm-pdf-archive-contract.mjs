@@ -17,11 +17,11 @@ for(const action of ['export-create','export-list','export-url','export-delete']
 assert.match(api,/permissions\.canExportRepairMaintenanceReports!==true/);
 assert.match(api,/if\(!requireDelete\(\)\)return json\(\{error:"You do not have permission to delete R&M PDF exports\."/);
 assert.match(api,/createSignedUrl\(report\.storage_path,300\)/);
-assert.match(api,/buildRepairMaintenancePdf\(faults,filter,generatedAt\)/);
-assert.match(pdf,/PDFDocument\.create\(\)/);assert.match(pdf,/No faults or defects recorded/);assert.match(pdf,/PAGE /);
+assert.match(api,/buildRepairMaintenancePdf\(faults, filter, generatedAt, selectedAsset\?\.name \|\| null\)/);
+assert.match(pdf,/PDFDocument\.create\(\)/);assert.match(pdf,/asset_name/);assert.match(pdf,/UNASSIGNED \/ LEGACY RECORDS/);assert.match(pdf,/No faults or defects recorded/);assert.match(pdf,/PAGE /);
 assert.match(sql,/create table if not exists public\.repair_maintenance_pdf_exports/);
 assert.match(sql,/enable row level security/);
 assert.match(sql,/revoke all on table public\.repair_maintenance_pdf_exports from public,anon,authenticated/);
 assert.match(sql,/values\('repair-maintenance-reports','repair-maintenance-reports',false/);
-assert.match(html,/repair-maintenance-app\.js\?v=20261124-5/);
+assert.match(html,/repair-maintenance-app\.js\?v=20261124-6/);
 console.log('R&M PDF export archive regression: PASS');

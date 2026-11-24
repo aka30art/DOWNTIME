@@ -25,11 +25,11 @@ assert.match(html,/yard-hub-settings\.css\?v=/,'Hub Settings style asset is vers
 assert.match(html,/data-app="floor" type="button" disabled/,'FLOOR remains unavailable until its application is released');
 assert.match(html,/data-app="check-sheets" type="button" disabled/,'CHECK SHEETS remains unavailable until its application is released');
 assert.match(html,/id="launchDowntimeBtn" data-app="downtime" type="button"/,'DOWNTIME launcher remains present and enabled');
-assert.ok(html.includes('yard-hub-settings.js?v=20261124-1'),'YARD HUB settings client cache is refreshed');
+assert.ok(html.includes('yard-hub-settings.js?v=20261124-2'),'YARD HUB settings client cache is refreshed');
 assert.ok(pagesWorkflow.includes("if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'"),'Pages artifact build runs on PRs for pre-merge validation');
 assert.ok(pagesWorkflow.includes("if: github.ref == 'refs/heads/main'"),'Pages deployment remains restricted to main');
-assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-1'),'live deployment smoke test verifies the updated Hub settings asset');
-assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-5'),'live deployment smoke test verifies the updated R&M app asset');
+assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-2'),'live deployment smoke test verifies the updated Hub settings asset');
+assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-6'),'live deployment smoke test verifies the updated R&M app asset');
 assert.ok(ui.includes("'MECHANIC'"),'MECHANIC appears in the YARD HUB tier selector and role list');
 
 // Identity and PIN management deliberately reuse the existing central directory and APIs.
@@ -140,6 +140,12 @@ assert.ok(html.includes('const task=cloudWrite.then(async()=>{'), 'central user 
 assert.ok(html.includes('cloudSyncFailed)throw new Error'), 'unsynced DOWNTIME data blocks unrelated central user mutations');
 assert.ok(html.includes('await window.refreshDowntimeCentralDirectory()'), 'central user mutations refresh the current Central Bank version before and after saving');
 assert.ok(ui.includes('const saveCentralUser=window.saveDowntimeCentralUserFromYardHub;'), 'Hub user create/edit/disable reuses the serialized DOWNTIME bridge');
+
+assert.ok(ui.includes("key:'repairMaintenanceMachinery',label:'R&M MACHINERY'"),'R&M MACHINERY has independent READ / EDIT controls in TIERS');
+assert.ok(hubApi.includes('repairMaintenanceMachinery'),'Hub Settings normalizes and persists the new machinery permission');
+assert.ok(hubApi.includes('value[key] ?? value.repairMaintenance'),'existing tier values safely seed the new permission');
+assert.ok(rmApi.includes('permissions.canReadRepairMaintenanceMachinery')&&rmApi.includes('permissions.canManageRepairMaintenanceMachinery'),'R&M API enforces separate machinery READ / EDIT permissions');
+assert.ok(rmApi.includes('const rootOperator =')&&rmApi.includes('hubTier === "DEVACC"'),'DEV and DEVACC retain root machinery permissions');
 
 console.log('YARD HUB Settings isolation, identity compatibility, permission enforcement and DOWNTIME protection contracts passed.');
 

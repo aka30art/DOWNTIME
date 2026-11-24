@@ -46,21 +46,24 @@ function normalizeTierPermissions(input: any, current: any, editableRoles: reado
   const nextTiers: Record<string, Record<string, string>> = {};
   for (const tier of tierNames) {
     const existing = currentTiers[tier] || {};
+    const legacyMode = accessModes.includes(existing.repairMaintenance) ? existing.repairMaintenance : "NONE";
     nextTiers[tier] = {
       floor: accessModes.includes(existing.floor) ? existing.floor : "NONE",
       checkSheets: accessModes.includes(existing.checkSheets) ? existing.checkSheets : "NONE",
-      repairMaintenance: accessModes.includes(existing.repairMaintenance) ? existing.repairMaintenance : "NONE",
+      repairMaintenance: legacyMode,
+      repairMaintenanceMachinery: accessModes.includes(existing.repairMaintenanceMachinery) ? existing.repairMaintenanceMachinery : legacyMode,
     };
   }
   for (const role of editableRoles) {
     const value = input.tiers[role];
     if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Missing permission profile for " + role + ".");
-    const keys = Object.keys(value);
-    if (keys.length !== 3 || keys.some((key) => !["floor", "checkSheets", "repairMaintenance"].includes(key))) {
+    const allowedKeys = ["floor", "checkSheets", "repairMaintenance", "repairMaintenanceMachinery"];
+    if (Object.keys(value).some((key) => !allowedKeys.includes(key)) ||
+      ["floor", "checkSheets", "repairMaintenance"].some((key) => !Object.prototype.hasOwnProperty.call(value, key))) {
       throw new Error("Invalid application permission keys for " + role + ".");
     }
-    for (const key of ["floor", "checkSheets", "repairMaintenance"] as const) {
-      const mode = value[key];
+    for (const key of ["floor", "checkSheets", "repairMaintenance", "repairMaintenanceMachinery"] as const) {
+      const mode = key === "repairMaintenanceMachinery" ? (value[key] ?? value.repairMaintenance) : value[key];
       if (!accessModes.includes(mode)) throw new Error("Invalid " + key + " permission for " + role + ".");
       nextTiers[role][key] = mode;
     }
@@ -155,7 +158,7 @@ Deno.serve(async (req: Request) => {
       })).sort((a: any, b: any) => a.username.localeCompare(b.username)),
       userTiers: configRow.payload?.userTiers || {},
       centralVersion: Number(bankRow.version || 0),
-      tierPermissions: configRow.payload,
+      tierPermissions: normalizeTierPermissions(configRow.payload, configRow.payload, [...tierNames]),
       permissionVersion: Number(configRow.version),
       updatedBy: configRow.updated_by,
       updatedAt: configRow.updated_at,

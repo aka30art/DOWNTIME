@@ -5,7 +5,7 @@
   const roles=['OWNER','DEVACC','ADMIN','MANAGER','SUPERVISOR','MECHANIC','USER','SPECTATOR'];
   const editableByAdmin=['MANAGER','SUPERVISOR','MECHANIC','USER','SPECTATOR'];
   const roleLabels={OWNER:'OWNER · ROOT',DEVACC:'DEVACC',ADMIN:'ADMIN',MANAGER:'MANAGER',SUPERVISOR:'SUPERVISOR',MECHANIC:'MECHANIC',USER:'USER',SPECTATOR:'SPECTATOR'};
-  const sections=[{key:'floor',label:'FLOOR'},{key:'checkSheets',label:'CHECK SHEETS'},{key:'repairMaintenance',label:'REPAIRS & MAINTENANCE'}];
+  const sections=[{key:'floor',label:'FLOOR'},{key:'checkSheets',label:'CHECK SHEETS'},{key:'repairMaintenance',label:'REPAIRS & MAINTENANCE'},{key:'repairMaintenanceMachinery',label:'R&M MACHINERY'}];
   const modes=['NONE','READ','EDIT'];
   let state=null,workingPayload=null,editingUsername=null,saving=false,myHubTier=null,myCanManageSettings=false,accessRefresh=null;
 
