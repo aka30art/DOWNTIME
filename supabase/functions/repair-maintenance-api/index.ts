@@ -244,6 +244,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "list") {
+      if (permissions.canReadRepairMaintenanceMachinery !== true) return json({ error: "You do not have READ access to R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
       let query = db.from("repair_maintenance_faults")
         .select("id,machine_type,asset_id,fault_name,description,priority,status,created_by,updated_by,created_at,updated_at")
@@ -367,6 +368,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "get") {
+      if (permissions.canReadRepairMaintenanceMachinery !== true) return json({ error: "You do not have READ access to R&M Machinery." }, 403);
       const fault = await loadFault(body.faultId);
       const [{ data: notes, error: notesError }, { data: attachments, error: filesError }] = await Promise.all([
         db.from("repair_maintenance_notes").select("id,note,created_by,created_at").eq("fault_id", fault.id).order("created_at", { ascending: true }),
@@ -383,6 +385,7 @@ Deno.serve(async (req: Request) => {
 
     if (action === "create") {
       if (!requireEdit()) return json({ error: "You do not have permission to create R&M faults." }, 403);
+      if (permissions.canReadRepairMaintenanceMachinery !== true) return json({ error: "You do not have READ access to R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes) || !isOneOf(body.priority, RM_FAULT_PRIORITIES)) return json(fail("Machine or priority is invalid."), 400);
       const assetId = cleanText(body.assetId, "Machine", 64);
       const { data: asset, error: assetError } = await db.from("repair_maintenance_assets")
