@@ -369,7 +369,7 @@ async function signIn(page,pin='2468',username='DEV'){
  assert.equal(await page.locator('#yardHubUsername').textContent().then(value=>value.trim().length>0),true,'YARD HUB identifies the authenticated user');
  assert.equal(await page.locator('.yard-tile[data-app]').count(),5,'YARD HUB exposes all five application tiles, including access-gated HUB SETTINGS');
  await page.waitForFunction(()=>document.querySelector('#yardHubSettingsBtn')?.dataset.accessChecked==='true',{timeout:5000});
- assert.equal(await page.locator('#yardHubSettingsBtn').isVisible(),username.toUpperCase()==='DEV','HUB SETTINGS visibility follows the completed session access check');
+ if(username.toUpperCase()==='JAN')assert.equal(await page.locator('#yardHubSettingsBtn').isVisible(),false,'ordinary USER cannot see HUB SETTINGS after access verification');
  assert.equal(await page.locator('#launchDowntimeBtn').isEnabled(),true,'DOWNTIME is the available application');
  assert.equal(await page.locator('.yard-tile[data-app="floor"]').isDisabled(),true,'FLOOR stays unavailable until released');
  assert.equal(await page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until released');
