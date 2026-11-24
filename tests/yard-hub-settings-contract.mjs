@@ -173,3 +173,11 @@ assert.ok(html.includes('id="yardHubCustomTierAdd"'),'tier screen exposes custom
 assert.ok(hubApi.includes('Invalid custom tier names.'),'API validates custom tier names');
 assert.ok(hubApi.includes('Only DEV / DEVACC may assign custom YARD HUB tiers.'),'only root operators may assign custom tiers');
 assert.ok(hubApi.includes('Only DEV / DEVACC may create or change custom tiers.'),'only root operators may change tier definitions');
+
+// Custom tiers remain assignable after creation, and deletion is protected against orphaning users.
+assert.ok(hubApi.includes('customTiers.includes(saved)'), 'server resolves assigned custom tiers instead of silently downgrading users to USER');
+assert.ok(hubApi.includes('removedCustomTiers'), 'server detects custom tier removals');
+assert.ok(hubApi.includes('Reassign every user from '), 'server blocks deletion while any account remains assigned');
+assert.ok(ui.includes('function deleteCustomTier(role)'), 'root tier management includes a delete workflow');
+assert.ok(ui.includes("remove.type='button'"), 'custom tier delete control is an explicit button');
+assert.ok(ui.includes('REASSIGN '+ '), 'client warns when a custom tier still has assigned users');
