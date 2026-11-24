@@ -110,7 +110,7 @@ jobs:
           ! grep -q 'id="openPresets"' /tmp/live-repair-maintenance.html
           ! grep -q 'id="addMachineryButton"' /tmp/live-repair-maintenance.html
           ! grep -q 'id="editMachineryButton"' /tmp/live-repair-maintenance.html
-          curl --fail --silent --show-error --location "$LIVE_URL/repair-maintenance-app.js?v=20261124-11" -o /tmp/live-repair-maintenance-app.js
+          curl --fail --silent --show-error --location "$LIVE_URL/repair-maintenance-app.js?v=20261124-12" -o /tmp/live-repair-maintenance-app.js
           grep -q 'export-create' /tmp/live-repair-maintenance-app.js
           grep -q 'export-list' /tmp/live-repair-maintenance-app.js
           grep -q 'export-delete' /tmp/live-repair-maintenance-app.js

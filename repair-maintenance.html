@@ -18,6 +18,41 @@
 .rms-toggle-row strong{display:block;font-size:12px;font-weight:950;letter-spacing:.5px}
 .rms-toggle-row small{display:block;max-width:560px;color:var(--muted);font-size:10px;margin-top:4px}
 .rms-toggle-row input{width:25px;height:25px;flex:0 0 auto;accent-color:var(--yellow);cursor:pointer}
+
+/* Compact, section-based R&M machinery settings */
+.rms-settings-dialog{display:flex;flex-direction:column;overflow:hidden;max-height:min(90dvh,900px);padding:16px 20px 14px}
+.rms-settings-dialog>.dialog-head,.rms-settings-dialog>.rms-tabs,.rms-settings-dialog>#machineSettingsModalStatus,.rms-settings-dialog>.modal-footer{flex:0 0 auto}
+.rms-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 4px;padding:4px;border:1px solid #3b5368;border-radius:11px;background:#081a29}
+.rms-tab{min-height:42px;border:1px solid transparent;border-radius:8px;background:transparent;color:#b5c2d0;font-size:11px;font-weight:950;letter-spacing:.8px;padding:8px 10px}
+.rms-tab.active,.rms-tab[aria-selected="true"]{background:#ffd21a;border-color:#ffd21a;color:#071523}
+.rms-tab:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.rms-tab-panel{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 4px 2px 0;scrollbar-width:thin;scrollbar-color:#536b80 #0b1b2a}
+.rms-tab-panel[hidden]{display:none!important}
+.rms-tab-panel .rms-config-section:first-child{border-top:0;margin-top:0;padding-top:12px}
+.rms-tab-panel .preset-manager-list{max-height:27vh;margin:9px 0;overscroll-behavior:contain}
+.rms-tab-panel .rms-machinery-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.rms-tab-panel .rms-machinery-actions .btn{min-height:42px;padding:9px;font-size:11px}
+.rms-tab-panel .rms-toggle-row{margin:8px 0 4px;padding:10px}
+.rms-tab-panel .rms-toggle-save-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
+.rms-settings-dialog>#machineSettingsModalStatus{margin-top:6px}
+.rms-settings-dialog>.modal-footer{padding-top:8px}
+.rms-settings-dialog>.modal-footer .btn{min-height:40px}
+@media(max-width:620px){
+ .rms-settings-dialog{width:100%;max-height:88dvh;padding:12px 11px 10px;border-width:3px}
+ .rms-settings-dialog>.dialog-head{padding-bottom:9px}
+ .rms-settings-dialog .dialog-title{font-size:16px}
+ .rms-tabs{margin:9px 0 3px;gap:6px;padding:3px}
+ .rms-tab{min-height:39px;font-size:10px;padding:7px 5px}
+ .rms-tab-panel{padding-right:2px}
+ .rms-tab-panel .rms-config-section{padding-top:10px;margin-top:9px}
+ .rms-tab-panel .rms-machinery-actions{grid-template-columns:1fr 1fr}
+ .rms-tab-panel .rms-machinery-actions .btn{font-size:9px;min-height:40px}
+ .rms-tab-panel .preset-manager-list{max-height:24vh}
+ .rms-tab-panel .rms-toggle-save-row{align-items:stretch;flex-direction:column}
+ .rms-tab-panel .rms-toggle-save-row .btn{width:100%}
+ .rms-settings-dialog>.modal-footer .btn{width:100%}
+}
+
 #assetMakeModelManualField[hidden],#assetMakeModelSelectField[hidden],#assetMakeModelOtherField[hidden]{display:none!important}
 @media(max-width:560px){.preset-add-grid{grid-template-columns:1fr}.preset-add-grid .btn{width:100%}.rms-section-heading{align-items:flex-start;flex-direction:column;gap:3px}.rms-section-heading span{text-align:left}}
 .machine-back{border:1px solid #526a7e;background:#12293c;color:#fff;border-radius:8px;padding:9px 12px;font-size:10px;font-weight:900;letter-spacing:.6px;white-space:nowrap}
@@ -96,7 +131,7 @@
 
 <!-- R&M individual machinery registry -->
 <div class="overlay" id="assetOverlay" role="dialog" aria-modal="true" aria-labelledby="assetEditorTitle">
-  <div class="dialog" style="max-width:620px">
+  <div class="dialog rms-settings-dialog" style="max-width:620px">
     <div class="dialog-head"><div class="dialog-title" id="assetEditorTitle">ADD MACHINERY</div><button class="close" type="button" data-close="assetOverlay" aria-label="Close">×</button></div>
     <form id="assetForm">
       <div class="form-grid">
@@ -150,6 +185,11 @@
 <div class="overlay" id="presetsOverlay" role="dialog" aria-modal="true" aria-labelledby="presetsTitle">
   <div class="dialog" style="max-width:620px">
     <div class="dialog-head"><div><div class="dialog-title" id="presetsTitle">MACHINERY SETTINGS</div><div class="form-help" id="presetMachineTitle">—</div></div><button class="close" type="button" data-close="presetsOverlay" aria-label="Close">×</button></div>
+    <nav class="rms-tabs" role="tablist" aria-label="Machinery settings sections">
+      <button class="rms-tab active" id="rmsTabMachinery" type="button" role="tab" aria-selected="true" aria-controls="rmsPanelMachinery" data-rms-tab="machinery">MACHINERY</button>
+      <button class="rms-tab" id="rmsTabAreaParts" type="button" role="tab" aria-selected="false" aria-controls="rmsPanelAreaParts" data-rms-tab="area-parts">AREA &amp; PARTS</button>
+    </nav>
+    <section class="rms-tab-panel" id="rmsPanelMachinery" role="tabpanel" aria-labelledby="rmsTabMachinery" data-rms-panel="machinery">
     <section class="rms-config-section" id="settingsMachinerySection">
       <div class="rms-section-heading"><strong>INDIVIDUAL MACHINERY REGISTER</strong><span>ADD / EDIT MACHINERY</span></div>
       <p class="form-help">Manage the individual machinery records for this category. Select a registered machine to edit its details or add a new one.</p>
@@ -161,15 +201,6 @@
         <button class="btn primary" id="settingsAddMachineryButton" type="button" hidden>＋ ADD MACHINERY</button>
         <button class="btn" id="settingsEditMachineryButton" type="button" hidden>EDIT SELECTED MACHINE</button>
       </div>
-    </section>
-    <section class="rms-config-section">
-      <div class="rms-section-heading"><strong>AREA / PART PRESETS</strong><span>FAULT REPORTING OPTIONS</span></div>
-      <p class="form-help">Add or remove the area and part choices available when recording faults for this category. Existing fault records are retained.</p>
-      <div class="preset-manager-list" id="presetItems"></div>
-      <form id="presetAddForm" class="preset-add-grid">
-        <div class="form-field"><label for="newPresetName">NEW PRESET AREA / PART</label><input id="newPresetName" maxlength="80" required placeholder="e.g. Motor, Bearing, Conveyor belt"></div>
-        <button class="btn primary" type="submit" id="addPresetSave">ADD PRESET</button>
-      </form>
     </section>
     <section class="rms-config-section">
       <div class="rms-section-heading"><strong>INDIVIDUAL MACHINERY SCROLL-DOWN MENU</strong><span>PER-MACHINERY DISPLAY SETTING</span></div>
@@ -191,6 +222,18 @@
         <button class="btn primary" type="submit" id="addModelSave">ADD MODEL</button>
       </form>
     </section>
+    </section>
+    <section class="rms-tab-panel" id="rmsPanelAreaParts" role="tabpanel" aria-labelledby="rmsTabAreaParts" data-rms-panel="area-parts" hidden>
+    <section class="rms-config-section">
+      <div class="rms-section-heading"><strong>AREA / PART PRESETS</strong><span>FAULT REPORTING OPTIONS</span></div>
+      <p class="form-help">Add or remove the area and part choices available when recording faults for this category. Existing fault records are retained.</p>
+      <div class="preset-manager-list" id="presetItems"></div>
+      <form id="presetAddForm" class="preset-add-grid">
+        <div class="form-field"><label for="newPresetName">NEW PRESET AREA / PART</label><input id="newPresetName" maxlength="80" required placeholder="e.g. Motor, Bearing, Conveyor belt"></div>
+        <button class="btn primary" type="submit" id="addPresetSave">ADD PRESET</button>
+      </form>
+    </section>
+    </section>
     <div id="machineSettingsModalStatus" class="statusbar" role="status" aria-live="polite"></div>
     <div class="modal-footer"><button class="btn" type="button" data-close="presetsOverlay">CLOSE</button></div>
   </div>
@@ -210,5 +253,5 @@
 
 <script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';window.REPAIR_MAINTENANCE_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/repair-maintenance-api';</script>
 <script src="central-bank-client.js"></script>
-<script src="repair-maintenance-app.js?v=20261124-11"></script>
+<script src="repair-maintenance-app.js?v=20261124-12"></script>
 </body></html>
