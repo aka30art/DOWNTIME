@@ -80,7 +80,7 @@ assert.ok(html.includes('repair-maintenance-app.js?v=20261124-3'),'R&M app scrip
 assert.match(app,/status:'PERM\. FIX'/,'SOLVED marks fault as PERM. FIX');
 assert.match(app,/api\('report-list'/,'PDF reports retrieve the server-side report list');
 assert.match(app,/buildPdfDocument\(/,'PDF reports use a dedicated print document');
-assert.match(app,/Save as PDF/,'PDF report clearly supports saving as PDF');
+assert.match(app,/SAVE AS PDF/,'PDF report clearly supports saving as PDF');
 assert.ok(app.includes('Area / Part of Machinery'),'PDF report uses the machinery part/area label');
 assert.match(app,/Type of Defect/,'PDF report includes the defect type column');
 assert.match(api,/canExportRepairMaintenanceReports !== true/,'report API enforces the existing export permission');
