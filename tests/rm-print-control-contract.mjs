@@ -5,7 +5,7 @@ const app=readFileSync(new URL('../repair-maintenance-app.js',import.meta.url),'
 assert.match(html,/id="exportReportButton"/);
 assert.match(html,/id="pdfExportsButton"/);
 assert.match(html,/id="exportsOverlay"/);
-assert.match(app,/openPdfExport\(report,'print'\)/);
+assert.match(app,/openPdfExport\(report,action\)/,'Display and Print share the stored-PDF opener');
 assert.match(app,/popup\.print\(\)/);
 assert.match(app,/deletePdfExport\(report\)/);
 assert.doesNotMatch(app,/function buildPdfDocument\(/);
