@@ -351,8 +351,8 @@ Deno.serve(async (req: Request) => {
         const names = new Map((linkedAssets || []).map((asset: any) => [asset.id, asset]));
         for (const report of reports) {
           const linked = report.asset_id ? names.get(report.asset_id) : null;
-          report.asset_name = linked?.name || null;
-          report.asset_code = linked?.asset_code || null;
+          (report as any).asset_name = linked?.name || null;
+          (report as any).asset_code = linked?.asset_code || null;
         }
       }
       return json({ reports, hasMore: reports.length === 50, nextOffset: offset + reports.length });
