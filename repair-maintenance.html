@@ -76,8 +76,42 @@
 
 @media(max-width:560px){.rms-toggle-save-row{align-items:stretch;flex-direction:column}.rms-toggle-save-row .btn{width:100%}.rms-machinery-actions{grid-template-columns:1fr}}
 .rms-unified-machinery-list{display:grid;gap:10px;max-height:34vh;overflow:auto;padding-right:3px}.rms-unified-model-group{border:1px solid #40596f;border-radius:10px;background:#0d2132;padding:9px}.rms-unified-model-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 1px 8px;border-bottom:1px solid #40596f}.rms-unified-model-title{display:grid;gap:2px;min-width:0}.rms-unified-model-title strong{font-size:13px;font-weight:950;letter-spacing:.5px;overflow-wrap:anywhere}.rms-unified-model-title small{font-size:9px;color:var(--yellow);font-weight:900;letter-spacing:.8px}.rms-unified-model-head .btn{min-height:32px;padding:6px 9px;font-size:9px;white-space:nowrap}.rms-unified-asset-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px 2px 12px}.rms-unified-asset-copy{display:grid;gap:2px;min-width:0}.rms-unified-asset-copy strong{font-size:11px;overflow-wrap:anywhere}.rms-unified-asset-copy small{font-size:9px;color:var(--muted);overflow-wrap:anywhere}.rms-unified-asset-row .btn{min-height:31px;padding:5px 10px;font-size:9px}.rms-unified-model-empty{margin:8px 0 1px 12px;color:var(--muted);font-size:10px}@media(max-width:620px){.rms-unified-machinery-list{max-height:32vh}.rms-unified-model-group{padding:8px}.rms-unified-model-head{align-items:flex-start}.rms-unified-model-head .btn{font-size:8px;padding:5px 7px}}
+
+/* R&M mode separation: operational register vs administrative configuration */
+.rm-mode-banner{display:flex;align-items:center;gap:12px;min-height:68px;padding:11px 15px;margin:0 0 14px;border-radius:12px;border:2px solid;box-shadow:0 7px 18px #0003}
+.rm-mode-icon{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:9px;font-size:24px;font-weight:950}
+.rm-mode-banner>span:nth-child(2){display:grid;gap:3px;min-width:0}
+.rm-mode-banner strong{font-size:13px;letter-spacing:1.15px;font-weight:1000}
+.rm-mode-banner small{font-size:9px;letter-spacing:.8px;font-weight:850;line-height:1.35}
+.rm-mode-tag{margin-left:auto;padding:7px 9px;border:1px solid currentColor;border-radius:6px;font-size:9px;font-weight:950;letter-spacing:.8px;white-space:nowrap}
+.operations-banner{border-color:#1687f8;background:linear-gradient(100deg,#102d48,#0b1d2c 80%);color:#d9edff}
+.operations-banner .rm-mode-icon{background:#1687f8;color:#fff}
+.operations-banner small{color:#a9c9e4}
+.configuration-banner{border-color:#e5a91b;background:linear-gradient(100deg,#49350f,#241d10 80%);color:#fff0c5}
+.configuration-banner .rm-mode-icon{background:#e5a91b;color:#171006}
+.configuration-banner small{color:#f0d99d}
+.configuration-mode>.section-head .section-title:before{background:#e5a91b}
+.configuration-mode .machine-card{border-color:#87651f;background:linear-gradient(145deg,#332b1d,#191b1b)}
+.configuration-mode .machine-art{color:#f0bd43}
+.configuration-mode .machine-open{color:#ffd36a}
+.configuration-mode .machine-card:hover,.configuration-mode .machine-card:focus-visible{border-color:#ffd36a}
+.configuration-dialog{border:2px solid #d69a1a;box-shadow:0 0 0 5px #d69a1a24,0 25px 75px #000b}
+.configuration-dialog .dialog-title:before{background:#e5a91b}
+.modal-mode-banner{margin:12px 0 8px;min-height:58px}
+.modal-mode-banner .rm-mode-icon{width:34px;height:34px;flex-basis:34px;font-size:19px}
+.modal-mode-banner strong{font-size:11px}
+.modal-mode-banner small{font-size:8px}
+@media(max-width:620px){
+ .rm-mode-banner{min-height:60px;padding:9px 10px;gap:8px;margin-bottom:10px}
+ .rm-mode-icon{width:34px;height:34px;flex-basis:34px;font-size:20px}
+ .rm-mode-banner strong{font-size:10px;letter-spacing:.8px}
+ .rm-mode-banner small{font-size:8px;letter-spacing:.35px}
+ .rm-mode-tag{font-size:7px;padding:6px}
+ .modal-mode-banner{margin:9px 0 5px}
+}
+
 </style>
-<link rel="stylesheet" href="shared-ui-system.css?v=20261124-1">
+<link rel="stylesheet" href="shared-ui-system.css?v=20261124-2">
 </head>
 <body>
 <div class="app" id="appRoot"><div class="frame">
@@ -88,7 +122,8 @@
   <p class="hero-tag">REPAIRS &amp; MAINTENANCE</p>
 </header>
 <div id="loadingView" class="loading">VERIFYING YARD HUB SESSION…</div>
-<section id="selectorView" class="view" hidden>
+<section id="selectorView" class="view operations-mode" hidden>
+  <div class="rm-mode-banner operations-banner" role="status"><span class="rm-mode-icon" aria-hidden="true">▤</span><span><strong>OPERATIONS WORKSPACE</strong><small>FAULT REGISTER · LIVE MACHINERY · REPAIRS</small></span><span class="rm-mode-tag">WORKING AREA</span></div>
   <div class="section-head">
     <div><div class="section-title">R&amp;M OPERATIONS</div><div class="section-note">SELECT A MACHINE TO VIEW FAULTS / DEFECTS</div></div>
 
@@ -103,7 +138,8 @@
   </div>
   <div class="statusbar" id="selectorStatus" role="status"></div>
 </section>
-<section id="settingsView" class="view" hidden>
+<section id="settingsView" class="view configuration-mode" hidden>
+  <div class="rm-mode-banner configuration-banner" role="status"><span class="rm-mode-icon" aria-hidden="true">⚙</span><span><strong>CONFIGURATION WORKSPACE</strong><small>ADMINISTRATION · REGISTERED MACHINES · SYSTEM RULES</small></span><span class="rm-mode-tag">SETUP AREA</span></div>
   <div class="section-head">
     <div><div class="section-title">R&amp;M CONFIGURATION</div><div class="section-note">MANAGE REGISTERED MACHINES, MODELS AND CATEGORY SETTINGS</div></div>
     <button class="machine-back" id="backToMachineryFromSettings" type="button">← OPERATIONS</button>
@@ -184,8 +220,9 @@
 <div class="modal-footer"><button class="btn" type="button" data-close="exportsOverlay">CLOSE</button></div></div></div>
 <!-- Machine-specific presets -->
 <div class="overlay" id="presetsOverlay" role="dialog" aria-modal="true" aria-labelledby="presetsTitle">
-  <div class="dialog" style="max-width:620px">
+  <div class="dialog configuration-dialog" style="max-width:620px">
     <div class="dialog-head"><div><div class="dialog-title" id="presetsTitle">MACHINERY SETTINGS</div><div class="form-help" id="presetMachineTitle">—</div></div><button class="close" type="button" data-close="presetsOverlay" aria-label="Close">×</button></div>
+    <div class="rm-mode-banner configuration-banner modal-mode-banner" role="status"><span class="rm-mode-icon" aria-hidden="true">⚙</span><span><strong>CONFIGURATION MODE</strong><small>YOU ARE EDITING SYSTEM SETUP — NOT THE FAULT REGISTER</small></span><span class="rm-mode-tag">ADMIN</span></div>
     <nav class="rms-tabs" role="tablist" aria-label="Machinery settings sections">
       <button class="rms-tab active" id="rmsTabMachinery" type="button" role="tab" aria-selected="true" aria-controls="rmsPanelMachinery" data-rms-tab="machinery">MACHINERY</button>
       <button class="rms-tab" id="rmsTabAreaParts" type="button" role="tab" aria-selected="false" aria-controls="rmsPanelAreaParts" data-rms-tab="area-parts">AREA &amp; PARTS</button>
@@ -262,5 +299,5 @@
 
 <script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';window.REPAIR_MAINTENANCE_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/repair-maintenance-api';</script>
 <script src="central-bank-client.js"></script>
-<script src="repair-maintenance-app.js?v=20261124-18"></script>
+<script src="repair-maintenance-app.js?v=20261124-19"></script>
 </body></html>

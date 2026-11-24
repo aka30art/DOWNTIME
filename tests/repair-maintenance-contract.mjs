@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 const html=read('../repair-maintenance.html');
 const sharedUi=read('../shared-ui-system.css');
-assert.ok(html.includes('shared-ui-system.css?v=20261124-1'),'R&M loads the shared visual design system');
+assert.ok(html.includes('shared-ui-system.css?v=20261124-2'),'R&M loads the shared visual design system');
 for(const token of ['--panel:#101f2b','--line:#334b5d','--yellow:#ffc400','--muted:#9aafbd'])assert.ok(sharedUi.includes(token),'shared design token missing: '+token);
 for(const selector of ['.machinebar{','.stat{','.faultpanel{','.faultrow{','.dialog{'])assert.ok(sharedUi.includes(selector),'shared R&M styling is missing '+selector);
 const app=read('../repair-maintenance-app.js');
@@ -78,7 +78,7 @@ assert.ok(api.includes('.eq("machine_type", body.machineType)'),'backend checks 
 assert.ok(api.includes('.eq("is_other", false)'),'backend protects OTHER from deletion');
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-18'),'R&M app script cache is refreshed');
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-19'),'R&M app script cache is refreshed');
 assert.match(app,/function updateAssetSelectorVisibility\(\)[\s\S]*host\.hidden=access\?\.canReadRepairMaintenanceMachinery!==true\|\|machineSettings\.asset_selector_enabled!==true/,'R&M registered-machine selector follows its saved per-category setting');
 assert.match(app,/machineSettings\.model_dropdown_enabled!==true/,'MAKE / MODEL catalogue visibility remains separately configured');
 assert.match(app,/function saveAssetSelectorSetting\(\)/,'registered-machine visibility has an independent save action');
@@ -154,3 +154,9 @@ assert.ok(api.includes('permissions.canCreateRepairMaintenance = mode === "INPUT
 assert.ok(api.includes('permissions.canAddRepairMaintenanceMachinery = machineryMode === "INPUT" || machineryMode === "EDIT"'),'R&M Machinery INPUT tier can add machines');
 assert.ok(api.includes('permissions.canCreateRepairMaintenance !== true'),'R&M fault creation is server-side permission-gated');
 assert.ok(app.includes('access.canCreateRepairMaintenance===true'),'R&M interface exposes create action to INPUT tier');
+
+assert.match(html,/<section id="selectorView" class="view operations-mode" hidden>[\s\S]*?OPERATIONS WORKSPACE[\s\S]*?WORKING AREA/,'operations has a persistent blue workspace identity');
+assert.match(html,/<section id="settingsView" class="view configuration-mode" hidden>[\s\S]*?CONFIGURATION WORKSPACE[\s\S]*?SETUP AREA/,'configuration selector has a persistent amber workspace identity');
+assert.match(html,/class="dialog configuration-dialog"[\s\S]*?CONFIGURATION MODE[\s\S]*?NOT THE FAULT REGISTER/,'every machinery configuration modal has an explicit mode warning');
+assert.match(html,/\.configuration-mode \.machine-card\{[^}]*#332b1d/,'configuration cards use a separate amber administrative visual language');
+assert.ok(html.includes('shared-ui-system.css?v=20261124-2'),'R&M shared stylesheet cache is refreshed');
