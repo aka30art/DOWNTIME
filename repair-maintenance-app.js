@@ -39,6 +39,7 @@
   async function openMachineSettings(key){
     if(access?.canManageRepairMaintenancePresets!==true){say('R&M SETTINGS permission is required to manage machine settings.','settingsStatus','error');return}
     currentMachine=machine(key);machinePresets=[];machineModels=[];
+    settingsSelectedAssetId=currentMachine.key===currentAsset?.machine_type?currentAsset.id:'';
     $('presetMachineTitle').textContent=currentMachine.label;
     try{
       await Promise.all([refreshMachinePresets(),refreshMachineConfiguration()]);
@@ -109,8 +110,9 @@
     machineModels=Array.isArray(modelsResult.models)?modelsResult.models:[];
     settingsAssets=Array.isArray(assetResult.assets)?assetResult.assets:[];
     const currentId=currentMachine.key===currentAsset?.machine_type?currentAsset.id:'';
-    if(currentId&&settingsAssets.some(asset=>asset.id===currentId))settingsSelectedAssetId=currentId;
-    else if(!settingsAssets.some(asset=>asset.id===settingsSelectedAssetId))settingsSelectedAssetId='';
+    if(!settingsAssets.some(asset=>asset.id===settingsSelectedAssetId)){
+      settingsSelectedAssetId=currentId&&settingsAssets.some(asset=>asset.id===currentId)?currentId:'';
+    }
     const toggle=$('modelDropdownEnabled'),save=$('saveModelDropdownSettings');
     if(toggle)toggle.checked=modelDropdownDraft;
     if(save)save.disabled=true;
