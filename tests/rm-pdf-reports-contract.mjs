@@ -13,5 +13,5 @@ assert.match(api,/action === "export-create"/);
 assert.match(api,/maxRecords=10000/);
 assert.match(api,/range\(offset,offset\+pageSize-1\)/);
 assert.match(pdf,/No faults or defects recorded/);
-for(const field of ['fault_name','description','priority','status','created_at'])assert.ok(pdf.includes('fault.'+field),'PDF missing '+field);
+for(const field of ['fault_name','description','priority','status','created_at'])assert.ok(pdf.includes('f.'+field),'PDF missing '+field);
 console.log('R&M PDF report generation regression: PASS');
