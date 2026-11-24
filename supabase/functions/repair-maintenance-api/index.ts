@@ -1,13 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { buildRepairMaintenancePdf } from "./pdf.ts";
+import { RM_FAULT_PRIORITIES, isFaultUpdateValid } from "./update-contract.js";
 
 const allowedOrigin = "https://aka30art.github.io";
 const bucket = "repair-maintenance-evidence";
 const reportBucket = "repair-maintenance-reports";
 const machineTypes = ["KIVERCO_PICKING_LINE", "TANNA_SHREDDER", "FORKLIFT", "TELEHANDLER", "EXCAVATORS_360", "OTHER_EQUIPMENT"] as const;
-const priorities = ["HIGH", "MEDIUM", "LOW"] as const;
-const statuses = ["OPEN", "IN PROGRESS", "REPAIRED"] as const;
+
 const mimeTypes = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf", "text/plain"]);
 const headers = {
   "Access-Control-Allow-Origin": allowedOrigin,
@@ -208,7 +208,7 @@ Deno.serve(async (req: Request) => {
 
     if (action === "create") {
       if (!requireEdit()) return json({ error: "You do not have permission to create R&M faults." }, 403);
-      if (!isOneOf(body.machineType, machineTypes) || !isOneOf(body.priority, priorities)) return json(fail("Machine or priority is invalid."), 400);
+      if (!isOneOf(body.machineType, machineTypes) || !isOneOf(body.priority, RM_FAULT_PRIORITIES)) return json(fail("Machine or priority is invalid."), 400);
       const presetId = cleanText(body.presetId, "Machinery preset", 64);
       const { data: preset, error: presetError } = await db.from("repair_maintenance_machine_presets")
         .select("id,name,is_other").eq("id", presetId).eq("machine_type", body.machineType).maybeSingle();
@@ -224,7 +224,7 @@ Deno.serve(async (req: Request) => {
     if (action === "update") {
       if (!requireEdit()) return json({ error: "You do not have permission to update R&M faults." }, 403);
       const fault = await loadFault(body.faultId);
-      if (!isOneOf(body.priority, priorities) || !isOneOf(body.status, statuses)) return json(fail("Status or priority is invalid."), 400);
+      if (!isFaultUpdateValid(body.status, body.priority)) return json(fail("Status or priority is invalid."), 400);
       const { data, error } = await db.from("repair_maintenance_faults").update({ status: body.status, priority: body.priority, updated_by: actor, updated_at: new Date().toISOString() }).eq("id", fault.id).select("*").single();
       if (error || !data) return json({ error: "Unable to update the fault record." }, 503);
       await audit("rm-fault-update", { faultId: fault.id, oldStatus: fault.status, status: data.status, priority: data.priority });

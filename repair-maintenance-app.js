@@ -24,8 +24,9 @@
     return data;
   }
   function say(message,target='dashboardStatus',kind=''){
-    const el=$(target);if(!el)return;el.textContent=message;el.className='statusbar'+(kind?' '+kind:'');
+    const el=$(target);if(!el)return;el.hidden=false;el.textContent=message;el.className='statusbar'+(kind?' '+kind:'');
   }
+  function clearStatus(target){const el=$(target);if(!el)return;el.textContent='';el.className='statusbar';el.hidden=true;}
   function safe(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function machine(key){return MACHINES.find(m=>m.key===key)||MACHINES[0]}
   function priorityClass(value){return String(value||'LOW').toLowerCase()}
@@ -143,7 +144,7 @@
     try{
       const result=await api('get',{faultId:id});currentFault=result.fault;currentFault.displayNumber=number;
       $('detailNumber').textContent=String(number).padStart(2,'0');$('detailName').textContent=currentFault.fault_name;$('detailMachine').textContent=machine(currentFault.machine_type).label;
-      $('detailDescription').textContent=currentFault.description;$('detailStatus').value=currentFault.status;$('detailPriority').value=currentFault.priority;
+      $('detailDescription').textContent=currentFault.description;const statusSelect=$('detailStatus');statusSelect.querySelectorAll('option[data-legacy="true"]').forEach(option=>option.remove());if(![...statusSelect.options].some(option=>option.value===currentFault.status)){const legacyStatus=document.createElement('option');legacyStatus.value=currentFault.status;legacyStatus.textContent=currentFault.status;legacyStatus.dataset.legacy='true';statusSelect.appendChild(legacyStatus)}statusSelect.value=currentFault.status;$('detailPriority').value=currentFault.priority;clearStatus('detailUpdateStatus');
       renderDetailPriority();renderEvidence(result.attachments||[]);renderNotes(result.notes||[]);
       const editable=access.canEditRepairMaintenance===true;
       ['detailStatus','detailPriority','updateFault','toggleNoteComposer','detailAddNote','attachFile','addPhoto'].forEach(id=>{const e=$(id);if(e)e.disabled=!editable});
@@ -159,7 +160,7 @@
   }
   function renderNotes(notes){$('notesList').innerHTML=notes.length?notes.map(n=>`<div class="note-item">${safe(n.note)}<small>${safe(n.created_by)} · ${safe(new Date(n.created_at).toLocaleString('en-GB'))}</small></div>`).join(''):'<div class="empty" style="padding:12px">No notes recorded.</div>'}
   async function refreshDetails(){if(!currentFault)return;const result=await api('get',{faultId:currentFault.id});currentFault=result.fault;renderEvidence(result.attachments||[]);renderNotes(result.notes||[]);}
-  async function updateFault(){if(!currentFault||busy)return;const button=$('updateFault');button.disabled=true;button.textContent='SAVING…';try{await api('update',{faultId:currentFault.id,status:$('detailStatus').value,priority:$('detailPriority').value});closeOverlay('detailsOverlay');await loadMachine(currentMachine.key);say('Fault / defect updated.','dashboardStatus','ok')}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false;button.textContent='✓ UPDATE';renderDetailPriority()}}
+  async function updateFault(){if(!currentFault||busy)return;const button=$('updateFault'),status=$('detailStatus').value,priority=$('detailPriority').value;button.disabled=true;button.textContent='SAVING…';clearStatus('detailUpdateStatus');say('Saving fault updates…','detailUpdateStatus');try{const result=await api('update',{faultId:currentFault.id,status,priority});if(!result.fault)throw new Error('The R&M service did not confirm that the fault was updated.');currentFault=result.fault;closeOverlay('detailsOverlay');await loadMachine(currentMachine.key);say('Fault / defect updated.','dashboardStatus','ok')}catch(error){say(error.message,'detailUpdateStatus','error');say(error.message,'dashboardStatus','error')}finally{button.disabled=false;button.textContent='✓ UPDATE';renderDetailPriority()}}
   function startNote(){if(!currentFault)return;$('noteComposer').classList.add('open');$('noteText').focus()}
   async function saveNote(){const note=$('noteText').value.trim();if(!currentFault||!note)return;const button=$('saveNote');button.disabled=true;try{await api('note-add',{faultId:currentFault.id,note});$('noteText').value='';$('noteComposer').classList.remove('open');await refreshDetails()}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false}}
   async function doUpload(file,kind){if(!currentFault||!file)return;const button=kind==='PHOTO'?$('addPhoto'):$('attachFile');button.disabled=true;try{await uploadFile(currentFault.id,file,kind);await refreshDetails();say(`${kind==='PHOTO'?'Photo':'File'} attached successfully.`,'dashboardStatus','ok')}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false;$('photoInput').value='';$('fileInput').value=''}}

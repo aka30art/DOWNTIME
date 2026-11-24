@@ -29,7 +29,7 @@ assert.ok(html.includes('yard-hub-settings.js?v=20261124-1'),'YARD HUB settings 
 assert.ok(pagesWorkflow.includes("if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'"),'Pages artifact build runs on PRs for pre-merge validation');
 assert.ok(pagesWorkflow.includes("if: github.ref == 'refs/heads/main'"),'Pages deployment remains restricted to main');
 assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-1'),'live deployment smoke test verifies the updated Hub settings asset');
-assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-4'),'live deployment smoke test verifies the updated R&M app asset');
+assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-5'),'live deployment smoke test verifies the updated R&M app asset');
 assert.ok(ui.includes("'MECHANIC'"),'MECHANIC appears in the YARD HUB tier selector and role list');
 
 // Identity and PIN management deliberately reuse the existing central directory and APIs.
