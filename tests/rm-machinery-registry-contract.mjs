@@ -71,7 +71,7 @@ assert.match(api,/buildRepairMaintenancePdf\(faults, filter, generatedAt, select
 assert.match(migration,/repair_maintenance_pdf_exports/);
 assert.ok(archiveMigration.includes('repair_maintenance_pdf_exports'));
 
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-9'));
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-10'));
 assert.ok(html.includes('id="modelDropdownEnabled"'));
 assert.ok(html.includes('id="saveModelDropdownSettings"'));
 assert.ok(html.includes('id="settingsAssetSelect"'));
