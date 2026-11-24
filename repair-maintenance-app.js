@@ -30,11 +30,24 @@
   function safe(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function machine(key){return MACHINES.find(m=>m.key===key)||MACHINES[0]}
   function priorityClass(value){return String(value||'LOW').toLowerCase()}
-  function setView(id){['selectorView','dashboardView'].forEach(view=>$(view).hidden=view!==id);}
+  function setView(id){['selectorView','settingsView','dashboardView'].forEach(view=>$(view).hidden=view!==id);}
   function showOverlay(id){$(id)?.classList.add('open');document.body.style.overflow='hidden'}
   function closeOverlay(id){$(id)?.classList.remove('open');if(!document.querySelector('.overlay.open'))document.body.style.overflow=''}
   function setBusy(value){busy=value;document.querySelectorAll('button').forEach(b=>{if(b.dataset.busyControl==='true')b.disabled=value})}
   function renderSelector(){setView('selectorView');$('selectorStatus').textContent='Select a machinery category to view its fault register.';}
+  function renderSettingsSelector(){setView('settingsView');$('settingsStatus').textContent='Select a machinery category to configure its R&M settings.';}
+  async function openMachineSettings(key){
+    if(access?.canManageRepairMaintenancePresets!==true){say('R&M PRESET SETTINGS permission is required to manage machine settings.','settingsStatus','error');return}
+    currentMachine=machine(key);machinePresets=[];
+    $('presetMachineTitle').textContent=currentMachine.label;
+    try{
+      await refreshMachinePresets();
+      $('presetMachineTitle').textContent=currentMachine.label;
+      showOverlay('presetsOverlay');
+      say(currentMachine.label+' settings loaded.','settingsStatus','ok');
+    }catch(error){say(error.message,'settingsStatus','error')}
+  }
+  function machineSettingsStatusTarget(){return $('settingsView')&&!$('settingsView').hidden?'settingsStatus':'dashboardStatus';}
   function renderStats(){
     $('totalCount').textContent=faults.length;
     $('highCount').textContent=faults.filter(f=>f.priority==='HIGH').length;
@@ -241,15 +254,15 @@
     event.preventDefault();if(busy||!currentMachine)return;
     const name=$('newPresetName').value.trim();if(!name)return;
     const button=$('addPresetSave');button.disabled=true;button.textContent='SAVING…';
-    try{await api('preset-add',{machineType:currentMachine.key,name});$('newPresetName').value='';await refreshMachinePresets();say('Machine preset added.','dashboardStatus','ok')}
-    catch(error){say(error.message,'dashboardStatus','error')}
+    try{await api('preset-add',{machineType:currentMachine.key,name});$('newPresetName').value='';await refreshMachinePresets();say('Machine preset added.',machineSettingsStatusTarget(),'ok')}
+    catch(error){say(error.message,machineSettingsStatusTarget(),'error')}
     finally{button.disabled=false;button.textContent='ADD PRESET'}
   }
   async function removeMachinePreset(preset){
     if(!currentMachine||!preset||preset.is_other)return;
     if(!window.confirm(`Remove “${preset.name}” from ${currentMachine.label}? Existing fault records will be retained.`))return;
-    try{await api('preset-delete',{machineType:currentMachine.key,presetId:preset.id});await refreshMachinePresets();say('Machine preset removed. Existing fault records were not changed.','dashboardStatus','ok')}
-    catch(error){say(error.message,'dashboardStatus','error')}
+    try{await api('preset-delete',{machineType:currentMachine.key,presetId:preset.id});await refreshMachinePresets();say('Machine preset removed. Existing fault records were not changed.',machineSettingsStatusTarget(),'ok')}
+    catch(error){say(error.message,machineSettingsStatusTarget(),'error')}
   }
   async function openDetails(id,number){
     try{
@@ -320,6 +333,7 @@
     $('openCreateFault').hidden=!canCreate;$('openCreateFault').disabled=!canCreate;
     $('deleteFault').hidden=!del;$('openReports').hidden=!exp;$('exportReportButton').hidden=!exp;$('pdfExportsButton').hidden=!exp;
     $('openPresets').hidden=access.canManageRepairMaintenancePresets!==true;
+    $('openRmsSettings').hidden=access.canManageRepairMaintenancePresets!==true;
     $('addMachineryButton').hidden=access.canManageRepairMaintenanceMachinery!==true;
     $('editMachineryButton').hidden=access.canManageRepairMaintenanceMachinery!==true||!currentAsset;
   }
@@ -335,7 +349,10 @@
   }
   document.addEventListener('DOMContentLoaded',()=>{
     $('retrySession')?.addEventListener('click',()=>{document.querySelector('.frame').hidden=false;$('accessDenied').classList.remove('show');$('loadingView').hidden=false;init()});
-    document.querySelectorAll('.machine-card').forEach(button=>button.addEventListener('click',()=>loadMachine(button.dataset.machine)));
+    document.querySelectorAll('#machineGrid .machine-card[data-machine]').forEach(button=>button.addEventListener('click',()=>loadMachine(button.dataset.machine)));
+    $('openRmsSettings')?.addEventListener('click',renderSettingsSelector);
+    $('backToMachineryFromSettings')?.addEventListener('click',renderSelector);
+    document.querySelectorAll('#settingsMachineGrid .machine-card[data-settings-machine]').forEach(button=>button.addEventListener('click',()=>openMachineSettings(button.dataset.settingsMachine)));
     $('machineAssetSelect')?.addEventListener('change',event=>selectMachineAsset(event.target.value));
     $('addMachineryButton')?.addEventListener('click',()=>openAssetEditor());
     $('editMachineryButton')?.addEventListener('click',()=>openAssetEditor(currentAsset));

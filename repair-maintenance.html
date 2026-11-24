@@ -32,7 +32,10 @@
 </header>
 <div id="loadingView" class="loading">VERIFYING YARD HUB SESSION…</div>
 <section id="selectorView" class="view" hidden>
-  <div class="section-head"><div class="section-title">MACHINERY</div><div class="section-note">SELECT A MACHINE TO VIEW FAULTS / DEFECTS</div></div>
+  <div class="section-head">
+    <div><div class="section-title">MACHINERY</div><div class="section-note">SELECT A MACHINE TO VIEW FAULTS / DEFECTS</div></div>
+    <button class="machine-back" id="openRmsSettings" type="button" hidden>⚙ SETTINGS</button>
+  </div>
   <div class="machine-grid" id="machineGrid">
     <button class="machine-card" data-machine="KIVERCO_PICKING_LINE"><span class="machine-art"><img src="assets/rm-icons/kiverco.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>KIVERCO — PICKING LINE</strong><small>CONVEYORS &amp; SORTING SYSTEM</small><span class="machine-open">OPEN MACHINE →</span></span></button>
     <button class="machine-card" data-machine="TANNA_SHREDDER"><span class="machine-art"><img src="assets/rm-icons/tanna.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>TANNA — SHREDDER</strong><small>SHREDDING EQUIPMENT</small><span class="machine-open">OPEN MACHINE →</span></span></button>
@@ -42,6 +45,21 @@
     <button class="machine-card" data-machine="OTHER_EQUIPMENT"><span class="machine-art"><img src="assets/rm-icons/other_equipment.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>OTHER EQUIPMENT</strong><small>ADDITIONAL MACHINERY</small><span class="machine-open">OPEN MACHINE →</span></span></button>
   </div>
   <div class="statusbar" id="selectorStatus" role="status"></div>
+</section>
+<section id="settingsView" class="view" hidden>
+  <div class="section-head">
+    <div><div class="section-title">RMS · R&amp;M SETTINGS</div><div class="section-note">SELECT A MACHINERY TYPE TO MANAGE ITS SETTINGS</div></div>
+    <button class="machine-back" id="backToMachineryFromSettings" type="button">← MACHINERY</button>
+  </div>
+  <div class="machine-grid" id="settingsMachineGrid">
+    <button class="machine-card" type="button" data-settings-machine="KIVERCO_PICKING_LINE"><span class="machine-art"><img src="assets/rm-icons/kiverco.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>KIVERCO — PICKING LINE</strong><small>CONVEYORS &amp; SORTING SYSTEM</small><span class="machine-open">OPEN SETTINGS →</span></span></button>
+    <button class="machine-card" type="button" data-settings-machine="TANNA_SHREDDER"><span class="machine-art"><img src="assets/rm-icons/tanna.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>TANNA — SHREDDER</strong><small>SHREDDING EQUIPMENT</small><span class="machine-open">OPEN SETTINGS →</span></span></button>
+    <button class="machine-card" type="button" data-settings-machine="FORKLIFT"><span class="machine-art"><img src="assets/rm-icons/forklift.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>FORKLIFT</strong><small>FORKLIFT FLEET</small><span class="machine-open">OPEN SETTINGS →</span></span></button>
+    <button class="machine-card" type="button" data-settings-machine="TELEHANDLER"><span class="machine-art"><img src="assets/rm-icons/telehandler.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>TELEHANDLER</strong><small>TELEHANDLER FLEET</small><span class="machine-open">OPEN SETTINGS →</span></span></button>
+    <button class="machine-card" type="button" data-settings-machine="EXCAVATORS_360"><span class="machine-art"><img src="assets/rm-icons/excavators_360.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>360 EXCAVATORS</strong><small>EXCAVATOR FLEET</small><span class="machine-open">OPEN SETTINGS →</span></span></button>
+    <button class="machine-card" type="button" data-settings-machine="OTHER_EQUIPMENT"><span class="machine-art"><img src="assets/rm-icons/other_equipment.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>OTHER EQUIPMENT</strong><small>ADDITIONAL MACHINERY</small><span class="machine-open">OPEN SETTINGS →</span></span></button>
+  </div>
+  <div class="statusbar" id="settingsStatus" role="status" aria-live="polite"></div>
 </section>
 <section id="dashboardView" class="view" hidden>
   <div class="machinebar"><div class="machineicon" aria-hidden="true"><img id="machineIcon" src="assets/rm-icons/kiverco.svg" alt="" decoding="async"></div><div class="machine-header-copy"><span class="machinelabel" id="machineCategoryLabel">MACHINE TYPE</span><strong id="machineTitle">—</strong><div class="machine-asset-controls" id="machineAssetControls" hidden><label for="machineAssetSelect">INDIVIDUAL MACHINE</label><select id="machineAssetSelect"><option value="">SELECT INDIVIDUAL MACHINE</option></select><button class="machine-cog-button" id="addMachineryButton" type="button" hidden>＋ ADD MACHINERY</button><button class="machine-cog-button" id="editMachineryButton" type="button" hidden>EDIT MACHINE</button></div><button class="machine-cog-button" id="openPresets" type="button" hidden>PRESETS</button></div><button class="machine-back" id="backToMachinery" type="button">← MACHINERY</button></div>
@@ -134,5 +152,5 @@
 
 <script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';window.REPAIR_MAINTENANCE_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/repair-maintenance-api';</script>
 <script src="central-bank-client.js"></script>
-<script src="repair-maintenance-app.js?v=20261124-6"></script>
+<script src="repair-maintenance-app.js?v=20261124-7"></script>
 </body></html>
