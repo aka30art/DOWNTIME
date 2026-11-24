@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const allowedOrigin = "https://aka30art.github.io";
 const tierNames = ["OWNER", "DEVACC", "ADMIN", "MANAGER", "SUPERVISOR", "MECHANIC", "USER", "SPECTATOR"] as const;
 const editableByAdmin = ["MANAGER", "SUPERVISOR", "MECHANIC", "USER", "SPECTATOR"] as const;
-const accessModes = ["NONE", "READ", "EDIT"] as const;
+const accessModes = ["NONE", "READ", "INPUT", "EDIT"] as const;
 const headers = {
   "Access-Control-Allow-Origin": allowedOrigin,
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-downtime-session",
@@ -140,6 +140,7 @@ Deno.serve(async (req: Request) => {
         floor: myPermissions.floor,
         checkSheets: myPermissions.checkSheets,
         repairMaintenance: myPermissions.repairMaintenance,
+        repairMaintenanceMachinery: myPermissions.repairMaintenanceMachinery ?? myPermissions.repairMaintenance,
       },
       permissionVersion: Number(configRow.version),
     });
