@@ -1,10 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { buildRepairMaintenancePdf } from "./pdf.ts";
 
 const allowedOrigin = "https://aka30art.github.io";
 const bucket = "repair-maintenance-evidence";
-const reportBucket = "repair-maintenance-reports";
 const machineTypes = ["KIVERCO_PICKING_LINE", "TANNA_SHREDDER", "FORKLIFT", "TELEHANDLER", "EXCAVATORS_360", "OTHER_EQUIPMENT"] as const;
 const priorities = ["HIGH", "MEDIUM", "LOW"] as const;
 const statuses = ["OPEN", "IN PROGRESS", "REPAIRED"] as const;
@@ -159,36 +157,25 @@ Deno.serve(async (req: Request) => {
       return json({ faults: data || [] });
     }
 
-    if (action === "export-create") {
-      if(permissions.canExportRepairMaintenanceReports!==true)return json({error:"You do not have permission to export R&M reports."},403);
-      if(body.machineType!==undefined&&body.machineType!==null&&body.machineType!==""&&!isOneOf(body.machineType,machineTypes))return json(fail("Select a valid machinery filter."),400);
-      const filter=typeof body.machineType==="string"&&body.machineType?body.machineType:null,faults:any[]=[],pageSize=500,maxRecords=10000;
-      for(let offset=0;;offset+=pageSize){let query=db.from("repair_maintenance_faults").select("id,machine_type,fault_name,description,priority,status,created_at");if(filter)query=query.eq("machine_type",filter);const {data,error}=await query.order("created_at",{ascending:false}).range(offset,offset+pageSize-1);if(error)return json({error:"Unable to load the R&M report records."},503);const rows=data||[];faults.push(...rows);if(faults.length>maxRecords)return json({error:"Report exceeds the 10,000-record limit. Filter by machinery and retry."},413);if(rows.length<pageSize)break}
-      const generatedAt=new Date(),bytes=await buildRepairMaintenancePdf(faults,filter,generatedAt);if(!bytes.length||bytes.length>25*1024*1024)return json({error:"Generated PDF exceeds the 25 MB archive limit."},413);
-      const stamp=generatedAt.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}Z$/,"Z"),fileName=`RM_${filter||"ALL_MACHINERY"}_${stamp}.pdf`,storagePath=`${generatedAt.toISOString().slice(0,10)}/${crypto.randomUUID()}-${fileName}`;
-      const {error:uploadError}=await db.storage.from(reportBucket).upload(storagePath,bytes,{contentType:"application/pdf",cacheControl:"0",upsert:false});if(uploadError)return json({error:"Unable to store the generated R&M PDF securely."},503);
-      const {data,error}=await db.from("repair_maintenance_pdf_exports").insert({machine_type:filter,file_name:fileName,storage_path:storagePath,mime_type:"application/pdf",file_size_bytes:bytes.length,record_count:faults.length,created_by:actor}).select("id,machine_type,file_name,mime_type,file_size_bytes,record_count,created_by,created_at").single();
-      if(error||!data){await db.storage.from(reportBucket).remove([storagePath]);return json({error:"The PDF was generated but could not be registered in PDF EXPORTS."},503)}
-      await audit("rm-pdf-export-create",{reportId:data.id,machineType:filter,recordCount:faults.length,fileSizeBytes:bytes.length});return json({report:data},201)
-    }
-    if(action==="export-list"){
-      if(permissions.canExportRepairMaintenanceReports!==true)return json({error:"You do not have permission to view R&M PDF exports."},403);
-      if(body.machineType!==undefined&&body.machineType!==null&&body.machineType!==""&&!isOneOf(body.machineType,machineTypes))return json(fail("Select a valid machinery filter."),400);
-      const offset=typeof body.offset==="number"&&Number.isInteger(body.offset)?body.offset:0;if(offset<0||offset>20000)return json(fail("PDF export page is invalid."),400);
-      const filter=typeof body.machineType==="string"&&body.machineType?body.machineType:null;let query=db.from("repair_maintenance_pdf_exports").select("id,machine_type,file_name,mime_type,file_size_bytes,record_count,created_by,created_at");if(filter)query=query.eq("machine_type",filter);
-      const {data,error}=await query.order("created_at",{ascending:false}).range(offset,offset+49);if(error)return json({error:"Unable to load PDF EXPORTS."},503);const reports=data||[];return json({reports,hasMore:reports.length===50,nextOffset:offset+reports.length})
-    }
-    if(action==="export-url"){
-      if(permissions.canExportRepairMaintenanceReports!==true)return json({error:"You do not have permission to open R&M PDF exports."},403);
-      const id=cleanText(body.reportId,"PDF export ID",64),{data:report,error}=await db.from("repair_maintenance_pdf_exports").select("id,storage_path,file_name").eq("id",id).maybeSingle();if(error)return json({error:"Unable to load the selected PDF export."},503);if(!report)return json({error:"PDF export not found."},404);
-      const {data,error:signedError}=await db.storage.from(reportBucket).createSignedUrl(report.storage_path,300);if(signedError||!data?.signedUrl)return json({error:"Unable to create a secure PDF link."},503);return json({signedUrl:data.signedUrl,fileName:report.file_name})
-    }
-    if(action==="export-delete"){
-      if(!requireDelete())return json({error:"You do not have permission to delete R&M PDF exports."},403);
-      const id=cleanText(body.reportId,"PDF export ID",64),{data:report,error:loadError}=await db.from("repair_maintenance_pdf_exports").select("id,machine_type,file_name,storage_path").eq("id",id).maybeSingle();if(loadError)return json({error:"Unable to load the selected PDF export."},503);if(!report)return json({error:"PDF export not found."},404);
-      const {error:storageError}=await db.storage.from(reportBucket).remove([report.storage_path]);if(storageError)return json({error:"Unable to remove the stored PDF. Archive record retained."},503);
-      const {error:deleteError}=await db.from("repair_maintenance_pdf_exports").delete().eq("id",report.id);if(deleteError)return json({error:"PDF file removed but archive record could not be deleted. Contact an administrator."},503);
-      await audit("rm-pdf-export-delete",{reportId:report.id,machineType:report.machine_type,fileName:report.file_name});return json({ok:true})
+    if (action === "report-list") {
+      if (permissions.canExportRepairMaintenanceReports !== true) return json({ error: "You do not have permission to export R&M reports." }, 403);
+      if (body.machineType !== undefined && body.machineType !== null && body.machineType !== "" && !isOneOf(body.machineType, machineTypes)) {
+        return json(fail("Select a valid machinery filter."), 400);
+      }
+      const machineFilter = typeof body.machineType === "string" && body.machineType ? body.machineType : null;
+      const reportFields = "id,machine_type,fault_name,description,priority,status,created_by,updated_by,created_at,updated_at";
+      const faults: any[] = [];
+      const pageSize = 500;
+      for (let offset = 0; ; offset += pageSize) {
+        let query = db.from("repair_maintenance_faults").select(reportFields);
+        if (machineFilter) query = query.eq("machine_type", machineFilter);
+        const { data, error } = await query.order("created_at", { ascending: false }).range(offset, offset + pageSize - 1);
+        if (error) return json({ error: "Unable to load the R&M report records." }, 503);
+        const page = data || [];
+        faults.push(...page);
+        if (page.length < pageSize) break;
+      }
+      return json({ faults, machineType: machineFilter });
     }
 
     if (action === "get") {

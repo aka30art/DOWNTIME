@@ -97,12 +97,8 @@ jobs:
           curl --fail --silent --show-error --location "$LIVE_URL/repair-maintenance.html" -o /tmp/live-repair-maintenance.html
           grep -q 'AREA / PART OF MACHINERY' /tmp/live-repair-maintenance.html
           grep -q 'id="openPresets"' /tmp/live-repair-maintenance.html
-          curl --fail --silent --show-error --location "$LIVE_URL/repair-maintenance-app.js?v=20261124-4" -o /tmp/live-repair-maintenance-app.js
-          grep -q 'export-create' /tmp/live-repair-maintenance-app.js
-          grep -q 'export-list' /tmp/live-repair-maintenance-app.js
-          grep -q 'export-delete' /tmp/live-repair-maintenance-app.js
-          grep -q 'id="pdfExportsButton"' /tmp/live-repair-maintenance.html
-          grep -q 'id="exportsOverlay"' /tmp/live-repair-maintenance.html
+          curl --fail --silent --show-error --location "$LIVE_URL/repair-maintenance-app.js?v=20261124-1" -o /tmp/live-repair-maintenance-app.js
+          grep -q 'preset-list' /tmp/live-repair-maintenance-app.js
           curl --fail --silent --show-error --location "$LIVE_URL/yard-hub-settings.css?v=20261123-1" -o /tmp/live-yard-hub-settings.css
           grep -q '.yard-hub-tier-card' /tmp/live-yard-hub-settings.css
           grep -q 'YARD_HUB_SETTINGS_API' /tmp/live-site.html
