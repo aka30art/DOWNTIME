@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const html=readFileSync(new URL('../repair-maintenance.html',import.meta.url),'utf8');
+const app=readFileSync(new URL('../repair-maintenance-app.js',import.meta.url),'utf8');
+assert.doesNotMatch(html,/id="printReport"|id="exportReport"/,'old bottom PRINT and EXPORT REPORT controls are removed');
+assert.doesNotMatch(app,/\$\('printReport'\)|\$\('exportReport'\)|function exportReport\(/,'old dashboard report handlers are removed');
+assert.match(html,/id="openReports"/,'reports are available from the R&M header icon');
+assert.match(html,/id="generatePdfReport"/,'printing is accessed from the PDF report workflow');
+assert.match(app,/id="reportPrintButton"/,'generated report includes its own print control');
+assert.match(app,/getElementById\("reportPrintButton"\)\.addEventListener\("click",\(\)=>window\.print\(\)\)/,'printing is initiated explicitly from the generated report');
+assert.match(app,/\.report-toolbar\{display:none\}/,'report print control is hidden on the printed pages');
+assert.doesNotMatch(app,/addEventListener\('click',\(\)=>window\.print\(\)\)/,'the R&M page has no direct PRINT click handler');
+console.log('R&M PRINT consolidation regression: PASS');

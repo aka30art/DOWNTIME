@@ -40,8 +40,8 @@ assert.match(html,/\.machine-art img\{[^}]*object-fit:contain/,'selector icons p
 assert.match(html,/\.machineicon img\{[^}]*filter:brightness\(0\)/,'header icons remain visible on the yellow header panel');
 assert.doesNotMatch(html,/class="machine-art"><svg/,'selector cards no longer use the generic inline machinery drawings');
 
-for(const id of ['selectorView','dashboardView','faultRows','totalCount','highCount','mediumCount','lowCount','createOverlay','presetsOverlay','presetMachineTitle','presetItems','presetAddForm','newPresetName','addPresetSave','openPresets','newFaultOtherField','newFaultOther','detailsOverlay','detailStatus','detailPriority','photoInput','fileInput','notesList'])assert.ok(html.includes(`id="${id}"`),`missing HTML element ${id}`);
-for(const action of ['access','list','preset-list','preset-add','preset-delete','get','create','update','note-add','upload','delete'])assert.ok(api.includes(`action === "${action}"`),`missing API action ${action}`);
+for(const id of ['selectorView','dashboardView','faultRows','totalCount','highCount','mediumCount','lowCount','createOverlay','reportOverlay','reportMachineType','generatePdfReport','openReports','presetsOverlay','presetMachineTitle','presetItems','presetAddForm','newPresetName','addPresetSave','openPresets','newFaultOtherField','newFaultOther','detailsOverlay','detailStatus','detailPriority','photoInput','fileInput','notesList'])assert.ok(html.includes(`id="${id}"`),`missing HTML element ${id}`);
+for(const action of ['access','list','report-list','preset-list','preset-add','preset-delete','get','create','update','note-add','upload','delete'])assert.ok(api.includes(`action === "${action}"`),`missing API action ${action}`);
 for(const behaviour of ['create','update','note-add','upload','delete','createSignedUrl','remove('])assert.ok(api.includes(behaviour),`missing backend behaviour ${behaviour}`);
 for(const key of ['canAccessYardHub','canAccessRepairMaintenance','canEditRepairMaintenance','canDeleteRepairMaintenance','canExportRepairMaintenanceReports']){
   assert.ok(index.includes(key),`missing HUB UI permission ${key}`);
@@ -76,13 +76,15 @@ assert.ok(api.includes('.eq("machine_type", body.machineType)'),'backend checks 
 assert.ok(api.includes('.eq("is_other", false)'),'backend protects OTHER from deletion');
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-2'),'R&M app script cache is refreshed');
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-3'),'R&M app script cache is refreshed');
 assert.match(app,/status:'PERM\. FIX'/,'SOLVED marks fault as PERM. FIX');
-assert.match(app,/window\.open\(/,'report export opens a printable report window');
-assert.match(app,/window\.print\(/,'report export invokes the browser print-to-PDF workflow');
-assert.match(app,/Save as PDF/,'report export clearly supports saving as PDF');
-assert.ok(app.includes('Area / Part of Machinery'),'PDF report uses the new machinery part/area label');
-assert.match(app,/Type of Defect/,'PDF report includes the renamed defect type column');
+assert.match(app,/api\('report-list'/,'PDF reports retrieve the server-side report list');
+assert.match(app,/buildPdfDocument\(/,'PDF reports use a dedicated print document');
+assert.match(app,/SAVE AS PDF/,'PDF report clearly supports saving as PDF');
+assert.ok(app.includes('Area / Part of Machinery'),'PDF report uses the machinery part/area label');
+assert.match(app,/Type of Defect/,'PDF report includes the defect type column');
+assert.match(api,/canExportRepairMaintenanceReports !== true/,'report API enforces the existing export permission');
+assert.match(api,/\.range\(offset, offset \+ pageSize - 1\)/,'report API paginates report results');
 assert.match(launcher,/yard-hub:shown/,'launcher must respond to the existing HUB becoming visible');
 assert.match(index,/id="launchRepairMaintenanceBtn"/,'YARD HUB needs the R&M tile');
 assert.match(index,/repair-maintenance-launch\.js/,'YARD HUB must load the R&M launcher');

@@ -42,9 +42,11 @@
   }
   function orderedFaults(){
     const list=[...faults],mode=$('sortSelect').value;
-    if(mode==='priority')list.sort((a,b)=>PRIORITIES.indexOf(a.priority)-PRIORITIES.indexOf(b.priority)||new Date(b.created_at)-new Date(a.created_at));
-    else if(mode==='recent')list.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-    else list.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+    const timestamp=fault=>{const value=Date.parse(fault.created_at||'');return Number.isFinite(value)?value:0};
+    const newestFirst=(a,b)=>timestamp(b)-timestamp(a);
+    if(mode==='priority')list.sort((a,b)=>PRIORITIES.indexOf(a.priority)-PRIORITIES.indexOf(b.priority)||newestFirst(a,b));
+    else if(mode==='newest')list.sort(newestFirst);
+    else if(mode==='oldest')list.sort((a,b)=>timestamp(a)-timestamp(b));
     return list;
   }
   function renderRows(){
@@ -100,7 +102,7 @@
     if(!description)return;
     const button=$('createFaultSave');button.disabled=true;button.textContent='SAVING…';
     try{
-      const result=await api('create',{machineType:currentMachine.key,presetId:preset.id,otherArea,description,priority:$('newFaultPriority').value,status:$('newFaultStatus').value});
+      const result=await api('create',{machineType:currentMachine.key,presetId:preset.id,otherArea,description,priority:$('newFaultPriority').value});
       const photo=$('newFaultPhoto').files?.[0];
       if(photo){try{await uploadFile(result.fault.id,photo,'PHOTO')}catch(error){say(`Fault saved, but photo upload failed: ${error.message}`,'dashboardStatus','error')}}
       $('createForm').reset();renderPresetSelect();closeOverlay('createOverlay');await loadMachine(currentMachine.key);say('Fault / defect created successfully.','dashboardStatus','ok');
@@ -162,11 +164,43 @@
   async function saveNote(){const note=$('noteText').value.trim();if(!currentFault||!note)return;const button=$('saveNote');button.disabled=true;try{await api('note-add',{faultId:currentFault.id,note});$('noteText').value='';$('noteComposer').classList.remove('open');await refreshDetails()}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false}}
   async function doUpload(file,kind){if(!currentFault||!file)return;const button=kind==='PHOTO'?$('addPhoto'):$('attachFile');button.disabled=true;try{await uploadFile(currentFault.id,file,kind);await refreshDetails();say(`${kind==='PHOTO'?'Photo':'File'} attached successfully.`,'dashboardStatus','ok')}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false;$('photoInput').value='';$('fileInput').value=''}}
   async function deleteFault(){if(!currentFault||busy)return;if(!window.confirm(`Mark “${currentFault.fault_name}” as PERM. FIX? This will keep its record, notes, and attachments.`))return;const button=$('deleteFault');button.disabled=true;button.textContent='SAVING…';try{await api('update',{faultId:currentFault.id,status:'PERM. FIX',priority:currentFault.priority});closeOverlay('detailsOverlay');await loadMachine(currentMachine.key);say('Fault / defect marked PERM. FIX.','dashboardStatus','ok')}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false;button.textContent='✓ SOLVED'}}
-  function exportReport(){if(access.canExportRepairMaintenanceReports!==true){say('Report export is not permitted for this account.','dashboardStatus','error');return}const date=new Date().toLocaleDateString('en-GB');const rows=orderedFaults().map((f,i)=>`<tr><td>${i+1}</td><td>${safe(f.fault_name)}</td><td>${safe(f.description)}</td><td>${safe(f.priority)}</td><td>${safe(f.status)}</td><td>${safe(new Date(f.created_at).toLocaleString('en-GB'))}</td></tr>`).join('');const win=window.open('','_blank');if(!win){say('Allow pop-ups to export this report as PDF.','dashboardStatus','error');return}win.document.write(`<!doctype html><html><head><title>R&M ${safe(currentMachine.label)} Report</title><meta name=viewport content=width=device-width,initial-scale=1><style>body{font:14px Arial,sans-serif;color:#111;padding:28px}h1{margin:0}h2{margin:8px 0 22px;color:#333}small{color:#555}table{border-collapse:collapse;width:100%;margin-top:20px}th,td{border:1px solid #777;padding:9px;text-align:left;vertical-align:top}th{background:#eee}footer{margin-top:20px;color:#555}@media print{body{padding:0}}</style></head><body><h1>R&M — REPAIRS & MAINTENANCE</h1><h2>${safe(currentMachine.label)} — FAULT REGISTER</h2><small>Report generated: ${safe(date)} · ${faults.length} fault record(s)</small><table><thead><tr><th>No.</th><th>Area / Part of Machinery</th><th>Type of Defect</th><th>Priority</th><th>Status</th><th>Created</th></tr></thead><tbody>${rows||'<tr><td colspan=6>No faults currently recorded.</td></tr>'}</tbody></table><footer>YARD HUB · R&M</footer><script>window.onload=()=>window.print();</script></body></html>`);win.document.close();say('PDF report opened. Use Print → Save as PDF.','dashboardStatus','ok')}
+  function openReports(){
+    if(access?.canExportRepairMaintenanceReports!==true){say('R&M PDF reports are not available for this account.','dashboardStatus','error');return}
+    $('reportMachineType').value='';showOverlay('reportOverlay');
+  }
+  function reportDate(value){const date=new Date(value);return Number.isNaN(date.getTime())?'—':date.toLocaleString('en-GB')}
+  function buildPdfDocument(records,filterKey){
+    const selected=filterKey?machine(filterKey):null;
+    const groups=(selected?[selected]:MACHINES).map(item=>({machine:item,records:records.filter(record=>record.machine_type===item.key)}));
+    const total=records.length,count=priority=>records.filter(record=>record.priority===priority).length,generated=new Date().toLocaleString('en-GB');
+    const sections=groups.map(group=>{
+      const rows=group.records.map((fault,index)=>'<tr><td>'+String(index+1).padStart(2,'0')+'</td><td>'+safe(fault.fault_name)+'</td><td>'+safe(fault.description)+'</td><td><span class="priority '+safe(String(fault.priority||'').toLowerCase())+'">'+safe(fault.priority)+'</span></td><td>'+safe(fault.status)+'</td><td>'+safe(reportDate(fault.created_at))+'</td></tr>').join('');
+      return '<section class="machine-section"><h2>'+safe(group.machine.label)+'</h2><table><thead><tr><th>No.</th><th>Area / Part of Machinery</th><th>Type of Defect</th><th>Priority</th><th>Status</th><th>Recorded</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6">No faults or defects recorded.</td></tr>')+'</tbody></table></section>';
+    }).join('');
+    const scope=selected?selected.label:'ALL MACHINERY';
+    return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>R&M PDF REPORTS — '+safe(scope)+'</title><style>'+
+      '*{box-sizing:border-box}body{font:13px/1.45 Arial,Helvetica,sans-serif;color:#17212b;margin:0;padding:28px}header{border-bottom:4px solid #ffc400;padding:0 0 16px;margin-bottom:18px}h1{font-size:25px;margin:0;font-weight:900}header p{font-size:12px;letter-spacing:2px;font-weight:800;margin:5px 0 0;color:#526475}header h2{font-size:16px;margin:18px 0 4px}header small{color:#526475}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:18px 0 22px}.metric{border:1px solid #cbd4dc;padding:10px;border-radius:6px}.metric small{display:block;color:#526475;font-size:10px;font-weight:800;text-transform:uppercase}.metric strong{display:block;font-size:22px;margin-top:4px}.machine-section{margin:0 0 25px;break-inside:auto}.machine-section h2{font-size:17px;background:#edf2f5;border-left:5px solid #ffc400;padding:9px 11px;margin:0 0 8px;break-after:avoid}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #cbd4dc;padding:7px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#e3eaf0;font-size:10px;text-transform:uppercase;letter-spacing:.35px}td{font-size:11px}.priority{display:inline-block;font-weight:800;font-size:10px}.priority.high{color:#b4232d}.priority.medium{color:#926b00}.priority.low{color:#536475}.report-toolbar{display:flex;justify-content:flex-end;margin:0 0 16px}.report-toolbar button{border:0;border-radius:5px;background:#172d3b;color:#fff;font-size:11px;font-weight:800;letter-spacing:.5px;padding:10px 14px}footer{border-top:1px solid #cbd4dc;padding-top:10px;margin-top:20px;color:#526475;font-size:10px}@page{size:auto;margin:12mm}@media(max-width:650px){body{padding:14px}.summary{grid-template-columns:repeat(2,1fr)}th,td{padding:5px;font-size:9px}.report-toolbar button{width:100%}}@media print{body{padding:0}header{break-after:avoid}.report-toolbar{display:none}}'+
+      '</style></head><body><header><h1>R&M — REPAIRS &amp; MAINTENANCE</h1><p>MACHINERY DEFECT &amp; FAULT REGISTER</p><h2>'+safe(scope)+'</h2><small>Report generated: '+safe(generated)+' · Records: '+total+'</small></header><div class="report-toolbar"><button type="button" id="reportPrintButton">PRINT / SAVE AS PDF</button></div><div class="summary"><div class="metric"><small>Total faults</small><strong>'+total+'</strong></div><div class="metric"><small>High priority</small><strong>'+count('HIGH')+'</strong></div><div class="metric"><small>Medium priority</small><strong>'+count('MEDIUM')+'</strong></div><div class="metric"><small>Low priority</small><strong>'+count('LOW')+'</strong></div></div>'+sections+'<footer>YARD HUB · R&amp;M · INTERNAL MAINTENANCE REPORT</footer><script>document.getElementById("reportPrintButton").addEventListener("click",()=>window.print());</script></body></html>';
+  }
+  async function generatePdfReport(){
+    if(access?.canExportRepairMaintenanceReports!==true){say('R&M PDF reports are not available for this account.','dashboardStatus','error');return}
+    const button=$('generatePdfReport'),filterKey=$('reportMachineType').value||null,win=window.open('','_blank');
+    if(!win){say('Allow pop-ups to generate the R&M PDF report.','dashboardStatus','error');return}
+    win.document.open();win.document.write('<!doctype html><html><head><title>Preparing R&M PDF report</title></head><body style="font:16px Arial;padding:32px;color:#17212b">Preparing R&amp;M report…</body></html>');win.document.close();
+    button.disabled=true;button.textContent='PREPARING REPORT…';
+    try{
+      const result=await api('report-list',filterKey?{machineType:filterKey}:{}),records=Array.isArray(result.faults)?result.faults:[];
+      win.document.open();win.document.write(buildPdfDocument(records,filterKey));win.document.close();
+      closeOverlay('reportOverlay');say('R&M PDF report prepared · '+records.length+' record(s). Use PRINT / SAVE AS PDF in the report tab.','dashboardStatus','ok');
+    }catch(error){
+      if(!win.closed){win.document.open();win.document.write('<!doctype html><html><head><title>R&amp;M report unavailable</title></head><body style="font:16px Arial;padding:32px;color:#17212b"><h1>R&amp;M report unavailable</h1><p>'+safe(error.message)+'</p><p>Close this tab and try again.</p></body></html>');win.document.close()}
+      say(error.message,'dashboardStatus','error');
+    }finally{button.disabled=false;button.textContent='GENERATE PDF REPORT'}
+  }
   function applyPermissions(){
     const edit=access.canEditRepairMaintenance===true,del=access.canDeleteRepairMaintenance===true,exp=access.canExportRepairMaintenanceReports===true;
     ['openCreateFault','updateFault','toggleNoteComposer','detailAddNote','attachFile','addPhoto'].forEach(id=>{const e=$(id);if(e)e.disabled=!edit});
-    $('deleteFault').hidden=!del;$('exportReport').hidden=!exp;
+    $('deleteFault').hidden=!del;$('openReports').hidden=!exp;
     $('openPresets').hidden=access.canManageRepairMaintenancePresets!==true;
   }
   async function init(){
@@ -190,7 +224,8 @@
     $('toggleNoteComposer').addEventListener('click',startNote);$('detailAddNote')?.addEventListener('click',startNote);$('saveNote').addEventListener('click',saveNote);$('cancelNote').addEventListener('click',()=>$('noteComposer').classList.remove('open'));
     $('addPhoto').addEventListener('click',()=>$('photoInput').click());$('photoInput').addEventListener('change',e=>doUpload(e.target.files?.[0],'PHOTO'));
     $('attachFile')?.addEventListener('click',()=>$('fileInput').click());$('fileInput').addEventListener('change',e=>doUpload(e.target.files?.[0],'FILE'));
-    $('deleteFault').addEventListener('click',deleteFault);$('exportReport').addEventListener('click',exportReport);$('printReport').addEventListener('click',()=>window.print());
+    $('deleteFault').addEventListener('click',deleteFault);
+    $('openReports').addEventListener('click',openReports);$('generatePdfReport').addEventListener('click',generatePdfReport);
     document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>closeOverlay(button.dataset.close)));
     document.querySelectorAll('.overlay').forEach(overlay=>overlay.addEventListener('click',e=>{if(e.target===overlay)closeOverlay(overlay.id)}));
     init();
