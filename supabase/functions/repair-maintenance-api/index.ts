@@ -268,7 +268,7 @@ Deno.serve(async (req: Request) => {
       if (typeof body.modelDropdownEnabled !== "boolean" && typeof body.assetSelectorEnabled !== "boolean" && typeof body.registrationEnabled !== "boolean") return json(fail("Choose a MAKE / MODEL, registration, or registered-machine menu setting."), 400);
       const { data, error } = await db.from("repair_maintenance_machine_settings").update(updates)
         .eq("machine_type", body.machineType)
-        .select("machine_type,model_dropdown_enabled,asset_selector_enabled,updated_at").maybeSingle();
+        .select("machine_type,model_dropdown_enabled,asset_selector_enabled,registration_enabled,updated_at").maybeSingle();
       if (error) return json({ error: "Unable to save the R&M category settings." }, 503);
       if (!data) return json({ error: "R&M category settings were not found. Apply the R&M machine selector migration and retry." }, 404);
       await audit("rm-machine-settings-update", { machineType: data.machine_type, modelDropdownEnabled: data.model_dropdown_enabled, assetSelectorEnabled: data.asset_selector_enabled, registrationEnabled: data.registration_enabled });
