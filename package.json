@@ -11,8 +11,9 @@
     "test:stage4-visual": "node tests/ui-stage4-weekly-analytics.mjs",
     "test:staff-images": "node tests/staff-image-library-contract.mjs",
     "test:staff-originals": "node tests/staff-originals-upload-contract.mjs",
-    "test:rm": "node tests/repair-maintenance-contract.mjs && node tests/rm-sort-contract.mjs && node tests/rm-create-status-contract.mjs && node tests/rm-fault-update-contract.mjs && node tests/rm-pdf-reports-contract.mjs && node tests/rm-print-control-contract.mjs && node tests/rm-pdf-archive-contract.mjs && node tests/rm-machinery-registry-contract.mjs",
-    "test:yard-hub-settings": "node tests/yard-hub-settings-contract.mjs"
+    "test:rm": "node tests/repair-maintenance-contract.mjs && node tests/rm-sort-contract.mjs && node tests/rm-create-status-contract.mjs && node tests/rm-fault-update-contract.mjs && node tests/rm-pdf-reports-contract.mjs && node tests/rm-print-control-contract.mjs && node tests/rm-pdf-archive-contract.mjs && node tests/rm-machinery-registry-contract.mjs && node tests/rm-model-catalogue-machine-register-contract.mjs",
+    "test:yard-hub-settings": "node tests/yard-hub-settings-contract.mjs",
+    "test:rm-model-catalogue": "node tests/rm-model-catalogue-machine-register-contract.mjs"
   },
   "devDependencies": {
     "playwright": "1.56.1"

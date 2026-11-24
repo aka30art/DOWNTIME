@@ -277,49 +277,39 @@ Deno.serve(async (req: Request) => {
     if (action === "model-list") {
       if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have READ access to R&M settings." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
-      // Keep the principal plant makes available as individual model options.
-      const defaultModel = body.machineType === "KIVERCO_PICKING_LINE" ? "KIVERCO" :
-        body.machineType === "TANNA_SHREDDER" ? "TANNA" : null;
-      if (defaultModel) {
-        const { data: existing, error: lookupError } = await db.from("repair_maintenance_machine_models")
-          .select("id").eq("machine_type", body.machineType).ilike("name", defaultModel).limit(1);
-        if (lookupError) return json({ error: "Unable to verify the default machinery model." }, 503);
-        if (!existing?.length) {
-          const { error: insertError } = await db.from("repair_maintenance_machine_models").insert({
-            machine_type: body.machineType, name: defaultModel, created_by: actor,
-          });
-          if (insertError && insertError.code !== "23505") return json({ error: "Unable to create the default machinery model." }, 503);
-        }
-      }
-      const { data, error } = await db.from("repair_maintenance_machine_models")
-        .select("id,machine_type,name,created_at")
-        .eq("machine_type", body.machineType).order("name", { ascending: true });
-      if (error) return json({ error: "Unable to load the R&M model catalogue." }, 503);
-      return json({ models: data || [] });
+      const { data, error } = await db.from("repair_maintenance_assets")
+        .select("id,machine_type,name,asset_code,make_model,status,created_at,updated_at")
+        .eq("machine_type", body.machineType).eq("status", "ACTIVE").order("name", { ascending: true });
+      if (error) return json({ error: "Unable to load the R&M registered-machine catalogue." }, 503);
+      return json({ models: (data || []).map(asset => ({ ...asset, model: asset.make_model || asset.name })) });
     }
 
     if (action === "model-add") {
-      if (permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have permission to manage R&M settings." }, 403);
-      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
-      const name = cleanText(body.name, "Machinery model", 120);
-      const { data, error } = await db.from("repair_maintenance_machine_models").insert({
-        machine_type: body.machineType, name, created_by: actor,
-      }).select("id,machine_type,name,created_at").single();
-      if (error?.code === "23505") return json({ error: "That model already exists for this machinery category." }, 409);
-      if (error || !data) return json({ error: "Unable to add the machinery model." }, 503);
-      await audit("rm-machine-model-add", { modelId: data.id, machineType: data.machine_type, name: data.name });
-      return json({ model: data }, 201);
+      if (permissions.canAddRepairMaintenanceMachinery !== true) return json({ error: "You do not have INPUT access to add R&M Machinery." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
+      const name = cleanText(body.name, "Registered machine / model", 120);
+      const { data: existing, error: lookupError } = await db.from("repair_maintenance_assets")
+        .select("id").eq("machine_type", body.machineType).eq("status", "ACTIVE").ilike("name", name).limit(1);
+      if (lookupError) return json({ error: "Unable to check the registered-machine catalogue." }, 503);
+      if (existing?.length) return json({ error: "That registered machine already exists in this category." }, 409);
+      const { data, error } = await db.from("repair_maintenance_assets").insert({
+        machine_type: body.machineType, name, make_model: name, status: "ACTIVE", created_by: actor, updated_by: actor,
+      }).select("id,machine_type,name,asset_code,make_model,status,created_at,updated_at").single();
+      if (error?.code === "23505") return json({ error: "That registered machine already exists in this category." }, 409);
+      if (error || !data) return json({ error: "Unable to add the registered machine." }, 503);
+      await audit("rm-registered-machine-add", { assetId: data.id, machineType: data.machine_type, name: data.name });
+      return json({ model: { ...data, model: data.make_model || data.name }, asset: data }, 201);
     }
 
     if (action === "model-delete") {
-      if (permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have permission to manage R&M settings." }, 403);
-      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
-      const modelId = cleanText(body.modelId, "Model ID", 64);
-      const { data, error } = await db.from("repair_maintenance_machine_models").delete()
-        .eq("id", modelId).eq("machine_type", body.machineType).select("id,name").maybeSingle();
-      if (error) return json({ error: "Unable to remove the machinery model." }, 503);
-      if (!data) return json({ error: "Model not found in this machinery category." }, 404);
-      await audit("rm-machine-model-delete", { modelId: data.id, machineType: body.machineType, name: data.name });
+      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
+      const modelId = cleanText(body.modelId, "Registered machine ID", 64);
+      const { data, error } = await db.from("repair_maintenance_assets").update({ status: "ARCHIVED", updated_by: actor, updated_at: new Date().toISOString() })
+        .eq("id", modelId).eq("machine_type", body.machineType).eq("status", "ACTIVE").select("id,name").maybeSingle();
+      if (error) return json({ error: "Unable to archive the registered machine." }, 503);
+      if (!data) return json({ error: "Registered machine not found in this category." }, 404);
+      await audit("rm-registered-machine-archive", { assetId: data.id, machineType: body.machineType, name: data.name });
       return json({ ok: true });
     }
 

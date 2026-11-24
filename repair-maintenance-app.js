@@ -144,7 +144,7 @@
     const canAdd=access?.canAddRepairMaintenanceMachinery===true||canManage;
     section.hidden=!canRead&&access?.canManageRepairMaintenancePresets!==true;
     const add=$('settingsAddMachineryButton');
-    if(add)add.hidden=!canAdd;
+    if(add)add.hidden=true;
   }
   function updateModelDropdownSaveState(){
     const save=$('saveModelDropdownSettings');
@@ -210,53 +210,18 @@
   function renderMachineModelManager(){
     const host=$('machineModelItems');if(!host)return;host.replaceChildren();
     const canRead=access?.canReadRepairMaintenanceMachinery===true;
-    const canManageModels=access?.canManageRepairMaintenancePresets===true;
-    const canManageAssets=access?.canManageRepairMaintenanceMachinery===true;
-    const modelForm=$('modelAddForm');if(modelForm)modelForm.hidden=!canManageModels;
-    const renderedAssets=new Set();
-    const addAssetRow=(asset,parent)=>{
-      renderedAssets.add(asset.id);
+    const canManage=access?.canManageRepairMaintenanceMachinery===true;
+    const canAdd=access?.canAddRepairMaintenanceMachinery===true||canManage;
+    const form=$('modelAddForm');if(form)form.hidden=!canAdd;
+    if(canRead)settingsAssets.filter(asset=>asset.status==='ACTIVE').forEach(asset=>{
       const row=document.createElement('div');row.className='rms-unified-asset-row';
       const copy=document.createElement('div');copy.className='rms-unified-asset-copy';
       const name=document.createElement('strong');name.textContent=asset.name||'UNNAMED MACHINE';copy.appendChild(name);
-      const meta=document.createElement('small');meta.textContent=[asset.asset_code,asset.make_model,asset.status==='ARCHIVED'?'ARCHIVED':'ACTIVE'].filter(Boolean).join(' · ')||'REGISTERED MACHINE';copy.appendChild(meta);
-      row.appendChild(copy);
-      if(canManageAssets){const edit=document.createElement('button');edit.type='button';edit.className='btn compact';edit.textContent='EDIT';edit.addEventListener('click',()=>openAssetEditor(asset));row.appendChild(edit)}
-      parent.appendChild(row);
-    };
-    if(canRead){
-      machineModels.forEach(model=>{
-        const group=document.createElement('section');group.className='rms-unified-model-group';
-        const head=document.createElement('div');head.className='rms-unified-model-head';
-        const title=document.createElement('div');title.className='rms-unified-model-title';
-        const name=document.createElement('strong');name.textContent=model.name;title.appendChild(name);
-        const type=document.createElement('small');type.textContent='MODEL OPTION';title.appendChild(type);head.appendChild(title);
-        if(canManageModels){const remove=document.createElement('button');remove.type='button';remove.className='btn danger compact';remove.textContent='REMOVE MODEL';remove.addEventListener('click',()=>removeMachineModel(model));head.appendChild(remove)}
-        group.appendChild(head);
-        const key=model.name.trim().toLocaleLowerCase();
-        const related=settingsAssets.filter(asset=>{
-          const identities=[asset.make_model,asset.name].map(value=>String(value||'').trim().toLocaleLowerCase()).filter(Boolean);
-          return !renderedAssets.has(asset.id)&&identities.some(identity=>identity===key||identity.startsWith(key+' ')||identity.startsWith(key+' —')||identity.startsWith(key+' -'));
-        });
-        if(related.length)related.forEach(asset=>addAssetRow(asset,group));
-        else{const empty=document.createElement('p');empty.className='rms-unified-model-empty';empty.textContent='No registered machines under this model yet.';group.appendChild(empty)}
-        host.appendChild(group);
-      });
-      const remaining=settingsAssets.filter(asset=>!renderedAssets.has(asset.id));
-      if(remaining.length){
-        const group=document.createElement('section');group.className='rms-unified-model-group';
-        const head=document.createElement('div');head.className='rms-unified-model-head';
-        const title=document.createElement('div');title.className='rms-unified-model-title';
-        const name=document.createElement('strong');name.textContent='CUSTOM / UNMATCHED MACHINERY';title.appendChild(name);
-        const type=document.createElement('small');type.textContent='REGISTERED MACHINES';title.appendChild(type);head.appendChild(title);group.appendChild(head);
-        remaining.forEach(asset=>addAssetRow(asset,group));host.appendChild(group);
-      }
-    }
-    if(!host.children.length){
-      const empty=document.createElement('p');empty.className='empty';
-      empty.textContent=machineModels.length?'No registered machinery is available in this category.':'No models or registered machinery have been added for this category yet.';
-      host.appendChild(empty);
-    }
+      const meta=document.createElement('small');meta.textContent=[asset.asset_code,asset.make_model].filter(Boolean).join(' · ')||'REGISTERED MACHINE';copy.appendChild(meta);row.appendChild(copy);
+      if(canManage){const edit=document.createElement('button');edit.type='button';edit.className='btn compact';edit.textContent='EDIT';edit.addEventListener('click',()=>openAssetEditor(asset));row.appendChild(edit)}
+      host.appendChild(row);
+    });
+    if(!host.children.length){const empty=document.createElement('p');empty.className='empty';empty.textContent='No registered machines have been added for this category yet.';host.appendChild(empty)}
   }
   function renderAssetModelField(value=''){
     const manualField=$('assetMakeModelManualField'),selectField=$('assetMakeModelSelectField');
@@ -294,17 +259,17 @@
     clearStatus('machineSettingsModalStatus');
   }
   async function addMachineModel(event){
-    event.preventDefault();if(!currentMachine||access?.canManageRepairMaintenancePresets!==true)return;
+    event.preventDefault();if(!currentMachine||access?.canAddRepairMaintenanceMachinery!==true)return;
     const name=$('newModelName').value.trim();if(!name)return;
     const button=$('addModelSave');button.disabled=true;button.textContent='SAVING…';
-    try{await api('model-add',{machineType:currentMachine.key,name});$('newModelName').value='';await refreshMachineConfiguration();say('Machinery model added to this category.',machineSettingsStatusTarget(),'ok')}
+    try{const result=await api('model-add',{machineType:currentMachine.key,name});$('newModelName').value='';await refreshMachineConfiguration();await syncDashboardAssetsAfterSettings(result.asset?.id||'');say('Registered machine added to this category and is immediately selectable.',machineSettingsStatusTarget(),'ok')}
     catch(error){say(error.message,machineSettingsStatusTarget(),'error')}
-    finally{button.disabled=false;button.textContent='ADD MODEL'}
+    finally{button.disabled=false;button.textContent='ADD MACHINE'}
   }
   async function removeMachineModel(model){
     if(!currentMachine||!model)return;
-    if(!window.confirm('Remove “'+model.name+'” from '+currentMachine.label+'? Existing machine records will retain their saved make / model values.'))return;
-    try{await api('model-delete',{machineType:currentMachine.key,modelId:model.id});await refreshMachineConfiguration();say('Model removed from this category. Existing machinery records were not changed.',machineSettingsStatusTarget(),'ok')}
+    if(!window.confirm('Archive “'+model.name+'” from '+currentMachine.label+'? Its fault history will be preserved.'))return;
+    try{await api('model-delete',{machineType:currentMachine.key,modelId:model.id});await refreshMachineConfiguration();say('Registered machine archived. Its fault history and historical records were preserved.',machineSettingsStatusTarget(),'ok')}
     catch(error){say(error.message,machineSettingsStatusTarget(),'error')}
   }
   function setRegisterMessage(message){
@@ -326,7 +291,7 @@
     select.value=[...select.options].some(option=>option.value===previous)?previous:'';
   }
   async function syncDashboardAssetsAfterSettings(preferredId=''){
-    if(!currentMachine||!assetEditorDashboardVisible)return;
+    if(!currentMachine)return;
     const result=await api('asset-list',{machineType:currentMachine.key});
     assets=Array.isArray(result.assets)?result.assets:[];
     unassignedCount=Number(result.unassignedCount)||0;

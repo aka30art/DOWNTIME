@@ -78,7 +78,7 @@ assert.ok(api.includes('.eq("machine_type", body.machineType)'),'backend checks 
 assert.ok(api.includes('.eq("is_other", false)'),'backend protects OTHER from deletion');
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-14'),'R&M app script cache is refreshed');
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-16'),'R&M app script cache is refreshed');
 assert.match(app,/function updateAssetSelectorVisibility\(\)[\s\S]*host\.hidden=access\?\.canReadRepairMaintenanceMachinery!==true\|\|machineSettings\.asset_selector_enabled!==true/,'R&M registered-machine selector follows its saved per-category setting');
 assert.match(app,/machineSettings\.model_dropdown_enabled!==true/,'MAKE / MODEL catalogue visibility remains separately configured');
 assert.match(app,/function saveAssetSelectorSetting\(\)/,'registered-machine visibility has an independent save action');
@@ -89,7 +89,9 @@ assert.ok(html.includes('id="saveModelDropdownSettings"'),'model dropdown config
 assert.ok(html.includes('MACHINERY &amp; MODEL REGISTER'));
 assert.ok(html.includes('id="machineModelItems"')&&html.includes('id="modelAddForm"'));
 assert.match(app,/function renderMachineModelManager\(\)[\s\S]*openAssetEditor\(asset\)/,'registered machines can be edited directly from the unified list');
-assert.match(api,/defaultModel = body\.machineType === "KIVERCO_PICKING_LINE" \? "KIVERCO"[\s\S]*\? "TANNA"/,'KIVERCO and TANNA are seeded as individual model options');
+assert.match(api,/action === "model-list"[\s\S]*from\("repair_maintenance_assets"\)/,'the unified catalogue reads registered machines from the asset registry');
+assert.match(api,/action === "model-add"[\s\S]*canAddRepairMaintenanceMachinery !== true/,'adding a catalogue entry follows machinery INPUT permissions');
+assert.doesNotMatch(api,/from\("repair_maintenance_machine_models"\)/,'current catalogue API no longer reads or writes the retired model table');
 assert.ok(html.includes('Its model is shown in the Machinery &amp; Model Register.'));
 assert.ok(html.includes('id="settingsAddMachineryButton"')&&html.includes('id="machineModelItems"'),'the unified machinery/model register and add action are present');
 assert.doesNotMatch(html,/id="addMachineryButton"|id="editMachineryButton"|id="openPresets"/,'dashboard no longer contains machinery management buttons');
