@@ -89,6 +89,13 @@ assert.match(api,/asset_selector_enabled/);
 assert.match(selectorMigration,/add column if not exists asset_selector_enabled boolean not null default true/);
 assert.match(selectorMigration,/set asset_selector_enabled = model_dropdown_enabled/);
 assert.ok(html.includes('id="machineModelItems"'));
+assert.ok(html.includes('<div class="section-title">R&amp;M OPERATIONS</div>'),'fault register selector is explicitly named R&M OPERATIONS');
+assert.ok(html.includes('<div class="section-title">R&amp;M CONFIGURATION</div>'),'settings selector is explicitly named R&M CONFIGURATION');
+assert.ok(html.includes('MANAGE REGISTERED MACHINES, MODELS AND CATEGORY SETTINGS'),'configuration subtitle explains its administrative purpose');
+assert.ok(html.includes('aria-label="Open R&M configuration" title="R&M CONFIGURATION"'),'gear shortcut uses the configuration name');
+assert.ok(html.includes('← OPERATIONS</button>'),'configuration back navigation returns to operations');
+assert.equal((html.match(/MANAGE MACHINES →/g)||[]).length,6,'all six category cards use the same configuration action label');
+assert.doesNotMatch(html,/RMS\s*[·•]/,'RMS acronym is removed from user-facing navigation');
 assert.doesNotMatch(html,/id="settingsAssetSelect"|id="settingsEditMachineryButton"/);
 assert.ok(html.includes('id="settingsAddMachineryButton"'));
 
