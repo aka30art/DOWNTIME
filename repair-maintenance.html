@@ -110,6 +110,14 @@
  .modal-mode-banner{margin:9px 0 5px}
 }
 
+.machine-nav-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.machine-config-action{border-color:var(--yellow);color:var(--yellow)}
+.workspace-config-button{border-color:#c6972a;color:#ffd36a}
+@media(max-width:620px){
+ .machine-nav-actions{grid-column:1/-1;justify-self:start;display:flex;flex-wrap:wrap;justify-content:flex-start;gap:7px;margin:0 0 7px 8px}
+ .machine-nav-actions .machine-back{grid-column:auto;justify-self:auto;margin:0;padding:7px 9px}
+ .workspace-config-button{align-self:flex-start}
+}
 </style>
 <link rel="stylesheet" href="shared-ui-system.css?v=20261124-2">
 </head>
@@ -117,7 +125,7 @@
 <div class="app" id="appRoot"><div class="frame">
 <header class="hero">
   <div class="hero-top"><div><div class="downtime-mark">DOWNTIME<sup>®</sup></div><div class="mark-rule"></div></div>
-  <div class="hero-actions"><div class="session-label">HUB AUTHENTICATED AS<strong id="sessionUser">—</strong></div><button class="icon-button report-icon" id="openReports" type="button" aria-label="Open PDF EXPORTS" title="PDF EXPORTS">▤</button><button class="icon-button settings-shortcut" id="openRmsSettingsShortcut" type="button" aria-label="Open R&M configuration" title="R&M CONFIGURATION" hidden>⚙</button><a class="icon-button" id="backToHub" href="index.html" aria-label="Return to YARD HUB" title="Return to YARD HUB">⌂</a></div></div>
+  <div class="hero-actions"><div class="session-label">HUB AUTHENTICATED AS<strong id="sessionUser">—</strong></div><button class="icon-button report-icon" id="openReports" type="button" aria-label="Open PDF EXPORTS" title="PDF EXPORTS">▤</button><a class="icon-button" id="backToHub" href="index.html" aria-label="Return to YARD HUB" title="Return to YARD HUB">⌂</a></div></div>
   <div class="hero-word"><span class="slash">/</span><span class="r">R</span><span>&amp;</span><span class="m">M</span></div>
   <p class="hero-tag">REPAIRS &amp; MAINTENANCE</p>
 </header>
@@ -126,7 +134,7 @@
   <div class="rm-mode-banner operations-banner" role="status"><span class="rm-mode-icon" aria-hidden="true">▤</span><span><strong>OPERATIONS WORKSPACE</strong><small>FAULT REGISTER · LIVE MACHINERY · REPAIRS</small></span><span class="rm-mode-tag">WORKING AREA</span></div>
   <div class="section-head">
     <div><div class="section-title">R&amp;M OPERATIONS</div><div class="section-note">SELECT A MACHINE TO VIEW FAULTS / DEFECTS</div></div>
-
+    <button class="machine-back workspace-config-button" id="openSettingsWorkspace" type="button" hidden>CONFIGURATION →</button>
   </div>
   <div class="machine-grid" id="machineGrid">
     <button class="machine-card" data-machine="KIVERCO_PICKING_LINE"><span class="machine-art"><img src="assets/rm-icons/kiverco.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>KIVERCO — PICKING LINE</strong><small>CONVEYORS &amp; SORTING SYSTEM</small><span class="machine-open">OPEN MACHINE →</span></span></button>
@@ -155,7 +163,7 @@
   <div class="statusbar" id="settingsStatus" role="status" aria-live="polite"></div>
 </section>
 <section id="dashboardView" class="view" hidden>
-  <div class="machinebar"><div class="machineicon" aria-hidden="true"><img id="machineIcon" src="assets/rm-icons/kiverco.svg" alt="" decoding="async"></div><div class="machine-header-copy"><span class="machinelabel" id="machineCategoryLabel">MACHINE TYPE</span><strong id="machineTitle">—</strong><div class="machine-asset-controls" id="machineAssetControls" hidden><label for="machineAssetSelect">REGISTERED MACHINE · FAULT REGISTER</label><select id="machineAssetSelect"><option value="">SELECT REGISTERED MACHINE</option></select><small class="form-help">This selects an existing machine record. Its model is shown in the Machinery &amp; Model Register.</small></div></div><button class="machine-back" id="backToMachinery" type="button">← MACHINERY</button></div>
+  <div class="machinebar"><div class="machineicon" aria-hidden="true"><img id="machineIcon" src="assets/rm-icons/kiverco.svg" alt="" decoding="async"></div><div class="machine-header-copy"><span class="machinelabel" id="machineCategoryLabel">MACHINE TYPE</span><strong id="machineTitle">—</strong><div class="machine-asset-controls" id="machineAssetControls" hidden><label for="machineAssetSelect">REGISTERED MACHINE · FAULT REGISTER</label><select id="machineAssetSelect"><option value="">SELECT REGISTERED MACHINE</option></select><small class="form-help">This selects an existing machine record. Its model is shown in the Machinery &amp; Model Register.</small></div></div><div class="machine-nav-actions"><button class="machine-back" id="backToMachinery" type="button">← MACHINERY</button><button class="machine-back machine-config-action" id="openRmsSettingsShortcut" type="button" aria-label="Open current machinery configuration" title="Configure selected machinery" hidden>CONFIGURATION</button></div></div>
   <div class="stats"><div class="stat"><span class="staticon">🔧</span><div><div class="statlabel">TOTAL FAULTS</div><div class="statnum" id="totalCount">0</div></div></div><div class="stat"><span class="staticon">⚠</span><div><div class="statlabel">HIGH</div><div class="statnum" id="highCount">0</div></div></div><div class="stat"><span class="staticon">⚠</span><div><div class="statlabel">MEDIUM</div><div class="statnum" id="mediumCount">0</div></div></div><div class="stat"><span class="staticon">ⓘ</span><div><div class="statlabel">LOW</div><div class="statnum" id="lowCount">0</div></div></div></div>
   <section class="faultpanel"><div class="panelhead"><div class="paneltitle"><span class="panel-slash"></span>FAULTS / DEFECTS</div><label class="sort">SORT: <select id="sortSelect"><option value="priority">PRIORITY</option><option value="newest">NEWEST</option><option value="oldest">OLDEST</option></select></label></div>
     <div class="fault-table-head"><div>#</div><div>FAULT / DEFECT</div><div>DESCRIPTION</div><div>PRIORITY</div></div><div id="faultRows" class="fault-rows"><div class="empty">Loading fault records…</div></div>
@@ -299,5 +307,5 @@
 
 <script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';window.REPAIR_MAINTENANCE_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/repair-maintenance-api';</script>
 <script src="central-bank-client.js"></script>
-<script src="repair-maintenance-app.js?v=20261124-19"></script>
+<script src="repair-maintenance-app.js?v=20261124-20"></script>
 </body></html>

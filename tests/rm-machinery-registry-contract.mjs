@@ -73,7 +73,7 @@ assert.match(api,/buildRepairMaintenancePdf\(faults, filter, generatedAt, select
 assert.match(migration,/repair_maintenance_pdf_exports/);
 assert.ok(archiveMigration.includes('repair_maintenance_pdf_exports'));
 
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-19'));
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-20'));
 assert.ok(html.includes('id="modelDropdownEnabled"'));
 assert.ok(html.includes('id="assetSelectorEnabled"'));
 assert.match(app,/function updateAssetSelectorVisibility\(\)/,'registered-machine selector has a dedicated visibility function');
@@ -92,7 +92,11 @@ assert.ok(html.includes('id="machineModelItems"'));
 assert.ok(html.includes('<div class="section-title">R&amp;M OPERATIONS</div>'),'fault register selector is explicitly named R&M OPERATIONS');
 assert.ok(html.includes('<div class="section-title">R&amp;M CONFIGURATION</div>'),'settings selector is explicitly named R&M CONFIGURATION');
 assert.ok(html.includes('MANAGE REGISTERED MACHINES, MODELS AND CATEGORY SETTINGS'),'configuration subtitle explains its administrative purpose');
-assert.ok(html.includes('aria-label="Open R&M configuration" title="R&M CONFIGURATION"'),'gear shortcut uses the configuration name');
+assert.match(html,/<div class="machine-nav-actions">[\s\S]*?id="backToMachinery"[^>]*>← MACHINERY[\s\S]*?id="openRmsSettingsShortcut"[^>]*>CONFIGURATION/,'machine configuration shortcut is beside Machinery navigation');
+assert.ok(html.includes('id="openSettingsWorkspace"'),'Operations offers a Configuration workspace switch');
+const heroMarkup = html.match(/<header class="hero">[\s\S]*?<\/header>/)?.[0] || '';
+assert.ok(heroMarkup,'R&M hero header exists');
+assert.doesNotMatch(heroMarkup,/openRmsSettingsShortcut/,'machine configuration action is removed from hero navigation');
 assert.ok(html.includes('← OPERATIONS</button>'),'configuration back navigation returns to operations');
 assert.equal((html.match(/MANAGE MACHINES →/g)||[]).length,6,'all six category cards use the same configuration action label');
 assert.doesNotMatch(html,/RMS\s*[·•]/,'RMS acronym is removed from user-facing navigation');
