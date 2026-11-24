@@ -132,13 +132,12 @@
 </div><section id="accessDenied" class="access-denied"><h2>ACCESS NOT AVAILABLE</h2><p id="accessDeniedMessage">Your current account does not have permission to access R&amp;M.</p><button class="btn primary" id="retrySession" type="button" style="margin-top:12px">RETRY SESSION VERIFICATION</button><a class="btn" href="index.html" style="display:inline-flex;text-decoration:none;margin-top:12px">RETURN TO YARD HUB</a></section></div>
 
 <!-- R&M individual machinery registry -->
-<div class="overlay" id="assetOverlay" role="dialog" aria-modal="true" aria-labelledby="assetEditorTitle">
+<div class="overlay" id="assetOverlay" style="z-index:30" role="dialog" aria-modal="true" aria-labelledby="assetEditorTitle">
   <div class="dialog rms-settings-dialog" style="max-width:620px">
     <div class="dialog-head"><div class="dialog-title" id="assetEditorTitle">ADD MACHINERY</div><button class="close" type="button" data-close="assetOverlay" aria-label="Close">×</button></div>
     <form id="assetForm">
       <div class="form-grid">
         <div class="form-field full"><label>MACHINERY CATEGORY</label><div class="form-help" id="assetMachineType">—</div></div>
-        <div class="form-field full"><label for="assetName">MACHINE NAME / TYPE</label><input id="assetName" maxlength="120" required placeholder="e.g. Forklift 01 or JCB 540-140"></div>
         <div class="form-field"><label for="assetCode">FLEET NUMBER / REGISTRATION</label><input id="assetCode" maxlength="40" placeholder="Optional"></div>
         <div class="form-field" id="assetMakeModelManualField"><label for="assetMakeModel">MAKE / MODEL</label><input id="assetMakeModel" maxlength="120" placeholder="Enter make / model"></div>
         <div class="form-field" id="assetMakeModelSelectField" hidden><label for="assetMakeModelSelect">MAKE / MODEL</label><select id="assetMakeModelSelect"><option value="">SELECT MAKE / MODEL</option></select></div>
@@ -199,10 +198,15 @@
       <div class="rms-machinery-actions">
         <button class="btn primary" id="settingsAddMachineryButton" type="button" hidden>＋ ADD MACHINERY</button>
       </div>
-      <form id="modelAddForm" class="preset-add-grid">
-        <div class="form-field"><label for="newModelName">NEW REGISTERED MACHINE / MODEL</label><input id="newModelName" maxlength="120" required placeholder="e.g. JCB 540-140, Manitou MT 625"></div>
-        <button class="btn primary" type="submit" id="addModelSave">ADD MACHINE</button>
-      </form>
+      
+    </section>
+    <section class="rms-config-section">
+      <div class="rms-section-heading"><strong>FLEET NUMBER / REGISTRATION</strong><span>MACHINERY FORM</span></div>
+      <label class="rms-toggle-row" for="registrationEnabled">
+        <span><strong>ENABLE FLEET NUMBER / REGISTRATION</strong><small>When enabled, the optional registration field appears in Add / Edit Machinery for this category. Disabling it hides the field without deleting saved registration data.</small></span>
+        <input id="registrationEnabled" type="checkbox" checked>
+      </label>
+      <div class="rms-toggle-save-row"><span class="form-help">Changes are not applied until saved.</span><button class="btn primary" id="saveRegistrationSettings" type="button" disabled>SAVE SETTINGS</button></div>
     </section>
     <section class="rms-config-section">
       <div class="rms-section-heading"><strong>MAKE / MODEL DROPDOWN</strong><span>MACHINERY FORM</span></div>
@@ -258,5 +262,5 @@
 
 <script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';window.REPAIR_MAINTENANCE_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/repair-maintenance-api';</script>
 <script src="central-bank-client.js"></script>
-<script src="repair-maintenance-app.js?v=20261124-16"></script>
+<script src="repair-maintenance-app.js?v=20261124-17"></script>
 </body></html>

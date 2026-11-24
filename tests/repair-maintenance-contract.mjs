@@ -41,7 +41,7 @@ assert.match(html,/\.machine-art img\{[^}]*object-fit:contain/,'selector icons p
 assert.match(html,/\.machineicon img\{[^}]*filter:brightness\(0\)/,'header icons remain visible on the yellow header panel');
 assert.doesNotMatch(html,/class="machine-art"><svg/,'selector cards no longer use the generic inline machinery drawings');
 
-for(const id of ['selectorView','settingsView','dashboardView','openRmsSettingsShortcut','backToMachineryFromSettings','settingsMachineGrid','settingsStatus','machineAssetControls','machineAssetSelect','settingsMachinerySection','machineModelItems','settingsAddMachineryButton','saveModelDropdownSettings','assetSelectorEnabled','saveAssetSelectorSettings','assetOverlay','assetForm','assetName','assetCode','assetMakeModel','assetSaveButton','archiveAssetButton','reportAssetId','pdfExportsAssetId','faultRows','totalCount','highCount','mediumCount','lowCount','createOverlay','reportOverlay','reportMachineType','generatePdfReport','openReports','exportsOverlay','pdfExportsMachineType','pdfExportList','exportReportButton','pdfExportsButton','loadMoreExports','presetsOverlay','presetMachineTitle','presetItems','presetAddForm','newPresetName','addPresetSave','newFaultOtherField','newFaultOther','detailsOverlay','detailStatus','detailPriority','photoInput','fileInput','notesList'])assert.ok(html.includes(`id="${id}"`),`missing HTML element ${id}`);
+for(const id of ['selectorView','settingsView','dashboardView','openRmsSettingsShortcut','backToMachineryFromSettings','settingsMachineGrid','settingsStatus','machineAssetControls','machineAssetSelect','settingsMachinerySection','machineModelItems','settingsAddMachineryButton','saveModelDropdownSettings','assetSelectorEnabled','saveAssetSelectorSettings','assetOverlay','assetForm','assetCode','assetMakeModel','assetSaveButton','registrationEnabled','saveRegistrationSettings','archiveAssetButton','reportAssetId','pdfExportsAssetId','faultRows','totalCount','highCount','mediumCount','lowCount','createOverlay','reportOverlay','reportMachineType','generatePdfReport','openReports','exportsOverlay','pdfExportsMachineType','pdfExportList','exportReportButton','pdfExportsButton','loadMoreExports','presetsOverlay','presetMachineTitle','presetItems','presetAddForm','newPresetName','addPresetSave','newFaultOtherField','newFaultOther','detailsOverlay','detailStatus','detailPriority','photoInput','fileInput','notesList'])assert.ok(html.includes(`id="${id}"`),`missing HTML element ${id}`);
 for(const action of ['access','asset-list','asset-add','asset-update','asset-archive','list','export-create','export-list','export-url','export-delete','preset-list','preset-add','preset-delete','get','create','update','note-add','upload','delete'])assert.ok(api.includes(`action === "${action}"`),`missing API action ${action}`);
 for(const behaviour of ['create','update','note-add','upload','delete','createSignedUrl','remove('])assert.ok(api.includes(behaviour),`missing backend behaviour ${behaviour}`);
 for(const key of ['canAccessYardHub','canAccessRepairMaintenance','canEditRepairMaintenance','canDeleteRepairMaintenance','canExportRepairMaintenanceReports']){
@@ -78,7 +78,7 @@ assert.ok(api.includes('.eq("machine_type", body.machineType)'),'backend checks 
 assert.ok(api.includes('.eq("is_other", false)'),'backend protects OTHER from deletion');
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-16'),'R&M app script cache is refreshed');
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-17'),'R&M app script cache is refreshed');
 assert.match(app,/function updateAssetSelectorVisibility\(\)[\s\S]*host\.hidden=access\?\.canReadRepairMaintenanceMachinery!==true\|\|machineSettings\.asset_selector_enabled!==true/,'R&M registered-machine selector follows its saved per-category setting');
 assert.match(app,/machineSettings\.model_dropdown_enabled!==true/,'MAKE / MODEL catalogue visibility remains separately configured');
 assert.match(app,/function saveAssetSelectorSetting\(\)/,'registered-machine visibility has an independent save action');
@@ -87,10 +87,18 @@ assert.match(app,/api\('settings-get',\{machineType:currentMachine\.key\}\)/,'R&
 assert.ok(html.includes('id="openRmsSettingsShortcut"'),'RMS settings gear shortcut is present in the header');
 assert.ok(html.includes('id="saveModelDropdownSettings"'),'model dropdown configuration has an explicit save button');
 assert.ok(html.includes('MACHINERY &amp; MODEL REGISTER'));
-assert.ok(html.includes('id="machineModelItems"')&&html.includes('id="modelAddForm"'));
-assert.match(app,/function renderMachineModelManager\(\)[\s\S]*openAssetEditor\(asset\)/,'registered machines can be edited directly from the unified list');
-assert.match(api,/action === "model-list"[\s\S]*from\("repair_maintenance_assets"\)/,'the unified catalogue reads registered machines from the asset registry');
-assert.match(api,/action === "model-add"[\s\S]*canAddRepairMaintenanceMachinery !== true/,'adding a catalogue entry follows machinery INPUT permissions');
+assert.ok(html.includes('id="machineModelItems"'),'the consolidated registered-machine list is present');
+assert.ok(html.includes('id="settingsAddMachineryButton"'),'the register has one Add Machinery entry point');
+assert.ok(html.includes('id="assetForm"')&&html.includes('id="assetOverlay"'),'Add / Edit Machinery uses the shared asset editor');
+assert.doesNotMatch(html,/id="modelAddForm"/,'the retired duplicate quick-add form is absent');
+assert.match(app,/function renderMachineModelManager\(\)[\s\S]*edit\.addEventListener\('click',\(\)=>openAssetEditor\(asset\)\)/,'registered-machine EDIT actions use the shared asset editor');
+assert.match(app,/async function openAssetEditor\(asset=null\)[\s\S]*renderAssetModelField\(asset\?\.make_model\|\|asset\?\.name\|\|''\)[\s\S]*showOverlay\('assetOverlay'\)/,'the shared editor supports both adding and editing registered machines');
+assert.match(app,/\$\('settingsAddMachineryButton'\)\?\.addEventListener\('click',\(\)=>openAssetEditor\(\)\)/,'the single Add Machinery control opens the shared editor');
+assert.equal((app.match(/\$\('settingsAddMachineryButton'\)\?\.addEventListener\('click'/g)||[]).length,1,'the Add Machinery control has exactly one click handler');
+assert.match(app,/async function saveAsset\(event\)[\s\S]*wasEdit\?await api\('asset-update'[\s\S]*:await api\('asset-add'/,'the shared editor saves through the registered-machine add / update API');
+assert.match(api,/action === "asset-add"[\s\S]*canAddRepairMaintenanceMachinery !== true/,'adding a registered machine follows machinery INPUT permissions');
+assert.match(api,/action === "asset-update"/,'editing a registered machine uses the registry update endpoint');
+assert.match(api,/action === "model-list"[\s\S]*from\("repair_maintenance_assets"\)/,'MAKE / MODEL options are derived from the registered-machine asset registry');
 assert.doesNotMatch(api,/from\("repair_maintenance_machine_models"\)/,'current catalogue API no longer reads or writes the retired model table');
 assert.ok(html.includes('Its model is shown in the Machinery &amp; Model Register.'));
 assert.ok(html.includes('id="settingsAddMachineryButton"')&&html.includes('id="machineModelItems"'),'the unified machinery/model register and add action are present');

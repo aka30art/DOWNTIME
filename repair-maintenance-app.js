@@ -13,7 +13,7 @@
   const PRIORITIES=['HIGH','MEDIUM','LOW'];
   const STATUSES=['OPEN','PERM. FIX'];
   const $=id=>document.getElementById(id);
-  let access=null,currentMachine=null,currentAsset=null,currentFault=null,faults=[],machinePresets=[],machineModels=[],machineSettings={model_dropdown_enabled:true,asset_selector_enabled:true},modelDropdownDraft=true,assetSelectorDraft=true,assets=[],settingsAssets=[],settingsSelectedAssetId='',unassignedCount=0,unassignedMode=false,editingAssetId=null,editingAssetRecord=null,assetEditorFromSettings=false,assetEditorDashboardVisible=false,busy=false,exportOffset=0,exportsLoading=false;
+  let access=null,currentMachine=null,currentAsset=null,currentFault=null,faults=[],machinePresets=[],machineModels=[],machineSettings={model_dropdown_enabled:true,asset_selector_enabled:true,registration_enabled:true},modelDropdownDraft=true,assetSelectorDraft=true,registrationDraft=true,assets=[],settingsAssets=[],settingsSelectedAssetId='',unassignedCount=0,unassignedMode=false,editingAssetId=null,editingAssetRecord=null,assetEditorFromSettings=false,assetEditorDashboardVisible=false,busy=false,exportOffset=0,exportsLoading=false;
   const sessionToken=()=>window.DowntimeCentral?.session?.token||'';
   const headers=()=>({'Content-Type':'application/json','apikey':API_KEY,'x-downtime-session':sessionToken()});
   async function api(action,body={},timeoutMs=15000){
@@ -117,9 +117,10 @@
       api('model-list',{machineType:currentMachine.key}),
       assetRequest
     ]);
-    machineSettings=settingsResult.settings||{model_dropdown_enabled:true,asset_selector_enabled:true};
+    machineSettings=settingsResult.settings||{model_dropdown_enabled:true,asset_selector_enabled:true,registration_enabled:true};
     modelDropdownDraft=machineSettings.model_dropdown_enabled===true;
     assetSelectorDraft=machineSettings.asset_selector_enabled===true;
+    registrationDraft=machineSettings.registration_enabled!==false;
     renderAssetSelect();
     machineModels=Array.isArray(modelsResult.models)?modelsResult.models:[];
     settingsAssets=Array.isArray(assetResult.assets)?assetResult.assets:[];
@@ -133,6 +134,9 @@
     const assetToggle=$('assetSelectorEnabled'),assetSave=$('saveAssetSelectorSettings');
     if(assetToggle)assetToggle.checked=assetSelectorDraft;
     if(assetSave)assetSave.disabled=true;
+    const registrationToggle=$('registrationEnabled'),registrationSave=$('saveRegistrationSettings');
+    if(registrationToggle)registrationToggle.checked=registrationDraft;
+    if(registrationSave)registrationSave.disabled=true;
     renderMachineModelManager();
     renderSettingsAssetManager();
   }
@@ -144,7 +148,32 @@
     const canAdd=access?.canAddRepairMaintenanceMachinery===true||canManage;
     section.hidden=!canRead&&access?.canManageRepairMaintenancePresets!==true;
     const add=$('settingsAddMachineryButton');
-    if(add)add.hidden=true;
+    if(add)add.hidden=!canAdd;
+  }
+  function updateRegistrationSaveState(){
+    const save=$('saveRegistrationSettings');
+    if(save)save.disabled=registrationDraft===(machineSettings.registration_enabled!==false);
+  }
+  function handleRegistrationDraftChange(){
+    if(access?.canManageRepairMaintenancePresets!==true)return;
+    registrationDraft=$('registrationEnabled').checked;
+    updateRegistrationSaveState();
+    clearStatus('machineSettingsModalStatus');
+  }
+  async function saveRegistrationSetting(){
+    if(!currentMachine||access?.canManageRepairMaintenancePresets!==true)return;
+    const button=$('saveRegistrationSettings');
+    if(!button||registrationDraft===(machineSettings.registration_enabled!==false))return;
+    button.disabled=true;button.textContent='SAVING…';
+    try{
+      const result=await api('settings-update',{machineType:currentMachine.key,registrationEnabled:registrationDraft});
+      machineSettings=result.settings||{...machineSettings,registration_enabled:registrationDraft};
+      registrationDraft=machineSettings.registration_enabled!==false;
+      $('registrationEnabled').checked=registrationDraft;
+      updateRegistrationSaveState();
+      say(registrationDraft?'Fleet Number / Registration field enabled for this category.':'Fleet Number / Registration field hidden for this category. Existing values are preserved.',machineSettingsStatusTarget(),'ok');
+    }catch(error){updateRegistrationSaveState();say(error.message,machineSettingsStatusTarget(),'error')}
+    finally{button.textContent='SAVE SETTINGS';updateRegistrationSaveState()}
   }
   function updateModelDropdownSaveState(){
     const save=$('saveModelDropdownSettings');
@@ -212,11 +241,10 @@
     const canRead=access?.canReadRepairMaintenanceMachinery===true;
     const canManage=access?.canManageRepairMaintenanceMachinery===true;
     const canAdd=access?.canAddRepairMaintenanceMachinery===true||canManage;
-    const form=$('modelAddForm');if(form)form.hidden=!canAdd;
     if(canRead)settingsAssets.filter(asset=>asset.status==='ACTIVE').forEach(asset=>{
       const row=document.createElement('div');row.className='rms-unified-asset-row';
       const copy=document.createElement('div');copy.className='rms-unified-asset-copy';
-      const name=document.createElement('strong');name.textContent=asset.name||'UNNAMED MACHINE';copy.appendChild(name);
+      const name=document.createElement('strong');name.textContent=asset.make_model||asset.name||'UNNAMED MACHINE';copy.appendChild(name);
       const meta=document.createElement('small');meta.textContent=[asset.asset_code,asset.make_model].filter(Boolean).join(' · ')||'REGISTERED MACHINE';copy.appendChild(meta);row.appendChild(copy);
       if(canManage){const edit=document.createElement('button');edit.type='button';edit.className='btn compact';edit.textContent='EDIT';edit.addEventListener('click',()=>openAssetEditor(asset));row.appendChild(edit)}
       host.appendChild(row);
@@ -308,7 +336,7 @@
     }
   }
   async function loadMachine(key){
-    currentMachine=machine(key);currentAsset=null;unassignedMode=false;assets=[];unassignedCount=0;machinePresets=[];machineSettings={model_dropdown_enabled:true,asset_selector_enabled:true};modelDropdownDraft=true;assetSelectorDraft=true;
+    currentMachine=machine(key);currentAsset=null;unassignedMode=false;assets=[];unassignedCount=0;machinePresets=[];machineSettings={model_dropdown_enabled:true,asset_selector_enabled:true,registration_enabled:true};modelDropdownDraft=true;assetSelectorDraft=true;registrationDraft=true;
     setView('dashboardView');
     const icon=$('machineIcon');if(icon)icon.src=currentMachine.icon;
     $('machineCategoryLabel').textContent=currentMachine.sub;
@@ -385,10 +413,9 @@
       editingAssetId=asset?.id||null;editingAssetRecord=asset||null;
       clearStatus('assetStatus');
       $('assetMachineType').textContent=currentMachine.label;
-      $('assetName').value=asset?.name||'';
       $('assetCode').value=asset?.asset_code||'';
-      $('assetMakeModel').value=asset?.make_model||'';
-      renderAssetModelField(asset?.make_model||'');
+      $('assetCode').closest('.form-field').hidden=machineSettings.registration_enabled===false;
+      renderAssetModelField(asset?.make_model||asset?.name||'');
       $('assetEditorTitle').textContent=asset?'EDIT MACHINERY':'ADD MACHINERY';
       $('assetSaveButton').textContent=asset?'SAVE CHANGES':'ADD MACHINERY';
       $('archiveAssetButton').hidden=!asset||asset.status!=='ACTIVE';
@@ -400,7 +427,9 @@
     const button=$('assetSaveButton');button.disabled=true;button.textContent='SAVING…';
     try{
       const wasEdit=Boolean(editingAssetId),fromSettings=assetEditorFromSettings,dashboardWasVisible=assetEditorDashboardVisible;
-      const payload={machineType:currentMachine.key,name:$('assetName').value.trim(),assetCode:$('assetCode').value.trim(),makeModel:selectedAssetMakeModel()};
+      const makeModel=selectedAssetMakeModel();
+      if(!makeModel)throw new Error('Make / Model is required.');
+      const payload={machineType:currentMachine.key,name:makeModel,assetCode:machineSettings.registration_enabled===false?(editingAssetRecord?.asset_code||''):$('assetCode').value.trim(),makeModel};
       if(wasEdit&&access?.canManageRepairMaintenanceMachinery!==true)throw new Error('INPUT access allows adding machinery but not editing existing machines.');
       const result=wasEdit?await api('asset-update',{...payload,assetId:editingAssetId}):await api('asset-add',payload);
       const saved=result.asset;if(!saved)throw new Error('The R&M service did not confirm the machinery record.');
@@ -587,10 +616,12 @@
     $('assetMakeModelSelect')?.addEventListener('change',()=>{$('assetMakeModelOtherField').hidden=$('assetMakeModelSelect').value!=='__CUSTOM__';if(!$('assetMakeModelOtherField').hidden)$('assetMakeModelOther').focus()});
     $('archiveAssetButton')?.addEventListener('click',archiveCurrentAsset);
     $('modelDropdownEnabled')?.addEventListener('change',handleModelDropdownDraftChange);
+    $('registrationEnabled')?.addEventListener('change',handleRegistrationDraftChange);
+    $('saveRegistrationSettings')?.addEventListener('click',saveRegistrationSetting);
+    
     $('saveModelDropdownSettings')?.addEventListener('click',saveModelDropdownSetting);
     $('assetSelectorEnabled')?.addEventListener('change',handleAssetSelectorDraftChange);
     $('saveAssetSelectorSettings')?.addEventListener('click',saveAssetSelectorSetting);
-    $('modelAddForm')?.addEventListener('submit',addMachineModel);
     $('sortSelect').addEventListener('change',renderRows);
     $('backToMachinery').addEventListener('click',renderSelector);$('backToHub').addEventListener('click',()=>{window.location.assign('index.html')});
     $('openCreateFault').addEventListener('click',()=>{if(currentMachine&&currentAsset&&currentAsset.status==='ACTIVE'&&!unassignedMode){renderPresetSelect();showOverlay('createOverlay')}});$('createForm').addEventListener('submit',createFault);
