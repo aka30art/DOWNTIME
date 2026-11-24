@@ -14,7 +14,7 @@ assert.match(migration,/repair_maintenance_machine_models/);
 assert.match(migration,/repair_maintenance_assets/);
 assert.match(migration,/lower\(trim\(name\)\)/);
 assert.match(migration,/coalesce\(nullif\(trim\(make_model\)/);
-assert.match(migration,/fault history is deleted/i) === false;
+assert.doesNotMatch(migration,/delete\s+from\s+public\.repair_maintenance_faults/i);
 assert.match(api,/action === "model-list"[\s\S]*from\("repair_maintenance_assets"\)/);
 assert.match(api,/action === "model-add"[\s\S]*from\("repair_maintenance_assets"\)/);
 assert.match(api,/action === "model-delete"[\s\S]*status: "ARCHIVED"/);
