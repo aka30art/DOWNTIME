@@ -537,7 +537,7 @@ body.overview-overlay-open{overflow:hidden}
 </style>
 <link rel="stylesheet" href="yard-hub-settings.css?v=20261123-1">
 </head>
-<body><div id="authGate"><div class="authbox"><h2>DOWNTIME · CENTRAL LOGIN</h2><p class="muted">Select your central USER account and enter your PIN.</p><label for="centralUsername">USERNAME</label><select id="centralUsername" class="input" aria-label="Central username"><option value="">Loading central USERS…</option></select><input id="teamPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="4–8 digit PIN" aria-label="Central account PIN"><div class="pinpad" data-pinpad="teamPin"><div class="pinpad-grid"><button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="clear">CLEAR</button><button type="button" data-key="0">0</button><button type="button" data-key="back">⌫</button></div></div><button id="unlockBtn" class="primary">SIGN IN</button><button type="button" id="refreshAppBtn" class="quiet" style="width:100%;margin-top:8px">REFRESH USER LIST</button><div id="authMsg" role="status" aria-live="polite"></div></div></div>
+<body><div id="authGate"><div class="authbox authbox-central"><div class="auth-brand" aria-label="YARD HUB — Yard Operations Core"><div class="auth-brand-wordmark"><span>YARD</span><strong>HUB<sup>®</sup></strong></div><p>YARD OPERATIONS CORE</p></div><div class="auth-divider" aria-hidden="true"><span></span><i></i><span></span></div><h2>DOWNTIME · CENTRAL LOGIN</h2><p class="muted">Select your central USER account and enter your PIN.</p><label for="centralUsername">SELECT USER ACCOUNT</label><select id="centralUsername" class="input" aria-label="Central username"><option value="">Loading central USERS…</option></select><label for="teamPin" class="auth-field-label">4–8 DIGIT PIN</label><input id="teamPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="4–8 digit PIN" aria-label="Central account PIN"><div class="pinpad" data-pinpad="teamPin"><div class="pinpad-grid"><button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="clear">CLEAR</button><button type="button" data-key="0">0</button><button type="button" data-key="back">⌫</button></div></div><button id="unlockBtn" class="primary">SIGN IN</button><button type="button" id="refreshAppBtn" class="quiet" style="width:100%;margin-top:8px">REFRESH USER LIST</button><div id="authMsg" role="status" aria-live="polite"></div></div></div>
 <div id="operatorGate" style="display:none"></div>
 <div id="spectatorView" style="display:none"></div>
 
@@ -2112,5 +2112,255 @@ details[open]>summary .disclosure-chevron{transform:rotate(180deg)}
  .plant-status-row{margin-bottom:10px}
  .plant-status-row .menu-action{width:100%;min-height:46px}
  .day-lock-actions .lock-action button{width:min(100%,360px)}
+}
+
+/* YARD HUB CENTRAL LOGIN — visual presentation only */
+#authGate{
+  z-index:40;
+  padding:clamp(12px,3vw,30px)!important;
+  place-items:center!important;
+  background:
+    radial-gradient(ellipse 75% 58% at 50% -10%,rgba(34,74,101,.55),transparent 72%),
+    linear-gradient(145deg,#03101c 0%,#071a2a 54%,#030d18 100%)!important;
+}
+#authGate:before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  opacity:.18;
+  background:repeating-linear-gradient(135deg,transparent 0 52px,rgba(123,157,181,.13) 53px 54px,transparent 55px 108px);
+}
+#authGate .authbox.authbox-central{
+  position:relative;
+  z-index:1;
+  width:min(640px,100%);
+  max-width:640px!important;
+  max-height:calc(100dvh - 24px);
+  overflow-y:auto!important;
+  margin:auto!important;
+  padding:clamp(18px,3.4vw,36px)!important;
+  border:2px solid #ffd21b;
+  border-radius:26px;
+  background:linear-gradient(155deg,rgba(9,29,46,.98),rgba(3,15,27,.99) 72%);
+  box-shadow:0 24px 80px rgba(0,0,0,.58),0 0 0 1px rgba(255,210,27,.12),inset 0 1px 0 rgba(255,255,255,.06);
+  scrollbar-color:#526b7e #071725;
+}
+#authGate .auth-brand{
+  margin:0 auto 18px;
+  text-align:center;
+}
+#authGate .auth-brand-wordmark{
+  display:flex;
+  align-items:baseline;
+  justify-content:center;
+  gap:3px;
+  color:#f5f7fa;
+  font-size:clamp(39px,7.2vw,66px);
+  font-style:italic;
+  font-weight:1000;
+  letter-spacing:-3.8px;
+  line-height:.98;
+}
+#authGate .auth-brand-wordmark:before{
+  content:"";
+  display:block;
+  flex:0 0 clamp(15px,2.4vw,25px);
+  height:clamp(37px,6vw,57px);
+  margin-right:5px;
+  background:#ffd21b;
+  transform:skew(-25deg);
+}
+#authGate .auth-brand-wordmark strong{color:#ffd21b;font-weight:1000}
+#authGate .auth-brand-wordmark sup{
+  position:relative;
+  top:-1.1em;
+  margin-left:2px;
+  font-size:12px;
+  letter-spacing:0;
+  font-style:normal;
+}
+#authGate .auth-brand>p{
+  margin:8px 0 0;
+  color:#a9b9c8;
+  font-size:clamp(9px,1.4vw,12px);
+  font-weight:900;
+  letter-spacing:clamp(3px,.8vw,6px);
+}
+#authGate .auth-divider{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:15px;
+  margin:20px 0 24px;
+}
+#authGate .auth-divider span{height:4px;flex:1;background:#ffd21b}
+#authGate .auth-divider i{
+  display:block;
+  width:66px;
+  height:24px;
+  background:repeating-linear-gradient(110deg,#ffd21b 0 10px,transparent 10px 20px);
+  transform:skew(-15deg);
+}
+#authGate .authbox h2{
+  display:flex;
+  align-items:center;
+  gap:18px;
+  margin:0 0 9px;
+  color:#f7f8fa;
+  font-size:clamp(23px,4vw,35px);
+  font-weight:950;
+  letter-spacing:1px;
+  line-height:1.1;
+  text-transform:uppercase;
+}
+#authGate .authbox h2:before{
+  content:"";
+  display:block;
+  flex:0 0 34px;
+  height:48px;
+  background:#ffd21b;
+  transform:skew(-25deg);
+}
+#authGate .authbox>p.muted{
+  margin:0 0 22px;
+  color:#aebccc;
+  font-size:clamp(12px,1.8vw,15px);
+  font-weight:800;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+}
+#authGate .authbox label{
+  display:block;
+  margin:0 0 8px;
+  color:#b3c2cf;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+}
+#authGate #centralUsername{
+  display:block;
+  width:100%;
+  min-height:64px;
+  margin:0;
+  padding:14px 52px 14px 18px;
+  appearance:none;
+  border:2px solid #ffd21b;
+  border-radius:18px;
+  outline:none;
+  background-color:#061725;
+  background-image:linear-gradient(45deg,transparent 50%,#ffd21b 50%),linear-gradient(135deg,#ffd21b 50%,transparent 50%);
+  background-position:calc(100% - 27px) 27px,calc(100% - 18px) 27px;
+  background-size:9px 9px,9px 9px;
+  background-repeat:no-repeat;
+  color:#f6f8fa;
+  font-size:clamp(16px,2.2vw,20px);
+  font-weight:850;
+  letter-spacing:.5px;
+}
+#authGate #centralUsername:focus-visible,#authGate #teamPin:focus-visible{
+  outline:3px solid rgba(255,210,27,.28);
+  outline-offset:3px;
+}
+#authGate .auth-field-label{margin-top:24px!important}
+#authGate #teamPin{
+  display:block;
+  width:100%;
+  height:66px;
+  margin:0;
+  padding:12px 16px;
+  border:2px solid #65798d;
+  border-radius:18px;
+  background:#061725;
+  color:#fff;
+  font-size:clamp(19px,2.8vw,25px);
+  font-weight:900;
+  letter-spacing:.72em;
+  text-align:center;
+  text-indent:.72em;
+}
+#authGate #teamPin::placeholder{
+  color:#8192a4;
+  font-size:13px;
+  font-weight:800;
+  letter-spacing:2px;
+  text-indent:0;
+  text-transform:uppercase;
+}
+#authGate .pinpad{margin:18px 0 20px}
+#authGate .pinpad-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#authGate .pinpad-grid button{
+  min-height:62px;
+  margin:0;
+  padding:10px 8px;
+  border:2px solid #526a80;
+  border-radius:17px;
+  background:linear-gradient(145deg,#142c40,#091b2c);
+  color:#f7f8fa;
+  font-size:clamp(22px,3vw,31px);
+  font-weight:950;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 4px 10px rgba(0,0,0,.16);
+}
+#authGate .pinpad-grid button:hover{border-color:#ffd21b;background:linear-gradient(145deg,#1c3a52,#0b2135)}
+#authGate .pinpad-grid button[data-key=clear],#authGate .pinpad-grid button[data-key=back]{
+  color:#dfe7ee;
+  font-size:13px;
+  letter-spacing:1px;
+}
+#authGate #unlockBtn{
+  min-height:66px;
+  margin:0;
+  border:0;
+  border-radius:18px;
+  background:linear-gradient(100deg,#ffd21b,#ffc000);
+  color:#071521;
+  font-size:clamp(19px,2.6vw,24px);
+  font-weight:1000;
+  letter-spacing:1px;
+  box-shadow:0 9px 24px rgba(255,194,0,.18);
+}
+#authGate #unlockBtn:before{content:"▣";margin-right:14px;font-size:25px;vertical-align:-1px}
+#authGate #refreshAppBtn{
+  min-height:60px;
+  margin-top:14px!important;
+  border:2px solid #65798d;
+  border-radius:17px;
+  background:linear-gradient(145deg,#122a3e,#081a2b);
+  color:#f1f4f7;
+  font-size:clamp(14px,2vw,19px);
+  font-weight:900;
+  letter-spacing:.7px;
+}
+#authGate #refreshAppBtn:before{content:"↻";margin-right:12px;color:#ffd21b;font-size:25px;vertical-align:-2px}
+#authGate #authMsg{min-height:22px;margin-top:12px;color:#ffcf74;font-weight:750;text-align:center}
+#authGate button:focus-visible{outline:3px solid rgba(255,210,27,.45);outline-offset:3px}
+@media(max-width:600px){
+  #authGate{place-items:start center!important;padding:12px!important}
+  #authGate .authbox.authbox-central{
+    width:100%;
+    max-width:480px!important;
+    max-height:calc(100dvh - 24px);
+    margin:0 auto!important;
+    padding:18px 15px!important;
+    border-radius:22px;
+  }
+  #authGate .auth-brand{margin-bottom:12px}
+  #authGate .auth-divider{margin:15px 0 19px;gap:9px}
+  #authGate .auth-divider i{width:48px;height:19px}
+  #authGate .authbox h2{gap:13px;margin-bottom:8px}
+  #authGate .authbox h2:before{flex-basis:26px;height:39px}
+  #authGate .authbox>p.muted{margin-bottom:17px;letter-spacing:.7px}
+  #authGate .auth-field-label{margin-top:19px!important}
+  #authGate #centralUsername{min-height:58px;padding-left:14px;border-radius:15px}
+  #authGate #teamPin{height:60px;border-radius:15px}
+  #authGate .pinpad{margin:14px 0 16px}
+  #authGate .pinpad-grid{gap:8px}
+  #authGate .pinpad-grid button{min-height:56px;border-radius:14px}
+  #authGate #unlockBtn{min-height:58px;border-radius:15px}
+  #authGate #refreshAppBtn{min-height:54px;border-radius:15px;margin-top:11px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  #authGate .pinpad-grid button{transition:none}
 }
 </style>

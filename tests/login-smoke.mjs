@@ -13,6 +13,19 @@ const repairMaintenanceHtml=await readFile(resolve('repair-maintenance.html'),'u
 const repairMaintenanceApp=await readFile(resolve('repair-maintenance-app.js'),'utf8');
 const yardHubSettingsScript=await readFile(resolve('yard-hub-settings.js'),'utf8');
 const yardHubSettingsCss=await readFile(resolve('yard-hub-settings.css'),'utf8');
+
+/* Central login presentation contract: styling changes must preserve auth wiring. */
+assert.match(indexHtml, /class="authbox authbox-central"/, 'central login uses the refreshed visual container');
+assert.match(indexHtml, /class="auth-brand-wordmark"[\s\S]*?YARD[\s\S]*?HUB[\s\S]*?YARD OPERATIONS CORE/, 'login shows the YARD HUB platform identity');
+assert.match(indexHtml, /class="auth-divider"/, 'login includes the industrial separator motif');
+assert.match(indexHtml, /#authGate \.authbox\.authbox-central\{[\s\S]*?max-width:640px!important;[\s\S]*?border:2px solid #ffd21b;/, 'login uses the wider yellow-framed desktop panel');
+assert.match(indexHtml, /#authGate #centralUsername\{[\s\S]*?min-height:64px;[\s\S]*?border:2px solid #ffd21b;/, 'user selector receives the high-contrast industrial treatment');
+assert.match(indexHtml, /#authGate #teamPin\{[\s\S]*?height:66px;[\s\S]*?text-align:center;/, 'PIN entry remains a large centred password field');
+assert.match(indexHtml, /#authGate \.pinpad-grid button\{[\s\S]*?min-height:62px;/, 'numeric keypad uses large touch targets');
+assert.match(indexHtml, /@media\(max-width:600px\)[\s\S]*?#authGate \.authbox\.authbox-central/, 'login layout has a dedicated mobile adaptation');
+for (const requiredAuthHook of ['id="centralUsername"', 'id="teamPin"', 'data-pinpad="teamPin"', 'id="unlockBtn"', 'id="refreshAppBtn"', 'id="authMsg"']) {
+  assert.ok(indexHtml.includes(requiredAuthHook), 'visual redesign preserves authentication hook: '+requiredAuthHook);
+}
 const server=createServer((req,res)=>{
   const pathname=String(req.url||'').split('?')[0];
   const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js'||pathname==='/yard-hub-settings.js';
@@ -312,10 +325,26 @@ window.supabase={createClient:()=>({
  });
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
  try{await page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:8000})}catch(error){throw new Error('Central login options failed to populate. Browser errors: '+errors.slice(-10).join(' | ')+'; auth message: '+await page.locator('#authMsg').textContent().catch(()=> 'missing')+'; window adapter: '+await page.evaluate(()=>String(!!window.DowntimeCentral)).catch(()=> 'unavailable')+'; original: '+error.message)}
+ if(!loginPresentationVerified){
+  const desktopBox=await page.locator('#authGate .authbox-central').boundingBox();
+  const desktopStyle=await page.locator('#authGate .authbox-central').evaluate(el=>({border:getComputedStyle(el).borderTopColor,brandVisible:!!el.querySelector('.auth-brand-wordmark')}));
+  assert.ok(desktopBox&&desktopBox.width>=600,'desktop central login uses the wide framed layout');
+  assert.equal(desktopStyle.border,'rgb(255, 210, 27)','desktop login frame uses the approved industrial yellow');
+  assert.equal(desktopStyle.brandVisible,true,'YARD HUB wordmark is rendered');
+  await page.setViewportSize({width:390,height:844});
+  const mobileBox=await page.locator('#authGate .authbox-central').boundingBox();
+  const mobileOverflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);
+  assert.ok(mobileBox&&mobileBox.x>=0&&mobileBox.x+mobileBox.width<=390,'mobile login panel stays within the viewport');
+  assert.equal(mobileOverflow,false,'mobile login has no horizontal overflow');
+  await page.setViewportSize({width:1280,height:720});
+  loginPresentationVerified=true;
+ }
+
  return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,getYardHubConfig:()=>yardHubConfig,getYardHubApiActions:()=>yardHubApiActions,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
 let repairMaintenanceBootTested=false;
+let loginPresentationVerified=false;
 async function signIn(page,pin='2468',username='DEV'){
  await page.locator('#centralUsername').selectOption(username);
  await pinpad(page,pin);
