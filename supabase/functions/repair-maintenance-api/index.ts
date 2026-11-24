@@ -359,11 +359,13 @@ Deno.serve(async (req: Request) => {
     }
     if (action === "export-url"){
       if(permissions.canExportRepairMaintenanceReports!==true)return json({error:"You do not have permission to open R&M PDF exports."},403);
+      if(permissions.canReadRepairMaintenanceMachinery!==true)return json({error:"You do not have READ access to R&M Machinery."},403);
       const id=cleanText(body.reportId,"PDF export ID",64),{data:report,error}=await db.from("repair_maintenance_pdf_exports").select("id,storage_path,file_name").eq("id",id).maybeSingle();if(error)return json({error:"Unable to load the selected PDF export."},503);if(!report)return json({error:"PDF export not found."},404);
       const {data,error:signedError}=await db.storage.from(reportBucket).createSignedUrl(report.storage_path,300);if(signedError||!data?.signedUrl)return json({error:"Unable to create a secure PDF link."},503);return json({signedUrl:data.signedUrl,fileName:report.file_name})
     }
     if (action === "export-delete"){
       if(!requireDelete())return json({error:"You do not have permission to delete R&M PDF exports."},403);
+      if(permissions.canReadRepairMaintenanceMachinery!==true)return json({error:"You do not have READ access to R&M Machinery."},403);
       const id=cleanText(body.reportId,"PDF export ID",64),{data:report,error:loadError}=await db.from("repair_maintenance_pdf_exports").select("id,machine_type,file_name,storage_path").eq("id",id).maybeSingle();if(loadError)return json({error:"Unable to load the selected PDF export."},503);if(!report)return json({error:"PDF export not found."},404);
       const {error:storageError}=await db.storage.from(reportBucket).remove([report.storage_path]);if(storageError)return json({error:"Unable to remove the stored PDF. Archive record retained."},503);
       const {error:deleteError}=await db.from("repair_maintenance_pdf_exports").delete().eq("id",report.id);if(deleteError)return json({error:"PDF file removed but archive record could not be deleted. Contact an administrator."},503);
