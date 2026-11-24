@@ -3,12 +3,12 @@
   const API=window.REPAIR_MAINTENANCE_API||'https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/repair-maintenance-api';
   const API_KEY=window.DOWNTIME_CENTRAL_API_KEY||'';
   const MACHINES=[
-    {key:'KIVERCO_PICKING_LINE',label:'KIVERCO \u2013 PICKING LINE',sub:'CONVEYOR & SORTING SYSTEM'},
-    {key:'TANNA_SHREDDER',label:'TANNA \u2013 SHREDDER',sub:'SHREDDING EQUIPMENT'},
-    {key:'FORKLIFT',label:'FORKLIFT',sub:'FORKLIFT FLEET'},
-    {key:'TELEHANDLER',label:'TELEHANDLER',sub:'TELEHANDLER FLEET'},
-    {key:'EXCAVATORS_360',label:'360 EXCAVATORS',sub:'EXCAVATOR FLEET'},
-    {key:'OTHER_EQUIPMENT',label:'OTHER EQUIPMENT',sub:'ADDITIONAL MACHINERY'}
+    {key:'KIVERCO_PICKING_LINE',label:'KIVERCO \u2013 PICKING LINE',sub:'CONVEYOR & SORTING SYSTEM',icon:'assets/rm-icons/kiverco.svg'},
+    {key:'TANNA_SHREDDER',label:'TANNA \u2013 SHREDDER',sub:'SHREDDING EQUIPMENT',icon:'assets/rm-icons/tanna.svg'},
+    {key:'FORKLIFT',label:'FORKLIFT',sub:'FORKLIFT FLEET',icon:'assets/rm-icons/forklift.svg'},
+    {key:'TELEHANDLER',label:'TELEHANDLER',sub:'TELEHANDLER FLEET',icon:'assets/rm-icons/telehandler.svg'},
+    {key:'EXCAVATORS_360',label:'360 EXCAVATORS',sub:'EXCAVATOR FLEET',icon:'assets/rm-icons/excavators_360.svg'},
+    {key:'OTHER_EQUIPMENT',label:'OTHER EQUIPMENT',sub:'ADDITIONAL MACHINERY',icon:'assets/rm-icons/other_equipment.svg'}
   ];
   const PRIORITIES=['HIGH','MEDIUM','LOW'];
   const STATUSES=['OPEN','PERM. FIX'];
@@ -76,7 +76,7 @@
     renderPresetSelect();renderPresetManager();
   }
   async function loadMachine(key){
-    currentMachine=machine(key);machinePresets=[];setView('dashboardView');
+    currentMachine=machine(key);machinePresets=[];setView('dashboardView');const machineIcon=$('machineIcon');if(machineIcon)machineIcon.src=currentMachine.icon;
     $('machineTitle')?.replaceChildren(document.createTextNode(currentMachine.label));
     say('Loading live fault register…');$('faultRows').innerHTML='<div class="empty">Loading fault records…</div>';
     try{

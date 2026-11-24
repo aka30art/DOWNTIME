@@ -16,6 +16,26 @@ for(const machine of ['KIVERCO_PICKING_LINE','TANNA_SHREDDER','FORKLIFT','TELEHA
   assert.match(html,new RegExp(`data-machine="${machine}"`));
   assert.ok(api.includes(`"${machine}"`));
 }
+const rmIconMap={
+  KIVERCO_PICKING_LINE:'kiverco.svg',
+  TANNA_SHREDDER:'tanna.svg',
+  FORKLIFT:'forklift.svg',
+  TELEHANDLER:'telehandler.svg',
+  EXCAVATORS_360:'excavators_360.svg',
+  OTHER_EQUIPMENT:'other_equipment.svg'
+};
+for(const [machine,file] of Object.entries(rmIconMap)){
+  const svg=read('../assets/rm-icons/'+file);
+  assert.match(svg,/<svg[^>]+viewBox="0 0 1024 1024"/,file+' is a scalable SVG');
+  assert.match(svg,/fill="#FFCF00"/,file+' uses the approved industrial yellow');
+  assert.ok(html.includes('assets/rm-icons/'+file),file+' is referenced by the R&M interface');
+}
+assert.match(html,/<img id="machineIcon" src="assets\/rm-icons\/kiverco\.svg"/,'selected machine header starts with a valid icon asset');
+assert.match(app,/machineIcon\.src=currentMachine\.icon/,'selected machine header follows the active machine');
+assert.match(html,/\.machine-art img\{[^}]*object-fit:contain/,'selector icons preserve SVG proportions');
+assert.match(html,/\.machineicon img\{[^}]*filter:brightness\(0\)/,'header icons remain visible on the yellow header panel');
+assert.doesNotMatch(html,/class="machine-art"><svg/,'selector cards no longer use the generic inline machinery drawings');
+
 for(const id of ['selectorView','dashboardView','faultRows','totalCount','highCount','mediumCount','lowCount','createOverlay','presetsOverlay','presetMachineTitle','presetItems','presetAddForm','newPresetName','addPresetSave','openPresets','newFaultOtherField','newFaultOther','detailsOverlay','detailStatus','detailPriority','photoInput','fileInput','notesList'])assert.ok(html.includes(`id="${id}"`),`missing HTML element ${id}`);
 for(const action of ['access','list','preset-list','preset-add','preset-delete','get','create','update','note-add','upload','delete'])assert.ok(api.includes(`action === "${action}"`),`missing API action ${action}`);
 for(const behaviour of ['create','update','note-add','upload','delete','createSignedUrl','remove('])assert.ok(api.includes(behaviour),`missing backend behaviour ${behaviour}`);
