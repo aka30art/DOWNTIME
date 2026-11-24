@@ -83,7 +83,7 @@ assert.match(app,/api\('export-create'/,'PDF export creation is handled by the s
 assert.match(app,/api\('export-list'/,'PDF archive records are loaded from the server');
 assert.match(api,/canExportRepairMaintenanceReports!==true/,'report API enforces the existing export permission');
 assert.match(api,/createSignedUrl\(report\.storage_path,300\)/,'stored reports use short-lived private links');
-assert.match(api,/buildRepairMaintenancePdf\(faults,filter,generatedAt\)/,'server generates retained PDF reports');
+assert.match(api,/buildRepairMaintenancePdf\(faults, filter, generatedAt, selectedAsset\?\.name \|\| null\)/,'server generates retained PDF reports with machine context');
 assert.match(launcher,/yard-hub:shown/,'launcher must respond to the existing HUB becoming visible');
 assert.match(index,/id="launchRepairMaintenanceBtn"/,'YARD HUB needs the R&M tile');
 assert.match(index,/repair-maintenance-launch\.js/,'YARD HUB must load the R&M launcher');
