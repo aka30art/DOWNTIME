@@ -15,7 +15,7 @@ assert.match(html, /data-app="check-sheets" type="button" disabled/, 'CHECK SHEE
 assert.match(html, /id="launchRepairMaintenanceBtn" data-app="repair-maintenance" type="button"/, 'R&M has an active dedicated module launcher');
 assert.doesNotMatch(html, /id="launchRepairMaintenanceBtn"[^>]*disabled/, 'R&M is not hard-disabled in the HUB markup');
 assert.match(html, /repair-maintenance-launch\.js/, 'R&M launcher loads its authenticated module gate');
-assert.match(html, /shared-ui-system\.css\\?v=20261124-1/, 'YARD HUB loads the shared visual design system');
+assert.ok(html.includes('shared-ui-system.css?v=20261124-1'), 'YARD HUB loads the shared visual design system');
 assert.match(html, /function showCentralApp\(\)\{[^}]*yardHub/, 'successful central authentication routes to YARD HUB');
 assert.match(html, /function launchDowntime\(\)\{[^}]*yardHub/, 'DOWNTIME launch swaps the hub for the existing application');
 assert.match(html, /function returnToYardHub\(\)/, 'DOWNTIME provides a route back to YARD HUB');
