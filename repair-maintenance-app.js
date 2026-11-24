@@ -133,23 +133,13 @@
     renderSettingsAssetManager();
   }
   function renderSettingsAssetManager(){
-    const section=$('settingsMachinerySection'),select=$('settingsAssetSelect');
-    if(!section||!select)return;
+    const section=$('settingsMachinerySection');
+    if(!section)return;
     const canRead=access?.canReadRepairMaintenanceMachinery===true;
     const canManage=access?.canManageRepairMaintenanceMachinery===true;
-    section.hidden=!canRead;
-    select.replaceChildren();
-    const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='SELECT A MACHINE TO EDIT';select.appendChild(placeholder);
-    settingsAssets.forEach(asset=>{
-      const option=document.createElement('option');option.value=asset.id;
-      option.textContent=[asset.asset_code,asset.name,asset.make_model,asset.status==='ARCHIVED'?'ARCHIVED':null].filter(Boolean).join(' · ');
-      select.appendChild(option);
-    });
-    if(settingsAssets.some(asset=>asset.id===settingsSelectedAssetId))select.value=settingsSelectedAssetId;
-    else{select.value='';settingsSelectedAssetId=''}
-    const add=$('settingsAddMachineryButton'),edit=$('settingsEditMachineryButton');
+    section.hidden=!canRead&&access?.canManageRepairMaintenancePresets!==true;
+    const add=$('settingsAddMachineryButton');
     if(add)add.hidden=!canManage;
-    if(edit)edit.hidden=!canManage||!settingsAssets.some(asset=>asset.id===settingsSelectedAssetId);
   }
   function updateModelDropdownSaveState(){
     const save=$('saveModelDropdownSettings');
@@ -178,13 +168,54 @@
   }
   function renderMachineModelManager(){
     const host=$('machineModelItems');if(!host)return;host.replaceChildren();
-    if(!machineModels.length){const empty=document.createElement('p');empty.className='empty';empty.textContent='No models added for this category yet.';host.appendChild(empty);return}
-    machineModels.forEach(model=>{
-      const row=document.createElement('div');row.className='preset-row';
-      const name=document.createElement('strong');name.textContent=model.name;row.appendChild(name);
-      const remove=document.createElement('button');remove.type='button';remove.className='btn danger compact';remove.textContent='REMOVE';
-      remove.addEventListener('click',()=>removeMachineModel(model));row.appendChild(remove);host.appendChild(row);
-    });
+    const canRead=access?.canReadRepairMaintenanceMachinery===true;
+    const canManageModels=access?.canManageRepairMaintenancePresets===true;
+    const canManageAssets=access?.canManageRepairMaintenanceMachinery===true;
+    const modelForm=$('modelAddForm');if(modelForm)modelForm.hidden=!canManageModels;
+    const renderedAssets=new Set();
+    const addAssetRow=(asset,parent)=>{
+      renderedAssets.add(asset.id);
+      const row=document.createElement('div');row.className='rms-unified-asset-row';
+      const copy=document.createElement('div');copy.className='rms-unified-asset-copy';
+      const name=document.createElement('strong');name.textContent=asset.name||'UNNAMED MACHINE';copy.appendChild(name);
+      const meta=document.createElement('small');meta.textContent=[asset.asset_code,asset.make_model,asset.status==='ARCHIVED'?'ARCHIVED':'ACTIVE'].filter(Boolean).join(' · ')||'REGISTERED MACHINE';copy.appendChild(meta);
+      row.appendChild(copy);
+      if(canManageAssets){const edit=document.createElement('button');edit.type='button';edit.className='btn compact';edit.textContent='EDIT';edit.addEventListener('click',()=>openAssetEditor(asset));row.appendChild(edit)}
+      parent.appendChild(row);
+    };
+    if(canRead){
+      machineModels.forEach(model=>{
+        const group=document.createElement('section');group.className='rms-unified-model-group';
+        const head=document.createElement('div');head.className='rms-unified-model-head';
+        const title=document.createElement('div');title.className='rms-unified-model-title';
+        const name=document.createElement('strong');name.textContent=model.name;title.appendChild(name);
+        const type=document.createElement('small');type.textContent='MODEL OPTION';title.appendChild(type);head.appendChild(title);
+        if(canManageModels){const remove=document.createElement('button');remove.type='button';remove.className='btn danger compact';remove.textContent='REMOVE MODEL';remove.addEventListener('click',()=>removeMachineModel(model));head.appendChild(remove)}
+        group.appendChild(head);
+        const key=model.name.trim().toLocaleLowerCase();
+        const related=settingsAssets.filter(asset=>{
+          const identities=[asset.make_model,asset.name].map(value=>String(value||'').trim().toLocaleLowerCase()).filter(Boolean);
+          return !renderedAssets.has(asset.id)&&identities.some(identity=>identity===key||identity.startsWith(key+' ')||identity.startsWith(key+' —')||identity.startsWith(key+' -'));
+        });
+        if(related.length)related.forEach(asset=>addAssetRow(asset,group));
+        else{const empty=document.createElement('p');empty.className='rms-unified-model-empty';empty.textContent='No registered machines under this model yet.';group.appendChild(empty)}
+        host.appendChild(group);
+      });
+      const remaining=settingsAssets.filter(asset=>!renderedAssets.has(asset.id));
+      if(remaining.length){
+        const group=document.createElement('section');group.className='rms-unified-model-group';
+        const head=document.createElement('div');head.className='rms-unified-model-head';
+        const title=document.createElement('div');title.className='rms-unified-model-title';
+        const name=document.createElement('strong');name.textContent='CUSTOM / UNMATCHED MACHINERY';title.appendChild(name);
+        const type=document.createElement('small');type.textContent='REGISTERED MACHINES';title.appendChild(type);head.appendChild(title);group.appendChild(head);
+        remaining.forEach(asset=>addAssetRow(asset,group));host.appendChild(group);
+      }
+    }
+    if(!host.children.length){
+      const empty=document.createElement('p');empty.className='empty';
+      empty.textContent=machineModels.length?'No registered machinery is available in this category.':'No models or registered machinery have been added for this category yet.';
+      host.appendChild(empty);
+    }
   }
   function renderAssetModelField(value=''){
     const manualField=$('assetMakeModelManualField'),selectField=$('assetMakeModelSelectField');
@@ -535,10 +566,8 @@
     $('backToMachineryFromSettings')?.addEventListener('click',renderSelector);
     document.querySelectorAll('#settingsMachineGrid .machine-card[data-settings-machine]').forEach(button=>button.addEventListener('click',()=>openMachineSettings(button.dataset.settingsMachine)));
     $('machineAssetSelect')?.addEventListener('change',event=>selectMachineAsset(event.target.value));
-    $('settingsAssetSelect')?.addEventListener('change',event=>{settingsSelectedAssetId=event.target.value;renderSettingsAssetManager()});
     document.querySelectorAll('[data-rms-tab]').forEach(button=>button.addEventListener('click',()=>setRmsSettingsTab(button.dataset.rmsTab)));
     $('settingsAddMachineryButton')?.addEventListener('click',()=>openAssetEditor());
-    $('settingsEditMachineryButton')?.addEventListener('click',()=>openAssetEditor(settingsAssets.find(asset=>asset.id===settingsSelectedAssetId)||null));
     $('assetForm')?.addEventListener('submit',saveAsset);
     $('assetMakeModelSelect')?.addEventListener('change',()=>{$('assetMakeModelOtherField').hidden=$('assetMakeModelSelect').value!=='__CUSTOM__';if(!$('assetMakeModelOtherField').hidden)$('assetMakeModelOther').focus()});
     $('archiveAssetButton')?.addEventListener('click',archiveCurrentAsset);

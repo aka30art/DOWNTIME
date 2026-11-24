@@ -270,6 +270,20 @@ Deno.serve(async (req: Request) => {
     if (action === "model-list") {
       if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have READ access to R&M settings." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
+      // Keep the principal plant makes available as individual model options.
+      const defaultModel = body.machineType === "KIVERCO_PICKING_LINE" ? "KIVERCO" :
+        body.machineType === "TANNA_SHREDDER" ? "TANNA" : null;
+      if (defaultModel) {
+        const { data: existing, error: lookupError } = await db.from("repair_maintenance_machine_models")
+          .select("id").eq("machine_type", body.machineType).ilike("name", defaultModel).limit(1);
+        if (lookupError) return json({ error: "Unable to verify the default machinery model." }, 503);
+        if (!existing?.length) {
+          const { error: insertError } = await db.from("repair_maintenance_machine_models").insert({
+            machine_type: body.machineType, name: defaultModel, created_by: actor,
+          });
+          if (insertError && insertError.code !== "23505") return json({ error: "Unable to create the default machinery model." }, 503);
+        }
+      }
       const { data, error } = await db.from("repair_maintenance_machine_models")
         .select("id,machine_type,name,created_at")
         .eq("machine_type", body.machineType).order("name", { ascending: true });

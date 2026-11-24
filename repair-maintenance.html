@@ -73,8 +73,10 @@
 .rms-machinery-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
 .rms-machinery-actions .btn{min-height:45px;width:100%}
 #settingsMachinerySection[hidden]{display:none!important}
-#settingsAssetSelect{width:100%;min-height:45px;margin-top:5px}
-@media(max-width:560px){.rms-toggle-save-row{align-items:stretch;flex-direction:column}.rms-toggle-save-row .btn{width:100%}.rms-machinery-actions{grid-template-columns:1fr}}</style>
+
+@media(max-width:560px){.rms-toggle-save-row{align-items:stretch;flex-direction:column}.rms-toggle-save-row .btn{width:100%}.rms-machinery-actions{grid-template-columns:1fr}}
+.rms-unified-machinery-list{display:grid;gap:10px;max-height:34vh;overflow:auto;padding-right:3px}.rms-unified-model-group{border:1px solid #40596f;border-radius:10px;background:#0d2132;padding:9px}.rms-unified-model-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 1px 8px;border-bottom:1px solid #40596f}.rms-unified-model-title{display:grid;gap:2px;min-width:0}.rms-unified-model-title strong{font-size:13px;font-weight:950;letter-spacing:.5px;overflow-wrap:anywhere}.rms-unified-model-title small{font-size:9px;color:var(--yellow);font-weight:900;letter-spacing:.8px}.rms-unified-model-head .btn{min-height:32px;padding:6px 9px;font-size:9px;white-space:nowrap}.rms-unified-asset-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px 2px 12px}.rms-unified-asset-copy{display:grid;gap:2px;min-width:0}.rms-unified-asset-copy strong{font-size:11px;overflow-wrap:anywhere}.rms-unified-asset-copy small{font-size:9px;color:var(--muted);overflow-wrap:anywhere}.rms-unified-asset-row .btn{min-height:31px;padding:5px 10px;font-size:9px}.rms-unified-model-empty{margin:8px 0 1px 12px;color:var(--muted);font-size:10px}@media(max-width:620px){.rms-unified-machinery-list{max-height:32vh}.rms-unified-model-group{padding:8px}.rms-unified-model-head{align-items:flex-start}.rms-unified-model-head .btn{font-size:8px;padding:5px 7px}}
+</style>
 <link rel="stylesheet" href="shared-ui-system.css?v=20261124-1">
 </head>
 <body>
@@ -117,7 +119,7 @@
   <div class="statusbar" id="settingsStatus" role="status" aria-live="polite"></div>
 </section>
 <section id="dashboardView" class="view" hidden>
-  <div class="machinebar"><div class="machineicon" aria-hidden="true"><img id="machineIcon" src="assets/rm-icons/kiverco.svg" alt="" decoding="async"></div><div class="machine-header-copy"><span class="machinelabel" id="machineCategoryLabel">MACHINE TYPE</span><strong id="machineTitle">—</strong><div class="machine-asset-controls" id="machineAssetControls" hidden><label for="machineAssetSelect">REGISTERED MACHINE · FAULT REGISTER</label><select id="machineAssetSelect"><option value="">SELECT REGISTERED MACHINE</option></select><small class="form-help">This selects an existing machine record. The MAKE / MODEL catalogue is controlled separately in RMS settings.</small></div></div><button class="machine-back" id="backToMachinery" type="button">← MACHINERY</button></div>
+  <div class="machinebar"><div class="machineicon" aria-hidden="true"><img id="machineIcon" src="assets/rm-icons/kiverco.svg" alt="" decoding="async"></div><div class="machine-header-copy"><span class="machinelabel" id="machineCategoryLabel">MACHINE TYPE</span><strong id="machineTitle">—</strong><div class="machine-asset-controls" id="machineAssetControls" hidden><label for="machineAssetSelect">REGISTERED MACHINE · FAULT REGISTER</label><select id="machineAssetSelect"><option value="">SELECT REGISTERED MACHINE</option></select><small class="form-help">This selects an existing machine record. Its model is shown in the Machinery &amp; Model Register.</small></div></div><button class="machine-back" id="backToMachinery" type="button">← MACHINERY</button></div>
   <div class="stats"><div class="stat"><span class="staticon">🔧</span><div><div class="statlabel">TOTAL FAULTS</div><div class="statnum" id="totalCount">0</div></div></div><div class="stat"><span class="staticon">⚠</span><div><div class="statlabel">HIGH</div><div class="statnum" id="highCount">0</div></div></div><div class="stat"><span class="staticon">⚠</span><div><div class="statlabel">MEDIUM</div><div class="statnum" id="mediumCount">0</div></div></div><div class="stat"><span class="staticon">ⓘ</span><div><div class="statlabel">LOW</div><div class="statnum" id="lowCount">0</div></div></div></div>
   <section class="faultpanel"><div class="panelhead"><div class="paneltitle"><span class="panel-slash"></span>FAULTS / DEFECTS</div><label class="sort">SORT: <select id="sortSelect"><option value="priority">PRIORITY</option><option value="newest">NEWEST</option><option value="oldest">OLDEST</option></select></label></div>
     <div class="fault-table-head"><div>#</div><div>FAULT / DEFECT</div><div>DESCRIPTION</div><div>PRIORITY</div></div><div id="faultRows" class="fault-rows"><div class="empty">Loading fault records…</div></div>
@@ -191,16 +193,16 @@
     </nav>
     <section class="rms-tab-panel" id="rmsPanelMachinery" role="tabpanel" aria-labelledby="rmsTabMachinery" data-rms-panel="machinery">
     <section class="rms-config-section" id="settingsMachinerySection">
-      <div class="rms-section-heading"><strong>INDIVIDUAL MACHINERY REGISTER</strong><span>ADD / EDIT MACHINERY</span></div>
-      <p class="form-help">Manage the individual machinery records for this category. Select a registered machine to edit its details or add a new one.</p>
-      <div class="form-field">
-        <label for="settingsAssetSelect">REGISTERED MACHINERY</label>
-        <select id="settingsAssetSelect"><option value="">SELECT A MACHINE TO EDIT</option></select>
-      </div>
+      <div class="rms-section-heading"><strong>MACHINERY &amp; MODEL REGISTER</strong><span>ONE CONSOLIDATED LIST</span></div>
+      <p class="form-help">Models and their registered machines are managed together here. Select EDIT on a registered machine to change its details, or remove a model option without changing existing machine records.</p>
+      <div class="preset-manager-list rms-unified-machinery-list" id="machineModelItems"></div>
       <div class="rms-machinery-actions">
         <button class="btn primary" id="settingsAddMachineryButton" type="button" hidden>＋ ADD MACHINERY</button>
-        <button class="btn" id="settingsEditMachineryButton" type="button" hidden>EDIT SELECTED MACHINE</button>
       </div>
+      <form id="modelAddForm" class="preset-add-grid">
+        <div class="form-field"><label for="newModelName">NEW MODEL OPTION</label><input id="newModelName" maxlength="120" required placeholder="e.g. JCB 540-140, Manitou MT 625"></div>
+        <button class="btn primary" type="submit" id="addModelSave">ADD MODEL</button>
+      </form>
     </section>
     <section class="rms-config-section">
       <div class="rms-section-heading"><strong>INDIVIDUAL MACHINERY SCROLL-DOWN MENU</strong><span>PER-MACHINERY DISPLAY SETTING</span></div>
@@ -213,15 +215,7 @@
         <button class="btn primary" id="saveModelDropdownSettings" type="button" disabled>SAVE SETTINGS</button>
       </div>
     </section>
-    <section class="rms-config-section">
-      <div class="rms-section-heading"><strong>MACHINERY MODEL CATALOGUE</strong><span>MAKE / MODEL OPTIONS</span></div>
-      <p class="form-help">These models appear in the individual machinery form when the scroll-down menu is enabled. Removing a model does not change machines already registered.</p>
-      <div class="preset-manager-list" id="machineModelItems"></div>
-      <form id="modelAddForm" class="preset-add-grid">
-        <div class="form-field"><label for="newModelName">NEW MACHINERY MODEL</label><input id="newModelName" maxlength="120" required placeholder="e.g. JCB 540-140, Manitou MT 625"></div>
-        <button class="btn primary" type="submit" id="addModelSave">ADD MODEL</button>
-      </form>
-    </section>
+
     </section>
     <section class="rms-tab-panel" id="rmsPanelAreaParts" role="tabpanel" aria-labelledby="rmsTabAreaParts" data-rms-panel="area-parts" hidden>
     <section class="rms-config-section">
@@ -253,5 +247,5 @@
 
 <script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';window.REPAIR_MAINTENANCE_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/repair-maintenance-api';</script>
 <script src="central-bank-client.js"></script>
-<script src="repair-maintenance-app.js?v=20261124-12"></script>
+<script src="repair-maintenance-app.js?v=20261124-13"></script>
 </body></html>
