@@ -244,8 +244,10 @@ Deno.serve(async (req: Request) => {
     if (!Number.isInteger(expectedVersion) || expectedVersion !== Number(configRow.version)) {
       return json({ error: "YARD HUB permissions changed elsewhere. Refresh and try again." }, 409);
     }
-    const editableRoles = isRootAdmin(user, hubTier, legacyTier) ? [...tierNames, ...(Array.isArray(body.payload?.customTiers) ? body.payload.customTiers : [])] : [...editableByAdmin];
-    if (!isRootAdmin(user, hubTier, legacyTier) && JSON.stringify(body.payload?.customTiers || []) !== JSON.stringify(configRow.payload.customTiers || [])) return json({ error: "Only DEV / DEVACC may create or change custom tiers." }, 403);
+    const incomingPayload = body.payload as Record<string, any> | undefined;
+    const incomingCustomTiers = Array.isArray(incomingPayload?.customTiers) ? incomingPayload.customTiers : [];
+    const editableRoles = isRootAdmin(user, hubTier, legacyTier) ? [...tierNames, ...incomingCustomTiers] : [...editableByAdmin];
+    if (!isRootAdmin(user, hubTier, legacyTier) && JSON.stringify(incomingCustomTiers) !== JSON.stringify(configRow.payload.customTiers || [])) return json({ error: "Only DEV / DEVACC may create or change custom tiers." }, 403);
     let nextPayload: any;
     try {
       nextPayload = normalizeTierPermissions(body.payload, configRow.payload, editableRoles);
