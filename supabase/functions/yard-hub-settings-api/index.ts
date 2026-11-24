@@ -2,8 +2,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const allowedOrigin = "https://aka30art.github.io";
-const tierNames = ["OWNER", "DEVACC", "ADMIN", "MANAGER", "SUPERVISOR", "USER", "SPECTATOR"] as const;
-const editableByAdmin = ["MANAGER", "SUPERVISOR", "USER", "SPECTATOR"] as const;
+const tierNames = ["OWNER", "DEVACC", "ADMIN", "MANAGER", "SUPERVISOR", "MECHANIC", "USER", "SPECTATOR"] as const;
+const editableByAdmin = ["MANAGER", "SUPERVISOR", "MECHANIC", "USER", "SPECTATOR"] as const;
 const accessModes = ["NONE", "READ", "EDIT"] as const;
 const headers = {
   "Access-Control-Allow-Origin": allowedOrigin,
