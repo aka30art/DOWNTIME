@@ -79,7 +79,7 @@ assert.ok(api.includes('.eq("is_other", false)'),'backend protects OTHER from de
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
 assert.ok(html.includes('repair-maintenance-app.js?v=20261124-14'),'R&M app script cache is refreshed');
-assert.match(app,/machineAssetControls'\)\.hidden=access\?\.canReadRepairMaintenanceMachinery!==true\|\|machineSettings\.asset_selector_enabled!==true/,'R&M registered-machine selector follows its saved per-category setting');
+assert.match(app,/function updateAssetSelectorVisibility\(\)[\s\S]*host\.hidden=access\?\.canReadRepairMaintenanceMachinery!==true\|\|machineSettings\.asset_selector_enabled!==true/,'R&M registered-machine selector follows its saved per-category setting');
 assert.match(app,/machineSettings\.model_dropdown_enabled!==true/,'MAKE / MODEL catalogue visibility remains separately configured');
 assert.match(app,/function saveAssetSelectorSetting\(\)/,'registered-machine visibility has an independent save action');
 assert.match(api,/asset_selector_enabled/,'R&M API reads and writes the registered-machine visibility field');

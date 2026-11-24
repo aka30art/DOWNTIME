@@ -76,7 +76,7 @@ assert.ok(html.includes('repair-maintenance-app.js?v=20261124-14'));
 assert.ok(html.includes('id="modelDropdownEnabled"'));
 assert.ok(html.includes('id="assetSelectorEnabled"'));
 assert.match(app,/function updateAssetSelectorVisibility\(\)/,'registered-machine selector has a dedicated visibility function');
-assert.match(app,/machineAssetControls'\)\.hidden=access\?\.canReadRepairMaintenanceMachinery!==true\|\|machineSettings\.asset_selector_enabled!==true/,'registered-machine menu visibility follows its per-category setting');
+assert.match(app,/function updateAssetSelectorVisibility\(\)[\s\S]*host\.hidden=access\?\.canReadRepairMaintenanceMachinery!==true\|\|machineSettings\.asset_selector_enabled!==true/,'registered-machine menu visibility follows its per-category setting');
 assert.match(app,/api\('settings-get',\{machineType:currentMachine\.key\}\)/,'dashboard loads the selected category RMS setting before rendering the machine selector');
 assert.match(app,/function renderAssetSelect\(\)[\s\S]*updateAssetSelectorVisibility\(\)/,'all machinery categories apply their saved selector visibility');
 assert.ok(html.includes('id="saveModelDropdownSettings"'));
