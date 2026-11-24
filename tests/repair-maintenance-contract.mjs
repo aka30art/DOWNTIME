@@ -38,6 +38,8 @@ assert.ok(html.includes('<select id="newFaultName"'),'fault field uses a machine
 assert.ok(html.includes('id="newFaultOtherField" hidden'),'OTHER fallback is a conditional manual-entry field');
 assert.ok(html.includes('#newFaultOtherField[hidden],.machine-cog-button[hidden]{display:none!important}'),'hidden attribute is enforced for the optional field and PRESETS button');
 assert.ok(html.includes('id="openPresets"'),'machinery header exposes PRESETS');
+assert.match(html,/\.machinebar\{[^}]*grid-template-columns:128px minmax\(0,1fr\) max-content;[^}]*padding-right:12px/,'desktop machine header reserves the full back-button width and right-side clearance');
+assert.doesNotMatch(html,/\.frame:(?:before|after)/,'all decorative corner-marker selectors are removed from the R&M interface');
 assert.ok(app.includes("api('preset-list'"),'the client loads the selected machine preset list');
 assert.ok(app.includes('presetId:preset.id'),'fault creation sends the selected preset ID');
 assert.ok(app.includes('preset-delete'),'the UI allows individual preset removal');
