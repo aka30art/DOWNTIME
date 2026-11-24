@@ -180,4 +180,4 @@ assert.ok(hubApi.includes('removedCustomTiers'), 'server detects custom tier rem
 assert.ok(hubApi.includes('Reassign every user from '), 'server blocks deletion while any account remains assigned');
 assert.ok(ui.includes('function deleteCustomTier(role)'), 'root tier management includes a delete workflow');
 assert.ok(ui.includes("remove.type='button'"), 'custom tier delete control is an explicit button');
-assert.ok(ui.includes('REASSIGN '+ '), 'client warns when a custom tier still has assigned users');
+assert.ok(ui.includes("setStatus('REASSIGN '"), 'client warns when a custom tier still has assigned users');
