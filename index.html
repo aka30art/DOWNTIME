@@ -402,6 +402,66 @@ body.overview-overlay-open{overflow:hidden}
  #entryModal .modalfoot{position:sticky;bottom:0;padding-top:12px;background:linear-gradient(180,#142735ee,#142735);z-index:3}
  #entryModal .modalfoot button{min-height:44px;min-width:110px}
 }
+
+/* CENTRAL LOGIN VIEWPORT FIT — preserve the approved design without page scrolling */
+#authGate{padding:8px!important;overflow:hidden!important;place-items:center!important}
+#authGate .authbox.authbox-central{width:min(640px,100%)!important;max-width:640px!important;max-height:calc(100dvh - 16px)!important;overflow:hidden!important;padding:clamp(10px,1.8vh,20px)!important;margin:auto!important}
+#authGate .auth-brand{margin:0 auto clamp(4px,1vh,9px)!important}
+#authGate .auth-brand-wordmark{font-size:clamp(30px,5.2vh,48px)!important;line-height:.92}
+#authGate .auth-brand-wordmark:before{height:clamp(28px,4.6vh,43px)!important;flex-basis:clamp(12px,2vh,19px)!important}
+#authGate .auth-brand>p{margin-top:3px!important;font-size:9px!important;letter-spacing:3px!important}
+#authGate .auth-divider{margin:clamp(5px,1vh,9px) 0!important;gap:9px}
+#authGate .auth-divider span{height:3px}
+#authGate .auth-divider i{height:13px;width:42px}
+#authGate .authbox h2{font-size:clamp(18px,2.9vh,25px)!important;gap:11px!important;margin:0 0 5px!important;line-height:1.02}
+#authGate .authbox h2:before{flex-basis:20px!important;height:29px!important}
+#authGate .authbox>p.muted{font-size:10px!important;line-height:1.2;margin:0 0 8px!important;letter-spacing:.5px!important}
+#authGate .authbox label{font-size:9px!important;letter-spacing:1px!important;margin:0 0 4px!important}
+#authGate #centralUsername{min-height:42px!important;height:42px!important;padding:7px 38px 7px 12px!important;border-radius:11px!important;font-size:14px!important;background-position:calc(100% - 20px) 17px,calc(100% - 13px) 17px!important;background-size:7px 7px!important}
+#authGate .auth-field-label{margin-top:9px!important}
+#authGate #teamPin{height:43px!important;min-height:43px!important;padding:7px 12px!important;border-radius:11px!important;font-size:19px!important}
+#authGate .pinpad{margin:7px 0 8px!important}
+#authGate .pinpad-grid{gap:5px!important}
+#authGate .pinpad-grid button{min-height:clamp(31px,5.2vh,42px)!important;height:clamp(31px,5.2vh,42px)!important;padding:4px!important;border-radius:10px!important;font-size:clamp(17px,2.6vh,22px)!important}
+#authGate .pinpad-grid button[data-key=clear],#authGate .pinpad-grid button[data-key=back]{font-size:10px!important}
+#authGate #unlockBtn{min-height:42px!important;height:42px!important;border-radius:11px!important;font-size:17px!important}
+#authGate #unlockBtn:before{font-size:17px!important;margin-right:8px!important}
+#authGate #refreshAppBtn{min-height:36px!important;height:36px!important;margin-top:6px!important;padding:5px 8px!important;border-radius:10px!important;font-size:12px!important}
+#authGate #refreshAppBtn:before{font-size:17px!important;margin-right:7px!important}
+#authGate #authMsg{min-height:14px!important;margin-top:4px!important;font-size:11px;line-height:1.15}
+@media(max-width:600px){
+ #authGate{padding:6px!important}
+ #authGate .authbox.authbox-central{width:100%!important;max-width:440px!important;max-height:calc(100dvh - 12px)!important;padding:clamp(9px,1.6vh,14px)!important;border-radius:17px}
+ #authGate .auth-brand-wordmark{font-size:clamp(28px,5vh,42px)!important}
+ #authGate .auth-divider{margin:4px 0!important}
+ #authGate .authbox h2{font-size:clamp(17px,2.8vh,22px)!important}
+ #authGate .authbox>p.muted{font-size:9px!important;margin-bottom:6px!important}
+ #authGate .auth-field-label{margin-top:7px!important}
+ #authGate .pinpad{margin:6px 0!important}
+ #authGate .pinpad-grid{gap:4px!important}
+ #authGate .pinpad-grid button{min-height:clamp(29px,5vh,40px)!important;height:clamp(29px,5vh,40px)!important}
+}
+@media(max-height:700px){
+ #authGate .authbox.authbox-central{padding:8px 12px!important}
+ #authGate .auth-brand{margin-bottom:3px!important}
+ #authGate .auth-brand-wordmark{font-size:28px!important}
+ #authGate .auth-brand-wordmark:before{height:26px!important}
+ #authGate .auth-brand>p{font-size:8px!important;margin-top:1px!important}
+ #authGate .auth-divider{margin:3px 0!important}
+ #authGate .auth-divider i{height:9px}
+ #authGate .authbox h2{font-size:17px!important}
+ #authGate .authbox h2:before{height:22px!important}
+ #authGate .authbox>p.muted{font-size:9px!important;margin-bottom:4px!important}
+ #authGate #centralUsername{height:36px!important;min-height:36px!important}
+ #authGate .auth-field-label{margin-top:5px!important}
+ #authGate #teamPin{height:36px!important;min-height:36px!important}
+ #authGate .pinpad{margin:4px 0!important}
+ #authGate .pinpad-grid button{height:clamp(26px,4.7vh,34px)!important;min-height:clamp(26px,4.7vh,34px)!important}
+ #authGate #unlockBtn{height:35px!important;min-height:35px!important}
+ #authGate #refreshAppBtn{height:31px!important;min-height:31px!important;margin-top:4px!important}
+ #authGate #authMsg{min-height:10px!important;margin-top:2px!important}
+}
+
 </style><style>
 .day-setup-panel{position:relative}
 .day-setup>summary{padding-right:122px}
