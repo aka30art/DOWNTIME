@@ -36,6 +36,7 @@ assert.match(html,/id="deleteFault"[^>]*>✓ SOLVED</,'SOLVED action replaces DE
 assert.ok(html.includes('AREA / PART OF MACHINERY'),'fault field label uses machinery terminology');
 assert.ok(html.includes('<select id="newFaultName"'),'fault field uses a machine-specific preset dropdown');
 assert.ok(html.includes('id="newFaultOtherField" hidden'),'OTHER fallback is a conditional manual-entry field');
+assert.ok(html.includes('#newFaultOtherField[hidden],.machine-cog-button[hidden]{display:none!important}'),'hidden attribute is enforced for the optional field and PRESETS button');
 assert.ok(html.includes('id="openPresets"'),'machinery header exposes PRESETS');
 assert.ok(app.includes("api('preset-list'"),'the client loads the selected machine preset list');
 assert.ok(app.includes('presetId:preset.id'),'fault creation sends the selected preset ID');
