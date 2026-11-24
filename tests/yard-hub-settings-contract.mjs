@@ -14,6 +14,11 @@ const centralApi=fs.readFileSync('supabase/functions/central-bank/index.ts','utf
 const centralClient=fs.readFileSync('central-bank-client.js','utf8');
 
 // YARD HUB Settings is an additive surface inside the Hub, not inside the DOWNTIME application shell.
+assert.match(html,/id="yardHubSettingsBtn" data-app="settings" type="button"[^>]*hidden/,'Settings must be the fifth, access-gated application tile');
+assert.match(html,/\.yard-tile\[hidden\][^{]*\{display:none!important\}/,'the Settings tile must remain hidden until access is verified');
+assert.doesNotMatch(html,/yard-logout yard-hub-settings-trigger/,'Settings must not remain in the authenticated-user header');
+assert.match(ui,/const hero=hub\.querySelector\('\.yard-hero'\)/,'opening Settings must hide the HUB hero as well as the application menu');
+assert.match(ui,/\[hero,grid,heading,footer\]\.forEach/,'Settings must replace the HUB menu instead of appearing beneath it');
 assert.match(css,/\.yard-hub-settings-home\[hidden\],\.yard-hub-settings-view\[hidden\]\{display:none!important\}/,'settings home and subviews must honor hidden state so they never stack');
 
 for(const id of ['yardHubSettingsBtn','yardHubSettingsScreen','yardHubSettingsUsers','yardHubSettingsTiers','yardHubUsersList','yardHubTierCards','yardHubUserHubTier','yardHubUserDowntimeTier']) {
@@ -25,10 +30,10 @@ assert.match(html,/yard-hub-settings\.css\?v=/,'Hub Settings style asset is vers
 assert.match(html,/data-app="floor" type="button" disabled/,'FLOOR remains unavailable until its application is released');
 assert.match(html,/data-app="check-sheets" type="button" disabled/,'CHECK SHEETS remains unavailable until its application is released');
 assert.match(html,/id="launchDowntimeBtn" data-app="downtime" type="button"/,'DOWNTIME launcher remains present and enabled');
-assert.ok(html.includes('yard-hub-settings.js?v=20261124-2'),'YARD HUB settings client cache is refreshed');
+assert.ok(html.includes('yard-hub-settings.js?v=20261124-3'),'YARD HUB settings client cache is refreshed');
 assert.ok(pagesWorkflow.includes("if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'"),'Pages artifact build runs on PRs for pre-merge validation');
 assert.ok(pagesWorkflow.includes("if: github.ref == 'refs/heads/main'"),'Pages deployment remains restricted to main');
-assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-2'),'live deployment smoke test verifies the updated Hub settings asset');
+assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-3'),'live deployment smoke test verifies the updated Hub settings asset');
 assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-13'),'live deployment smoke test verifies the updated R&M app asset');
 for(const id of ['openRmsSettingsShortcut','saveModelDropdownSettings','settingsAddMachineryButton','machineModelItems','presetItems'])assert.ok(pagesWorkflow.includes(id),'live deployment verification covers current RMS control '+id);
 assert.ok(pagesWorkflow.includes('MACHINERY &amp; MODEL REGISTER') && pagesWorkflow.includes('REGISTERED MACHINE · FAULT REGISTER'),'live deployment verification distinguishes registered assets from make/model catalogue');
