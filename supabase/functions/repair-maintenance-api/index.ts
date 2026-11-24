@@ -157,6 +157,27 @@ Deno.serve(async (req: Request) => {
       return json({ faults: data || [] });
     }
 
+    if (action === "report-list") {
+      if (permissions.canExportRepairMaintenanceReports !== true) return json({ error: "You do not have permission to export R&M reports." }, 403);
+      if (body.machineType !== undefined && body.machineType !== null && body.machineType !== "" && !isOneOf(body.machineType, machineTypes)) {
+        return json(fail("Select a valid machinery filter."), 400);
+      }
+      const machineFilter = typeof body.machineType === "string" && body.machineType ? body.machineType : null;
+      const reportFields = "id,machine_type,fault_name,description,priority,status,created_by,updated_by,created_at,updated_at";
+      const faults: any[] = [];
+      const pageSize = 500;
+      for (let offset = 0; ; offset += pageSize) {
+        let query = db.from("repair_maintenance_faults").select(reportFields);
+        if (machineFilter) query = query.eq("machine_type", machineFilter);
+        const { data, error } = await query.order("created_at", { ascending: false }).range(offset, offset + pageSize - 1);
+        if (error) return json({ error: "Unable to load the R&M report records." }, 503);
+        const page = data || [];
+        faults.push(...page);
+        if (page.length < pageSize) break;
+      }
+      return json({ faults, machineType: machineFilter });
+    }
+
     if (action === "get") {
       const fault = await loadFault(body.faultId);
       const [{ data: notes, error: notesError }, { data: attachments, error: filesError }] = await Promise.all([
@@ -174,14 +195,14 @@ Deno.serve(async (req: Request) => {
 
     if (action === "create") {
       if (!requireEdit()) return json({ error: "You do not have permission to create R&M faults." }, 403);
-      if (!isOneOf(body.machineType, machineTypes) || !isOneOf(body.priority, priorities) || !isOneOf(body.status, statuses.slice(0, 2))) return json(fail("Machine, priority or status is invalid."), 400);
+      if (!isOneOf(body.machineType, machineTypes) || !isOneOf(body.priority, priorities)) return json(fail("Machine or priority is invalid."), 400);
       const presetId = cleanText(body.presetId, "Machinery preset", 64);
       const { data: preset, error: presetError } = await db.from("repair_maintenance_machine_presets")
         .select("id,name,is_other").eq("id", presetId).eq("machine_type", body.machineType).maybeSingle();
       if (presetError || !preset) return json({ error: "Select a valid preset for this machinery." }, 400);
       const faultName = preset.is_other ? cleanText(body.otherArea, "Area / Part of Machinery", 120) : preset.name;
       const description = cleanText(body.description, "Description", 2000);
-      const { data, error } = await db.from("repair_maintenance_faults").insert({ machine_type: body.machineType, fault_name: faultName, description, priority: body.priority, status: body.status, created_by: actor, updated_by: actor }).select("*").single();
+      const { data, error } = await db.from("repair_maintenance_faults").insert({ machine_type: body.machineType, fault_name: faultName, description, priority: body.priority, status: "OPEN", created_by: actor, updated_by: actor }).select("*").single();
       if (error || !data) return json({ error: "Unable to save the new fault record." }, 503);
       await audit("rm-fault-create", { faultId: data.id, machineType: data.machine_type, priority: data.priority });
       return json({ fault: data }, 201);
