@@ -99,7 +99,11 @@ jobs:
           grep -q 'id="openRmsSettingsShortcut"' /tmp/live-repair-maintenance.html
           grep -q 'id="saveModelDropdownSettings"' /tmp/live-repair-maintenance.html
           grep -q 'id="modelDropdownEnabled"' /tmp/live-repair-maintenance.html
-          grep -q 'INDIVIDUAL MACHINERY SCROLL-DOWN MENU' /tmp/live-repair-maintenance.html
+          grep -q 'MAKE / MODEL DROPDOWN' /tmp/live-repair-maintenance.html
+          grep -q 'id="assetSelectorEnabled"' /tmp/live-repair-maintenance.html
+          grep -q 'id="saveAssetSelectorSettings"' /tmp/live-repair-maintenance.html
+          grep -q 'REGISTERED MACHINE MENU' /tmp/live-repair-maintenance.html
+          grep -q 'registered-machine selector is visible on the R&amp;M dashboard' /tmp/live-repair-maintenance.html
           grep -q 'REGISTERED MACHINE · FAULT REGISTER' /tmp/live-repair-maintenance.html
           grep -q 'id="machineAssetSelect"' /tmp/live-repair-maintenance.html
           grep -q 'id="settingsAddMachineryButton"' /tmp/live-repair-maintenance.html
@@ -111,7 +115,7 @@ jobs:
           ! grep -q 'id="openPresets"' /tmp/live-repair-maintenance.html
           ! grep -q 'id="addMachineryButton"' /tmp/live-repair-maintenance.html
           ! grep -q 'id="editMachineryButton"' /tmp/live-repair-maintenance.html
-          curl --fail --silent --show-error --location "$LIVE_URL/repair-maintenance-app.js?v=20261124-13" -o /tmp/live-repair-maintenance-app.js
+          curl --fail --silent --show-error --location "$LIVE_URL/repair-maintenance-app.js?v=20261124-14" -o /tmp/live-repair-maintenance-app.js
           grep -q 'export-create' /tmp/live-repair-maintenance-app.js
           grep -q 'export-list' /tmp/live-repair-maintenance-app.js
           grep -q 'export-delete' /tmp/live-repair-maintenance-app.js
@@ -121,6 +125,9 @@ jobs:
           grep -q "assetId:currentAsset.id" /tmp/live-repair-maintenance-app.js
           grep -q 'detailUpdateStatus' /tmp/live-repair-maintenance-app.js
           grep -q 'function saveModelDropdownSetting' /tmp/live-repair-maintenance-app.js
+          grep -q 'function saveAssetSelectorSetting' /tmp/live-repair-maintenance-app.js
+          grep -q 'asset_selector_enabled' /tmp/live-repair-maintenance-app.js
+          grep -q 'updateAssetSelectorVisibility' /tmp/live-repair-maintenance-app.js
           grep -q 'machineSettings.model_dropdown_enabled!==true' /tmp/live-repair-maintenance-app.js
           grep -q "settings-get" /tmp/live-repair-maintenance-app.js
           grep -q 'function renderAssetModelField' /tmp/live-repair-maintenance-app.js
