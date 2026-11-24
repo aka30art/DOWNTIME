@@ -107,6 +107,7 @@
     ]);
     machineSettings=settingsResult.settings||{model_dropdown_enabled:true};
     modelDropdownDraft=machineSettings.model_dropdown_enabled===true;
+    renderAssetSelect();
     machineModels=Array.isArray(modelsResult.models)?modelsResult.models:[];
     settingsAssets=Array.isArray(assetResult.assets)?assetResult.assets:[];
     const currentId=currentMachine.key===currentAsset?.machine_type?currentAsset.id:'';
@@ -152,6 +153,7 @@
       machineSettings=result.settings||{...machineSettings,model_dropdown_enabled:modelDropdownDraft};
       modelDropdownDraft=machineSettings.model_dropdown_enabled===true;
       $('modelDropdownEnabled').checked=modelDropdownDraft;
+      renderAssetSelect();
       updateModelDropdownSaveState();
       say(modelDropdownDraft?'MAKE / MODEL dropdown setting saved: ENABLED.':'MAKE / MODEL dropdown setting saved: DISABLED; manual entry is available.',machineSettingsStatusTarget(),'ok');
     }catch(error){
@@ -230,7 +232,7 @@
       select.appendChild(option);
     });
     if(unassignedCount>0){const legacy=document.createElement('option');legacy.value='__UNASSIGNED__';legacy.textContent='UNASSIGNED / LEGACY FAULTS ('+unassignedCount+')';select.appendChild(legacy)}
-    $('machineAssetControls').hidden=access?.canReadRepairMaintenanceMachinery!==true;
+    $('machineAssetControls').hidden=access?.canReadRepairMaintenanceMachinery!==true||machineSettings.model_dropdown_enabled!==true;
     select.value=[...select.options].some(option=>option.value===previous)?previous:'';
   }
   async function syncDashboardAssetsAfterSettings(preferredId=''){
@@ -256,13 +258,17 @@
     const icon=$('machineIcon');if(icon)icon.src=currentMachine.icon;
     $('machineCategoryLabel').textContent=currentMachine.sub;
     $('machineTitle').textContent='SELECT A MACHINE';
-    $('machineAssetControls').hidden=access?.canReadRepairMaintenanceMachinery!==true;
+    $('machineAssetControls').hidden=true;
     $('machineAssetSelect').replaceChildren(new Option('LOADING MACHINERY…',''));
     setRegisterMessage(access?.canReadRepairMaintenanceMachinery===true?'Loading registered machines…':'Your tier does not have READ access to R&M MACHINERY.');
     applyPermissions();
     if(access?.canReadRepairMaintenanceMachinery!==true){say('R&M MACHINERY READ permission is required to select an individual machine.','dashboardStatus','error');return}
     try{
-      const result=await api('asset-list',{machineType:currentMachine.key});
+      const [result,settingsResult]=await Promise.all([
+        api('asset-list',{machineType:currentMachine.key}),
+        api('settings-get',{machineType:currentMachine.key})
+      ]);
+      machineSettings=settingsResult.settings||{model_dropdown_enabled:true};
       assets=Array.isArray(result.assets)?result.assets:[];
       unassignedCount=Number(result.unassignedCount)||0;
       renderAssetSelect();
