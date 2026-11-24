@@ -171,6 +171,7 @@
     const canRead=access?.canReadRepairMaintenanceMachinery===true;
     const canManageModels=access?.canManageRepairMaintenancePresets===true;
     const canManageAssets=access?.canManageRepairMaintenanceMachinery===true;
+    const modelForm=$('modelAddForm');if(modelForm)modelForm.hidden=!canManageModels;
     const renderedAssets=new Set();
     const addAssetRow=(asset,parent)=>{
       renderedAssets.add(asset.id);
@@ -193,8 +194,8 @@
         group.appendChild(head);
         const key=model.name.trim().toLocaleLowerCase();
         const related=settingsAssets.filter(asset=>{
-          const identity=String(asset.make_model||asset.name||'').trim().toLocaleLowerCase();
-          return !renderedAssets.has(asset.id)&&(identity===key||identity.startsWith(key+' ')||identity.startsWith(key+' —')||identity.startsWith(key+' -'));
+          const identities=[asset.make_model,asset.name].map(value=>String(value||'').trim().toLocaleLowerCase()).filter(Boolean);
+          return !renderedAssets.has(asset.id)&&identities.some(identity=>identity===key||identity.startsWith(key+' ')||identity.startsWith(key+' —')||identity.startsWith(key+' -'));
         });
         if(related.length)related.forEach(asset=>addAssetRow(asset,group));
         else{const empty=document.createElement('p');empty.className='rms-unified-model-empty';empty.textContent='No registered machines under this model yet.';group.appendChild(empty)}
