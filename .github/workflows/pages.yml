@@ -103,19 +103,21 @@ jobs:
           grep -q 'REGISTERED MACHINE · FAULT REGISTER' /tmp/live-repair-maintenance.html
           grep -q 'id="machineAssetSelect"' /tmp/live-repair-maintenance.html
           grep -q 'id="settingsAddMachineryButton"' /tmp/live-repair-maintenance.html
-          grep -q 'id="settingsEditMachineryButton"' /tmp/live-repair-maintenance.html
+          grep -q 'id="machineModelItems"' /tmp/live-repair-maintenance.html
+          grep -q 'MACHINERY &amp; MODEL REGISTER' /tmp/live-repair-maintenance.html
           grep -q 'id="presetItems"' /tmp/live-repair-maintenance.html
           grep -q 'id="assetOverlay"' /tmp/live-repair-maintenance.html
           grep -q 'id="reportAssetId"' /tmp/live-repair-maintenance.html
           ! grep -q 'id="openPresets"' /tmp/live-repair-maintenance.html
           ! grep -q 'id="addMachineryButton"' /tmp/live-repair-maintenance.html
           ! grep -q 'id="editMachineryButton"' /tmp/live-repair-maintenance.html
-          curl --fail --silent --show-error --location "$LIVE_URL/repair-maintenance-app.js?v=20261124-12" -o /tmp/live-repair-maintenance-app.js
+          curl --fail --silent --show-error --location "$LIVE_URL/repair-maintenance-app.js?v=20261124-13" -o /tmp/live-repair-maintenance-app.js
           grep -q 'export-create' /tmp/live-repair-maintenance-app.js
           grep -q 'export-list' /tmp/live-repair-maintenance-app.js
           grep -q 'export-delete' /tmp/live-repair-maintenance-app.js
           grep -q "asset-list" /tmp/live-repair-maintenance-app.js
           grep -q "asset-add" /tmp/live-repair-maintenance-app.js
+          grep -q 'function renderMachineModelManager' /tmp/live-repair-maintenance-app.js
           grep -q "assetId:currentAsset.id" /tmp/live-repair-maintenance-app.js
           grep -q 'detailUpdateStatus' /tmp/live-repair-maintenance-app.js
           grep -q 'function saveModelDropdownSetting' /tmp/live-repair-maintenance-app.js
