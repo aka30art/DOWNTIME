@@ -94,7 +94,9 @@ assert.ok(html.includes('<div class="section-title">R&amp;M CONFIGURATION</div>'
 assert.ok(html.includes('MANAGE REGISTERED MACHINES, MODELS AND CATEGORY SETTINGS'),'configuration subtitle explains its administrative purpose');
 assert.match(html,/<div class="machine-nav-actions">[\s\S]*?id="backToMachinery"[^>]*>← MACHINERY[\s\S]*?id="openRmsSettingsShortcut"[^>]*>CONFIGURATION/,'machine configuration shortcut is beside Machinery navigation');
 assert.ok(html.includes('id="openSettingsWorkspace"'),'Operations offers a Configuration workspace switch');
-assert.doesNotMatch(html,/<div class="hero-actions">[\s\S]*?openRmsSettingsShortcut/,'machine configuration action is removed from hero navigation');
+const heroMarkup = html.match(/<header class="hero">[\s\S]*?<\/header>/)?.[0] || '';
+assert.ok(heroMarkup,'R&M hero header exists');
+assert.doesNotMatch(heroMarkup,/openRmsSettingsShortcut/,'machine configuration action is removed from hero navigation');
 assert.ok(html.includes('← OPERATIONS</button>'),'configuration back navigation returns to operations');
 assert.equal((html.match(/MANAGE MACHINES →/g)||[]).length,6,'all six category cards use the same configuration action label');
 assert.doesNotMatch(html,/RMS\s*[·•]/,'RMS acronym is removed from user-facing navigation');
