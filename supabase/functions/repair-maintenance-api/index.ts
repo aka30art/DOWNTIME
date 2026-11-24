@@ -171,19 +171,19 @@ Deno.serve(async (req: Request) => {
       if(error||!data){await db.storage.from(reportBucket).remove([storagePath]);return json({error:"The PDF was generated but could not be registered in PDF EXPORTS."},503)}
       await audit("rm-pdf-export-create",{reportId:data.id,machineType:filter,recordCount:faults.length,fileSizeBytes:bytes.length});return json({report:data},201)
     }
-    if(action==="export-list"){
+    if (action === "export-list"){
       if(permissions.canExportRepairMaintenanceReports!==true)return json({error:"You do not have permission to view R&M PDF exports."},403);
       if(body.machineType!==undefined&&body.machineType!==null&&body.machineType!==""&&!isOneOf(body.machineType,machineTypes))return json(fail("Select a valid machinery filter."),400);
       const offset=typeof body.offset==="number"&&Number.isInteger(body.offset)?body.offset:0;if(offset<0||offset>20000)return json(fail("PDF export page is invalid."),400);
       const filter=typeof body.machineType==="string"&&body.machineType?body.machineType:null;let query=db.from("repair_maintenance_pdf_exports").select("id,machine_type,file_name,mime_type,file_size_bytes,record_count,created_by,created_at");if(filter)query=query.eq("machine_type",filter);
       const {data,error}=await query.order("created_at",{ascending:false}).range(offset,offset+49);if(error)return json({error:"Unable to load PDF EXPORTS."},503);const reports=data||[];return json({reports,hasMore:reports.length===50,nextOffset:offset+reports.length})
     }
-    if(action==="export-url"){
+    if (action === "export-url"){
       if(permissions.canExportRepairMaintenanceReports!==true)return json({error:"You do not have permission to open R&M PDF exports."},403);
       const id=cleanText(body.reportId,"PDF export ID",64),{data:report,error}=await db.from("repair_maintenance_pdf_exports").select("id,storage_path,file_name").eq("id",id).maybeSingle();if(error)return json({error:"Unable to load the selected PDF export."},503);if(!report)return json({error:"PDF export not found."},404);
       const {data,error:signedError}=await db.storage.from(reportBucket).createSignedUrl(report.storage_path,300);if(signedError||!data?.signedUrl)return json({error:"Unable to create a secure PDF link."},503);return json({signedUrl:data.signedUrl,fileName:report.file_name})
     }
-    if(action==="export-delete"){
+    if (action === "export-delete"){
       if(!requireDelete())return json({error:"You do not have permission to delete R&M PDF exports."},403);
       const id=cleanText(body.reportId,"PDF export ID",64),{data:report,error:loadError}=await db.from("repair_maintenance_pdf_exports").select("id,machine_type,file_name,storage_path").eq("id",id).maybeSingle();if(loadError)return json({error:"Unable to load the selected PDF export."},503);if(!report)return json({error:"PDF export not found."},404);
       const {error:storageError}=await db.storage.from(reportBucket).remove([report.storage_path]);if(storageError)return json({error:"Unable to remove the stored PDF. Archive record retained."},503);
