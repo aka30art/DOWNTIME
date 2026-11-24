@@ -367,7 +367,8 @@ async function signIn(page,pin='2468',username='DEV'){
  assert.equal(await page.locator('#yardHub').isVisible(),true,'successful login lands on YARD HUB first');
  assert.equal(await page.locator('.shell').evaluate(el=>getComputedStyle(el).display==='none'),true,'DOWNTIME stays closed until the user launches it');
  assert.equal(await page.locator('#yardHubUsername').textContent().then(value=>value.trim().length>0),true,'YARD HUB identifies the authenticated user');
- assert.equal(await page.locator('.yard-tile[data-app]').count(),4,'YARD HUB exposes all four application tiles');
+ assert.equal(await page.locator('.yard-tile[data-app]').count(),5,'YARD HUB exposes all five application tiles, including access-gated HUB SETTINGS');
+ assert.equal(await page.locator('#yardHubSettingsBtn').isVisible(),false,'HUB SETTINGS stays hidden until the session access check completes');
  assert.equal(await page.locator('#launchDowntimeBtn').isEnabled(),true,'DOWNTIME is the available application');
  assert.equal(await page.locator('.yard-tile[data-app="floor"]').isDisabled(),true,'FLOOR stays unavailable until released');
  assert.equal(await page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until released');
