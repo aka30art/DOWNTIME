@@ -81,9 +81,9 @@ assert.ok(html.includes('repair-maintenance-app.js?v=20261124-7'),'R&M app scrip
 assert.match(app,/function renderSettingsSelector\(\)/,'RMS menu has its own navigation view');
 assert.match(app,/function openMachineSettings\(key\)/,'RMS category selection opens the selected category settings');
 assert.match(app,/canManageRepairMaintenancePresets!==true/,'RMS settings are permission-gated');
-for(const machine of ['KIVERCO_PICKING_LINE','TANNA_SHREDDER','FORKLIFT','TELEHANDLER','EXCAVATORS_360','OTHER_EQUIPMENT']){
-  assert.ok(html.includes('data-settings-machine="'+machine+'"'),'RMS menu includes '+machine);
-}
+const rmMenuCategories=[...html.matchAll(/data-machine="([^"]+)"/g)].map(match=>match[1]);
+const rmsMenuCategories=[...html.matchAll(/data-settings-machine="([^"]+)"/g)].map(match=>match[1]);
+assert.deepEqual(rmsMenuCategories,rmMenuCategories,'RMS menu mirrors all six R&M machinery categories in the same order');
 assert.match(app,/status:'PERM\. FIX'/,'SOLVED marks fault as PERM. FIX');
 assert.match(app,/api\('export-create'/,'PDF export creation is handled by the server');
 assert.match(app,/api\('export-list'/,'PDF archive records are loaded from the server');
