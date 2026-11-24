@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 const html=read('../repair-maintenance.html');
 const sharedUi=read('../shared-ui-system.css');
-assert.ok(html.includes('shared-ui-system.css?v=20261124-1'),'R&M loads the shared visual design system');
+assert.ok(html.includes('shared-ui-system.css?v=20261124-2'),'R&M loads the shared visual design system');
 for(const token of ['--panel:#101f2b','--line:#334b5d','--yellow:#ffc400','--muted:#9aafbd'])assert.ok(sharedUi.includes(token),'shared design token missing: '+token);
 for(const selector of ['.machinebar{','.stat{','.faultpanel{','.faultrow{','.dialog{'])assert.ok(sharedUi.includes(selector),'shared R&M styling is missing '+selector);
 const app=read('../repair-maintenance-app.js');
