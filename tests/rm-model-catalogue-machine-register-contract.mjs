@@ -18,6 +18,7 @@ assert.match(migration,/lower\(trim\(name\)\)/);
 assert.match(migration,/coalesce\(nullif\(trim\(make_model\)/);
 assert.match(migration,/left\(lower\(trim\(name\)\), char_length\(lower\(trim\(model_row\.name\)\)\) \+ 1\)/,'migration reconciles existing machine names extending legacy catalogue labels');
 assert.match(migration,/created_at,[\s\S]*id\s+limit 1/,'migration selects matching assets deterministically');
+assert.match(migration,/array_agg\(id\)[\s\S]*existing_asset_ids[\s\S]*id = any\(existing_asset_ids\)/,'migration only matches assets that existed before reconciliation; generated entries cannot absorb later catalogue rows');
 assert.doesNotMatch(migration,/repair_maintenance_faults|repair_maintenance_pdf_exports/,'catalogue migration does not rewrite fault or PDF history');
 assert.doesNotMatch(migration,/delete\s+from\s+public\.repair_maintenance_faults/i);
 assert.match(api,/action === "model-list"[\s\S]*from\("repair_maintenance_assets"\)/);

@@ -5,7 +5,14 @@ do $$
 declare
   model_row record;
   matched_id uuid;
+  existing_asset_ids uuid[];
 begin
+  -- Only assets that predate this reconciliation may be matched. Assets created
+  -- from an earlier catalogue row must remain distinct catalogue entries.
+  select coalesce(array_agg(id), '{}'::uuid[])
+    into existing_asset_ids
+    from public.repair_maintenance_assets;
+
   for model_row in
     select id, machine_type, name, created_by
       from public.repair_maintenance_machine_models
@@ -15,7 +22,8 @@ begin
 
     select id into matched_id
       from public.repair_maintenance_assets
-     where machine_type = model_row.machine_type
+     where id = any(existing_asset_ids)
+       and machine_type = model_row.machine_type
        and status = 'ACTIVE'
        and (
          lower(trim(name)) = lower(trim(model_row.name))
