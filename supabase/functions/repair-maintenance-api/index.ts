@@ -245,7 +245,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "settings-get") {
-      if (permissions.canReadRepairMaintenanceMachinery !== true) return json({ error: "You do not have READ access to R&M Machinery." }, 403);
+      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have READ access to R&M settings." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
       const { data, error } = await db.from("repair_maintenance_machine_settings")
         .select("machine_type,model_dropdown_enabled,updated_at")
@@ -268,7 +268,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "model-list") {
-      if (permissions.canReadRepairMaintenanceMachinery !== true) return json({ error: "You do not have READ access to R&M Machinery." }, 403);
+      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have READ access to R&M settings." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
       const { data, error } = await db.from("repair_maintenance_machine_models")
         .select("id,machine_type,name,created_at")
