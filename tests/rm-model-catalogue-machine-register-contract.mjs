@@ -6,6 +6,7 @@ const html=read('../repair-maintenance.html');
 const api=read('../supabase/functions/repair-maintenance-api/index.ts');
 const migration=read('../supabase/migrations/20261125000000_rm_model_catalogue_machine_register.sql');
 const pkg=read('../package.json');
+const pagesWorkflow=read('../.github/workflows/pages.yml');
 const categories=['KIVERCO_PICKING_LINE','TANNA_SHREDDER','FORKLIFT','TELEHANDLER','EXCAVATORS_360','OTHER_EQUIPMENT'];
 for(const category of categories){
   assert.ok(api.includes('"'+category+'"'), 'API supports '+category);
@@ -38,4 +39,5 @@ assert.match(html,/The catalogue is the registered-machine list[\s\S]*archived m
 assert.match(html,/repair-maintenance-app\.js\?v=20261124-16/);
 assert.match(app,/function updateAssetSelectorVisibility\([\s\S]*asset_selector_enabled/);
 assert.ok(pkg.includes('node tests/rm-model-catalogue-machine-register-contract.mjs'),'PR133 regression is included in the R&M smoke suite');
+assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-16'),'Pages deployment verification fetches the current R&M app cache version');
 console.log('PR133 model catalogue / registered-machine contracts passed');
