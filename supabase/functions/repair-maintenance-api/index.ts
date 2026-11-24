@@ -86,16 +86,42 @@ Deno.serve(async (req: Request) => {
   if (!hubAccessError && !hubAccessRow?.payload) {
     return json({ error: "YARD HUB permissions are temporarily unavailable." }, 503);
   }
+  const hubTier = String(
+    hubAccessRow?.payload?.userTiers?.[String(user.username).toLowerCase()] ||
+    (tier === "OWNER" ? "OWNER" : tier)
+  ).toUpperCase();
   if (!hubAccessError && hubAccessRow?.payload) {
-    const hubTier = String(hubAccessRow.payload?.userTiers?.[String(user.username).toLowerCase()] || "USER").toUpperCase();
-    const mode = hubAccessRow.payload?.tiers?.[hubTier]?.repairMaintenance;
+    const profile = hubAccessRow.payload?.tiers?.[hubTier] || {};
+    const mode = profile.repairMaintenance;
     if (!["NONE", "READ", "EDIT"].includes(mode)) {
       return json({ error: "YARD HUB R&M permission profile is invalid." }, 503);
+    }
+    const machineryMode = profile.repairMaintenanceMachinery ?? mode;
+    if (!["NONE", "READ", "EDIT"].includes(machineryMode)) {
+      return json({ error: "YARD HUB R&M Machinery permission profile is invalid." }, 503);
     }
     permissions.canAccessRepairMaintenance = mode !== "NONE";
     permissions.canEditRepairMaintenance = mode === "EDIT";
     permissions.canDeleteRepairMaintenance = mode === "EDIT";
     permissions.canExportRepairMaintenanceReports = mode === "READ" || mode === "EDIT";
+    permissions.canReadRepairMaintenanceMachinery = machineryMode !== "NONE";
+    permissions.canManageRepairMaintenanceMachinery = machineryMode === "EDIT";
+  } else {
+    // Preserve all legacy R&M capabilities until the YARD HUB matrix is available.
+    permissions.canReadRepairMaintenanceMachinery = permissions.canAccessRepairMaintenance === true;
+    permissions.canManageRepairMaintenanceMachinery = permissions.canEditRepairMaintenance === true;
+  }
+  const rootOperator = (String(user.username).trim().toUpperCase() === "DEV" && tier === "OWNER") || hubTier === "DEVACC";
+  if (rootOperator) {
+    Object.assign(permissions, {
+      canAccessYardHub: true,
+      canAccessRepairMaintenance: true,
+      canEditRepairMaintenance: true,
+      canDeleteRepairMaintenance: true,
+      canExportRepairMaintenanceReports: true,
+      canReadRepairMaintenanceMachinery: true,
+      canManageRepairMaintenanceMachinery: true,
+    });
   }
   permissions.canManageRepairMaintenancePresets = permissions.canEditRepairMaintenance === true;
   if (!permissions.canAccessYardHub) return json({ error: "YARD HUB access is not enabled for this account." }, 403);
@@ -117,6 +143,72 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (action === "access") return json({ user: { username: actor, displayName: user.displayName || actor, tier }, permissions });
+
+    if (action === "asset-list") {
+      if (permissions.canReadRepairMaintenanceMachinery !== true) return json({ error: "You do not have READ access to R&M Machinery." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
+      const [{ data, error }, { count: unassignedCount, error: unassignedError }] = await Promise.all([
+        db.from("repair_maintenance_assets")
+          .select("id,machine_type,name,asset_code,make_model,status,created_at,updated_at")
+          .eq("machine_type", body.machineType)
+          .order("status", { ascending: true })
+          .order("name", { ascending: true }),
+        db.from("repair_maintenance_faults")
+          .select("id", { count: "exact", head: true })
+          .eq("machine_type", body.machineType)
+          .is("asset_id", null),
+      ]);
+      if (error || unassignedError) return json({ error: "Unable to load the R&M machinery register." }, 503);
+      return json({ assets: data || [], unassignedCount: Number(unassignedCount || 0) });
+    }
+
+    if (action === "asset-add") {
+      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
+      const name = cleanText(body.name, "Machine name", 120);
+      const assetCode = cleanText(body.assetCode, "Fleet number / registration", 40, false) || null;
+      const makeModel = cleanText(body.makeModel, "Make / model", 120, false) || null;
+      const { data, error } = await db.from("repair_maintenance_assets").insert({
+        machine_type: body.machineType, name, asset_code: assetCode, make_model: makeModel,
+        status: "ACTIVE", created_by: actor, updated_by: actor,
+      }).select("id,machine_type,name,asset_code,make_model,status,created_at,updated_at").single();
+      if (error?.code === "23505") return json({ error: "A machine with that name or fleet number already exists in this category." }, 409);
+      if (error || !data) return json({ error: "Unable to register the new machine." }, 503);
+      await audit("rm-machinery-add", { assetId: data.id, machineType: data.machine_type, name: data.name, assetCode: data.asset_code });
+      return json({ asset: data }, 201);
+    }
+
+    if (action === "asset-update") {
+      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
+      const assetId = cleanText(body.assetId, "Machine ID", 64);
+      const name = cleanText(body.name, "Machine name", 120);
+      const assetCode = cleanText(body.assetCode, "Fleet number / registration", 40, false) || null;
+      const makeModel = cleanText(body.makeModel, "Make / model", 120, false) || null;
+      const { data, error } = await db.from("repair_maintenance_assets").update({
+        name, asset_code: assetCode, make_model: makeModel, updated_by: actor, updated_at: new Date().toISOString(),
+      }).eq("id", assetId).eq("machine_type", body.machineType)
+        .select("id,machine_type,name,asset_code,make_model,status,created_at,updated_at").maybeSingle();
+      if (error?.code === "23505") return json({ error: "A machine with that name or fleet number already exists in this category." }, 409);
+      if (error) return json({ error: "Unable to update the machine details." }, 503);
+      if (!data) return json({ error: "Machine not found." }, 404);
+      await audit("rm-machinery-update", { assetId: data.id, machineType: data.machine_type, name: data.name, assetCode: data.asset_code });
+      return json({ asset: data });
+    }
+
+    if (action === "asset-archive") {
+      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
+      const assetId = cleanText(body.assetId, "Machine ID", 64);
+      const { data, error } = await db.from("repair_maintenance_assets").update({
+        status: "ARCHIVED", updated_by: actor, updated_at: new Date().toISOString(),
+      }).eq("id", assetId).eq("machine_type", body.machineType).eq("status", "ACTIVE")
+        .select("id,machine_type,name,status").maybeSingle();
+      if (error) return json({ error: "Unable to archive the machine." }, 503);
+      if (!data) return json({ error: "Active machine not found." }, 404);
+      await audit("rm-machinery-archive", { assetId: data.id, machineType: data.machine_type, name: data.name });
+      return json({ asset: data });
+    }
 
     if (action === "preset-list") {
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
@@ -153,30 +245,113 @@ Deno.serve(async (req: Request) => {
 
     if (action === "list") {
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
-      const { data, error } = await db.from("repair_maintenance_faults").select("id,machine_type,fault_name,description,priority,status,created_by,updated_by,created_at,updated_at")
-        .eq("machine_type", body.machineType).order("created_at", { ascending: true });
+      let query = db.from("repair_maintenance_faults")
+        .select("id,machine_type,asset_id,fault_name,description,priority,status,created_by,updated_by,created_at,updated_at")
+        .eq("machine_type", body.machineType);
+      if (body.unassigned === true) {
+        query = query.is("asset_id", null);
+      } else {
+        const assetId = cleanText(body.assetId, "Machine", 64);
+        const { data: asset, error: assetError } = await db.from("repair_maintenance_assets")
+          .select("id").eq("id", assetId).eq("machine_type", body.machineType).maybeSingle();
+        if (assetError) return json({ error: "Unable to verify the selected machine." }, 503);
+        if (!asset) return json({ error: "Machine not found in this category." }, 404);
+        query = query.eq("asset_id", assetId);
+      }
+      const { data, error } = await query.order("created_at", { ascending: true });
       if (error) return json({ error: "Unable to load the machinery fault register." }, 503);
       return json({ faults: data || [] });
     }
 
     if (action === "export-create") {
-      if(permissions.canExportRepairMaintenanceReports!==true)return json({error:"You do not have permission to export R&M reports."},403);
-      if(body.machineType!==undefined&&body.machineType!==null&&body.machineType!==""&&!isOneOf(body.machineType,machineTypes))return json(fail("Select a valid machinery filter."),400);
-      const filter=typeof body.machineType==="string"&&body.machineType?body.machineType:null,faults:any[]=[],pageSize=500,maxRecords=10000;
-      for(let offset=0;;offset+=pageSize){let query=db.from("repair_maintenance_faults").select("id,machine_type,fault_name,description,priority,status,created_at");if(filter)query=query.eq("machine_type",filter);const {data,error}=await query.order("created_at",{ascending:false}).range(offset,offset+pageSize-1);if(error)return json({error:"Unable to load the R&M report records."},503);const rows=data||[];faults.push(...rows);if(faults.length>maxRecords)return json({error:"Report exceeds the 10,000-record limit. Filter by machinery and retry."},413);if(rows.length<pageSize)break}
-      const generatedAt=new Date(),bytes=await buildRepairMaintenancePdf(faults,filter,generatedAt);if(!bytes.length||bytes.length>25*1024*1024)return json({error:"Generated PDF exceeds the 25 MB archive limit."},413);
-      const stamp=generatedAt.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}Z$/,"Z"),fileName=`RM_${filter||"ALL_MACHINERY"}_${stamp}.pdf`,storagePath=`${generatedAt.toISOString().slice(0,10)}/${crypto.randomUUID()}-${fileName}`;
-      const {error:uploadError}=await db.storage.from(reportBucket).upload(storagePath,bytes,{contentType:"application/pdf",cacheControl:"0",upsert:false});if(uploadError)return json({error:"Unable to store the generated R&M PDF securely."},503);
-      const {data,error}=await db.from("repair_maintenance_pdf_exports").insert({machine_type:filter,file_name:fileName,storage_path:storagePath,mime_type:"application/pdf",file_size_bytes:bytes.length,record_count:faults.length,created_by:actor}).select("id,machine_type,file_name,mime_type,file_size_bytes,record_count,created_by,created_at").single();
-      if(error||!data){await db.storage.from(reportBucket).remove([storagePath]);return json({error:"The PDF was generated but could not be registered in PDF EXPORTS."},503)}
-      await audit("rm-pdf-export-create",{reportId:data.id,machineType:filter,recordCount:faults.length,fileSizeBytes:bytes.length});return json({report:data},201)
+      if (permissions.canExportRepairMaintenanceReports !== true) return json({ error: "You do not have permission to export R&M reports." }, 403);
+      if (body.machineType !== undefined && body.machineType !== null && body.machineType !== "" && !isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machinery filter."), 400);
+      let selectedAsset: any = null;
+      const assetId = body.assetId ? cleanText(body.assetId, "Machine", 64) : null;
+      if (assetId) {
+        const { data, error } = await db.from("repair_maintenance_assets")
+          .select("id,machine_type,name,asset_code").eq("id", assetId).maybeSingle();
+        if (error) return json({ error: "Unable to verify the selected machine for this report." }, 503);
+        if (!data) return json({ error: "Selected machine was not found." }, 404);
+        if (body.machineType && body.machineType !== data.machine_type) return json(fail("Machine does not belong to the selected category."), 400);
+        selectedAsset = data;
+      }
+      const filter = selectedAsset?.machine_type || (typeof body.machineType === "string" && body.machineType ? body.machineType : null);
+      const unassigned = body.unassigned === true;
+      if (unassigned && (!filter || assetId)) return json(fail("Select one category to export unassigned legacy records."), 400);
+      const faults: any[] = [], pageSize = 500, maxRecords = 10000;
+      for (let offset = 0; ; offset += pageSize) {
+        let query = db.from("repair_maintenance_faults")
+          .select("id,machine_type,asset_id,fault_name,description,priority,status,created_at");
+        if (assetId) query = query.eq("asset_id", assetId);
+        else if (filter) query = query.eq("machine_type", filter);
+        if (unassigned) query = query.is("asset_id", null);
+        const { data, error } = await query.order("created_at", { ascending: false }).range(offset, offset + pageSize - 1);
+        if (error) return json({ error: "Unable to load the R&M report records." }, 503);
+        const rows = data || [];
+        faults.push(...rows);
+        if (faults.length > maxRecords) return json({ error: "Report exceeds the 10,000-record limit. Filter by machinery or machine and retry." }, 413);
+        if (rows.length < pageSize) break;
+      }
+      const assetIds = [...new Set(faults.map((fault) => fault.asset_id).filter(Boolean))];
+      if (assetIds.length) {
+        const { data: assets, error } = await db.from("repair_maintenance_assets").select("id,name,asset_code").in("id", assetIds);
+        if (error) return json({ error: "Unable to load machinery names for the PDF report." }, 503);
+        const assetMap = new Map((assets || []).map((asset: any) => [asset.id, asset]));
+        for (const fault of faults) {
+          const linked = fault.asset_id ? assetMap.get(fault.asset_id) : null;
+          fault.asset_name = linked?.name || null;
+          fault.asset_code = linked?.asset_code || null;
+        }
+      } else {
+        for (const fault of faults) { fault.asset_name = null; fault.asset_code = null; }
+      }
+      const generatedAt = new Date();
+      const bytes = await buildRepairMaintenancePdf(faults, filter, generatedAt, selectedAsset?.name || null);
+      if (!bytes.length || bytes.length > 25 * 1024 * 1024) return json({ error: "Generated PDF exceeds the 25 MB archive limit." }, 413);
+      const stamp = generatedAt.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+      const slug = (selectedAsset?.name || (unassigned ? "UNASSIGNED" : filter) || "ALL_MACHINERY").replace(/[^A-Za-z0-9_-]+/g, "_").slice(0, 60);
+      const fileName = `RM_${slug}_${stamp}.pdf`;
+      const storagePath = `${generatedAt.toISOString().slice(0, 10)}/${crypto.randomUUID()}-${fileName}`;
+      const { error: uploadError } = await db.storage.from(reportBucket).upload(storagePath, bytes, { contentType: "application/pdf", cacheControl: "0", upsert: false });
+      if (uploadError) return json({ error: "Unable to store the generated R&M PDF securely." }, 503);
+      const { data, error } = await db.from("repair_maintenance_pdf_exports").insert({
+        machine_type: filter, asset_id: assetId, file_name: fileName, storage_path: storagePath,
+        mime_type: "application/pdf", file_size_bytes: bytes.length, record_count: faults.length, created_by: actor,
+      }).select("id,machine_type,asset_id,file_name,mime_type,file_size_bytes,record_count,created_by,created_at").single();
+      if (error || !data) {
+        await db.storage.from(reportBucket).remove([storagePath]);
+        return json({ error: "The PDF was generated but could not be registered in PDF EXPORTS." }, 503);
+      }
+      await audit("rm-pdf-export-create", { reportId: data.id, machineType: filter, assetId, recordCount: faults.length, fileSizeBytes: bytes.length });
+      return json({ report: data }, 201);
     }
-    if (action === "export-list"){
-      if(permissions.canExportRepairMaintenanceReports!==true)return json({error:"You do not have permission to view R&M PDF exports."},403);
-      if(body.machineType!==undefined&&body.machineType!==null&&body.machineType!==""&&!isOneOf(body.machineType,machineTypes))return json(fail("Select a valid machinery filter."),400);
-      const offset=typeof body.offset==="number"&&Number.isInteger(body.offset)?body.offset:0;if(offset<0||offset>20000)return json(fail("PDF export page is invalid."),400);
-      const filter=typeof body.machineType==="string"&&body.machineType?body.machineType:null;let query=db.from("repair_maintenance_pdf_exports").select("id,machine_type,file_name,mime_type,file_size_bytes,record_count,created_by,created_at");if(filter)query=query.eq("machine_type",filter);
-      const {data,error}=await query.order("created_at",{ascending:false}).range(offset,offset+49);if(error)return json({error:"Unable to load PDF EXPORTS."},503);const reports=data||[];return json({reports,hasMore:reports.length===50,nextOffset:offset+reports.length})
+    if (action === "export-list") {
+      if (permissions.canExportRepairMaintenanceReports !== true) return json({ error: "You do not have permission to view R&M PDF exports." }, 403);
+      if (body.machineType !== undefined && body.machineType !== null && body.machineType !== "" && !isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machinery filter."), 400);
+      const offset = typeof body.offset === "number" && Number.isInteger(body.offset) ? body.offset : 0;
+      if (offset < 0 || offset > 20000) return json(fail("PDF export page is invalid."), 400);
+      const filter = typeof body.machineType === "string" && body.machineType ? body.machineType : null;
+      const assetId = body.assetId ? cleanText(body.assetId, "Machine", 64) : null;
+      let query = db.from("repair_maintenance_pdf_exports")
+        .select("id,machine_type,asset_id,file_name,mime_type,file_size_bytes,record_count,created_by,created_at");
+      if (assetId) query = query.eq("asset_id", assetId);
+      else if (filter) query = query.eq("machine_type", filter);
+      const { data, error } = await query.order("created_at", { ascending: false }).range(offset, offset + 49);
+      if (error) return json({ error: "Unable to load PDF EXPORTS." }, 503);
+      const reports = data || [];
+      const reportAssetIds = [...new Set(reports.map((report: any) => report.asset_id).filter(Boolean))];
+      if (reportAssetIds.length) {
+        const { data: linkedAssets, error: assetError } = await db.from("repair_maintenance_assets").select("id,name,asset_code").in("id", reportAssetIds);
+        if (assetError) return json({ error: "Unable to load machine names for PDF EXPORTS." }, 503);
+        const names = new Map((linkedAssets || []).map((asset: any) => [asset.id, asset]));
+        for (const report of reports) {
+          const linked = report.asset_id ? names.get(report.asset_id) : null;
+          report.asset_name = linked?.name || null;
+          report.asset_code = linked?.asset_code || null;
+        }
+      }
+      return json({ reports, hasMore: reports.length === 50, nextOffset: offset + reports.length });
     }
     if (action === "export-url"){
       if(permissions.canExportRepairMaintenanceReports!==true)return json({error:"You do not have permission to open R&M PDF exports."},403);
@@ -209,15 +384,20 @@ Deno.serve(async (req: Request) => {
     if (action === "create") {
       if (!requireEdit()) return json({ error: "You do not have permission to create R&M faults." }, 403);
       if (!isOneOf(body.machineType, machineTypes) || !isOneOf(body.priority, RM_FAULT_PRIORITIES)) return json(fail("Machine or priority is invalid."), 400);
+      const assetId = cleanText(body.assetId, "Machine", 64);
+      const { data: asset, error: assetError } = await db.from("repair_maintenance_assets")
+        .select("id,name,status").eq("id", assetId).eq("machine_type", body.machineType).maybeSingle();
+      if (assetError) return json({ error: "Unable to verify the selected machine." }, 503);
+      if (!asset || asset.status !== "ACTIVE") return json({ error: "Select an active registered machine before adding a fault." }, 400);
       const presetId = cleanText(body.presetId, "Machinery preset", 64);
       const { data: preset, error: presetError } = await db.from("repair_maintenance_machine_presets")
         .select("id,name,is_other").eq("id", presetId).eq("machine_type", body.machineType).maybeSingle();
       if (presetError || !preset) return json({ error: "Select a valid preset for this machinery." }, 400);
       const faultName = preset.is_other ? cleanText(body.otherArea, "Area / Part of Machinery", 120) : preset.name;
       const description = cleanText(body.description, "Description", 2000);
-      const { data, error } = await db.from("repair_maintenance_faults").insert({ machine_type: body.machineType, fault_name: faultName, description, priority: body.priority, status: "OPEN", created_by: actor, updated_by: actor }).select("*").single();
+      const { data, error } = await db.from("repair_maintenance_faults").insert({ machine_type: body.machineType, asset_id: assetId, fault_name: faultName, description, priority: body.priority, status: "OPEN", created_by: actor, updated_by: actor }).select("*").single();
       if (error || !data) return json({ error: "Unable to save the new fault record." }, 503);
-      await audit("rm-fault-create", { faultId: data.id, machineType: data.machine_type, priority: data.priority });
+      await audit("rm-fault-create", { faultId: data.id, machineType: data.machine_type, assetId: data.asset_id, priority: data.priority });
       return json({ fault: data }, 201);
     }
 
