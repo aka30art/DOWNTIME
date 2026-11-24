@@ -30,7 +30,7 @@ assert.match(migration,/revoke all on table public\.repair_maintenance_assets fr
 assert.match(migration,/grant all on table public\.repair_maintenance_assets to service_role/);
 assert.match(migration,/repair_maintenance_pdf_exports_asset_created_idx/);
 assert.match(assetForeignKeyIndexMigration,/repair_maintenance_faults_asset_machine_idx/);
-assert.match(assetForeignKeyIndexMigration,/on public\\.repair_maintenance_faults \\(asset_id, machine_type\\)/);
+assert.match(assetForeignKeyIndexMigration,/on public\.repair_maintenance_faults \(asset_id, machine_type\)/);
 assert.match(migration,/KIVERCO — PICKING LINE/);
 assert.match(migration,/TANNA — SHREDDER/);
 assert.match(migration,/f\.machine_type = 'KIVERCO_PICKING_LINE'[\s\S]*f\.machine_type = 'TANNA_SHREDDER'/);
