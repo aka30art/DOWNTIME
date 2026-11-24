@@ -143,7 +143,7 @@ assert.ok(ui.includes('const saveCentralUser=window.saveDowntimeCentralUserFromY
 
 assert.ok(ui.includes("key:'repairMaintenanceMachinery',label:'R&M MACHINERY'"),'R&M MACHINERY has independent READ / EDIT controls in TIERS');
 assert.ok(hubApi.includes('repairMaintenanceMachinery'),'Hub Settings normalizes and persists the new machinery permission');
-assert.ok(hubApi.includes('value.repairMaintenanceMachinery ?? value.repairMaintenance'),'existing tier values safely seed the new permission');
+assert.ok(hubApi.includes('value[key] ?? value.repairMaintenance'),'existing tier values safely seed the new permission');
 assert.ok(rmApi.includes('permissions.canReadRepairMaintenanceMachinery')&&rmApi.includes('permissions.canManageRepairMaintenanceMachinery'),'R&M API enforces separate machinery READ / EDIT permissions');
 assert.ok(rmApi.includes('const rootOperator =')&&rmApi.includes('hubTier === "DEVACC"'),'DEV and DEVACC retain root machinery permissions');
 
