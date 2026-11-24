@@ -77,12 +77,15 @@ try{
  assert.equal(await page.locator('#draftKpi').textContent(),'v1');
  assert.ok(await page.locator('text=Access & Rights stays separate').count(),'separate responsibilities are explained');
 
+ await page.locator('[data-section="navigation"]').click();
+ await page.locator('#navLabelStructure').fill('Facility Map');
  await page.locator('[data-section="organisation"]').click();
  await page.locator('#companyName').fill('QA Example Company');
  await page.locator('#saveDraftBtn').click();
  await page.getByText('Draft saved as version v2.',{exact:false}).waitFor();
  assert.equal(await page.locator('#draftKpi').textContent(),'v2','saved draft increments only the draft version');
  assert.equal(await page.locator('#publishedKpi').textContent(),'v1','saving a draft does not publish it');
+ assert.equal((await page.locator('[data-section="structure"] .navtext').textContent()).trim(),'Facility Map','DEV menu title is configurable and displayed after reload');
  assert.equal(await page.locator('#publishBtn').isEnabled(),true,'saved draft can be explicitly published');
 
  page.on('dialog',dialog=>dialog.accept());
