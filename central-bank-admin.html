@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#07131d">
-<title>DOWNTIME · Central Data Bank Admin</title>
+<title>DOWNTIME · Master Configuration</title>
 <style>
 :root{color-scheme:dark;--bg:#07131d;--panel:#0e202c;--panel2:#132b39;--line:#294655;--line2:#38586b;--text:#eff4f7;--muted:#91a8b7;--yellow:#ffc928;--blue:#50a8f5;--green:#5bd69a;--red:#ff887a;--shadow:0 18px 45px #0004}
 *{box-sizing:border-box}
@@ -39,7 +39,7 @@ small,.muted{color:var(--muted)}
 .sidebrand .brandmark{width:38px;height:38px;font-size:15px}
 .sidebrand strong{display:block;font-size:13px;letter-spacing:.5px}
 .sidebrand small{font-size:10px;letter-spacing:1.2px}
-.navlabel{padding:11px 9px 4px;color:#688397;font-size:9px;font-weight:950;letter-spacing:1.5px;text-transform:uppercase}
+.navsearch{padding:4px 7px 8px}.navsearch input{font-size:11px;padding:9px}.navlabel{padding:11px 9px 4px;color:#688397;font-size:9px;font-weight:950;letter-spacing:1.5px;text-transform:uppercase}
 .nav{width:100%;display:flex;align-items:center;gap:11px;text-align:left;background:transparent;border:1px solid transparent;color:#a9bdc9;padding:11px 12px;font-size:12px}
 .nav .ico{width:22px;height:22px;display:grid;place-items:center;border:1px solid #355265;border-radius:7px;color:#83a1b5;font-size:12px}
 .nav.active{background:#263b36;color:#fff;border-color:#665b25}
@@ -95,6 +95,7 @@ small,.muted{color:var(--muted)}
 .pill.draft{border-color:#7c6b2b;background:#2b2816;color:#ffdf75}
 .empty{padding:24px;text-align:center;color:#8199a9;border:1px dashed #365264;border-radius:10px}
 .pagefoot{margin-top:22px;padding-top:13px;border-top:1px solid #243e4d;color:#718b9d;font-size:10px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+[hidden]{display:none!important}
 @media(max-width:1050px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.twocol{grid-template-columns:1fr}}
 @media(max-width:760px){.shell{display:block}.sidebar{position:relative;width:100%;height:auto;padding:10px;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px;border-right:0;border-bottom:1px solid #294352}.sidebrand{width:100%;padding:0 4px 7px}.navlabel,.sidefoot{display:none}.nav{width:auto;flex:1 1 30%;justify-content:center;padding:8px 7px;font-size:10px}.nav .ico{display:none}.main{padding:15px 12px 28px}.topbar{margin-bottom:15px}.pagehead h1{font-size:22px}.topactions{width:100%}.topactions button{flex:1}.history-item{grid-template-columns:52px minmax(0,1fr)}.history-item>button{grid-column:2}.editor-grid,.formgrid,.cardlist{grid-template-columns:1fr}.full{grid-column:auto}}
 @media(max-width:480px){#login{margin:2vh auto;padding:12px}.login-card{padding:17px}.kpis{gap:7px}.kpi{padding:12px}.kpi strong{font-size:22px}.nav{flex-basis:30%;font-size:9px}.account{width:100%;justify-content:space-between}}
@@ -128,16 +129,16 @@ small,.muted{color:var(--muted)}
  <div class="shell">
   <aside class="sidebar">
    <div class="sidebrand"><div class="brandmark">D</div><div><strong>CENTRAL DATA BANK</strong><small>CONFIGURATION CONTROL</small></div></div>
-   <div class="navlabel">CONTROL CENTRE</div>
-   <button class="nav active" data-section="overview"><span class="ico">⌂</span>Overview</button>
+   <div class="navlabel">MASTER CONFIGURATION</div><div class="navsearch"><input id="navSearch" type="search" placeholder="Find a configuration area…" aria-label="Search configuration areas"></div>
+   <button class="nav active" data-section="overview" data-default-label="Overview"><span class="ico">⌂</span><span class="navtext">Overview</span></button>
    <div class="navlabel">MASTER REGISTRY</div>
-   <button class="nav" data-section="organisation"><span class="ico">◎</span>Organisation</button>
-   <button class="nav" data-section="structure"><span class="ico">▦</span>Plant & Areas</button>
+   <button class="nav" data-section="organisation" data-default-label="Organisation"><span class="ico">◎</span><span class="navtext">Organisation</span></button>
+   <button class="nav" data-section="structure" data-default-label="Plant & Areas"><span class="ico">▦</span><span class="navtext">Plant & Areas</span></button>
    <div class="navlabel">SYSTEM CONFIGURATION</div>
-   <button class="nav" data-section="libraries"><span class="ico">▤</span>Operational Libraries</button>
-   <button class="nav" data-section="defaults"><span class="ico">⚙</span>System Defaults</button>
+   <button class="nav" data-section="libraries" data-default-label="Operational Libraries"><span class="ico">▤</span><span class="navtext">Operational Libraries</span></button>
+   <button class="nav" data-section="defaults" data-default-label="System Defaults"><span class="ico">⚙</span><span class="navtext">System Defaults</span></button>
    <div class="navlabel">GOVERNANCE</div>
-   <button class="nav" data-section="history"><span class="ico">◷</span>Version History</button>
+   <button class="nav" data-section="history" data-default-label="Version History"><span class="ico">◷</span><span class="navtext">Version History</span></button><div class="navlabel">MASTER CONTROLS</div><button class="nav" data-section="navigation" data-default-label="Menu & Labels"><span class="ico">✎</span><span class="navtext">Menu & Labels</span></button>
    <div class="sidefoot"><strong>ROOT DEV AUTHORITY</strong><small>Draft, validate, publish and restore configuration versions. Other accounts are rejected server-side.</small></div>
   </aside>
   <main class="main">
@@ -167,6 +168,8 @@ small,.muted{color:var(--muted)}
      <div class="panel"><div class="eyebrow">SEPARATION OF RESPONSIBILITIES</div><h2>Access & Rights stays separate</h2><p>Account identities and the existing tier-permission matrix remain in ACCESS AND RIGHTS. This control room does not create users, edit PINs or duplicate the permission editor. DEV and DEVACC have identical authority to access the Central Data Bank, change tier privileges, and manage configuration. The DEV OWNER identity remains permanently protected.</p><div style="margin-top:14px"><span class="pill live">DEV / DEVACC ACCESS</span></div></div>
     </div>
    </section>
+
+   <section class="view" id="view-navigation"><div class="pagehead"><div><div class="eyebrow">MASTER CONTROLS / NAVIGATION</div><h1>Menu & label management</h1><p>Rename visible labels in this DEV configuration workspace. Stable section IDs and routes remain unchanged. These labels do not alter the live application.</p></div><span class="pill">DEV WORKSPACE ONLY</span></div><div class="callout"><strong>DISPLAY LABELS ONLY</strong><p>Changes affect this administration interface only. Internal identifiers, API actions, URLs, the DOWNTIME application and its navigation are not editable here.</p></div><div class="editor-grid"><div class="editor"><label for="navLabelOverview">Overview menu title</label><input id="navLabelOverview" maxlength="40"></div><div class="editor"><label for="navLabelOrganisation">Organisation menu title</label><input id="navLabelOrganisation" maxlength="40"></div><div class="editor"><label for="navLabelStructure">Plant & Areas menu title</label><input id="navLabelStructure" maxlength="40"></div><div class="editor"><label for="navLabelLibraries">Operational Libraries menu title</label><input id="navLabelLibraries" maxlength="40"></div><div class="editor"><label for="navLabelDefaults">System Defaults menu title</label><input id="navLabelDefaults" maxlength="40"></div><div class="editor"><label for="navLabelHistory">Version History menu title</label><input id="navLabelHistory" maxlength="40"></div><div class="editor"><label for="navLabelNavigation">Menu & Labels menu title</label><input id="navLabelNavigation" maxlength="40"></div></div></section>
 
    <section class="view" id="view-organisation">
     <div class="pagehead"><div><div class="eyebrow">MASTER REGISTRY / 01</div><h1>Organisation</h1><p>Define the organisation identity and regional conventions used by the configuration registry.</p></div><span class="pill">DRAFT EDITABLE</span></div>
@@ -243,7 +246,7 @@ small,.muted{color:var(--muted)}
   if(!response.ok){const error=new Error(data.error||"Central configuration request failed");error.status=response.status;throw error}
   return data;
  }
- function blankConfig(){return {schemaVersion:1,organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
+ function blankConfig(){return {schemaVersion:1,navigation:{overview:"Overview",organisation:"Organisation",structure:"Plant & Areas",libraries:"Operational Libraries",defaults:"System Defaults",history:"Version History",navigation:"Menu & Labels"},organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
  const lines=value=>Array.isArray(value)?value.join("\n"):"";
  function list(id){return $(id).value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean)}
  function setValue(id,value){$(id).value=value??""}
@@ -255,7 +258,8 @@ small,.muted{color:var(--muted)}
   });
  }
  function renderForm(config){
-  const c=config||blankConfig(),org=c.organization||{},structure=c.structure||{},libraries=c.libraries||{},defaults=c.defaults||{};
+  const c=config||blankConfig(),org=c.organization||{},structure=c.structure||{},libraries=c.libraries||{},defaults=c.defaults||{},navigation=c.navigation||blankConfig().navigation;
+  Object.keys(navigation).forEach(key=>setValue("navLabel"+key.charAt(0).toUpperCase()+key.slice(1),navigation[key]));renderNavigation(navigation);
   setValue("companyName",org.companyName);setValue("siteCode",org.siteCode);setValue("timezone",org.timezone||"Europe/London");setValue("locale",org.locale||"en-GB");
   ["sites","plants","areas","stations"].forEach(key=>setValue(key,lines(structure[key])));
   ["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].forEach(key=>setValue(key,lines(libraries[key])));
@@ -271,6 +275,7 @@ small,.muted{color:var(--muted)}
   if(!Array.isArray(shiftPresets))throw new Error("Shift presets must be a JSON array");
   return {
    schemaVersion:1,
+   navigation:{overview:$("navLabelOverview").value.trim()||"Overview",organisation:$("navLabelOrganisation").value.trim()||"Organisation",structure:$("navLabelStructure").value.trim()||"Plant & Areas",libraries:$("navLabelLibraries").value.trim()||"Operational Libraries",defaults:$("navLabelDefaults").value.trim()||"System Defaults",history:$("navLabelHistory").value.trim()||"Version History",navigation:$("navLabelNavigation").value.trim()||"Menu & Labels"},
    organization:{companyName:$("companyName").value.trim(),siteCode:$("siteCode").value.trim(),timezone:$("timezone").value.trim(),locale:$("locale").value.trim()},
    structure:{sites:list("sites"),plants:list("plants"),areas:list("areas"),stations:list("stations")},
    libraries:{areaPresets:list("areaPresets"),downtimeReasons:list("downtimeReasons"),dailyTaskPresets:list("dailyTaskPresets"),equipmentCategories:list("equipmentCategories"),eventCategories:list("eventCategories"),statusCategories:list("statusCategories")},
@@ -324,6 +329,7 @@ small,.muted{color:var(--muted)}
   renderOverview();renderHistory();updateButtons();
   $("workspace").style.display="block";$("login").style.display="none";
  }
+ function renderNavigation(navigation){document.querySelectorAll("[data-section]").forEach(button=>{const key=button.dataset.section,target=button.querySelector(".navtext");if(target)target.textContent=navigation[key]||button.dataset.defaultLabel||key;});}
  function showSection(section){
   document.querySelectorAll(".view").forEach(view=>view.classList.toggle("active",view.id==="view-"+section));
   document.querySelectorAll("[data-section]").forEach(button=>button.classList.toggle("active",button.dataset.section===section));
@@ -375,6 +381,7 @@ small,.muted{color:var(--muted)}
  $("saveDraftBtn").addEventListener("click",saveDraft);$("publishBtn").addEventListener("click",publish);$("refreshBtn").addEventListener("click",refresh);$("historyRefreshBtn").addEventListener("click",refresh);
  $("logoutBtn").addEventListener("click",async()=>{try{await call("logout")}catch{}finally{token=null;me=null;model=null;$("workspace").style.display="none";$("login").style.display="block";$("pin").value="";$("authStatus").textContent="Administrator session closed."}});
  document.querySelectorAll("[data-section]").forEach(button=>button.addEventListener("click",()=>showSection(button.dataset.section)));
+ $("navSearch").addEventListener("input",()=>{const query=$("navSearch").value.trim().toLocaleLowerCase();document.querySelectorAll(".nav[data-section]").forEach(button=>{button.hidden=!!query&&!((button.textContent+" "+button.dataset.section).toLocaleLowerCase().includes(query));});});
  document.querySelectorAll("#workspace input,#workspace textarea,#workspace select").forEach(input=>input.addEventListener("input",updateButtons));
  buildDayChecks();renderForm(blankConfig());updateButtons();
 })();
