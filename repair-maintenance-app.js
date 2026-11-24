@@ -223,7 +223,7 @@
     const select=$('machineAssetSelect');if(!select)return;
     const previous=currentAsset?.id||select.value;
     select.replaceChildren();
-    const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='SELECT INDIVIDUAL MACHINE';select.appendChild(placeholder);
+    const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='SELECT REGISTERED MACHINE';select.appendChild(placeholder);
     assets.forEach(asset=>{
       const option=document.createElement('option');option.value=asset.id;
       option.textContent=[asset.asset_code,asset.name,asset.make_model,asset.status==='ARCHIVED'?'ARCHIVED':null].filter(Boolean).join(' · ');
