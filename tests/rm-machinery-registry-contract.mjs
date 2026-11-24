@@ -70,7 +70,7 @@ assert.match(api,/buildRepairMaintenancePdf\(faults, filter, generatedAt, select
 assert.match(migration,/repair_maintenance_pdf_exports/);
 assert.ok(archiveMigration.includes('repair_maintenance_pdf_exports'));
 
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-6'));
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-7'));
 assert.match(app,/currentAsset\?\(currentAsset\.asset_code\?/,'fault details display the selected individual machine');
 assert.match(app,/Archived machines remain selectable/,'archived machine history remains discoverable');
 console.log('R&M machinery registry and asset-scoped fault regression: PASS');
