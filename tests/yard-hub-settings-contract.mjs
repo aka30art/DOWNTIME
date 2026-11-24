@@ -164,3 +164,12 @@ assert.ok(html.includes('error.centralUserSaved=true'), 'partial central-user sa
 assert.ok(ui.includes("const modes=['NONE','READ','INPUT','EDIT']"),'YARD HUB tier UI includes INPUT mode');
 assert.ok(ui.includes("['READ','INPUT','EDIT'].forEach(mode=>{"),'YARD HUB tier UI renders INPUT checkbox');
 assert.ok(hubApi.includes('["NONE", "READ", "INPUT", "EDIT"]'),'YARD HUB settings API validates INPUT mode');
+
+// Custom YARD HUB tiers are root-managed and persisted independently.
+assert.ok(ui.includes('function addCustomTier()'),'custom tier creation workflow exists');
+assert.ok(ui.includes('workingPayload.customTiers'),'custom tier definitions are included in saved payload');
+assert.ok(ui.includes('allRoles().forEach(role=>'),'custom profiles render with built-in tiers');
+assert.ok(html.includes('id="yardHubCustomTierAdd"'),'tier screen exposes custom tier creation');
+assert.ok(hubApi.includes('Invalid custom tier names.'),'API validates custom tier names');
+assert.ok(hubApi.includes('Only DEV / DEVACC may assign custom YARD HUB tiers.'),'only root operators may assign custom tiers');
+assert.ok(hubApi.includes('Only DEV / DEVACC may create or change custom tiers.'),'only root operators may change tier definitions');
