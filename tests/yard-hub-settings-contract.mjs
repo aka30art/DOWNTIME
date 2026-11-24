@@ -187,4 +187,5 @@ assert.ok(ui.includes("if(!allRoles().includes(hubTier))"), 'custom and built-in
 assert.ok(ui.includes("!['OWNER','DEVACC'].includes(role)"), 'only OWNER/DEV and DEVACC tier profiles are protected from deletion');
 assert.ok(ui.includes('function deleteTier(role)'), 'all other tiers can be removed through one workflow');
 assert.ok(hubApi.includes('retiredTiers'), 'built-in tier removals persist as retired tier profiles');
-assert.ok(hubApi.includes('removedBuiltInTiers'), 'backend validates built-in tier removals');\nassert.ok(hubApi.includes('activeTierNames.filter(name => ![\"OWNER\", \"DEVACC\"].includes(name))'), 'backend prevents root admins from modifying protected OWNER and DEVACC permission profiles');
+assert.ok(hubApi.includes('removedBuiltInTiers'), 'backend validates built-in tier removals');
+assert.ok(hubApi.includes('activeTierNames.filter(name => ![\"OWNER\", \"DEVACC\"].includes(name))'), 'backend prevents root admins from modifying protected OWNER and DEVACC permission profiles');
