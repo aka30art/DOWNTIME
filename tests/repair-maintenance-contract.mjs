@@ -87,7 +87,7 @@ assert.ok(html.includes('MACHINERY &amp; MODEL REGISTER'));
 assert.ok(html.includes('id="machineModelItems"')&&html.includes('id="modelAddForm"'));
 assert.match(app,/function renderMachineModelManager\(\)[\s\S]*openAssetEditor\(asset\)/,'registered machines can be edited directly from the unified list');
 assert.match(api,/defaultModel = body\.machineType === "KIVERCO_PICKING_LINE" \? "KIVERCO"[\s\S]*\? "TANNA"/,'KIVERCO and TANNA are seeded as individual model options');
-assert.ok(html.includes('The MAKE / MODEL catalogue is controlled separately in RMS settings.'));
+assert.ok(html.includes('Its model is shown in the Machinery &amp; Model Register.'));
 assert.ok(html.includes('id="settingsAddMachineryButton"')&&html.includes('id="machineModelItems"'),'the unified machinery/model register and add action are present');
 assert.doesNotMatch(html,/id="addMachineryButton"|id="editMachineryButton"|id="openPresets"/,'dashboard no longer contains machinery management buttons');
 assert.match(app,/function saveModelDropdownSetting\(\)/,'MAKE / MODEL dropdown setting is saved explicitly');
