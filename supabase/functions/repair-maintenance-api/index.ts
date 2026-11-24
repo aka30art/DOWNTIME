@@ -244,6 +244,64 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true });
     }
 
+    if (action === "settings-get") {
+      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have READ access to R&M settings." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
+      const { data, error } = await db.from("repair_maintenance_machine_settings")
+        .select("machine_type,model_dropdown_enabled,updated_at")
+        .eq("machine_type", body.machineType).maybeSingle();
+      if (error || !data) return json({ error: "Unable to load this category's R&M settings. Apply the R&M model catalogue migration and retry." }, 503);
+      return json({ settings: data });
+    }
+
+    if (action === "settings-update") {
+      if (permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have permission to manage R&M settings." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
+      if (typeof body.modelDropdownEnabled !== "boolean") return json(fail("Choose whether the MAKE / MODEL dropdown is enabled."), 400);
+      const { data, error } = await db.from("repair_maintenance_machine_settings").update({
+        model_dropdown_enabled: body.modelDropdownEnabled, updated_by: actor, updated_at: new Date().toISOString(),
+      }).eq("machine_type", body.machineType).select("machine_type,model_dropdown_enabled,updated_at").maybeSingle();
+      if (error) return json({ error: "Unable to save the R&M category settings." }, 503);
+      if (!data) return json({ error: "R&M category settings were not found. Apply the R&M model catalogue migration and retry." }, 404);
+      await audit("rm-machine-settings-update", { machineType: data.machine_type, modelDropdownEnabled: data.model_dropdown_enabled });
+      return json({ settings: data });
+    }
+
+    if (action === "model-list") {
+      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have READ access to R&M settings." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
+      const { data, error } = await db.from("repair_maintenance_machine_models")
+        .select("id,machine_type,name,created_at")
+        .eq("machine_type", body.machineType).order("name", { ascending: true });
+      if (error) return json({ error: "Unable to load the R&M model catalogue." }, 503);
+      return json({ models: data || [] });
+    }
+
+    if (action === "model-add") {
+      if (permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have permission to manage R&M settings." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
+      const name = cleanText(body.name, "Machinery model", 120);
+      const { data, error } = await db.from("repair_maintenance_machine_models").insert({
+        machine_type: body.machineType, name, created_by: actor,
+      }).select("id,machine_type,name,created_at").single();
+      if (error?.code === "23505") return json({ error: "That model already exists for this machinery category." }, 409);
+      if (error || !data) return json({ error: "Unable to add the machinery model." }, 503);
+      await audit("rm-machine-model-add", { modelId: data.id, machineType: data.machine_type, name: data.name });
+      return json({ model: data }, 201);
+    }
+
+    if (action === "model-delete") {
+      if (permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have permission to manage R&M settings." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
+      const modelId = cleanText(body.modelId, "Model ID", 64);
+      const { data, error } = await db.from("repair_maintenance_machine_models").delete()
+        .eq("id", modelId).eq("machine_type", body.machineType).select("id,name").maybeSingle();
+      if (error) return json({ error: "Unable to remove the machinery model." }, 503);
+      if (!data) return json({ error: "Model not found in this machinery category." }, 404);
+      await audit("rm-machine-model-delete", { modelId: data.id, machineType: body.machineType, name: data.name });
+      return json({ ok: true });
+    }
+
     if (action === "list") {
       if (permissions.canReadRepairMaintenanceMachinery !== true) return json({ error: "You do not have READ access to R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
