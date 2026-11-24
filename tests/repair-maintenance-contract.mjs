@@ -78,7 +78,7 @@ assert.ok(api.includes('.eq("machine_type", body.machineType)'),'backend checks 
 assert.ok(api.includes('.eq("is_other", false)'),'backend protects OTHER from deletion');
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-11'),'R&M app script cache is refreshed');
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-12'),'R&M app script cache is refreshed');
 assert.match(app,/machineAssetControls'\)\.hidden=access\?\.canReadRepairMaintenanceMachinery!==true\|\|machineSettings\.model_dropdown_enabled!==true/,'R&M registered-machine selector follows the saved category dropdown setting');
 assert.match(app,/api\('settings-get',\{machineType:currentMachine\.key\}\)/,'R&M dashboard loads its category setting before showing the selector');
 assert.ok(html.includes('id="openRmsSettingsShortcut"'),'RMS settings gear shortcut is present in the header');
