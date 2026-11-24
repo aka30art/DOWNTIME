@@ -12,6 +12,8 @@ const centralApi=fs.readFileSync('supabase/functions/central-bank/index.ts','utf
 const centralClient=fs.readFileSync('central-bank-client.js','utf8');
 
 // YARD HUB Settings is an additive surface inside the Hub, not inside the DOWNTIME application shell.
+assert.match(css,/\.yard-hub-settings-home\[hidden\],\.yard-hub-settings-view\[hidden\]\{display:none!important\}/,'settings home and subviews must honor hidden state so they never stack');
+
 for(const id of ['yardHubSettingsBtn','yardHubSettingsScreen','yardHubSettingsUsers','yardHubSettingsTiers','yardHubUsersList','yardHubTierCards','yardHubUserHubTier','yardHubUserDowntimeTier']) {
   assert.ok(html.includes('id="'+id+'"'),'missing YARD HUB Settings element '+id);
 }
