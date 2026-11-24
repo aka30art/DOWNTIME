@@ -134,6 +134,7 @@ Deno.serve(async (req: Request) => {
   const requireEdit = () => permissions.canEditRepairMaintenance === true;
   const requireDelete = () => permissions.canDeleteRepairMaintenance === true;
   const loadFault = async (faultId: unknown) => {
+    if (permissions.canReadRepairMaintenanceMachinery !== true) throw new Error("You do not have READ access to R&M Machinery.");
     const id = cleanText(faultId, "Fault ID", 64);
     const { data, error } = await db.from("repair_maintenance_faults").select("*").eq("id", id).maybeSingle();
     if (error) throw new Error("Unable to load fault record.");
@@ -266,6 +267,7 @@ Deno.serve(async (req: Request) => {
 
     if (action === "export-create") {
       if (permissions.canExportRepairMaintenanceReports !== true) return json({ error: "You do not have permission to export R&M reports." }, 403);
+      if (permissions.canReadRepairMaintenanceMachinery !== true) return json({ error: "You do not have READ access to R&M Machinery." }, 403);
       if (body.machineType !== undefined && body.machineType !== null && body.machineType !== "" && !isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machinery filter."), 400);
       let selectedAsset: any = null;
       const assetId = body.assetId ? cleanText(body.assetId, "Machine", 64) : null;
@@ -329,6 +331,7 @@ Deno.serve(async (req: Request) => {
     }
     if (action === "export-list") {
       if (permissions.canExportRepairMaintenanceReports !== true) return json({ error: "You do not have permission to view R&M PDF exports." }, 403);
+      if (permissions.canReadRepairMaintenanceMachinery !== true) return json({ error: "You do not have READ access to R&M Machinery." }, 403);
       if (body.machineType !== undefined && body.machineType !== null && body.machineType !== "" && !isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machinery filter."), 400);
       const offset = typeof body.offset === "number" && Number.isInteger(body.offset) ? body.offset : 0;
       if (offset < 0 || offset > 20000) return json(fail("PDF export page is invalid."), 400);
