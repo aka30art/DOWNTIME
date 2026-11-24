@@ -30,10 +30,10 @@ assert.match(html,/yard-hub-settings\.css\?v=/,'Hub Settings style asset is vers
 assert.match(html,/data-app="floor" type="button" disabled/,'FLOOR remains unavailable until its application is released');
 assert.match(html,/data-app="check-sheets" type="button" disabled/,'CHECK SHEETS remains unavailable until its application is released');
 assert.match(html,/id="launchDowntimeBtn" data-app="downtime" type="button"/,'DOWNTIME launcher remains present and enabled');
-assert.ok(html.includes('yard-hub-settings.js?v=20261124-3'),'YARD HUB settings client cache is refreshed');
+assert.ok(html.includes('yard-hub-settings.js?v=20261124-4'),'YARD HUB settings client cache is refreshed');
 assert.ok(pagesWorkflow.includes("if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'"),'Pages artifact build runs on PRs for pre-merge validation');
 assert.ok(pagesWorkflow.includes("if: github.ref == 'refs/heads/main'"),'Pages deployment remains restricted to main');
-assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-3'),'live deployment smoke test verifies the updated Hub settings asset');
+assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-4'),'live deployment smoke test verifies the updated Hub settings asset');
 assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-13'),'live deployment smoke test verifies the updated R&M app asset');
 for(const id of ['openRmsSettingsShortcut','saveModelDropdownSettings','settingsAddMachineryButton','machineModelItems','presetItems'])assert.ok(pagesWorkflow.includes(id),'live deployment verification covers current RMS control '+id);
 assert.ok(pagesWorkflow.includes('MACHINERY &amp; MODEL REGISTER') && pagesWorkflow.includes('REGISTERED MACHINE · FAULT REGISTER'),'live deployment verification distinguishes registered assets from make/model catalogue');
@@ -164,3 +164,20 @@ assert.ok(html.includes('error.centralUserSaved=true'), 'partial central-user sa
 assert.ok(ui.includes("const modes=['NONE','READ','INPUT','EDIT']"),'YARD HUB tier UI includes INPUT mode');
 assert.ok(ui.includes("['READ','INPUT','EDIT'].forEach(mode=>{"),'YARD HUB tier UI renders INPUT checkbox');
 assert.ok(hubApi.includes('["NONE", "READ", "INPUT", "EDIT"]'),'YARD HUB settings API validates INPUT mode');
+
+// Custom YARD HUB tiers are root-managed and persisted independently.
+assert.ok(ui.includes('function addCustomTier()'),'custom tier creation workflow exists');
+assert.ok(ui.includes('workingPayload.customTiers'),'custom tier definitions are included in saved payload');
+assert.ok(ui.includes('allRoles().forEach(role=>'),'custom profiles render with built-in tiers');
+assert.ok(html.includes('id="yardHubCustomTierAdd"'),'tier screen exposes custom tier creation');
+assert.ok(hubApi.includes('Invalid custom tier names.'),'API validates custom tier names');
+assert.ok(hubApi.includes('Only DEV / DEVACC may assign custom YARD HUB tiers.'),'only root operators may assign custom tiers');
+assert.ok(hubApi.includes('Only DEV / DEVACC may create or change custom tiers.'),'only root operators may change tier definitions');
+
+// Custom tiers remain assignable after creation, and deletion is protected against orphaning users.
+assert.ok(hubApi.includes('customTiers.includes(saved)'), 'server resolves assigned custom tiers instead of silently downgrading users to USER');
+assert.ok(hubApi.includes('removedCustomTiers'), 'server detects custom tier removals');
+assert.ok(hubApi.includes('Reassign every user from '), 'server blocks deletion while any account remains assigned');
+assert.ok(ui.includes('function deleteCustomTier(role)'), 'root tier management includes a delete workflow');
+assert.ok(ui.includes("remove.type='button'"), 'custom tier delete control is an explicit button');
+assert.ok(ui.includes("setStatus('REASSIGN '"), 'client warns when a custom tier still has assigned users');

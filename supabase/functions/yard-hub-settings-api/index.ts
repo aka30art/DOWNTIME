@@ -34,47 +34,36 @@ function isRootAdmin(user: any, hubTier: string, legacyTier: string) {
 }
 function assignedHubTier(config: any, username: string) {
   const saved = String(config?.userTiers?.[String(username || "").trim().toLowerCase()] || "").toUpperCase();
-  return tierNames.includes(saved as any) ? saved : "USER";
+  const customTiers = Array.isArray(config?.customTiers) ? config.customTiers : [];
+  return tierNames.includes(saved as any) || customTiers.includes(saved) ? saved : "USER";
 }
 function normalizeTierPermissions(input: any, current: any, editableRoles: readonly string[]) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Tier permissions are required.");
   if (Number(input.schemaVersion) !== 1) throw new Error("Unsupported YARD HUB permission schema.");
   if (!input.tiers || typeof input.tiers !== "object" || Array.isArray(input.tiers)) throw new Error("Tier profiles are required.");
-  const allowedTierKeys = new Set(tierNames);
-  if (Object.keys(input.tiers).some((key) => !allowedTierKeys.has(key as any))) throw new Error("Unknown tier profile.");
+  const customTiers = Array.isArray(input.customTiers) ? input.customTiers : (Array.isArray(current?.customTiers) ? current.customTiers : []);
+  if (customTiers.length > 30 || customTiers.some((name: unknown) => typeof name !== "string" || !/^[A-Z][A-Z0-9_]{1,23}$/.test(name) || tierNames.includes(name as any)) || new Set(customTiers).size !== customTiers.length) throw new Error("Invalid custom tier names.");
+  const allTierNames = [...tierNames, ...customTiers];
+  if (Object.keys(input.tiers).some((key) => !allTierNames.includes(key))) throw new Error("Unknown tier profile.");
   const currentTiers = current?.tiers && typeof current.tiers === "object" ? current.tiers : {};
   const nextTiers: Record<string, Record<string, string>> = {};
-  for (const tier of tierNames) {
+  for (const tier of allTierNames) {
     const existing = currentTiers[tier] || {};
     const legacyMode = accessModes.includes(existing.repairMaintenance) ? existing.repairMaintenance : "NONE";
-    nextTiers[tier] = {
-      floor: accessModes.includes(existing.floor) ? existing.floor : "NONE",
-      checkSheets: accessModes.includes(existing.checkSheets) ? existing.checkSheets : "NONE",
-      repairMaintenance: legacyMode,
-      repairMaintenanceMachinery: accessModes.includes(existing.repairMaintenanceMachinery) ? existing.repairMaintenanceMachinery : legacyMode,
-    };
+    nextTiers[tier] = { floor: accessModes.includes(existing.floor) ? existing.floor : "NONE", checkSheets: accessModes.includes(existing.checkSheets) ? existing.checkSheets : "NONE", repairMaintenance: legacyMode, repairMaintenanceMachinery: accessModes.includes(existing.repairMaintenanceMachinery) ? existing.repairMaintenanceMachinery : legacyMode };
   }
   for (const role of editableRoles) {
     const value = input.tiers[role];
     if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Missing permission profile for " + role + ".");
-    const allowedKeys = ["floor", "checkSheets", "repairMaintenance", "repairMaintenanceMachinery"];
-    if (Object.keys(value).some((key) => !allowedKeys.includes(key)) ||
-      ["floor", "checkSheets", "repairMaintenance"].some((key) => !Object.prototype.hasOwnProperty.call(value, key))) {
-      throw new Error("Invalid application permission keys for " + role + ".");
-    }
-    for (const key of ["floor", "checkSheets", "repairMaintenance", "repairMaintenanceMachinery"] as const) {
+    const keys = ["floor", "checkSheets", "repairMaintenance", "repairMaintenanceMachinery"];
+    if (Object.keys(value).some((key) => !keys.includes(key)) || ["floor", "checkSheets", "repairMaintenance"].some((key) => !Object.prototype.hasOwnProperty.call(value, key))) throw new Error("Invalid application permission keys for " + role + ".");
+    for (const key of keys as ("floor" | "checkSheets" | "repairMaintenance" | "repairMaintenanceMachinery")[]) {
       const mode = key === "repairMaintenanceMachinery" ? (value[key] ?? value.repairMaintenance) : value[key];
       if (!accessModes.includes(mode)) throw new Error("Invalid " + key + " permission for " + role + ".");
       nextTiers[role][key] = mode;
     }
   }
-  return {
-    schemaVersion: 1,
-    tiers: nextTiers,
-    userTiers: current?.userTiers && typeof current.userTiers === "object" && !Array.isArray(current.userTiers)
-      ? structuredClone(current.userTiers)
-      : {},
-  };
+  return { schemaVersion: 1, customTiers, tiers: nextTiers, userTiers: current?.userTiers && typeof current.userTiers === "object" && !Array.isArray(current.userTiers) ? structuredClone(current.userTiers) : {} };
 }
 
 Deno.serve(async (req: Request) => {
@@ -159,7 +148,7 @@ Deno.serve(async (req: Request) => {
       })).sort((a: any, b: any) => a.username.localeCompare(b.username)),
       userTiers: configRow.payload?.userTiers || {},
       centralVersion: Number(bankRow.version || 0),
-      tierPermissions: normalizeTierPermissions(configRow.payload, configRow.payload, [...tierNames]),
+      tierPermissions: normalizeTierPermissions(configRow.payload, configRow.payload, [...tierNames, ...(Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [])]),
       permissionVersion: Number(configRow.version),
       updatedBy: configRow.updated_by,
       updatedAt: configRow.updated_at,
@@ -174,7 +163,9 @@ Deno.serve(async (req: Request) => {
     if (!targetUsername || targetUsername.length > 32 || !/^[A-Za-z0-9_.-]{2,32}$/.test(targetUsername)) {
       return json({ error: "Valid username required." }, 400);
     }
-    if (!tierNames.includes(nextTier as any)) return json({ error: "Unknown YARD HUB tier." }, 400);
+    const customTierNames = Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [];
+    if (!tierNames.includes(nextTier as any) && !customTierNames.includes(nextTier)) return json({ error: "Unknown YARD HUB tier." }, 400);
+    if (customTierNames.includes(nextTier) && !isRootAdmin(user, hubTier, legacyTier)) return json({ error: "Only DEV / DEVACC may assign custom YARD HUB tiers." }, 403);
     const target = (Array.isArray(bank.users) ? bank.users : []).find((account: any) =>
       String(account.username || "").toLowerCase() === targetUsername.toLowerCase()
     );
@@ -254,7 +245,17 @@ Deno.serve(async (req: Request) => {
     if (!Number.isInteger(expectedVersion) || expectedVersion !== Number(configRow.version)) {
       return json({ error: "YARD HUB permissions changed elsewhere. Refresh and try again." }, 409);
     }
-    const editableRoles = isRootAdmin(user, hubTier, legacyTier) ? [...tierNames] : [...editableByAdmin];
+    const incomingPayload = body.payload as Record<string, any> | undefined;
+    const incomingCustomTiers = Array.isArray(incomingPayload?.customTiers) ? incomingPayload.customTiers : [];
+    const rootAdmin = isRootAdmin(user, hubTier, legacyTier);
+    const editableRoles = rootAdmin ? [...tierNames, ...incomingCustomTiers] : [...editableByAdmin];
+    if (!rootAdmin && JSON.stringify(incomingCustomTiers) !== JSON.stringify(configRow.payload.customTiers || [])) return json({ error: "Only DEV / DEVACC may create or change custom tiers." }, 403);
+    const currentCustomTiers = Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [];
+    const removedCustomTiers = currentCustomTiers.filter((name: string) => !incomingCustomTiers.includes(name));
+    if (removedCustomTiers.length && !rootAdmin) return json({ error: "Only DEV / DEVACC may remove custom tiers." }, 403);
+    const assignedUsers = configRow.payload.userTiers && typeof configRow.payload.userTiers === "object" ? configRow.payload.userTiers : {};
+    const assignedToRemovedTier = Object.entries(assignedUsers).find(([, assigned]) => removedCustomTiers.includes(String(assigned).toUpperCase()));
+    if (assignedToRemovedTier) return json({ error: "Reassign every user from " + String(assignedToRemovedTier[1]) + " before deleting that custom tier." }, 409);
     let nextPayload: any;
     try {
       nextPayload = normalizeTierPermissions(body.payload, configRow.payload, editableRoles);

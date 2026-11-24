@@ -7,6 +7,7 @@
   const roleLabels={OWNER:'OWNER · ROOT',DEVACC:'DEVACC',ADMIN:'ADMIN',MANAGER:'MANAGER',SUPERVISOR:'SUPERVISOR',MECHANIC:'MECHANIC',USER:'USER',SPECTATOR:'SPECTATOR'};
   const sections=[{key:'floor',label:'FLOOR'},{key:'checkSheets',label:'CHECK SHEETS'},{key:'repairMaintenance',label:'REPAIRS & MAINTENANCE'},{key:'repairMaintenanceMachinery',label:'R&M MACHINERY'}];
   const modes=['NONE','READ','INPUT','EDIT'];
+  const allRoles=()=>[...roles,...(Array.isArray(workingPayload?.customTiers)?workingPayload.customTiers:[])];
   let state=null,workingPayload=null,editingUsername=null,saving=false,myHubTier=null,myCanManageSettings=false,accessRefresh=null;
 
   function currentSession(){return window.DowntimeCentral?.session||null}
@@ -76,6 +77,8 @@
     renderUsers();renderTierCards();updateTierSaveState();
     const addUser=$('yardHubUserAdd');
     if(addUser)addUser.disabled=saving||result.canManageCentralUsers!==true;
+    const addTier=$('yardHubCustomTierAdd');
+    if(addTier)addTier.hidden=!isRootAdmin();
     return result;
   }
   function setHomeVisible(settings){
@@ -171,7 +174,7 @@
   }
   function allowedHubTiers(existingTier,username){
     if(isRootAdmin()){
-      const options=roles.filter(role=>role!=='OWNER'&&(role!=='DEVACC'||rootDev()));
+      const options=allRoles().filter(role=>role!=='OWNER'&&(role!=='DEVACC'||rootDev()));
       if(existingTier==='DEVACC'&&!options.includes('DEVACC'))options.unshift('DEVACC');
       if(username?.toUpperCase()==='DEV')return ['OWNER'];
       return options;
@@ -204,7 +207,7 @@
     $('yardHubUserDowntimeTier').textContent=user?(user.legacyTier||'USER'):'USER · SAFE DEFAULT';
     $('yardHubUserHubTier').replaceChildren();
     allowedHubTiers(user?.hubTier,user?.username||'').forEach(role=>{
-      const option=element('option','',roleLabels[role]);option.value=role;
+      const option=element('option','',roleLabels[role]||role);option.value=role;
       $('yardHubUserHubTier').appendChild(option);
     });
     $('yardHubUserHubTier').value=user?.hubTier||'USER';
@@ -292,11 +295,15 @@
   function renderTierCards(){
     const host=$('yardHubTierCards');if(!host||!workingPayload)return;
     host.replaceChildren();
-    roles.forEach(role=>{
+    allRoles().forEach(role=>{
       const editable=canEditRole(role);
       const card=element('article','yard-hub-tier-card'+(editable?'':' locked'));
       const heading=element('header','yard-hub-tier-card-head');
-      heading.append(element('strong','',roleLabels[role]),element('small','',role==='OWNER'?'Root DEV account':role==='DEVACC'?'Root-equivalent account':role==='ADMIN'?'YARD HUB administrator':'Operational account tier'));
+      heading.append(element('strong','',roleLabels[role]||role),element('small','',role==='OWNER'?'Root DEV account':role==='DEVACC'?'Root-equivalent account':role==='ADMIN'?'YARD HUB administrator':roles.includes(role)?'Operational account tier':'Custom YARD HUB tier'));
+      if(!roles.includes(role)&&isRootAdmin()){
+        const remove=element('button','yard-hub-small-button danger','DELETE TIER');remove.type='button';
+        remove.addEventListener('click',()=>deleteCustomTier(role));heading.appendChild(remove);
+      }
       card.appendChild(heading);
       const table=element('div','yard-hub-permission-table');
       const downtime=element('div','yard-hub-permission-row external');
@@ -322,6 +329,26 @@
       if(!editable)card.appendChild(element('div','yard-hub-tier-lock-note','Protected tier · only DEV / DEVACC can change this profile.'));
       card.appendChild(table);host.appendChild(card);
     });
+  }
+  function addCustomTier(){
+    if(!isRootAdmin()||!workingPayload)return;
+    const raw=window.prompt('NEW CUSTOM YARD HUB TIER — use 2–24 letters, numbers or underscores.');
+    if(raw===null)return;
+    const name=raw.trim().toUpperCase().replace(/[ -]+/g,'_');
+    if(!/^[A-Z][A-Z0-9_]{1,23}$/.test(name)||roles.includes(name)){setStatus('Tier name invalid or reserved.','error');return}
+    if(allRoles().includes(name)){setStatus('That custom tier already exists.','error');return}
+    workingPayload.customTiers=[...(workingPayload.customTiers||[]),name];
+    workingPayload.tiers[name]={floor:'NONE',checkSheets:'NONE',repairMaintenance:'NONE',repairMaintenanceMachinery:'NONE'};
+    renderTierCards();updateTierSaveState();setStatus('CUSTOM TIER ADDED. SAVE PERMISSIONS TO PUBLISH IT.','ok');
+  }
+  function deleteCustomTier(role){
+    if(!isRootAdmin()||!workingPayload?.customTiers?.includes(role))return;
+    const assigned=(state?.users||[]).filter(account=>String(account.hubTier||'').toUpperCase()===role);
+    if(assigned.length){setStatus('REASSIGN '+assigned.length+' USER(S) BEFORE DELETING '+role+'.','error');return}
+    if(!window.confirm('Delete custom tier '+role+'? Its permission profile will be removed when you save.'))return;
+    workingPayload.customTiers=workingPayload.customTiers.filter(name=>name!==role);
+    delete workingPayload.tiers[role];
+    renderTierCards();updateTierSaveState();setStatus('CUSTOM TIER REMOVED. SAVE PERMISSIONS TO CONFIRM DELETION.','ok');
   }
   function updateTierSaveState(){
     const button=$('yardHubTierSave');
@@ -354,6 +381,7 @@
       if(user)setUserEnabled(user,user.enabled===false).then(()=>closeUserModal());
     });
     $('yardHubTierSave')?.addEventListener('click',saveTierSettings);
+    $('yardHubCustomTierAdd')?.addEventListener('click',addCustomTier);
     $('yardHubTierReset')?.addEventListener('click',()=>{
       if(!state||!hasUnsavedTierChanges())return;
       if(!window.confirm('Discard unsaved permission changes?'))return;
