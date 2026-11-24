@@ -44,10 +44,13 @@
       await Promise.all([refreshMachinePresets(),refreshMachineConfiguration()]);
       $('presetMachineTitle').textContent=currentMachine.label;
       showOverlay('presetsOverlay');
-      say(currentMachine.label+' settings loaded.','settingsStatus','ok');
+      say(currentMachine.label+' settings loaded.',machineSettingsStatusTarget(),'ok');
     }catch(error){say(error.message,'settingsStatus','error')}
   }
-  function machineSettingsStatusTarget(){return $('settingsView')&&!$('settingsView').hidden?'settingsStatus':'dashboardStatus';}
+  function machineSettingsStatusTarget(){
+    if($('presetsOverlay')?.classList.contains('open'))return 'machineSettingsModalStatus';
+    return $('settingsView')&&!$('settingsView').hidden?'settingsStatus':'dashboardStatus';
+  }
   function renderStats(){
     $('totalCount').textContent=faults.length;
     $('highCount').textContent=faults.filter(f=>f.priority==='HIGH').length;
