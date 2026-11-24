@@ -36,7 +36,7 @@ for(const [machine,file] of Object.entries(rmIconMap)){
   assert.ok(html.includes('assets/rm-icons/'+file),file+' is referenced by the R&M interface');
 }
 assert.match(html,/<img id="machineIcon" src="assets\/rm-icons\/kiverco\.svg"/,'selected machine header starts with a valid icon asset');
-assert.match(app,/machineIcon\.src=currentMachine\.icon/,'selected machine header follows the active machine');
+assert.match(app,/if\(icon\)icon\.src=currentMachine\.icon/,'selected machine header safely follows the active machine when the icon element exists');
 assert.match(html,/\.machine-art img\{[^}]*object-fit:contain/,'selector icons preserve SVG proportions');
 assert.match(html,/\.machineicon img\{[^}]*filter:brightness\(0\)/,'header icons remain visible on the yellow header panel');
 assert.doesNotMatch(html,/class="machine-art"><svg/,'selector cards no longer use the generic inline machinery drawings');
