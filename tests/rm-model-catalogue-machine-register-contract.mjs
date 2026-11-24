@@ -27,8 +27,10 @@ assert.match(api,/action === "model-add"[\s\S]*canAddRepairMaintenanceMachinery 
 assert.match(api,/action === "model-delete"[\s\S]*canManageRepairMaintenanceMachinery !== true/,'machine archiving requires machinery EDIT permission');
 assert.match(api,/action === "model-delete"[\s\S]*status: "ARCHIVED"/);
 assert.match(app,/function renderMachineModelManager\(\)[\s\S]*settingsAssets\.filter\(asset=>asset\.status==='ACTIVE'\)/);
-assert.match(app,/api\('model-add',[\s\S]*syncDashboardAssetsAfterSettings/);
-assert.match(app,/async function addMachineModel\(event\)[\s\S]*canAddRepairMaintenanceMachinery!==true/,'the add form follows machinery INPUT permissions');
+assert.match(app,/function renderMachineModelManager\(\)[\s\S]*settingsAssets\.filter\(asset=>asset\.status==='ACTIVE'\)[\s\S]*openAssetEditor\(asset\)/,'the register lists active machines and routes EDIT to the shared editor');
+assert.match(app,/async function openAssetEditor\(asset=null\)[\s\S]*showOverlay\('assetOverlay'\)/,'the editor handles both new and existing registered machines');
+assert.match(app,/async function saveAsset\(event\)[\s\S]*wasEdit\?await api\('asset-update'[\s\S]*:await api\('asset-add'/,'the unified editor persists additions and edits through the asset registry');
+assert.doesNotMatch(html,/id="modelAddForm"/,'the duplicate model quick-add form is no longer part of the UI');
 const syncBody=app.match(/async function syncDashboardAssetsAfterSettings\(preferredId=''\)\{([\s\S]*?)\n  \}/)?.[1]||'';
 assert.ok(syncBody.includes('if(!currentMachine)return;'),'new catalogue entries refresh the category asset list');
 assert.doesNotMatch(syncBody,/assetEditorDashboardVisible/,'refresh is not skipped while the settings view is active');
