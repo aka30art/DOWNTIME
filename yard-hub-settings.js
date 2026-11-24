@@ -7,7 +7,7 @@
   const roleLabels={OWNER:'OWNER · ROOT',DEVACC:'DEVACC',ADMIN:'ADMIN',MANAGER:'MANAGER',SUPERVISOR:'SUPERVISOR',MECHANIC:'MECHANIC',USER:'USER',SPECTATOR:'SPECTATOR'};
   const sections=[{key:'floor',label:'FLOOR'},{key:'checkSheets',label:'CHECK SHEETS'},{key:'repairMaintenance',label:'REPAIRS & MAINTENANCE'},{key:'repairMaintenanceMachinery',label:'R&M MACHINERY'}];
   const modes=['NONE','READ','INPUT','EDIT'];
-  const allRoles=()=>[...roles,...(Array.isArray(workingPayload?.customTiers)?workingPayload.customTiers:[])];
+  const allRoles=()=>[...roles.filter(role=>!(workingPayload?.retiredTiers||[]).includes(role)),...(Array.isArray(workingPayload?.customTiers)?workingPayload.customTiers:[])];
   let state=null,workingPayload=null,editingUsername=null,saving=false,myHubTier=null,myCanManageSettings=false,accessRefresh=null;
 
   function currentSession(){return window.DowntimeCentral?.session||null}
@@ -244,7 +244,7 @@
     if(!displayName||displayName.length>80){setStatus('Enter a display name of up to 80 characters.','error');return}
     if(pin&&(!/^[0-9]{4,8}$/.test(pin))){setStatus('PIN must contain 4–8 digits.','error');return}
     if(!editingUsername&&!pin){setStatus('A PIN is required for a new user.','error');return}
-    if(!roles.includes(hubTier)){setStatus('Select a valid YARD HUB tier.','error');return}
+    if(!allRoles().includes(hubTier)){setStatus('Select a valid YARD HUB tier.','error');return}
     if(!isRootAdmin()&&!editableByAdmin.includes(hubTier)&&(hubTier!==existing?.hubTier)){
       setStatus('ADMIN may assign only MANAGER, SUPERVISOR, USER and SPECTATOR YARD HUB tiers.','error');return;
     }
@@ -300,9 +300,9 @@
       const card=element('article','yard-hub-tier-card'+(editable?'':' locked'));
       const heading=element('header','yard-hub-tier-card-head');
       heading.append(element('strong','',roleLabels[role]||role),element('small','',role==='OWNER'?'Root DEV account':role==='DEVACC'?'Root-equivalent account':role==='ADMIN'?'YARD HUB administrator':roles.includes(role)?'Operational account tier':'Custom YARD HUB tier'));
-      if(!roles.includes(role)&&isRootAdmin()){
+      if(!['OWNER','DEVACC'].includes(role)&&isRootAdmin()){
         const remove=element('button','yard-hub-small-button danger','DELETE TIER');remove.type='button';
-        remove.addEventListener('click',()=>deleteCustomTier(role));heading.appendChild(remove);
+        remove.addEventListener('click',()=>deleteTier(role));heading.appendChild(remove);
       }
       card.appendChild(heading);
       const table=element('div','yard-hub-permission-table');
@@ -341,14 +341,15 @@
     workingPayload.tiers[name]={floor:'NONE',checkSheets:'NONE',repairMaintenance:'NONE',repairMaintenanceMachinery:'NONE'};
     renderTierCards();updateTierSaveState();setStatus('CUSTOM TIER ADDED. SAVE PERMISSIONS TO PUBLISH IT.','ok');
   }
-  function deleteCustomTier(role){
-    if(!isRootAdmin()||!workingPayload?.customTiers?.includes(role))return;
-    const assigned=(state?.users||[]).filter(account=>String(account.hubTier||'').toUpperCase()===role);
-    if(assigned.length){setStatus('REASSIGN '+assigned.length+' USER(S) BEFORE DELETING '+role+'.','error');return}
-    if(!window.confirm('Delete custom tier '+role+'? Its permission profile will be removed when you save.'))return;
-    workingPayload.customTiers=workingPayload.customTiers.filter(name=>name!==role);
+  function deleteTier(role){
+    if(!isRootAdmin()||['OWNER','DEVACC'].includes(role)||!allRoles().includes(role))return;
+    const assigned=Object.entries(state?.userTiers||{}).filter(([,tier])=>String(tier).toUpperCase()===role).length;
+    if(assigned){setStatus('REASSIGN '+assigned+' USER(S) BEFORE DELETING '+role+'.','error');return}
+    if(!window.confirm('Delete '+role+' tier? Its permission profile will be removed when you save.'))return;
+    if(roles.includes(role))workingPayload.retiredTiers=[...(workingPayload.retiredTiers||[]),role];
+    else workingPayload.customTiers=(workingPayload.customTiers||[]).filter(name=>name!==role);
     delete workingPayload.tiers[role];
-    renderTierCards();updateTierSaveState();setStatus('CUSTOM TIER REMOVED. SAVE PERMISSIONS TO CONFIRM DELETION.','ok');
+    renderTierCards();updateTierSaveState();setStatus(role+' TIER REMOVED. SAVE PERMISSIONS TO CONFIRM DELETION.','ok');
   }
   function updateTierSaveState(){
     const button=$('yardHubTierSave');
