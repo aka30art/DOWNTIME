@@ -7,6 +7,8 @@ import { chromium } from 'playwright';
 const file=fileURLToPath(new URL('../central-bank-admin.html',import.meta.url));
 let draft={
  schemaVersion:1,
+ modules:['Central Data Bank','YARD HUB','Repair & Maintenance'],
+ navigation:{overview:'Overview',organisation:'Organisation',structure:'Plant & Areas',libraries:'Operational Libraries',defaults:'System Defaults',history:'Version History',navigation:'Menu & Labels',modules:'Module Registry',controls:'System Controls',information:'System Information'},
  organization:{companyName:'',siteCode:'',timezone:'Europe/London',locale:'en-GB'},
  structure:{sites:[],plants:[],areas:[],stations:[]},
  libraries:{areaPresets:['Line 1'],downtimeReasons:['Mechanical failure'],dailyTaskPresets:['Check guards'],equipmentCategories:[],eventCategories:[],statusCategories:['Running','Stopped']},
@@ -79,6 +81,8 @@ try{
 
  await page.locator('[data-section="navigation"]').click();
  await page.locator('#navLabelStructure').fill('Facility Map');
+ await page.locator('[data-section="modules"]').click();
+ await page.locator('#moduleRegistry').fill('Central Data Bank\nYARD HUB\nRepair & Maintenance\nDEV Diagnostics');
  await page.locator('[data-section="organisation"]').click();
  await page.locator('#companyName').fill('QA Example Company');
  await page.locator('#saveDraftBtn').click();
@@ -91,6 +95,11 @@ try{
  await page.locator('#loginBtn').click();
  await page.locator('#view-overview').waitFor({state:'visible'});
  assert.equal((await page.locator('[data-section="structure"] .navtext').textContent()).trim(),'Facility Map','saved DEV menu title persists after a fresh page load and authenticated state fetch');
+ assert.equal(await page.locator('#moduleRegistry').inputValue(),'Central Data Bank\nYARD HUB\nRepair & Maintenance\nDEV Diagnostics','module registry persists after reload');
+ await page.locator('[data-section="controls"]').click();
+ assert.ok(await page.getByText('Server-side access is restricted').count(),'system controls document the server-side access boundary');
+ await page.locator('[data-section="information"]').click();
+ assert.ok(await page.getByText('Not connected by design').count(),'system information confirms no live runtime integration');
  assert.equal(await page.locator('#publishBtn').isEnabled(),true,'saved draft can be explicitly published');
 
  page.on('dialog',dialog=>dialog.accept());
