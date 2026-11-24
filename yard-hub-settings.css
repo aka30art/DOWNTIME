@@ -85,3 +85,5 @@
   .yard-hub-user-meta{grid-column:1;grid-row:2}
   .yard-hub-user-actions{grid-column:2;grid-row:1 / span 2}
 }
+
+.yard-hub-tier-actions #yardHubCustomTierAdd{border-color:#e5c326;color:#f5cb18}
