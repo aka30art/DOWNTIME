@@ -41,7 +41,7 @@ assert.match(html,/\.machine-art img\{[^}]*object-fit:contain/,'selector icons p
 assert.match(html,/\.machineicon img\{[^}]*filter:brightness\(0\)/,'header icons remain visible on the yellow header panel');
 assert.doesNotMatch(html,/class="machine-art"><svg/,'selector cards no longer use the generic inline machinery drawings');
 
-for(const id of ['selectorView','settingsView','dashboardView','openRmsSettings','backToMachineryFromSettings','settingsMachineGrid','settingsStatus','machineAssetControls','machineAssetSelect','addMachineryButton','editMachineryButton','assetOverlay','assetForm','assetName','assetCode','assetMakeModel','assetSaveButton','archiveAssetButton','reportAssetId','pdfExportsAssetId','faultRows','totalCount','highCount','mediumCount','lowCount','createOverlay','reportOverlay','reportMachineType','generatePdfReport','openReports','exportsOverlay','pdfExportsMachineType','pdfExportList','exportReportButton','pdfExportsButton','loadMoreExports','presetsOverlay','presetMachineTitle','presetItems','presetAddForm','newPresetName','addPresetSave','openPresets','newFaultOtherField','newFaultOther','detailsOverlay','detailStatus','detailPriority','photoInput','fileInput','notesList'])assert.ok(html.includes(`id="${id}"`),`missing HTML element ${id}`);
+for(const id of ['selectorView','settingsView','dashboardView','openRmsSettingsShortcut','backToMachineryFromSettings','settingsMachineGrid','settingsStatus','machineAssetControls','machineAssetSelect','settingsMachinerySection','settingsAssetSelect','settingsAddMachineryButton','settingsEditMachineryButton','saveModelDropdownSettings','assetOverlay','assetForm','assetName','assetCode','assetMakeModel','assetSaveButton','archiveAssetButton','reportAssetId','pdfExportsAssetId','faultRows','totalCount','highCount','mediumCount','lowCount','createOverlay','reportOverlay','reportMachineType','generatePdfReport','openReports','exportsOverlay','pdfExportsMachineType','pdfExportList','exportReportButton','pdfExportsButton','loadMoreExports','presetsOverlay','presetMachineTitle','presetItems','presetAddForm','newPresetName','addPresetSave','newFaultOtherField','newFaultOther','detailsOverlay','detailStatus','detailPriority','photoInput','fileInput','notesList'])assert.ok(html.includes(`id="${id}"`),`missing HTML element ${id}`);
 for(const action of ['access','asset-list','asset-add','asset-update','asset-archive','list','export-create','export-list','export-url','export-delete','preset-list','preset-add','preset-delete','get','create','update','note-add','upload','delete'])assert.ok(api.includes(`action === "${action}"`),`missing API action ${action}`);
 for(const behaviour of ['create','update','note-add','upload','delete','createSignedUrl','remove('])assert.ok(api.includes(behaviour),`missing backend behaviour ${behaviour}`);
 for(const key of ['canAccessYardHub','canAccessRepairMaintenance','canEditRepairMaintenance','canDeleteRepairMaintenance','canExportRepairMaintenanceReports']){
@@ -77,7 +77,14 @@ assert.ok(api.includes('.eq("machine_type", body.machineType)'),'backend checks 
 assert.ok(api.includes('.eq("is_other", false)'),'backend protects OTHER from deletion');
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-8'),'R&M app script cache is refreshed');
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-9'),'R&M app script cache is refreshed');
+assert.ok(html.includes('id="openRmsSettingsShortcut"'),'RMS settings gear shortcut is present in the header');
+assert.ok(html.includes('id="saveModelDropdownSettings"'),'model dropdown configuration has an explicit save button');
+assert.ok(html.includes('id="settingsAddMachineryButton"')&&html.includes('id="settingsEditMachineryButton"'),'machinery management actions are contained in RMS settings');
+assert.doesNotMatch(html,/id="addMachineryButton"|id="editMachineryButton"|id="openPresets"/,'dashboard no longer contains machinery management buttons');
+assert.match(app,/function saveModelDropdownSetting\(\)/,'MAKE / MODEL dropdown setting is saved explicitly');
+assert.match(app,/handleModelDropdownDraftChange/,'checkbox changes are kept as an unsaved draft');
+assert.match(app,/openRmsSettingsShortcut.*currentMachine/,'header shortcut opens settings for the current machinery category');
 assert.match(app,/function renderSettingsSelector\(\)/,'RMS menu has its own navigation view');
 assert.match(app,/function openMachineSettings\(key\)/,'RMS category selection opens the selected category settings');
 assert.match(app,/canManageRepairMaintenancePresets!==true/,'RMS settings are permission-gated');
