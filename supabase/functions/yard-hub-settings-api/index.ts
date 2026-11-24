@@ -35,7 +35,8 @@ function isRootAdmin(user: any, hubTier: string, legacyTier: string) {
 function assignedHubTier(config: any, username: string) {
   const saved = String(config?.userTiers?.[String(username || "").trim().toLowerCase()] || "").toUpperCase();
   const customTiers = Array.isArray(config?.customTiers) ? config.customTiers : [];
-  return tierNames.includes(saved as any) || customTiers.includes(saved) ? saved : "USER";
+  const retired = Array.isArray(config?.retiredTiers) ? config.retiredTiers : [];
+  return (tierNames.includes(saved as any) && !retired.includes(saved)) || customTiers.includes(saved) ? saved : "USER";
 }
 function normalizeTierPermissions(input: any, current: any, editableRoles: readonly string[]) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Tier permissions are required.");
@@ -43,7 +44,9 @@ function normalizeTierPermissions(input: any, current: any, editableRoles: reado
   if (!input.tiers || typeof input.tiers !== "object" || Array.isArray(input.tiers)) throw new Error("Tier profiles are required.");
   const customTiers = Array.isArray(input.customTiers) ? input.customTiers : (Array.isArray(current?.customTiers) ? current.customTiers : []);
   if (customTiers.length > 30 || customTiers.some((name: unknown) => typeof name !== "string" || !/^[A-Z][A-Z0-9_]{1,23}$/.test(name) || tierNames.includes(name as any)) || new Set(customTiers).size !== customTiers.length) throw new Error("Invalid custom tier names.");
-  const allTierNames = [...tierNames, ...customTiers];
+  const retiredTiers = Array.isArray(input.retiredTiers) ? input.retiredTiers : (Array.isArray(current?.retiredTiers) ? current.retiredTiers : []);
+  if (retiredTiers.some((name: unknown) => typeof name !== "string" || !tierNames.includes(name as any) || ["OWNER", "DEVACC"].includes(name)) || new Set(retiredTiers).size !== retiredTiers.length) throw new Error("Invalid retired tier names.");
+  const allTierNames = [...tierNames.filter(name => !retiredTiers.includes(name)), ...customTiers];
   if (Object.keys(input.tiers).some((key) => !allTierNames.includes(key))) throw new Error("Unknown tier profile.");
   const currentTiers = current?.tiers && typeof current.tiers === "object" ? current.tiers : {};
   const nextTiers: Record<string, Record<string, string>> = {};
@@ -63,7 +66,7 @@ function normalizeTierPermissions(input: any, current: any, editableRoles: reado
       nextTiers[role][key] = mode;
     }
   }
-  return { schemaVersion: 1, customTiers, tiers: nextTiers, userTiers: current?.userTiers && typeof current.userTiers === "object" && !Array.isArray(current.userTiers) ? structuredClone(current.userTiers) : {} };
+  return { schemaVersion: 1, customTiers, retiredTiers, tiers: nextTiers, userTiers: current?.userTiers && typeof current.userTiers === "object" && !Array.isArray(current.userTiers) ? structuredClone(current.userTiers) : {} };
 }
 
 Deno.serve(async (req: Request) => {
@@ -148,11 +151,11 @@ Deno.serve(async (req: Request) => {
       })).sort((a: any, b: any) => a.username.localeCompare(b.username)),
       userTiers: configRow.payload?.userTiers || {},
       centralVersion: Number(bankRow.version || 0),
-      tierPermissions: normalizeTierPermissions(configRow.payload, configRow.payload, [...tierNames, ...(Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [])]),
+      tierPermissions: normalizeTierPermissions(configRow.payload, configRow.payload, [...tierNames.filter(name => !(configRow.payload.retiredTiers || []).includes(name)), ...(Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [])]),
       permissionVersion: Number(configRow.version),
       updatedBy: configRow.updated_by,
       updatedAt: configRow.updated_at,
-      editableTiers: isRootAdmin(user, hubTier, legacyTier) ? [...tierNames] : [...editableByAdmin],
+      editableTiers: isRootAdmin(user, hubTier, legacyTier) ? [...tierNames.filter(name => !(configRow.payload.retiredTiers || []).includes(name)), ...(configRow.payload.customTiers || [])] : [...editableByAdmin],
       canManageCentralUsers,
     });
   }
@@ -164,7 +167,8 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Valid username required." }, 400);
     }
     const customTierNames = Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [];
-    if (!tierNames.includes(nextTier as any) && !customTierNames.includes(nextTier)) return json({ error: "Unknown YARD HUB tier." }, 400);
+    const retiredTierNames = Array.isArray(configRow.payload.retiredTiers) ? configRow.payload.retiredTiers : [];
+    if ((!tierNames.includes(nextTier as any) || retiredTierNames.includes(nextTier)) && !customTierNames.includes(nextTier)) return json({ error: "Unknown YARD HUB tier." }, 400);
     if (customTierNames.includes(nextTier) && !isRootAdmin(user, hubTier, legacyTier)) return json({ error: "Only DEV / DEVACC may assign custom YARD HUB tiers." }, 403);
     const target = (Array.isArray(bank.users) ? bank.users : []).find((account: any) =>
       String(account.username || "").toLowerCase() === targetUsername.toLowerCase()
@@ -247,15 +251,21 @@ Deno.serve(async (req: Request) => {
     }
     const incomingPayload = body.payload as Record<string, any> | undefined;
     const incomingCustomTiers = Array.isArray(incomingPayload?.customTiers) ? incomingPayload.customTiers : [];
+    const incomingRetiredTiers = Array.isArray(incomingPayload?.retiredTiers) ? incomingPayload.retiredTiers : [];
     const rootAdmin = isRootAdmin(user, hubTier, legacyTier);
-    const editableRoles = rootAdmin ? [...tierNames, ...incomingCustomTiers] : [...editableByAdmin];
+    const activeTierNames = [...tierNames.filter(name => !incomingRetiredTiers.includes(name)), ...incomingCustomTiers];
+    const editableRoles = rootAdmin ? activeTierNames : editableByAdmin.filter(name => activeTierNames.includes(name));
     if (!rootAdmin && JSON.stringify(incomingCustomTiers) !== JSON.stringify(configRow.payload.customTiers || [])) return json({ error: "Only DEV / DEVACC may create or change custom tiers." }, 403);
     const currentCustomTiers = Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [];
+    const currentRetiredTiers = Array.isArray(configRow.payload.retiredTiers) ? configRow.payload.retiredTiers : [];
+    if (!rootAdmin && JSON.stringify(incomingRetiredTiers) !== JSON.stringify(currentRetiredTiers)) return json({ error: "Only DEV / DEVACC may remove built-in tiers." }, 403);
+    const removedBuiltInTiers = tierNames.filter(name => !["OWNER", "DEVACC"].includes(name) && !currentRetiredTiers.includes(name) && incomingRetiredTiers.includes(name));
     const removedCustomTiers = currentCustomTiers.filter((name: string) => !incomingCustomTiers.includes(name));
     if (removedCustomTiers.length && !rootAdmin) return json({ error: "Only DEV / DEVACC may remove custom tiers." }, 403);
     const assignedUsers = configRow.payload.userTiers && typeof configRow.payload.userTiers === "object" ? configRow.payload.userTiers : {};
-    const assignedToRemovedTier = Object.entries(assignedUsers).find(([, assigned]) => removedCustomTiers.includes(String(assigned).toUpperCase()));
-    if (assignedToRemovedTier) return json({ error: "Reassign every user from " + String(assignedToRemovedTier[1]) + " before deleting that custom tier." }, 409);
+    const removedTierNames = [...removedCustomTiers, ...removedBuiltInTiers];
+    const assignedToRemovedTier = Object.entries(assignedUsers).find(([, assigned]) => removedTierNames.includes(String(assigned).toUpperCase()));
+    if (assignedToRemovedTier) return json({ error: "Reassign every user from " + String(assignedToRemovedTier[1]) + " before deleting that tier." }, 409);
     let nextPayload: any;
     try {
       nextPayload = normalizeTierPermissions(body.payload, configRow.payload, editableRoles);

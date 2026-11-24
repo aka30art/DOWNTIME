@@ -91,7 +91,7 @@ jobs:
           grep -q 'id="yardHubSettingsTiers"' /tmp/live-site.html
           grep -q 'yard-hub-settings.js' /tmp/live-site.html
           grep -q 'yard-hub-settings.css' /tmp/live-site.html
-          curl --fail --silent --show-error --location "$LIVE_URL/yard-hub-settings.js?v=20261124-4" -o /tmp/live-yard-hub-settings.js
+          curl --fail --silent --show-error --location "$LIVE_URL/yard-hub-settings.js?v=20261124-5" -o /tmp/live-yard-hub-settings.js
           grep -q 'my-access' /tmp/live-yard-hub-settings.js
           grep -q 'MECHANIC' /tmp/live-yard-hub-settings.js
           curl --fail --silent --show-error --location "$LIVE_URL/repair-maintenance.html" -o /tmp/live-repair-maintenance.html
