@@ -111,7 +111,7 @@ Deno.serve(async (req: Request) => {
     permissions.canReadRepairMaintenanceMachinery = permissions.canAccessRepairMaintenance === true;
     permissions.canManageRepairMaintenanceMachinery = permissions.canEditRepairMaintenance === true;
   }
-  const rootOperator = (String(user.username).trim().toUpperCase() === "DEV" && tier === "OWNER") || hubTier === "DEVACC";
+  const rootOperator = (String(user.username).trim().toUpperCase() === "DEV" && tier === "OWNER") || tier === "DEVACC" || hubTier === "DEVACC";
   if (rootOperator) {
     Object.assign(permissions, {
       canAccessYardHub: true,
