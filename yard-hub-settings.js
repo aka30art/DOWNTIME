@@ -6,7 +6,7 @@
   const editableByAdmin=['MANAGER','SUPERVISOR','MECHANIC','USER','SPECTATOR'];
   const roleLabels={OWNER:'OWNER · ROOT',DEVACC:'DEVACC',ADMIN:'ADMIN',MANAGER:'MANAGER',SUPERVISOR:'SUPERVISOR',MECHANIC:'MECHANIC',USER:'USER',SPECTATOR:'SPECTATOR'};
   const sections=[{key:'floor',label:'FLOOR'},{key:'checkSheets',label:'CHECK SHEETS'},{key:'repairMaintenance',label:'REPAIRS & MAINTENANCE'},{key:'repairMaintenanceMachinery',label:'R&M MACHINERY'}];
-  const modes=['NONE','READ','EDIT'];
+  const modes=['NONE','READ','INPUT','EDIT'];
   let state=null,workingPayload=null,editingUsername=null,saving=false,myHubTier=null,myCanManageSettings=false,accessRefresh=null;
 
   function currentSession(){return window.DowntimeCentral?.session||null}
@@ -302,7 +302,7 @@
         const row=element('div','yard-hub-permission-row');
         row.appendChild(element('strong','',section.label));
         const controls=element('div','yard-hub-checks');
-        ['READ','EDIT'].forEach(mode=>{
+        ['READ','INPUT','EDIT'].forEach(mode=>{
           const label=element('label','yard-hub-check-option '+mode.toLowerCase());
           const box=document.createElement('input');box.type='checkbox';box.checked=current===mode;box.disabled=!editable;box.dataset.hubTier=role;box.dataset.hubSection=section.key;box.dataset.hubMode=mode;
           box.addEventListener('change',()=>{

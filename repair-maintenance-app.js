@@ -137,9 +137,10 @@
     if(!section)return;
     const canRead=access?.canReadRepairMaintenanceMachinery===true;
     const canManage=access?.canManageRepairMaintenanceMachinery===true;
+    const canAdd=access?.canAddRepairMaintenanceMachinery===true||canManage;
     section.hidden=!canRead&&access?.canManageRepairMaintenancePresets!==true;
     const add=$('settingsAddMachineryButton');
-    if(add)add.hidden=!canManage;
+    if(add)add.hidden=!canAdd;
   }
   function updateModelDropdownSaveState(){
     const save=$('saveModelDropdownSettings');
@@ -346,7 +347,7 @@
     if(!unassignedMode&&!currentAsset){say('The selected machine is no longer available. Refresh the category and try again.','dashboardStatus','error');return}
     $('machineTitle').textContent=unassignedMode?'UNASSIGNED / LEGACY FAULTS':currentAsset.name;
     $('machineAssetSelect').value=value;
-    const canCreate=access?.canEditRepairMaintenance===true&&!unassignedMode&&currentAsset?.status==='ACTIVE';
+    const canCreate=(access?.canCreateRepairMaintenance===true||access?.canEditRepairMaintenance===true)&&!unassignedMode&&currentAsset?.status==='ACTIVE';
     $('openCreateFault').hidden=!canCreate;
     $('openCreateFault').disabled=!canCreate;
     setRegisterMessage('Loading fault records…');
@@ -364,7 +365,7 @@
     if(selected)return selectMachineAsset(selected);
   }
   async function openAssetEditor(asset=null){
-    if(access?.canManageRepairMaintenanceMachinery!==true||!currentMachine)return;
+    if((asset&&access?.canManageRepairMaintenanceMachinery!==true)||(!asset&&access?.canAddRepairMaintenanceMachinery!==true&&access?.canManageRepairMaintenanceMachinery!==true)||!currentMachine)return;
     try{
       assetEditorFromSettings=$('presetsOverlay')?.classList.contains('open')===true;
       assetEditorDashboardVisible=!$('dashboardView').hidden;
@@ -382,11 +383,12 @@
     }catch(error){say(error.message,assetEditorFromSettings?'machineSettingsModalStatus':'dashboardStatus','error')}
   }
   async function saveAsset(event){
-    event.preventDefault();if(!currentMachine||access?.canManageRepairMaintenanceMachinery!==true)return;
+    event.preventDefault();if(!currentMachine||(editingAssetId?access?.canManageRepairMaintenanceMachinery!==true:(access?.canAddRepairMaintenanceMachinery!==true&&access?.canManageRepairMaintenanceMachinery!==true)))return;
     const button=$('assetSaveButton');button.disabled=true;button.textContent='SAVING…';
     try{
       const wasEdit=Boolean(editingAssetId),fromSettings=assetEditorFromSettings,dashboardWasVisible=assetEditorDashboardVisible;
       const payload={machineType:currentMachine.key,name:$('assetName').value.trim(),assetCode:$('assetCode').value.trim(),makeModel:selectedAssetMakeModel()};
+      if(wasEdit&&access?.canManageRepairMaintenanceMachinery!==true)throw new Error('INPUT access allows adding machinery but not editing existing machines.');
       const result=wasEdit?await api('asset-update',{...payload,assetId:editingAssetId}):await api('asset-add',payload);
       const saved=result.asset;if(!saved)throw new Error('The R&M service did not confirm the machinery record.');
       closeOverlay('assetOverlay');editingAssetId=null;editingAssetRecord=null;
@@ -543,7 +545,7 @@
   function applyPermissions(){
     const edit=access.canEditRepairMaintenance===true,del=access.canDeleteRepairMaintenance===true,machineRead=access.canReadRepairMaintenanceMachinery===true,exp=access.canExportRepairMaintenanceReports===true&&machineRead;
     ['updateFault','toggleNoteComposer','detailAddNote','attachFile','addPhoto'].forEach(id=>{const e=$(id);if(e)e.disabled=!edit});
-    const canCreate=edit&&!unassignedMode&&currentAsset?.status==='ACTIVE';
+    const canCreate=(access.canCreateRepairMaintenance===true||edit)&&!unassignedMode&&currentAsset?.status==='ACTIVE';
     $('openCreateFault').hidden=!canCreate;$('openCreateFault').disabled=!canCreate;
     $('deleteFault').hidden=!del;$('openReports').hidden=!exp;$('exportReportButton').hidden=!exp;$('pdfExportsButton').hidden=!exp;
     $('openRmsSettingsShortcut').hidden=access.canManageRepairMaintenancePresets!==true;
