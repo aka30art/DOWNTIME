@@ -93,18 +93,20 @@ Deno.serve(async (req: Request) => {
   if (!hubAccessError && hubAccessRow?.payload) {
     const profile = hubAccessRow.payload?.tiers?.[hubTier] || {};
     const mode = profile.repairMaintenance;
-    if (!["NONE", "READ", "EDIT"].includes(mode)) {
+    if (!["NONE", "READ", "INPUT", "EDIT"].includes(mode)) {
       return json({ error: "YARD HUB R&M permission profile is invalid." }, 503);
     }
     const machineryMode = profile.repairMaintenanceMachinery ?? mode;
-    if (!["NONE", "READ", "EDIT"].includes(machineryMode)) {
+    if (!["NONE", "READ", "INPUT", "EDIT"].includes(machineryMode)) {
       return json({ error: "YARD HUB R&M Machinery permission profile is invalid." }, 503);
     }
     permissions.canAccessRepairMaintenance = mode !== "NONE";
+    permissions.canCreateRepairMaintenance = mode === "INPUT" || mode === "EDIT";
     permissions.canEditRepairMaintenance = mode === "EDIT";
     permissions.canDeleteRepairMaintenance = mode === "EDIT";
     permissions.canExportRepairMaintenanceReports = mode === "READ" || mode === "EDIT";
     permissions.canReadRepairMaintenanceMachinery = machineryMode !== "NONE";
+    permissions.canAddRepairMaintenanceMachinery = machineryMode === "INPUT" || machineryMode === "EDIT";
     permissions.canManageRepairMaintenanceMachinery = machineryMode === "EDIT";
   } else {
     // Preserve all legacy R&M capabilities until the YARD HUB matrix is available.
@@ -123,6 +125,8 @@ Deno.serve(async (req: Request) => {
       canManageRepairMaintenanceMachinery: true,
     });
   }
+  permissions.canCreateRepairMaintenance = permissions.canCreateRepairMaintenance === true || permissions.canEditRepairMaintenance === true;
+  permissions.canAddRepairMaintenanceMachinery = permissions.canAddRepairMaintenanceMachinery === true || permissions.canManageRepairMaintenanceMachinery === true;
   permissions.canManageRepairMaintenancePresets = permissions.canEditRepairMaintenance === true;
   if (!permissions.canAccessYardHub) return json({ error: "YARD HUB access is not enabled for this account." }, 403);
   if (!permissions.canAccessRepairMaintenance) return json({ error: "R&M access is not enabled for this account." }, 403);
@@ -164,7 +168,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "asset-add") {
-      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
+      if (permissions.canAddRepairMaintenanceMachinery !== true) return json({ error: "You do not have INPUT access to add R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
       const name = cleanText(body.name, "Machine name", 120);
       const assetCode = cleanText(body.assetCode, "Fleet number / registration", 40, false) || null;
@@ -461,7 +465,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "create") {
-      if (!requireEdit()) return json({ error: "You do not have permission to create R&M faults." }, 403);
+      if (permissions.canCreateRepairMaintenance !== true) return json({ error: "You do not have INPUT access to create R&M faults." }, 403);
       if (permissions.canReadRepairMaintenanceMachinery !== true) return json({ error: "You do not have READ access to R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes) || !isOneOf(body.priority, RM_FAULT_PRIORITIES)) return json(fail("Machine or priority is invalid."), 400);
       const assetId = cleanText(body.assetId, "Machine", 64);
