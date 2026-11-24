@@ -34,7 +34,8 @@ function isRootAdmin(user: any, hubTier: string, legacyTier: string) {
 }
 function assignedHubTier(config: any, username: string) {
   const saved = String(config?.userTiers?.[String(username || "").trim().toLowerCase()] || "").toUpperCase();
-  return tierNames.includes(saved as any) ? saved : "USER";
+  const customTiers = Array.isArray(config?.customTiers) ? config.customTiers : [];
+  return tierNames.includes(saved as any) || customTiers.includes(saved) ? saved : "USER";
 }
 function normalizeTierPermissions(input: any, current: any, editableRoles: readonly string[]) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Tier permissions are required.");
@@ -246,8 +247,15 @@ Deno.serve(async (req: Request) => {
     }
     const incomingPayload = body.payload as Record<string, any> | undefined;
     const incomingCustomTiers = Array.isArray(incomingPayload?.customTiers) ? incomingPayload.customTiers : [];
-    const editableRoles = isRootAdmin(user, hubTier, legacyTier) ? [...tierNames, ...incomingCustomTiers] : [...editableByAdmin];
-    if (!isRootAdmin(user, hubTier, legacyTier) && JSON.stringify(incomingCustomTiers) !== JSON.stringify(configRow.payload.customTiers || [])) return json({ error: "Only DEV / DEVACC may create or change custom tiers." }, 403);
+    const rootAdmin = isRootAdmin(user, hubTier, legacyTier);
+    const editableRoles = rootAdmin ? [...tierNames, ...incomingCustomTiers] : [...editableByAdmin];
+    if (!rootAdmin && JSON.stringify(incomingCustomTiers) !== JSON.stringify(configRow.payload.customTiers || [])) return json({ error: "Only DEV / DEVACC may create or change custom tiers." }, 403);
+    const currentCustomTiers = Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [];
+    const removedCustomTiers = currentCustomTiers.filter((name: string) => !incomingCustomTiers.includes(name));
+    if (removedCustomTiers.length && !rootAdmin) return json({ error: "Only DEV / DEVACC may remove custom tiers." }, 403);
+    const assignedUsers = configRow.payload.userTiers && typeof configRow.payload.userTiers === "object" ? configRow.payload.userTiers : {};
+    const assignedToRemovedTier = Object.entries(assignedUsers).find(([, assigned]) => removedCustomTiers.includes(String(assigned).toUpperCase()));
+    if (assignedToRemovedTier) return json({ error: "Reassign every user from " + String(assignedToRemovedTier[1]) + " before deleting that custom tier." }, 409);
     let nextPayload: any;
     try {
       nextPayload = normalizeTierPermissions(body.payload, configRow.payload, editableRoles);
