@@ -170,9 +170,9 @@ Deno.serve(async (req: Request) => {
     if (action === "asset-add") {
       if (permissions.canAddRepairMaintenanceMachinery !== true) return json({ error: "You do not have INPUT access to add R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
-      const name = cleanText(body.name, "Machine name", 120);
+      const makeModel = cleanText(body.makeModel, "Make / model", 120);
+      const name = makeModel;
       const assetCode = cleanText(body.assetCode, "Fleet number / registration", 40, false) || null;
-      const makeModel = cleanText(body.makeModel, "Make / model", 120, false) || null;
       const { data, error } = await db.from("repair_maintenance_assets").insert({
         machine_type: body.machineType, name, asset_code: assetCode, make_model: makeModel,
         status: "ACTIVE", created_by: actor, updated_by: actor,
@@ -187,9 +187,9 @@ Deno.serve(async (req: Request) => {
       if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
       const assetId = cleanText(body.assetId, "Machine ID", 64);
-      const name = cleanText(body.name, "Machine name", 120);
+      const makeModel = cleanText(body.makeModel, "Make / model", 120);
+      const name = makeModel;
       const assetCode = cleanText(body.assetCode, "Fleet number / registration", 40, false) || null;
-      const makeModel = cleanText(body.makeModel, "Make / model", 120, false) || null;
       const { data, error } = await db.from("repair_maintenance_assets").update({
         name, asset_code: assetCode, make_model: makeModel, updated_by: actor, updated_at: new Date().toISOString(),
       }).eq("id", assetId).eq("machine_type", body.machineType)
@@ -252,7 +252,7 @@ Deno.serve(async (req: Request) => {
       if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have READ access to R&M settings." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
       const { data, error } = await db.from("repair_maintenance_machine_settings")
-        .select("machine_type,model_dropdown_enabled,asset_selector_enabled,updated_at")
+        .select("machine_type,model_dropdown_enabled,asset_selector_enabled,registration_enabled,updated_at")
         .eq("machine_type", body.machineType).maybeSingle();
       if (error || !data) return json({ error: "Unable to load this category's R&M settings. Apply the R&M model catalogue migration and retry." }, 503);
       return json({ settings: data });
@@ -264,13 +264,14 @@ Deno.serve(async (req: Request) => {
       const updates: Record<string, unknown> = { updated_by: actor, updated_at: new Date().toISOString() };
       if (typeof body.modelDropdownEnabled === "boolean") updates.model_dropdown_enabled = body.modelDropdownEnabled;
       if (typeof body.assetSelectorEnabled === "boolean") updates.asset_selector_enabled = body.assetSelectorEnabled;
-      if (typeof body.modelDropdownEnabled !== "boolean" && typeof body.assetSelectorEnabled !== "boolean") return json(fail("Choose a MAKE / MODEL or registered-machine menu setting."), 400);
+      if (typeof body.registrationEnabled === "boolean") updates.registration_enabled = body.registrationEnabled;
+      if (typeof body.modelDropdownEnabled !== "boolean" && typeof body.assetSelectorEnabled !== "boolean" && typeof body.registrationEnabled !== "boolean") return json(fail("Choose a MAKE / MODEL, registration, or registered-machine menu setting."), 400);
       const { data, error } = await db.from("repair_maintenance_machine_settings").update(updates)
         .eq("machine_type", body.machineType)
         .select("machine_type,model_dropdown_enabled,asset_selector_enabled,updated_at").maybeSingle();
       if (error) return json({ error: "Unable to save the R&M category settings." }, 503);
       if (!data) return json({ error: "R&M category settings were not found. Apply the R&M machine selector migration and retry." }, 404);
-      await audit("rm-machine-settings-update", { machineType: data.machine_type, modelDropdownEnabled: data.model_dropdown_enabled, assetSelectorEnabled: data.asset_selector_enabled });
+      await audit("rm-machine-settings-update", { machineType: data.machine_type, modelDropdownEnabled: data.model_dropdown_enabled, assetSelectorEnabled: data.asset_selector_enabled, registrationEnabled: data.registration_enabled });
       return json({ settings: data });
     }
 
