@@ -618,7 +618,7 @@
     $('modelDropdownEnabled')?.addEventListener('change',handleModelDropdownDraftChange);
     $('registrationEnabled')?.addEventListener('change',handleRegistrationDraftChange);
     $('saveRegistrationSettings')?.addEventListener('click',saveRegistrationSetting);
-    $('settingsAddMachineryButton')?.addEventListener('click',()=>openAssetEditor());
+    
     $('saveModelDropdownSettings')?.addEventListener('click',saveModelDropdownSetting);
     $('assetSelectorEnabled')?.addEventListener('change',handleAssetSelectorDraftChange);
     $('saveAssetSelectorSettings')?.addEventListener('click',saveAssetSelectorSetting);
