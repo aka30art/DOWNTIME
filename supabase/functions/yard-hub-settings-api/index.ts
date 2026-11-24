@@ -253,7 +253,8 @@ Deno.serve(async (req: Request) => {
     const incomingCustomTiers = Array.isArray(incomingPayload?.customTiers) ? incomingPayload.customTiers : [];
     const incomingRetiredTiers = Array.isArray(incomingPayload?.retiredTiers) ? incomingPayload.retiredTiers : [];
     const rootAdmin = isRootAdmin(user, hubTier, legacyTier);
-    const editableRoles = rootAdmin ? [...tierNames.filter(name => !incomingRetiredTiers.includes(name)), ...incomingCustomTiers] : [...editableByAdmin];
+    const activeTierNames = [...tierNames.filter(name => !incomingRetiredTiers.includes(name)), ...incomingCustomTiers];
+    const editableRoles = rootAdmin ? activeTierNames : editableByAdmin.filter(name => activeTierNames.includes(name));
     if (!rootAdmin && JSON.stringify(incomingCustomTiers) !== JSON.stringify(configRow.payload.customTiers || [])) return json({ error: "Only DEV / DEVACC may create or change custom tiers." }, 403);
     const currentCustomTiers = Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [];
     const currentRetiredTiers = Array.isArray(configRow.payload.retiredTiers) ? configRow.payload.retiredTiers : [];
