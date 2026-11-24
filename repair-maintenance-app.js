@@ -13,7 +13,7 @@
   const PRIORITIES=['HIGH','MEDIUM','LOW'];
   const STATUSES=['OPEN','PERM. FIX'];
   const $=id=>document.getElementById(id);
-  let access=null,currentMachine=null,currentAsset=null,currentFault=null,faults=[],machinePresets=[],assets=[],unassignedCount=0,unassignedMode=false,editingAssetId=null,busy=false,exportOffset=0,exportsLoading=false;
+  let access=null,currentMachine=null,currentAsset=null,currentFault=null,faults=[],machinePresets=[],machineModels=[],machineSettings={model_dropdown_enabled:true},assets=[],unassignedCount=0,unassignedMode=false,editingAssetId=null,busy=false,exportOffset=0,exportsLoading=false;
   const sessionToken=()=>window.DowntimeCentral?.session?.token||'';
   const headers=()=>({'Content-Type':'application/json','apikey':API_KEY,'x-downtime-session':sessionToken()});
   async function api(action,body={},timeoutMs=15000){
@@ -37,11 +37,11 @@
   function renderSelector(){setView('selectorView');$('selectorStatus').textContent='Select a machinery category to view its fault register.';}
   function renderSettingsSelector(){setView('settingsView');$('settingsStatus').textContent='Select a machinery category to configure its R&M settings.';}
   async function openMachineSettings(key){
-    if(access?.canManageRepairMaintenancePresets!==true){say('R&M PRESET SETTINGS permission is required to manage machine settings.','settingsStatus','error');return}
-    currentMachine=machine(key);machinePresets=[];
+    if(access?.canManageRepairMaintenancePresets!==true){say('R&M SETTINGS permission is required to manage machine settings.','settingsStatus','error');return}
+    currentMachine=machine(key);machinePresets=[];machineModels=[];
     $('presetMachineTitle').textContent=currentMachine.label;
     try{
-      await refreshMachinePresets();
+      await Promise.all([refreshMachinePresets(),refreshMachineConfiguration()]);
       $('presetMachineTitle').textContent=currentMachine.label;
       showOverlay('presetsOverlay');
       say(currentMachine.label+' settings loaded.','settingsStatus','ok');
@@ -90,6 +90,76 @@
     const result=await api('preset-list',{machineType:currentMachine.key});
     machinePresets=Array.isArray(result.presets)?result.presets:[];
     renderPresetSelect();renderPresetManager();
+  }
+  async function refreshMachineConfiguration(){
+    if(!currentMachine)return;
+    const [settingsResult,modelsResult]=await Promise.all([
+      api('settings-get',{machineType:currentMachine.key}),
+      api('model-list',{machineType:currentMachine.key})
+    ]);
+    machineSettings=settingsResult.settings||{model_dropdown_enabled:true};
+    machineModels=Array.isArray(modelsResult.models)?modelsResult.models:[];
+    const toggle=$('modelDropdownEnabled');
+    if(toggle)toggle.checked=machineSettings.model_dropdown_enabled===true;
+    renderMachineModelManager();
+  }
+  function renderMachineModelManager(){
+    const host=$('machineModelItems');if(!host)return;host.replaceChildren();
+    if(!machineModels.length){const empty=document.createElement('p');empty.className='empty';empty.textContent='No models added for this category yet.';host.appendChild(empty);return}
+    machineModels.forEach(model=>{
+      const row=document.createElement('div');row.className='preset-row';
+      const name=document.createElement('strong');name.textContent=model.name;row.appendChild(name);
+      const remove=document.createElement('button');remove.type='button';remove.className='btn danger compact';remove.textContent='REMOVE';
+      remove.addEventListener('click',()=>removeMachineModel(model));row.appendChild(remove);host.appendChild(row);
+    });
+  }
+  function renderAssetModelField(value=''){
+    const manualField=$('assetMakeModelManualField'),selectField=$('assetMakeModelSelectField');
+    const customField=$('assetMakeModelOtherField'),select=$('assetMakeModelSelect'),manual=$('assetMakeModel');
+    if(!manualField||!selectField||!customField||!select||!manual)return;
+    if(machineSettings.model_dropdown_enabled===true){
+      manualField.hidden=true;selectField.hidden=false;
+      select.replaceChildren();
+      const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='SELECT MAKE / MODEL';select.appendChild(placeholder);
+      machineModels.forEach(model=>{const option=document.createElement('option');option.value=model.name;option.textContent=model.name;select.appendChild(option)});
+      const other=document.createElement('option');other.value='__CUSTOM__';other.textContent='OTHER — ENTER MANUALLY';select.appendChild(other);
+      if(value&&machineModels.some(model=>model.name===value)){select.value=value;customField.hidden=true;$('assetMakeModelOther').value=''}
+      else if(value){select.value='__CUSTOM__';customField.hidden=false;$('assetMakeModelOther').value=value}
+      else{select.value='';customField.hidden=true;$('assetMakeModelOther').value=''}
+    }else{
+      manualField.hidden=false;selectField.hidden=true;customField.hidden=true;
+      manual.value=value||'';select.value='';
+    }
+  }
+  function selectedAssetMakeModel(){
+    if(machineSettings.model_dropdown_enabled!==true)return $('assetMakeModel').value.trim();
+    const selected=$('assetMakeModelSelect').value;
+    return selected==='__CUSTOM__' ? $('assetMakeModelOther').value.trim() : selected;
+  }
+  async function updateModelDropdownSetting(){
+    if(!currentMachine||access?.canManageRepairMaintenancePresets!==true)return;
+    const toggle=$('modelDropdownEnabled'),next=toggle.checked;toggle.disabled=true;
+    try{
+      const result=await api('settings-update',{machineType:currentMachine.key,modelDropdownEnabled:next});
+      machineSettings=result.settings||{model_dropdown_enabled:next};
+      toggle.checked=machineSettings.model_dropdown_enabled===true;
+      say(toggle.checked?'MAKE / MODEL dropdown enabled.':'MAKE / MODEL dropdown disabled; manual entry is available.',machineSettingsStatusTarget(),'ok');
+    }catch(error){toggle.checked=machineSettings.model_dropdown_enabled===true;say(error.message,machineSettingsStatusTarget(),'error')}
+    finally{toggle.disabled=false}
+  }
+  async function addMachineModel(event){
+    event.preventDefault();if(!currentMachine||access?.canManageRepairMaintenancePresets!==true)return;
+    const name=$('newModelName').value.trim();if(!name)return;
+    const button=$('addModelSave');button.disabled=true;button.textContent='SAVING…';
+    try{await api('model-add',{machineType:currentMachine.key,name});$('newModelName').value='';await refreshMachineConfiguration();say('Machinery model added to this category.',machineSettingsStatusTarget(),'ok')}
+    catch(error){say(error.message,machineSettingsStatusTarget(),'error')}
+    finally{button.disabled=false;button.textContent='ADD MODEL'}
+  }
+  async function removeMachineModel(model){
+    if(!currentMachine||!model)return;
+    if(!window.confirm('Remove “'+model.name+'” from '+currentMachine.label+'? Existing machine records will retain their saved make / model values.'))return;
+    try{await api('model-delete',{machineType:currentMachine.key,modelId:model.id});await refreshMachineConfiguration();say('Model removed from this category. Existing machinery records were not changed.',machineSettingsStatusTarget(),'ok')}
+    catch(error){say(error.message,machineSettingsStatusTarget(),'error')}
   }
   function setRegisterMessage(message){
     faults=[];renderStats();const host=$('faultRows');host.replaceChildren();
@@ -175,24 +245,28 @@
     const selected=unassignedMode?'__UNASSIGNED__':currentAsset?.id;
     if(selected)return selectMachineAsset(selected);
   }
-  function openAssetEditor(asset=null){
+  async function openAssetEditor(asset=null){
     if(access?.canManageRepairMaintenanceMachinery!==true||!currentMachine)return;
-    editingAssetId=asset?.id||null;
-    clearStatus('assetStatus');
-    $('assetMachineType').textContent=currentMachine.label;
-    $('assetName').value=asset?.name||'';
-    $('assetCode').value=asset?.asset_code||'';
-    $('assetMakeModel').value=asset?.make_model||'';
-    $('assetEditorTitle').textContent=asset?'EDIT MACHINERY':'ADD MACHINERY';
-    $('assetSaveButton').textContent=asset?'SAVE CHANGES':'ADD MACHINERY';
-    $('archiveAssetButton').hidden=!asset||asset.status!=='ACTIVE';
-    showOverlay('assetOverlay');
+    try{
+      await refreshMachineConfiguration();
+      editingAssetId=asset?.id||null;
+      clearStatus('assetStatus');
+      $('assetMachineType').textContent=currentMachine.label;
+      $('assetName').value=asset?.name||'';
+      $('assetCode').value=asset?.asset_code||'';
+      $('assetMakeModel').value=asset?.make_model||'';
+      renderAssetModelField(asset?.make_model||'');
+      $('assetEditorTitle').textContent=asset?'EDIT MACHINERY':'ADD MACHINERY';
+      $('assetSaveButton').textContent=asset?'SAVE CHANGES':'ADD MACHINERY';
+      $('archiveAssetButton').hidden=!asset||asset.status!=='ACTIVE';
+      showOverlay('assetOverlay');
+    }catch(error){say(error.message,'dashboardStatus','error')}
   }
   async function saveAsset(event){
     event.preventDefault();if(!currentMachine||access?.canManageRepairMaintenanceMachinery!==true)return;
     const button=$('assetSaveButton');button.disabled=true;button.textContent='SAVING…';
     try{
-      const payload={machineType:currentMachine.key,name:$('assetName').value.trim(),assetCode:$('assetCode').value.trim(),makeModel:$('assetMakeModel').value.trim()};
+      const payload={machineType:currentMachine.key,name:$('assetName').value.trim(),assetCode:$('assetCode').value.trim(),makeModel:selectedAssetMakeModel()};
       const result=editingAssetId?await api('asset-update',{...payload,assetId:editingAssetId}):await api('asset-add',payload);
       const saved=result.asset;if(!saved)throw new Error('The R&M service did not confirm the machinery record.');
       closeOverlay('assetOverlay');await loadMachine(currentMachine.key);
@@ -247,8 +321,10 @@
   }
   async function openPresetManager(){
     if(!currentMachine||access?.canManageRepairMaintenancePresets!==true)return;
-    try{await refreshMachinePresets();$('presetMachineTitle').textContent=currentMachine.label;showOverlay('presetsOverlay')}
-    catch(error){say(error.message,'dashboardStatus','error')}
+    try{
+      await Promise.all([refreshMachinePresets(),refreshMachineConfiguration()]);
+      $('presetMachineTitle').textContent=currentMachine.label;showOverlay('presetsOverlay');
+    }catch(error){say(error.message,'dashboardStatus','error')}
   }
   async function addMachinePreset(event){
     event.preventDefault();if(busy||!currentMachine)return;
@@ -357,7 +433,10 @@
     $('addMachineryButton')?.addEventListener('click',()=>openAssetEditor());
     $('editMachineryButton')?.addEventListener('click',()=>openAssetEditor(currentAsset));
     $('assetForm')?.addEventListener('submit',saveAsset);
+    $('assetMakeModelSelect')?.addEventListener('change',()=>{$('assetMakeModelOtherField').hidden=$('assetMakeModelSelect').value!=='__CUSTOM__';if(!$('assetMakeModelOtherField').hidden)$('assetMakeModelOther').focus()});
     $('archiveAssetButton')?.addEventListener('click',archiveCurrentAsset);
+    $('modelDropdownEnabled')?.addEventListener('change',updateModelDropdownSetting);
+    $('modelAddForm')?.addEventListener('submit',addMachineModel);
     $('sortSelect').addEventListener('change',renderRows);
     $('backToMachinery').addEventListener('click',renderSelector);$('backToHub').addEventListener('click',()=>{window.location.assign('index.html')});
     $('openCreateFault').addEventListener('click',()=>{if(currentMachine&&currentAsset&&currentAsset.status==='ACTIVE'&&!unassignedMode){renderPresetSelect();showOverlay('createOverlay')}});$('createForm').addEventListener('submit',createFault);
