@@ -95,6 +95,7 @@ Deno.serve(async (req: Request) => {
     permissions.canDeleteRepairMaintenance = mode === "EDIT";
     permissions.canExportRepairMaintenanceReports = mode === "READ" || mode === "EDIT";
   }
+  permissions.canManageRepairMaintenancePresets = permissions.canEditRepairMaintenance === true;
   if (!permissions.canAccessYardHub) return json({ error: "YARD HUB access is not enabled for this account." }, 403);
   if (!permissions.canAccessRepairMaintenance) return json({ error: "R&M access is not enabled for this account." }, 403);
 
@@ -114,6 +115,39 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (action === "access") return json({ user: { username: actor, displayName: user.displayName || actor, tier }, permissions });
+
+    if (action === "preset-list") {
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
+      const { data, error } = await db.from("repair_maintenance_machine_presets").select("id,machine_type,name,is_other,created_at")
+        .eq("machine_type", body.machineType).order("is_other", { ascending: true }).order("created_at", { ascending: true });
+      if (error) return json({ error: "Unable to load the machine presets." }, 503);
+      return json({ presets: data || [] });
+    }
+
+    if (action === "preset-add") {
+      if (permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have permission to manage R&M machine presets." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
+      const name = cleanText(body.name, "Preset name", 80);
+      if (name.toLocaleLowerCase() === "other — enter manually") return json(fail("The built-in OTHER option cannot be recreated."), 400);
+      const { data, error } = await db.from("repair_maintenance_machine_presets").insert({ machine_type: body.machineType, name, is_other: false, created_by: actor })
+        .select("id,machine_type,name,is_other,created_at").single();
+      if (error?.code === "23505") return json({ error: "That preset already exists for this machinery." }, 409);
+      if (error || !data) return json({ error: "Unable to save the machine preset." }, 503);
+      await audit("rm-machine-preset-add", { presetId: data.id, machineType: data.machine_type, name: data.name });
+      return json({ preset: data }, 201);
+    }
+
+    if (action === "preset-delete") {
+      if (permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have permission to manage R&M machine presets." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
+      const presetId = cleanText(body.presetId, "Preset ID", 64);
+      const { data, error } = await db.from("repair_maintenance_machine_presets").delete()
+        .eq("id", presetId).eq("machine_type", body.machineType).eq("is_other", false).select("id,name").maybeSingle();
+      if (error) return json({ error: "Unable to remove the machine preset." }, 503);
+      if (!data) return json({ error: "Preset not found or protected." }, 404);
+      await audit("rm-machine-preset-delete", { presetId: data.id, machineType: body.machineType, name: data.name });
+      return json({ ok: true });
+    }
 
     if (action === "list") {
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
@@ -141,7 +175,11 @@ Deno.serve(async (req: Request) => {
     if (action === "create") {
       if (!requireEdit()) return json({ error: "You do not have permission to create R&M faults." }, 403);
       if (!isOneOf(body.machineType, machineTypes) || !isOneOf(body.priority, priorities) || !isOneOf(body.status, statuses.slice(0, 2))) return json(fail("Machine, priority or status is invalid."), 400);
-      const faultName = cleanText(body.faultName, "Fault / defect", 120);
+      const presetId = cleanText(body.presetId, "Machinery preset", 64);
+      const { data: preset, error: presetError } = await db.from("repair_maintenance_machine_presets")
+        .select("id,name,is_other").eq("id", presetId).eq("machine_type", body.machineType).maybeSingle();
+      if (presetError || !preset) return json({ error: "Select a valid preset for this machinery." }, 400);
+      const faultName = preset.is_other ? cleanText(body.otherArea, "Area / Part of Machinery", 120) : preset.name;
       const description = cleanText(body.description, "Description", 2000);
       const { data, error } = await db.from("repair_maintenance_faults").insert({ machine_type: body.machineType, fault_name: faultName, description, priority: body.priority, status: body.status, created_by: actor, updated_by: actor }).select("*").single();
       if (error || !data) return json({ error: "Unable to save the new fault record." }, 503);
