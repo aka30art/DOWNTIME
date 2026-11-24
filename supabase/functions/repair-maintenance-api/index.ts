@@ -343,7 +343,7 @@ Deno.serve(async (req: Request) => {
       else if (filter) query = query.eq("machine_type", filter);
       const { data, error } = await query.order("created_at", { ascending: false }).range(offset, offset + 49);
       if (error) return json({ error: "Unable to load PDF EXPORTS." }, 503);
-      const reports = data || [];
+      const reports: any[] = data || [];
       const reportAssetIds = [...new Set(reports.map((report: any) => report.asset_id).filter(Boolean))];
       if (reportAssetIds.length) {
         const { data: linkedAssets, error: assetError } = await db.from("repair_maintenance_assets").select("id,name,asset_code").in("id", reportAssetIds);
