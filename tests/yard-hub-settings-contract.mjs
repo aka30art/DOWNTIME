@@ -73,7 +73,7 @@ assert.match(hubApi,/tier === "DEVACC" \|\| hubTier === "ADMIN"|hubTier === "DEV
 assert.match(hubApi,/save-user-tier/);
 assert.match(hubApi,/save-tier-settings/);
 assert.match(hubApi,/db\.rpc\("yard_hub_save_tier_settings"/);
-assert.match(hubApi,/editableByAdmin = \["MANAGER", "SUPERVISOR", "USER", "SPECTATOR"\]/);
+assert.match(hubApi,/editableByAdmin = \["MANAGER", "SUPERVISOR", "MECHANIC", "USER", "SPECTATOR"\]/);
 assert.ok(hubApi.includes('"MECHANIC"'),'YARD HUB tier validator includes MECHANIC');
 assert.ok(hubApi.includes('"SUPERVISOR", "MECHANIC", "USER"'),'YARD HUB admins may assign MECHANIC');
 assert.doesNotMatch(hubApi,/from\("downtime_central_bank"\)\.update/,'Hub API must not write to the DOWNTIME user bank');
