@@ -151,7 +151,7 @@ Deno.serve(async (req: Request) => {
       })).sort((a: any, b: any) => a.username.localeCompare(b.username)),
       userTiers: configRow.payload?.userTiers || {},
       centralVersion: Number(bankRow.version || 0),
-      tierPermissions: normalizeTierPermissions(configRow.payload, configRow.payload, [...tierNames, ...(Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [])]),
+      tierPermissions: normalizeTierPermissions(configRow.payload, configRow.payload, [...tierNames.filter(name => !(configRow.payload.retiredTiers || []).includes(name)), ...(Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [])]),
       permissionVersion: Number(configRow.version),
       updatedBy: configRow.updated_by,
       updatedAt: configRow.updated_at,
