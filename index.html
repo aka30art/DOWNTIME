@@ -568,6 +568,7 @@ body.overview-overlay-open{overflow:hidden}
 .yard-modules-heading strong{font-size:12px;font-weight:950;letter-spacing:1.8px;color:#ffd21a}
 .yard-modules-heading span{font-size:11px;color:#91a4b5}
 .yard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.yard-tile[hidden],.yard-hero[hidden],.yard-grid[hidden],.yard-modules-heading[hidden],.yard-hub-footer[hidden],.yard-hub-settings-screen[hidden]{display:none!important}
 .yard-tile{position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(112px,.8fr) 1fr;align-items:center;gap:20px;min-width:0;min-height:238px;padding:28px 30px;text-align:left;overflow:hidden;border:1px solid #63768a;border-radius:17px;background:linear-gradient(145deg,#10273d 0%,#0a1d30 74%,#0a1a2a 100%);box-shadow:0 12px 28px #0003;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
 .yard-tile:after{content:"";position:absolute;z-index:-1;right:-1px;bottom:-1px;width:110px;height:100px;background:#ffd21a;clip-path:polygon(100% 0,100% 100%,0 100%);opacity:.95}
 .yard-tile-active{cursor:pointer}
@@ -612,7 +613,6 @@ body.overview-overlay-open{overflow:hidden}
       </div>
       <div class="yard-session">
         <div class="yard-session-copy"><span>AUTHENTICATED USER</span><strong id="yardHubUsername">—</strong></div>
-        <button id="yardHubSettingsBtn" class="yard-logout yard-hub-settings-trigger" type="button" hidden>⚙ SETTINGS</button>
         <button id="yardHubLogoutBtn" class="yard-logout" type="button">LOG OUT</button>
       </div>
     </header>
@@ -642,9 +642,15 @@ body.overview-overlay-open{overflow:hidden}
         <span class="yard-tile-divider" aria-hidden="true"></span>
         <span class="yard-tile-copy"><strong>R&amp;M</strong><small>REPAIRS &amp; MAINTENANCE</small><span class="yard-tile-status" id="yardRepairStatus">CHECKING ACCESS</span></span>
       </button>
+      <button class="yard-tile yard-tile-active" id="yardHubSettingsBtn" data-app="settings" type="button" aria-label="Open YARD HUB Settings" hidden>
+        <span class="yard-tile-index">05</span>
+        <span class="yard-tile-icon" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M42 10h16l3 10a32 32 0 0 1 7 4l10-4 8 14-7 7a32 32 0 0 1 0 9l7 7-8 14-10-4a32 32 0 0 1-7 4l-3 10H42l-3-10a32 32 0 0 1-7-4l-10 4-8-14 7-7a32 32 0 0 1 0-9l-7-7 8-14 10 4a32 32 0 0 1 7-4Z"/><circle class="accent" cx="50" cy="45" r="13"/></svg></span>
+        <span class="yard-tile-divider" aria-hidden="true"></span>
+        <span class="yard-tile-copy"><strong>HUB SETTINGS</strong><small>YARD HUB CONFIGURATION &amp; ACCESS CONTROL</small><span class="yard-tile-status">ADMINISTRATION</span></span>
+      </button>
     </section>
     <footer class="yard-hub-footer"><span>YARD HUB · YARD OPERATIONS CORE</span><span>ONE PLATFORM · MODULAR APPLICATIONS</span></footer>
-    <section id="yardHubSettingsScreen" class="yard-hub-settings-screen" hidden aria-label="YARD HUB Settings">
+    <section id="yardHubSettingsScreen" class="yard-hub-settings-screen" hidden aria-label="YARD HUB Settings" role="main" tabindex="-1">
       <header class="yard-hub-settings-heading">
         <button id="yardHubSettingsBack" type="button" class="yard-hub-back">‹ BACK TO YARD HUB</button>
         <div class="yard-hub-settings-eyebrow">YARD OPERATIONS CORE · ADMINISTRATION</div>
@@ -2028,7 +2034,7 @@ if(window.DowntimeCentral?.session?.token)resumeCentralSession();
 })();
 </script>
 <script src="repair-maintenance-launch.js"></script>
-<script src="yard-hub-settings.js?v=20261124-2"></script>
+<script src="yard-hub-settings.js?v=20261124-3"></script>
 </body></html>
 <style>
 

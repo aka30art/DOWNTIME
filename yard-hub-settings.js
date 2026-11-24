@@ -80,11 +80,16 @@
   }
   function setHomeVisible(settings){
     const hub=$('yardHub');if(!hub)return;
-    const grid=hub.querySelector('.yard-grid'),heading=hub.querySelector('.yard-modules-heading'),footer=hub.querySelector('.yard-hub-footer'),screen=$('yardHubSettingsScreen');
-    if(grid)grid.hidden=settings;
-    if(heading)heading.hidden=settings;
-    if(footer)footer.hidden=settings;
+    const hero=hub.querySelector('.yard-hero'),grid=hub.querySelector('.yard-grid'),heading=hub.querySelector('.yard-modules-heading'),footer=hub.querySelector('.yard-hub-footer'),screen=$('yardHubSettingsScreen');
+    [hero,grid,heading,footer].forEach(node=>{if(node)node.hidden=settings});
     if(screen)screen.hidden=!settings;
+    if(settings){
+      window.scrollTo({top:0,behavior:'instant'});
+      requestAnimationFrame(()=>screen?.focus({preventScroll:true}));
+    }else{
+      window.scrollTo({top:0,behavior:'instant'});
+      $('yardHubSettingsBtn')?.focus({preventScroll:true});
+    }
   }
   function showSettingsHome(){
     $('yardHubSettingsHome').hidden=false;
