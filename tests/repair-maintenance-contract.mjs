@@ -136,3 +136,8 @@ assert.ok(api.includes('permissions.canManageRepairMaintenanceMachinery'),'regis
 assert.ok(api.includes('permissions.canReadRepairMaintenanceMachinery'),'registry reads are server-authorized');
 
 console.log('R&M module contract checks passed.');
+
+assert.ok(api.includes('permissions.canCreateRepairMaintenance = mode === "INPUT" || mode === "EDIT"'),'R&M INPUT tier can create faults');
+assert.ok(api.includes('permissions.canAddRepairMaintenanceMachinery = machineryMode === "INPUT" || machineryMode === "EDIT"'),'R&M Machinery INPUT tier can add machines');
+assert.ok(api.includes('permissions.canCreateRepairMaintenance !== true'),'R&M fault creation is server-side permission-gated');
+assert.ok(app.includes('access.canCreateRepairMaintenance===true'),'R&M interface exposes create action to INPUT tier');
