@@ -336,6 +336,18 @@ window.supabase={createClient:()=>({
   const mobileOverflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);
   assert.ok(mobileBox&&mobileBox.x>=0&&mobileBox.x+mobileBox.width<=390,'mobile login panel stays within the viewport');
   assert.equal(mobileOverflow,false,'mobile login has no horizontal overflow');
+  const mobileFit=await page.evaluate(()=>{const gate=document.querySelector('#authGate'),box=document.querySelector('#authGate .authbox-central'),controls=[...box.querySelectorAll('#centralUsername,#teamPin,.pinpad,#unlockBtn,#refreshAppBtn')];return {gateScroll:gate.scrollHeight>gate.clientHeight+1,boxScroll:box.scrollHeight>box.clientHeight+1,controlsFit:controls.every(el=>{const r=el.getBoundingClientRect(),g=gate.getBoundingClientRect();return r.top>=g.top-1&&r.bottom<=g.bottom+1})}});
+  assert.equal(mobileFit.gateScroll,false,'mobile login gate does not scroll');
+  assert.equal(mobileFit.boxScroll,false,'mobile login card does not scroll');
+  assert.equal(mobileFit.controlsFit,true,'all mobile login controls fit within the visible card');
+  await page.setViewportSize({width:1280,height:720});
+  const desktopFit=await page.evaluate(()=>{const gate=document.querySelector('#authGate'),box=document.querySelector('#authGate .authbox-central'),controls=[...box.querySelectorAll('#centralUsername,#teamPin,.pinpad,#unlockBtn,#refreshAppBtn')];return {gateScroll:gate.scrollHeight>gate.clientHeight+1,boxScroll:box.scrollHeight>box.clientHeight+1,controlsFit:controls.every(el=>{const r=el.getBoundingClientRect(),g=gate.getBoundingClientRect();return r.top>=g.top-1&&r.bottom<=g.bottom+1})}});
+  assert.equal(desktopFit.gateScroll,false,'desktop login gate does not scroll');
+  assert.equal(desktopFit.boxScroll,false,'desktop login card does not scroll');
+  assert.equal(desktopFit.controlsFit,true,'all desktop login controls fit within the visible card');
+  await page.setViewportSize({width:375,height:667});
+  const compactFit=await page.evaluate(()=>{const gate=document.querySelector('#authGate'),box=document.querySelector('#authGate .authbox-central');return gate.scrollHeight<=gate.clientHeight+1&&box.scrollHeight<=box.clientHeight+1});
+  assert.equal(compactFit,true,'compact mobile viewport also displays the complete login without scrolling');
   await page.setViewportSize({width:1280,height:720});
   loginPresentationVerified=true;
  }
