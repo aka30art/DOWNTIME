@@ -83,14 +83,14 @@
 <div class="app" id="appRoot"><div class="frame">
 <header class="hero">
   <div class="hero-top"><div><div class="downtime-mark">DOWNTIME<sup>®</sup></div><div class="mark-rule"></div></div>
-  <div class="hero-actions"><div class="session-label">HUB AUTHENTICATED AS<strong id="sessionUser">—</strong></div><button class="icon-button report-icon" id="openReports" type="button" aria-label="Open PDF EXPORTS" title="PDF EXPORTS">▤</button><button class="icon-button settings-shortcut" id="openRmsSettingsShortcut" type="button" aria-label="Open R&M settings" title="R&M SETTINGS" hidden>⚙</button><a class="icon-button" id="backToHub" href="index.html" aria-label="Return to YARD HUB" title="Return to YARD HUB">⌂</a></div></div>
+  <div class="hero-actions"><div class="session-label">HUB AUTHENTICATED AS<strong id="sessionUser">—</strong></div><button class="icon-button report-icon" id="openReports" type="button" aria-label="Open PDF EXPORTS" title="PDF EXPORTS">▤</button><button class="icon-button settings-shortcut" id="openRmsSettingsShortcut" type="button" aria-label="Open R&M configuration" title="R&M CONFIGURATION" hidden>⚙</button><a class="icon-button" id="backToHub" href="index.html" aria-label="Return to YARD HUB" title="Return to YARD HUB">⌂</a></div></div>
   <div class="hero-word"><span class="slash">/</span><span class="r">R</span><span>&amp;</span><span class="m">M</span></div>
   <p class="hero-tag">REPAIRS &amp; MAINTENANCE</p>
 </header>
 <div id="loadingView" class="loading">VERIFYING YARD HUB SESSION…</div>
 <section id="selectorView" class="view" hidden>
   <div class="section-head">
-    <div><div class="section-title">MACHINERY</div><div class="section-note">SELECT A MACHINE TO VIEW FAULTS / DEFECTS</div></div>
+    <div><div class="section-title">R&amp;M OPERATIONS</div><div class="section-note">SELECT A MACHINE TO VIEW FAULTS / DEFECTS</div></div>
 
   </div>
   <div class="machine-grid" id="machineGrid">
@@ -105,16 +105,16 @@
 </section>
 <section id="settingsView" class="view" hidden>
   <div class="section-head">
-    <div><div class="section-title">RMS · R&amp;M SETTINGS</div><div class="section-note">SELECT A MACHINERY TYPE TO MANAGE ITS SETTINGS</div></div>
-    <button class="machine-back" id="backToMachineryFromSettings" type="button">← MACHINERY</button>
+    <div><div class="section-title">R&amp;M CONFIGURATION</div><div class="section-note">MANAGE REGISTERED MACHINES, MODELS AND CATEGORY SETTINGS</div></div>
+    <button class="machine-back" id="backToMachineryFromSettings" type="button">← OPERATIONS</button>
   </div>
   <div class="machine-grid" id="settingsMachineGrid">
-    <button class="machine-card" type="button" data-settings-machine="KIVERCO_PICKING_LINE"><span class="machine-art"><img src="assets/rm-icons/kiverco.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>KIVERCO — PICKING LINE</strong><small>CONVEYORS &amp; SORTING SYSTEM</small><span class="machine-open">OPEN SETTINGS →</span></span></button>
-    <button class="machine-card" type="button" data-settings-machine="TANNA_SHREDDER"><span class="machine-art"><img src="assets/rm-icons/tanna.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>TANNA — SHREDDER</strong><small>SHREDDING EQUIPMENT</small><span class="machine-open">OPEN SETTINGS →</span></span></button>
-    <button class="machine-card" type="button" data-settings-machine="FORKLIFT"><span class="machine-art"><img src="assets/rm-icons/forklift.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>FORKLIFT</strong><small>FORKLIFT FLEET</small><span class="machine-open">OPEN SETTINGS →</span></span></button>
-    <button class="machine-card" type="button" data-settings-machine="TELEHANDLER"><span class="machine-art"><img src="assets/rm-icons/telehandler.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>TELEHANDLER</strong><small>TELEHANDLER FLEET</small><span class="machine-open">OPEN SETTINGS →</span></span></button>
-    <button class="machine-card" type="button" data-settings-machine="EXCAVATORS_360"><span class="machine-art"><img src="assets/rm-icons/excavators_360.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>360 EXCAVATORS</strong><small>EXCAVATOR FLEET</small><span class="machine-open">OPEN SETTINGS →</span></span></button>
-    <button class="machine-card" type="button" data-settings-machine="OTHER_EQUIPMENT"><span class="machine-art"><img src="assets/rm-icons/other_equipment.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>OTHER EQUIPMENT</strong><small>ADDITIONAL MACHINERY</small><span class="machine-open">OPEN SETTINGS →</span></span></button>
+    <button class="machine-card" type="button" data-settings-machine="KIVERCO_PICKING_LINE"><span class="machine-art"><img src="assets/rm-icons/kiverco.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>KIVERCO — PICKING LINE</strong><small>CONVEYORS &amp; SORTING SYSTEM</small><span class="machine-open">MANAGE MACHINES →</span></span></button>
+    <button class="machine-card" type="button" data-settings-machine="TANNA_SHREDDER"><span class="machine-art"><img src="assets/rm-icons/tanna.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>TANNA — SHREDDER</strong><small>SHREDDING EQUIPMENT</small><span class="machine-open">MANAGE MACHINES →</span></span></button>
+    <button class="machine-card" type="button" data-settings-machine="FORKLIFT"><span class="machine-art"><img src="assets/rm-icons/forklift.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>FORKLIFT</strong><small>FORKLIFT FLEET</small><span class="machine-open">MANAGE MACHINES →</span></span></button>
+    <button class="machine-card" type="button" data-settings-machine="TELEHANDLER"><span class="machine-art"><img src="assets/rm-icons/telehandler.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>TELEHANDLER</strong><small>TELEHANDLER FLEET</small><span class="machine-open">MANAGE MACHINES →</span></span></button>
+    <button class="machine-card" type="button" data-settings-machine="EXCAVATORS_360"><span class="machine-art"><img src="assets/rm-icons/excavators_360.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>360 EXCAVATORS</strong><small>EXCAVATOR FLEET</small><span class="machine-open">MANAGE MACHINES →</span></span></button>
+    <button class="machine-card" type="button" data-settings-machine="OTHER_EQUIPMENT"><span class="machine-art"><img src="assets/rm-icons/other_equipment.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>OTHER EQUIPMENT</strong><small>ADDITIONAL MACHINERY</small><span class="machine-open">MANAGE MACHINES →</span></span></button>
   </div>
   <div class="statusbar" id="settingsStatus" role="status" aria-live="polite"></div>
 </section>
