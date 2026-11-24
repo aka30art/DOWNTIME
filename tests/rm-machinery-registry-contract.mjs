@@ -71,7 +71,7 @@ assert.match(api,/buildRepairMaintenancePdf\(faults, filter, generatedAt, select
 assert.match(migration,/repair_maintenance_pdf_exports/);
 assert.ok(archiveMigration.includes('repair_maintenance_pdf_exports'));
 
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-11'));
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-12'));
 assert.ok(html.includes('id="modelDropdownEnabled"'));
 assert.match(app,/machineAssetControls'\)\.hidden=access\?\.canReadRepairMaintenanceMachinery!==true\|\|machineSettings\.model_dropdown_enabled!==true/,'registered-machine scroll-down menu visibility follows the selected category RMS toggle');
 assert.match(app,/api\('settings-get',\{machineType:currentMachine\.key\}\)/,'dashboard loads the selected category RMS setting before rendering the machine selector');
@@ -107,4 +107,9 @@ assert.match(settingsMigration,/revoke all on table public\.repair_maintenance_m
 for(const category of ['KIVERCO_PICKING_LINE','TANNA_SHREDDER','FORKLIFT','TELEHANDLER','EXCAVATORS_360','OTHER_EQUIPMENT'])assert.ok(settingsMigration.includes(category),'default RMS settings row missing for '+category);
 assert.match(app,/currentAsset\?\(currentAsset\.asset_code\?/,'fault details display the selected individual machine');
 assert.match(app,/Archived machines remain selectable/,'archived machine history remains discoverable');
+assert.ok(html.includes('id="rmsTabMachinery"')&&html.includes('id="rmsTabAreaParts"'),'machinery settings are split into clear Machinery and Area & Parts tabs');
+assert.ok(html.includes('id="rmsPanelMachinery"')&&html.includes('id="rmsPanelAreaParts"'),'each machinery settings tab has its own panel');
+assert.match(app,/function setRmsSettingsTab\(tab='machinery'\)/,'settings tab navigation is controlled by the app');
+assert.match(app,/data-rms-tab/,'tab buttons are wired to section navigation');
+assert.match(html,/\.rms-settings-dialog\{[^}]*overflow:hidden/,'settings dialog keeps its header and navigation fixed while tab content scrolls independently');
 console.log('R&M machinery registry and asset-scoped fault regression: PASS');
