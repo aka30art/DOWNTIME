@@ -72,7 +72,7 @@ assert.ok(api.includes('.eq("machine_type", body.machineType)'),'backend checks 
 assert.ok(api.includes('.eq("is_other", false)'),'backend protects OTHER from deletion');
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-1'),'R&M app script cache is refreshed');
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-2'),'R&M app script cache is refreshed');
 assert.match(app,/status:'PERM\. FIX'/,'SOLVED marks fault as PERM. FIX');
 assert.match(app,/window\.open\(/,'report export opens a printable report window');
 assert.match(app,/window\.print\(/,'report export invokes the browser print-to-PDF workflow');
