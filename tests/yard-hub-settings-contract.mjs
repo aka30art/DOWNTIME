@@ -3,6 +3,7 @@ import fs from 'node:fs';
 
 const html=fs.readFileSync('index.html','utf8');
 const config=fs.readFileSync('supabase/config.toml','utf8');
+const pagesWorkflow=fs.readFileSync('.github/workflows/pages.yml','utf8');
 const ui=fs.readFileSync('yard-hub-settings.js','utf8');
 const css=fs.readFileSync('yard-hub-settings.css','utf8');
 const migration=fs.readFileSync('supabase/migrations/20261123212500_yard_hub_access_control.sql','utf8');
@@ -25,6 +26,10 @@ assert.match(html,/data-app="floor" type="button" disabled/,'FLOOR remains unava
 assert.match(html,/data-app="check-sheets" type="button" disabled/,'CHECK SHEETS remains unavailable until its application is released');
 assert.match(html,/id="launchDowntimeBtn" data-app="downtime" type="button"/,'DOWNTIME launcher remains present and enabled');
 assert.ok(html.includes('yard-hub-settings.js?v=20261124-1'),'YARD HUB settings client cache is refreshed');
+assert.ok(pagesWorkflow.includes("if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'"),'Pages artifact build runs on PRs for pre-merge validation');
+assert.ok(pagesWorkflow.includes("if: github.ref == 'refs/heads/main'"),'Pages deployment remains restricted to main');
+assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-1'),'live deployment smoke test verifies the updated Hub settings asset');
+assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-1'),'live deployment smoke test verifies the updated R&M app asset');
 assert.ok(ui.includes("'MECHANIC'"),'MECHANIC appears in the YARD HUB tier selector and role list');
 
 // Identity and PIN management deliberately reuse the existing central directory and APIs.
