@@ -74,7 +74,8 @@ function normalizeCentralConfig(input:any){
  const rawNavigation=input.navigation&&typeof input.navigation==="object"&&!Array.isArray(input.navigation)?input.navigation:{};
  const navigationDefaults={overview:"Overview",organisation:"Organisation",structure:"Plant & Areas",libraries:"Operational Libraries",defaults:"System Defaults",history:"Version History",navigation:"Menu & Labels"};
  const navigation:Record<string,string>={};
- for(const [key,fallback] of Object.entries(navigationDefaults)){const value=configString(rawNavigation[key]??fallback,"Navigation label",40);navigation[key]=value||fallback;}
+ for(const [key,fallback] of Object.entries({...navigationDefaults,modules:"Module Registry",controls:"System Controls",information:"System Information"})){const value=configString(rawNavigation[key]??fallback,"Navigation label",40);navigation[key]=value||fallback;}
+ const modules=configStringList(input.modules||[],"Module registry",100,80);
  const organization=input.organization||{},structure=input.structure||{},libraries=input.libraries||{},defaults=input.defaults||{};
  const companyName=configString(organization.companyName,"Company name",120);
  const siteCode=configString(organization.siteCode,"Site code",32);
@@ -96,6 +97,7 @@ function normalizeCentralConfig(input:any){
  return {
   schemaVersion:1,
   navigation,
+  modules,
   organization:{companyName,siteCode,timezone,locale},
   structure:{sites:configStringList(structure.sites||[],"Sites"),plants:configStringList(structure.plants||[],"Plants"),areas:configStringList(structure.areas||[],"Plant areas"),stations:configStringList(structure.stations||[],"Stations")},
   libraries:{areaPresets:configStringList(libraries.areaPresets||[],"Area presets"),downtimeReasons:configStringList(libraries.downtimeReasons||[],"Downtime reasons"),dailyTaskPresets:configStringList(libraries.dailyTaskPresets||[],"Daily task presets",250,120),equipmentCategories:configStringList(libraries.equipmentCategories||[],"Equipment categories"),eventCategories:configStringList(libraries.eventCategories||[],"Event categories"),statusCategories:configStringList(libraries.statusCategories||[],"Status categories")},
