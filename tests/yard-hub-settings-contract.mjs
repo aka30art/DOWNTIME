@@ -155,3 +155,7 @@ console.log('YARD HUB Settings isolation, identity compatibility, permission enf
 assert.ok(html.includes('centralPendingWrites++;cloudBusy=true;'), 'YARD HUB central user mutations also block realtime refreshes');
 assert.ok(html.includes('flushCentralRealtimeRefresh();'), 'realtime refresh resumes after the serialized central user mutation');
 assert.ok(html.includes('error.centralUserSaved=true'), 'partial central-user saves are reported without implying the write failed');
+
+assert.ok(ui.includes("const modes=['NONE','READ','INPUT','EDIT']"),'YARD HUB tier UI includes INPUT mode');
+assert.ok(ui.includes("['READ','INPUT','EDIT'].forEach(mode=>{"),'YARD HUB tier UI renders INPUT checkbox');
+assert.ok(hubApi.includes('["NONE", "READ", "INPUT", "EDIT"]'),'YARD HUB settings API validates INPUT mode');
