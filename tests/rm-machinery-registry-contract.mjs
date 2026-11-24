@@ -72,7 +72,7 @@ assert.match(api,/buildRepairMaintenancePdf\(faults, filter, generatedAt, select
 assert.match(migration,/repair_maintenance_pdf_exports/);
 assert.ok(archiveMigration.includes('repair_maintenance_pdf_exports'));
 
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-14'));
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-16'));
 assert.ok(html.includes('id="modelDropdownEnabled"'));
 assert.ok(html.includes('id="assetSelectorEnabled"'));
 assert.match(app,/function updateAssetSelectorVisibility\(\)/,'registered-machine selector has a dedicated visibility function');
@@ -124,5 +124,6 @@ assert.match(app,/function setRmsSettingsTab\(tab='machinery'\)/,'settings tab n
 assert.match(app,/data-rms-tab/,'tab buttons are wired to section navigation');
 assert.match(html,/\.rms-settings-dialog\{[^}]*overflow:hidden/,'settings dialog keeps its header and navigation fixed while tab content scrolls independently');
 assert.match(app,/function renderMachineModelManager\(\)/);
-assert.match(api,/"KIVERCO"[\s\S]*"TANNA"/);
+assert.match(api,/action === "model-list"[\s\S]*from\("repair_maintenance_assets"\)/,'catalogue reads are asset-backed');
+assert.doesNotMatch(api,/from\("repair_maintenance_machine_models"\)/,'legacy catalogue table is no longer used by live API routes');
 console.log('R&M machinery registry and asset-scoped fault regression: PASS');

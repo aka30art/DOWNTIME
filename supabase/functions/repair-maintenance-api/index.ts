@@ -285,8 +285,8 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "model-add") {
-      if (permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have permission to manage R&M settings." }, 403);
-      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
+      if (permissions.canAddRepairMaintenanceMachinery !== true) return json({ error: "You do not have INPUT access to add R&M Machinery." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
       const name = cleanText(body.name, "Registered machine / model", 120);
       const { data: existing, error: lookupError } = await db.from("repair_maintenance_assets")
         .select("id").eq("machine_type", body.machineType).eq("status", "ACTIVE").ilike("name", name).limit(1);
@@ -302,8 +302,8 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "model-delete") {
-      if (permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have permission to manage R&M settings." }, 403);
-      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
+      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
       const modelId = cleanText(body.modelId, "Registered machine ID", 64);
       const { data, error } = await db.from("repair_maintenance_assets").update({ status: "ARCHIVED", updated_by: actor, updated_at: new Date().toISOString() })
         .eq("id", modelId).eq("machine_type", body.machineType).eq("status", "ACTIVE").select("id,name").maybeSingle();

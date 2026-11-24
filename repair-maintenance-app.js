@@ -259,12 +259,12 @@
     clearStatus('machineSettingsModalStatus');
   }
   async function addMachineModel(event){
-    event.preventDefault();if(!currentMachine||access?.canManageRepairMaintenancePresets!==true)return;
+    event.preventDefault();if(!currentMachine||access?.canAddRepairMaintenanceMachinery!==true)return;
     const name=$('newModelName').value.trim();if(!name)return;
     const button=$('addModelSave');button.disabled=true;button.textContent='SAVING…';
     try{const result=await api('model-add',{machineType:currentMachine.key,name});$('newModelName').value='';await refreshMachineConfiguration();await syncDashboardAssetsAfterSettings(result.asset?.id||'');say('Registered machine added to this category and is immediately selectable.',machineSettingsStatusTarget(),'ok')}
     catch(error){say(error.message,machineSettingsStatusTarget(),'error')}
-    finally{button.disabled=false;button.textContent='ADD MODEL'}
+    finally{button.disabled=false;button.textContent='ADD MACHINE'}
   }
   async function removeMachineModel(model){
     if(!currentMachine||!model)return;
@@ -291,7 +291,7 @@
     select.value=[...select.options].some(option=>option.value===previous)?previous:'';
   }
   async function syncDashboardAssetsAfterSettings(preferredId=''){
-    if(!currentMachine||!assetEditorDashboardVisible)return;
+    if(!currentMachine)return;
     const result=await api('asset-list',{machineType:currentMachine.key});
     assets=Array.isArray(result.assets)?result.assets:[];
     unassignedCount=Number(result.unassignedCount)||0;

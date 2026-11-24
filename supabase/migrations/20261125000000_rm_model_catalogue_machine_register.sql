@@ -20,8 +20,18 @@ begin
        and (
          lower(trim(name)) = lower(trim(model_row.name))
          or lower(trim(coalesce(make_model, ''))) = lower(trim(model_row.name))
+         -- Preserve established machine identities whose names extend a catalogue label.
+         or left(lower(trim(name)), char_length(lower(trim(model_row.name))) + 1)
+              = lower(trim(model_row.name)) || ' '
        )
-     order by case when lower(trim(name)) = lower(trim(model_row.name)) then 0 else 1 end
+     order by
+       case
+         when lower(trim(name)) = lower(trim(model_row.name)) then 0
+         when lower(trim(coalesce(make_model, ''))) = lower(trim(model_row.name)) then 1
+         else 2
+       end,
+       created_at,
+       id
      limit 1;
 
     if matched_id is not null then
@@ -39,9 +49,6 @@ begin
   end loop;
 end $$;
 
-create index if not exists repair_maintenance_assets_active_catalogue_idx
-  on public.repair_maintenance_assets (machine_type, lower(name))
-  where status = 'ACTIVE';
 
 comment on table public.repair_maintenance_machine_models is
   'Legacy model catalogue retained for rollback/history. PR #133 routes all current model catalogue reads and writes through repair_maintenance_assets.';
