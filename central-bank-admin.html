@@ -285,7 +285,7 @@ small,.muted{color:var(--muted)}
   return {
    schemaVersion:1,
    modules:list("moduleRegistry"),
-   navigation:{overview:$("navLabelOverview").value.trim()||"Overview",organisation:$("navLabelOrganisation").value.trim()||"Organisation",structure:$("navLabelStructure").value.trim()||"Plant & Areas",libraries:$("navLabelLibraries").value.trim()||"Operational Libraries",defaults:$("navLabelDefaults").value.trim()||"System Defaults",history:$("navLabelHistory").value.trim()||"Version History",navigation:$("navLabelNavigation").value.trim()||"Menu & Labels"},
+   navigation:{overview:$("navLabelOverview").value.trim()||"Overview",organisation:$("navLabelOrganisation").value.trim()||"Organisation",structure:$("navLabelStructure").value.trim()||"Plant & Areas",libraries:$("navLabelLibraries").value.trim()||"Operational Libraries",defaults:$("navLabelDefaults").value.trim()||"System Defaults",history:$("navLabelHistory").value.trim()||"Version History",navigation:$("navLabelNavigation").value.trim()||"Menu & Labels",modules:$("navLabelModules").value.trim()||"Module Registry",controls:$("navLabelControls").value.trim()||"System Controls",information:$("navLabelInformation").value.trim()||"System Information"},
    organization:{companyName:$("companyName").value.trim(),siteCode:$("siteCode").value.trim(),timezone:$("timezone").value.trim(),locale:$("locale").value.trim()},
    structure:{sites:list("sites"),plants:list("plants"),areas:list("areas"),stations:list("stations")},
    libraries:{areaPresets:list("areaPresets"),downtimeReasons:list("downtimeReasons"),dailyTaskPresets:list("dailyTaskPresets"),equipmentCategories:list("equipmentCategories"),eventCategories:list("eventCategories"),statusCategories:list("statusCategories")},
