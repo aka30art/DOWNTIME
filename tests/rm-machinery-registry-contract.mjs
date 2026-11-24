@@ -8,6 +8,7 @@ const api=read('../supabase/functions/repair-maintenance-api/index.ts');
 const settings=read('../yard-hub-settings.js');
 const settingsApi=read('../supabase/functions/yard-hub-settings-api/index.ts');
 const migration=read('../supabase/migrations/20261124230000_rm_machinery_registry.sql');
+const assetForeignKeyIndexMigration=read('../supabase/migrations/20261124240000_rm_machinery_fault_asset_fk_index.sql');
 const pdf=read('../supabase/functions/repair-maintenance-api/pdf.ts');
 const archiveMigration=read('../supabase/migrations/20261124210000_rm_pdf_export_archive.sql');
 
@@ -28,6 +29,8 @@ assert.match(migration,/enable row level security/);
 assert.match(migration,/revoke all on table public\.repair_maintenance_assets from public, anon, authenticated/);
 assert.match(migration,/grant all on table public\.repair_maintenance_assets to service_role/);
 assert.match(migration,/repair_maintenance_pdf_exports_asset_created_idx/);
+assert.match(assetForeignKeyIndexMigration,/repair_maintenance_faults_asset_machine_idx/);
+assert.match(assetForeignKeyIndexMigration,/on public\\.repair_maintenance_faults \\(asset_id, machine_type\\)/);
 assert.match(migration,/KIVERCO — PICKING LINE/);
 assert.match(migration,/TANNA — SHREDDER/);
 assert.match(migration,/f\.machine_type = 'KIVERCO_PICKING_LINE'[\s\S]*f\.machine_type = 'TANNA_SHREDDER'/);
