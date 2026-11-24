@@ -49,7 +49,7 @@ assert.match(api,/status !== "ACTIVE"/);
 assert.match(api,/hubTier === "DEVACC"/);
 assert.match(api,/tier === "DEVACC" \|\| hubTier === "DEVACC"/,'legacy and Hub DEVACC accounts retain root machinery access');
 
-for(const id of ['machineAssetControls','machineAssetSelect','addMachineryButton','editMachineryButton','assetOverlay','assetForm','assetName','assetCode','assetMakeModel','assetSaveButton','archiveAssetButton','reportAssetId','pdfExportsAssetId'])assert.ok(html.includes('id="'+id+'"'),'missing asset UI element '+id);
+for(const id of ['machineAssetControls','machineAssetSelect','settingsMachinerySection','settingsAssetSelect','settingsAddMachineryButton','settingsEditMachineryButton','saveModelDropdownSettings','assetOverlay','assetForm','assetName','assetCode','assetMakeModel','assetSaveButton','archiveAssetButton','reportAssetId','pdfExportsAssetId'])assert.ok(html.includes('id="'+id+'"'),'missing asset UI element '+id);
 assert.match(app,/api\('asset-list'/);
 assert.match(app,/api\('asset-add'/);
 assert.match(app,/api\('asset-update'/);
@@ -71,8 +71,16 @@ assert.match(api,/buildRepairMaintenancePdf\(faults, filter, generatedAt, select
 assert.match(migration,/repair_maintenance_pdf_exports/);
 assert.ok(archiveMigration.includes('repair_maintenance_pdf_exports'));
 
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-8'));
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-9'));
 assert.ok(html.includes('id="modelDropdownEnabled"'));
+assert.ok(html.includes('id="saveModelDropdownSettings"'));
+assert.ok(html.includes('id="settingsAssetSelect"'));
+assert.ok(html.includes('id="settingsAddMachineryButton"'));
+assert.ok(html.includes('id="settingsEditMachineryButton"'));
+assert.doesNotMatch(html,/id="addMachineryButton"|id="editMachineryButton"|id="openPresets"/);
+assert.match(app,/function saveModelDropdownSetting\(\)/);
+assert.match(app,/function renderSettingsAssetManager\(\)/);
+assert.match(app,/function syncDashboardAssetsAfterSettings\(/);
 assert.ok(html.includes('id="machineModelItems"'));
 assert.ok(html.includes('id="modelAddForm"'));
 assert.ok(html.includes('id="assetMakeModelSelect"'));
