@@ -612,7 +612,6 @@ body.overview-overlay-open{overflow:hidden}
       </div>
       <div class="yard-session">
         <div class="yard-session-copy"><span>AUTHENTICATED USER</span><strong id="yardHubUsername">—</strong></div>
-        <button id="yardHubSettingsBtn" class="yard-logout yard-hub-settings-trigger" type="button" hidden>⚙ SETTINGS</button>
         <button id="yardHubLogoutBtn" class="yard-logout" type="button">LOG OUT</button>
       </div>
     </header>
@@ -642,9 +641,15 @@ body.overview-overlay-open{overflow:hidden}
         <span class="yard-tile-divider" aria-hidden="true"></span>
         <span class="yard-tile-copy"><strong>R&amp;M</strong><small>REPAIRS &amp; MAINTENANCE</small><span class="yard-tile-status" id="yardRepairStatus">CHECKING ACCESS</span></span>
       </button>
+      <button class="yard-tile yard-tile-active" id="yardHubSettingsBtn" data-app="settings" type="button" aria-label="Open YARD HUB Settings" hidden>
+        <span class="yard-tile-index">05</span>
+        <span class="yard-tile-icon" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M42 10h16l3 10a32 32 0 0 1 7 4l10-4 8 14-7 7a32 32 0 0 1 0 9l7 7-8 14-10-4a32 32 0 0 1-7 4l-3 10H42l-3-10a32 32 0 0 1-7-4l-10 4-8-14 7-7a32 32 0 0 1 0-9l-7-7 8-14 10 4a32 32 0 0 1 7-4Z"/><circle class="accent" cx="50" cy="45" r="13"/></svg></span>
+        <span class="yard-tile-divider" aria-hidden="true"></span>
+        <span class="yard-tile-copy"><strong>HUB SETTINGS</strong><small>YARD HUB CONFIGURATION &amp; ACCESS CONTROL</small><span class="yard-tile-status">ADMINISTRATION</span></span>
+      </button>
     </section>
     <footer class="yard-hub-footer"><span>YARD HUB · YARD OPERATIONS CORE</span><span>ONE PLATFORM · MODULAR APPLICATIONS</span></footer>
-    <section id="yardHubSettingsScreen" class="yard-hub-settings-screen" hidden aria-label="YARD HUB Settings">
+    <section id="yardHubSettingsScreen" class="yard-hub-settings-screen" hidden aria-label="YARD HUB Settings" role="main" tabindex="-1">
       <header class="yard-hub-settings-heading">
         <button id="yardHubSettingsBack" type="button" class="yard-hub-back">‹ BACK TO YARD HUB</button>
         <div class="yard-hub-settings-eyebrow">YARD OPERATIONS CORE · ADMINISTRATION</div>
