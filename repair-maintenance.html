@@ -30,14 +30,23 @@
 @media print{body{background:#fff!important;color:#111!important}.app{padding:0;max-width:none}.hero,.machinebar,.stats,.faultpanel{print-color-adjust:exact;-webkit-print-color-adjust:exact}.hero-actions,.machine-back,.panel-actions,.bottomline{display:none!important}.faultpanel{box-shadow:none}.overlay{display:none!important}.machinebar{break-after:avoid}}
 .status-fixed:disabled{background:#091923!important;border-color:#334b5d!important;color:#f3f6f8!important;opacity:1!important;font-weight:900;letter-spacing:.5px;cursor:not-allowed}.report-intro{color:var(--muted);font-size:13px;margin:14px 0}.report-summary{display:grid;gap:5px;margin-top:14px;padding:12px 13px;background:#091923;border:1px solid #334b5d;border-radius:10px}.report-summary strong{font-size:10px;letter-spacing:.8px;color:var(--yellow)}.report-summary span{font-size:12px;color:var(--muted);line-height:1.5}.report-icon{font-size:22px}
 .report-actions{display:flex;gap:10px;margin-top:13px}.report-actions .btn{flex:1;min-height:50px;font-size:14px;letter-spacing:.7px}.report-actions .export-report-button{background:var(--yellow);border-color:var(--yellow);color:#071725}.report-actions .archive-report-button{border-color:var(--yellow);color:var(--yellow)}.report-actions button[hidden],.load-more-exports[hidden]{display:none!important}.pdf-exports-dialog{max-width:900px}.pdf-export-list{display:grid;gap:9px;margin-top:13px;max-height:55dvh;overflow:auto}.pdf-export-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px;border:1px solid #425a70;border-radius:10px;background:#10263a}.pdf-export-main{min-width:0}.pdf-export-name{display:block;font-size:13px;font-weight:950;overflow-wrap:anywhere;color:var(--white)}.pdf-export-meta{display:block;margin-top:5px;font-size:10px;line-height:1.5;color:var(--muted)}.pdf-export-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}.pdf-export-actions .btn{min-height:37px;padding:7px 10px;font-size:9px;letter-spacing:.3px}.pdf-export-actions .delete-export{border-color:#b44a4a;color:#ffd5d5}.load-more-exports{width:100%;margin-top:8px;min-height:42px}@media(max-width:620px){.report-actions{display:grid;grid-template-columns:1fr;gap:8px}.report-actions .btn{min-height:47px}.pdf-export-row{grid-template-columns:1fr;gap:9px;padding:10px}.pdf-export-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.pdf-export-actions .btn{width:100%;padding:7px 4px;font-size:8px}}
-.machine-asset-controls{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:9px;max-width:100%}.machine-asset-controls label{flex:0 0 auto;color:#9fb4c1;font-size:9px;font-weight:950;letter-spacing:.8px}.machine-asset-controls select{min-width:150px;max-width:100%;min-height:36px;padding:7px 9px;border:1px solid #385568;border-radius:8px;background:#0a1b27;color:#eef3f6;font:inherit;font-size:10px;font-weight:800}.machine-asset-controls button{min-height:35px;padding:7px 10px}.machine-asset-controls[hidden]{display:none!important}#assetStatus{margin-top:10px;min-height:20px}#archiveAssetButton{border-color:#8b4c42;color:#ffc0b8}@media(max-width:620px){.machine-asset-controls{align-items:stretch}.machine-asset-controls label{width:100%}.machine-asset-controls select{width:100%;min-width:0}.machine-asset-controls button{flex:1 1 auto}}</style>
+.machine-asset-controls{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:9px;max-width:100%}.machine-asset-controls label{flex:0 0 auto;color:#9fb4c1;font-size:9px;font-weight:950;letter-spacing:.8px}.machine-asset-controls select{min-width:150px;max-width:100%;min-height:36px;padding:7px 9px;border:1px solid #385568;border-radius:8px;background:#0a1b27;color:#eef3f6;font:inherit;font-size:10px;font-weight:800}.machine-asset-controls[hidden]{display:none!important}
+.settings-shortcut{font-family:system-ui,sans-serif;font-size:28px;line-height:1;color:var(--yellow)}
+.rms-toggle-save-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}
+.rms-toggle-save-row .btn{min-height:42px;white-space:nowrap}
+.rms-toggle-save-row .btn:disabled{opacity:.48;cursor:not-allowed}
+.rms-machinery-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+.rms-machinery-actions .btn{min-height:45px;width:100%}
+#settingsMachinerySection[hidden]{display:none!important}
+#settingsAssetSelect{width:100%;min-height:45px;margin-top:5px}
+@media(max-width:560px){.rms-toggle-save-row{align-items:stretch;flex-direction:column}.rms-toggle-save-row .btn{width:100%}.rms-machinery-actions{grid-template-columns:1fr}}</style>
 <link rel="stylesheet" href="shared-ui-system.css?v=20261124-1">
 </head>
 <body>
 <div class="app" id="appRoot"><div class="frame">
 <header class="hero">
   <div class="hero-top"><div><div class="downtime-mark">DOWNTIME<sup>®</sup></div><div class="mark-rule"></div></div>
-  <div class="hero-actions"><div class="session-label">HUB AUTHENTICATED AS<strong id="sessionUser">—</strong></div><button class="icon-button report-icon" id="openReports" type="button" aria-label="Open PDF EXPORTS" title="PDF EXPORTS">▤</button><a class="icon-button" id="backToHub" href="index.html" aria-label="Return to YARD HUB" title="Return to YARD HUB">⌂</a></div></div>
+  <div class="hero-actions"><div class="session-label">HUB AUTHENTICATED AS<strong id="sessionUser">—</strong></div><button class="icon-button report-icon" id="openReports" type="button" aria-label="Open PDF EXPORTS" title="PDF EXPORTS">▤</button><button class="icon-button settings-shortcut" id="openRmsSettingsShortcut" type="button" aria-label="Open R&M settings" title="R&M SETTINGS" hidden>⚙</button><a class="icon-button" id="backToHub" href="index.html" aria-label="Return to YARD HUB" title="Return to YARD HUB">⌂</a></div></div>
   <div class="hero-word"><span class="slash">/</span><span class="r">R</span><span>&amp;</span><span class="m">M</span></div>
   <p class="hero-tag">REPAIRS &amp; MAINTENANCE</p>
 </header>
@@ -45,7 +54,7 @@
 <section id="selectorView" class="view" hidden>
   <div class="section-head">
     <div><div class="section-title">MACHINERY</div><div class="section-note">SELECT A MACHINE TO VIEW FAULTS / DEFECTS</div></div>
-    <button class="machine-back" id="openRmsSettings" type="button" hidden>⚙ SETTINGS</button>
+
   </div>
   <div class="machine-grid" id="machineGrid">
     <button class="machine-card" data-machine="KIVERCO_PICKING_LINE"><span class="machine-art"><img src="assets/rm-icons/kiverco.svg" alt="" aria-hidden="true" decoding="async"></span><span class="machine-copy"><strong>KIVERCO — PICKING LINE</strong><small>CONVEYORS &amp; SORTING SYSTEM</small><span class="machine-open">OPEN MACHINE →</span></span></button>
@@ -73,7 +82,7 @@
   <div class="statusbar" id="settingsStatus" role="status" aria-live="polite"></div>
 </section>
 <section id="dashboardView" class="view" hidden>
-  <div class="machinebar"><div class="machineicon" aria-hidden="true"><img id="machineIcon" src="assets/rm-icons/kiverco.svg" alt="" decoding="async"></div><div class="machine-header-copy"><span class="machinelabel" id="machineCategoryLabel">MACHINE TYPE</span><strong id="machineTitle">—</strong><div class="machine-asset-controls" id="machineAssetControls" hidden><label for="machineAssetSelect">INDIVIDUAL MACHINE</label><select id="machineAssetSelect"><option value="">SELECT INDIVIDUAL MACHINE</option></select><button class="machine-cog-button" id="addMachineryButton" type="button" hidden>＋ ADD MACHINERY</button><button class="machine-cog-button" id="editMachineryButton" type="button" hidden>EDIT MACHINE</button></div><button class="machine-cog-button" id="openPresets" type="button" hidden>PRESETS</button></div><button class="machine-back" id="backToMachinery" type="button">← MACHINERY</button></div>
+  <div class="machinebar"><div class="machineicon" aria-hidden="true"><img id="machineIcon" src="assets/rm-icons/kiverco.svg" alt="" decoding="async"></div><div class="machine-header-copy"><span class="machinelabel" id="machineCategoryLabel">MACHINE TYPE</span><strong id="machineTitle">—</strong><div class="machine-asset-controls" id="machineAssetControls" hidden><label for="machineAssetSelect">INDIVIDUAL MACHINE</label><select id="machineAssetSelect"><option value="">SELECT INDIVIDUAL MACHINE</option></select></div></div><button class="machine-back" id="backToMachinery" type="button">← MACHINERY</button></div>
   <div class="stats"><div class="stat"><span class="staticon">🔧</span><div><div class="statlabel">TOTAL FAULTS</div><div class="statnum" id="totalCount">0</div></div></div><div class="stat"><span class="staticon">⚠</span><div><div class="statlabel">HIGH</div><div class="statnum" id="highCount">0</div></div></div><div class="stat"><span class="staticon">⚠</span><div><div class="statlabel">MEDIUM</div><div class="statnum" id="mediumCount">0</div></div></div><div class="stat"><span class="staticon">ⓘ</span><div><div class="statlabel">LOW</div><div class="statnum" id="lowCount">0</div></div></div></div>
   <section class="faultpanel"><div class="panelhead"><div class="paneltitle"><span class="panel-slash"></span>FAULTS / DEFECTS</div><label class="sort">SORT: <select id="sortSelect"><option value="priority">PRIORITY</option><option value="newest">NEWEST</option><option value="oldest">OLDEST</option></select></label></div>
     <div class="fault-table-head"><div>#</div><div>FAULT / DEFECT</div><div>DESCRIPTION</div><div>PRIORITY</div></div><div id="faultRows" class="fault-rows"><div class="empty">Loading fault records…</div></div>
@@ -141,6 +150,18 @@
 <div class="overlay" id="presetsOverlay" role="dialog" aria-modal="true" aria-labelledby="presetsTitle">
   <div class="dialog" style="max-width:620px">
     <div class="dialog-head"><div><div class="dialog-title" id="presetsTitle">MACHINERY SETTINGS</div><div class="form-help" id="presetMachineTitle">—</div></div><button class="close" type="button" data-close="presetsOverlay" aria-label="Close">×</button></div>
+    <section class="rms-config-section" id="settingsMachinerySection">
+      <div class="rms-section-heading"><strong>INDIVIDUAL MACHINERY REGISTER</strong><span>ADD / EDIT MACHINERY</span></div>
+      <p class="form-help">Manage the individual machinery records for this category. Select a registered machine to edit its details or add a new one.</p>
+      <div class="form-field">
+        <label for="settingsAssetSelect">REGISTERED MACHINERY</label>
+        <select id="settingsAssetSelect"><option value="">SELECT A MACHINE TO EDIT</option></select>
+      </div>
+      <div class="rms-machinery-actions">
+        <button class="btn primary" id="settingsAddMachineryButton" type="button" hidden>＋ ADD MACHINERY</button>
+        <button class="btn" id="settingsEditMachineryButton" type="button" hidden>EDIT SELECTED MACHINE</button>
+      </div>
+    </section>
     <section class="rms-config-section">
       <div class="rms-section-heading"><strong>AREA / PART PRESETS</strong><span>FAULT REPORTING OPTIONS</span></div>
       <p class="form-help">Add or remove the area and part choices available when recording faults for this category. Existing fault records are retained.</p>
@@ -156,6 +177,10 @@
         <span><strong>ENABLE SCROLL-DOWN MENU</strong><small>When enabled, the MAKE / MODEL field uses this category's model catalogue. When disabled, staff can type the make / model.</small></span>
         <input id="modelDropdownEnabled" type="checkbox" checked>
       </label>
+      <div class="rms-toggle-save-row">
+        <span class="form-help">Changes are not applied until saved.</span>
+        <button class="btn primary" id="saveModelDropdownSettings" type="button" disabled>SAVE SETTINGS</button>
+      </div>
     </section>
     <section class="rms-config-section">
       <div class="rms-section-heading"><strong>MACHINERY MODEL CATALOGUE</strong><span>MAKE / MODEL OPTIONS</span></div>
@@ -185,5 +210,5 @@
 
 <script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';window.REPAIR_MAINTENANCE_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/repair-maintenance-api';</script>
 <script src="central-bank-client.js"></script>
-<script src="repair-maintenance-app.js?v=20261124-8"></script>
+<script src="repair-maintenance-app.js?v=20261124-9"></script>
 </body></html>
