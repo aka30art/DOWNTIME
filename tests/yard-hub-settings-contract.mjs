@@ -29,7 +29,7 @@ assert.ok(html.includes('yard-hub-settings.js?v=20261124-2'),'YARD HUB settings 
 assert.ok(pagesWorkflow.includes("if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'"),'Pages artifact build runs on PRs for pre-merge validation');
 assert.ok(pagesWorkflow.includes("if: github.ref == 'refs/heads/main'"),'Pages deployment remains restricted to main');
 assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-2'),'live deployment smoke test verifies the updated Hub settings asset');
-assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-11'),'live deployment smoke test verifies the updated R&M app asset');
+assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261124-12'),'live deployment smoke test verifies the updated R&M app asset');
 for(const id of ['openRmsSettingsShortcut','saveModelDropdownSettings','settingsAddMachineryButton','settingsEditMachineryButton','presetItems'])assert.ok(pagesWorkflow.includes(id),'live deployment verification covers current RMS control '+id);
 assert.ok(pagesWorkflow.includes('REGISTERED MACHINE · FAULT REGISTER'),'live deployment verification distinguishes registered assets from make/model catalogue');
 assert.ok(pagesWorkflow.includes('! grep -q \'id="openPresets"\''),'live deployment verification rejects obsolete dashboard preset control');
