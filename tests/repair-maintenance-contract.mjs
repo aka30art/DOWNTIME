@@ -159,7 +159,9 @@ assert.match(html,/<section id="selectorView" class="view operations-mode" hidde
 assert.match(html,/<section id="settingsView" class="view configuration-mode" hidden>[\s\S]*?CONFIGURATION WORKSPACE[\s\S]*?SETUP AREA/,'configuration selector has a persistent amber workspace identity');
 assert.match(html,/<section id="selectorView" class="view operations-mode" hidden>[\s\S]*?id="openSettingsWorkspace"[^>]*>CONFIGURATION →/,'Operations workspace offers a direct Configuration switch');
 assert.match(html,/<div class="machine-nav-actions">[\s\S]*?id="backToMachinery"[^>]*>← MACHINERY[\s\S]*?id="openRmsSettingsShortcut"[^>]*>CONFIGURATION/,'selected-machine configuration action sits beside the Machinery return button');
-assert.doesNotMatch(html,/<div class="hero-actions">[\s\S]*?openRmsSettingsShortcut/,'ambiguous gear shortcut is no longer in hero navigation');
+const heroMarkup = html.match(/<header class="hero">[\s\S]*?<\/header>/)?.[0] || '';
+assert.ok(heroMarkup,'R&M hero header exists');
+assert.doesNotMatch(heroMarkup,/openRmsSettingsShortcut/,'ambiguous gear shortcut is no longer in hero navigation');
 assert.match(app,/function renderSettingsSelector\(\)\{if\(access\?\.canManageRepairMaintenancePresets!==true\)/,'Configuration workspace entry remains permission-gated');
 assert.match(html,/class="dialog configuration-dialog"[\s\S]*?CONFIGURATION MODE[\s\S]*?NOT THE FAULT REGISTER/,'every machinery configuration modal has an explicit mode warning');
 assert.match(html,/\.configuration-mode \.machine-card\{[^}]*#332b1d/,'configuration cards use a separate amber administrative visual language');
