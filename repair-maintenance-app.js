@@ -295,7 +295,6 @@
     if(!unassignedMode&&!currentAsset){say('The selected machine is no longer available. Refresh the category and try again.','dashboardStatus','error');return}
     $('machineTitle').textContent=unassignedMode?'UNASSIGNED / LEGACY FAULTS':currentAsset.name;
     $('machineAssetSelect').value=value;
-    $('editMachineryButton').hidden=access?.canManageRepairMaintenanceMachinery!==true||!currentAsset;
     const canCreate=access?.canEditRepairMaintenance===true&&!unassignedMode&&currentAsset?.status==='ACTIVE';
     $('openCreateFault').hidden=!canCreate;
     $('openCreateFault').disabled=!canCreate;
