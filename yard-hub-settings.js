@@ -129,6 +129,7 @@
   }
   function hasUnsavedTierChanges(){return !!state&&JSON.stringify(workingPayload)!==JSON.stringify(state.tierPermissions)}
   function canEditRole(role){
+    if(['OWNER','DEVACC'].includes(role))return false;
     if(isRootAdmin())return true;
     return myHubTier==='ADMIN'&&editableByAdmin.includes(role);
   }
@@ -326,7 +327,7 @@
         });
         row.appendChild(controls);table.appendChild(row);
       });
-      if(!editable)card.appendChild(element('div','yard-hub-tier-lock-note','Protected tier · only DEV / DEVACC can change this profile.'));
+      if(!editable)card.appendChild(element('div','yard-hub-tier-lock-note','Protected tier · DEV and DEVACC system profiles cannot be changed.'));
       card.appendChild(table);host.appendChild(card);
     });
   }
