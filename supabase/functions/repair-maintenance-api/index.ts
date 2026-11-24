@@ -201,6 +201,25 @@ Deno.serve(async (req: Request) => {
       return json({ asset: data });
     }
 
+    if (action === "asset-delete") {
+      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to permanently delete R&M Machinery." }, 403);
+      if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
+      const assetId = cleanText(body.assetId, "Machine ID", 64);
+      const { count, error: faultCountError } = await db.from("repair_maintenance_faults")
+        .select("id", { count: "exact", head: true })
+        .eq("asset_id", assetId).eq("machine_type", body.machineType);
+      if (faultCountError) return json({ error: "Unable to verify whether this machine has linked fault history. Nothing was deleted." }, 503);
+      if (Number(count || 0) > 0) return json({ error: "This machine has linked fault history and cannot be permanently deleted." }, 409);
+      const { data, error } = await db.from("repair_maintenance_assets").delete()
+        .eq("id", assetId).eq("machine_type", body.machineType).eq("status", "ACTIVE")
+        .select("id,machine_type,name").maybeSingle();
+      if (error?.code === "23503") return json({ error: "This machine has linked fault history and cannot be permanently deleted." }, 409);
+      if (error) return json({ error: "Unable to permanently delete the machine. Nothing was changed." }, 503);
+      if (!data) return json({ error: "Active machine not found." }, 404);
+      await audit("rm-machinery-delete", { assetId: data.id, machineType: data.machine_type, name: data.name });
+      return json({ deleted: true, asset: data });
+    }
+
     if (action === "asset-archive") {
       if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);

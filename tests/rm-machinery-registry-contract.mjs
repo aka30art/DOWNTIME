@@ -39,7 +39,7 @@ assert.match(migration,/TANNA — SHREDDER/);
 assert.match(migration,/f\.machine_type = 'KIVERCO_PICKING_LINE'[\s\S]*f\.machine_type = 'TANNA_SHREDDER'/);
 assert.doesNotMatch(migration,/update public\.repair_maintenance_faults[\s\S]*FORKLIFT'[\s\S]*set asset_id/,'fleet legacy records must not be guessed onto an individual machine');
 
-for(const action of ['asset-list','asset-add','asset-update','asset-archive'])assert.ok(api.includes('action === "'+action+'"'),'missing asset API action '+action);
+for(const action of ['asset-list','asset-add','asset-update','asset-delete','asset-archive'])assert.ok(api.includes('action === "'+action+'"'),'missing asset API action '+action);
 assert.match(api,/canReadRepairMaintenanceMachinery !== true/);
 assert.match(api,/canManageRepairMaintenanceMachinery !== true/);
 assert.match(api,/action === "export-url"[\s\S]*canReadRepairMaintenanceMachinery!==true/,'opening PDF exports requires Machinery READ');
@@ -73,7 +73,7 @@ assert.match(api,/buildRepairMaintenancePdf\(faults, filter, generatedAt, select
 assert.match(migration,/repair_maintenance_pdf_exports/);
 assert.ok(archiveMigration.includes('repair_maintenance_pdf_exports'));
 
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-17'));
+assert.ok(html.includes('repair-maintenance-app.js?v=20261124-18'));
 assert.ok(html.includes('id="modelDropdownEnabled"'));
 assert.ok(html.includes('id="assetSelectorEnabled"'));
 assert.match(app,/function updateAssetSelectorVisibility\(\)/,'registered-machine selector has a dedicated visibility function');
@@ -138,4 +138,10 @@ assert.match(api,/action === "model-list"[\s\S]*from\("repair_maintenance_assets
 assert.doesNotMatch(api,/from\("repair_maintenance_machine_models"\)/,'legacy catalogue table is no longer used by live API routes');
 assert.match(api,/const name = makeModel/);
 assert.match(app,/assetCode:machineSettings\.registration_enabled===false\?\(editingAssetRecord\?\.asset_code\|\|''\)/,'disabling registration preserves existing machine values');
-console.log('R&M machinery registry, category registration setting and asset identity regression: PASS');
+
+assert.ok(api.includes('action === "asset-delete"'),'permanent machinery delete endpoint exists');
+assert.ok(api.includes('linked fault history and cannot be permanently deleted'),'machines with linked fault history are protected');
+assert.ok(api.includes('audit("rm-machinery-delete"'),'permanent machinery deletion is audited');
+assert.ok(app.includes("remove.textContent='DELETE'")&&app.includes('deleteRegisteredMachine(asset)'),'every registered machine row exposes a DELETE action');
+assert.ok(app.includes("api('asset-delete'"),'DELETE uses the protected API endpoint');
+console.log('R&M machinery registry, category registration setting, asset identity and safe deletion regression: PASS');
