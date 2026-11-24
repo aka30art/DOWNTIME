@@ -37,7 +37,8 @@ assert.doesNotMatch(syncBody,/assetEditorDashboardVisible/,'refresh is not skipp
 assert.match(app,/api\('list',[\s\S]*assetId:currentAsset\.id/);
 assert.match(app,/function selectMachineAsset\(/);
 assert.match(app,/function renderAssetSelect\([\s\S]*assets\.forEach/);
-assert.match(html,/NEW REGISTERED MACHINE \/ MODEL/);
+assert.match(html,/MACHINERY &amp; MODEL REGISTER/);
+assert.ok(html.includes('id="settingsAddMachineryButton"')&&html.includes('id="assetForm"')&&html.includes('id="assetOverlay"'));
 assert.match(html,/The catalogue is the registered-machine list[\s\S]*archived machines and their fault history remain available/,'UI guidance describes the unified list and archive behaviour');
 assert.match(html,/repair-maintenance-app\.js\?v=20261124-16/);
 assert.match(app,/function updateAssetSelectorVisibility\([\s\S]*asset_selector_enabled/);
