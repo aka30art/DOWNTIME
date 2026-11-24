@@ -246,10 +246,30 @@
       const copy=document.createElement('div');copy.className='rms-unified-asset-copy';
       const name=document.createElement('strong');name.textContent=asset.make_model||asset.name||'UNNAMED MACHINE';copy.appendChild(name);
       const meta=document.createElement('small');meta.textContent=[asset.asset_code,asset.make_model].filter(Boolean).join(' · ')||'REGISTERED MACHINE';copy.appendChild(meta);row.appendChild(copy);
-      if(canManage){const edit=document.createElement('button');edit.type='button';edit.className='btn compact';edit.textContent='EDIT';edit.addEventListener('click',()=>openAssetEditor(asset));row.appendChild(edit)}
+      if(canManage){
+        const edit=document.createElement('button');edit.type='button';edit.className='btn compact';edit.textContent='EDIT';edit.addEventListener('click',()=>openAssetEditor(asset));row.appendChild(edit);
+        const remove=document.createElement('button');remove.type='button';remove.className='btn danger compact';remove.textContent='DELETE';remove.setAttribute('aria-label','Delete '+(asset.make_model||asset.name||'machine'));remove.addEventListener('click',()=>deleteRegisteredMachine(asset));row.appendChild(remove);
+      }
       host.appendChild(row);
     });
     if(!host.children.length){const empty=document.createElement('p');empty.className='empty';empty.textContent='No registered machines have been added for this category yet.';host.appendChild(empty)}
+  }
+  async function deleteRegisteredMachine(asset){
+    if(!currentMachine||!asset||access?.canManageRepairMaintenanceMachinery!==true)return;
+    const name=asset.make_model||asset.name||'this machine';
+    if(!window.confirm('Permanently delete “'+name+'” from '+currentMachine.label+'? This is only allowed when the machine has no linked fault history. Machines with history must be archived instead.'))return;
+    try{
+      await api('asset-delete',{machineType:currentMachine.key,assetId:asset.id});
+      if(settingsSelectedAssetId===asset.id)settingsSelectedAssetId='';
+      await refreshMachineConfiguration();
+      if($('dashboardView')&&!$('dashboardView').hidden)await syncDashboardAssetsAfterSettings(currentAsset?.id===asset.id?'':currentAsset?.id||'');
+      say('Machine permanently deleted from the register.','machineSettingsModalStatus','ok');
+    }catch(error){
+      const message=error.message.includes('linked fault history')
+        ?error.message+' Open EDIT for this machine and choose ARCHIVE MACHINE to retain its history.'
+        :error.message;
+      say(message,machineSettingsStatusTarget(),'error');
+    }
   }
   function renderAssetModelField(value=''){
     const manualField=$('assetMakeModelManualField'),selectField=$('assetMakeModelSelectField');
