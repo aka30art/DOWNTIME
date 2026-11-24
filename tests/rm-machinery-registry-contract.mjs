@@ -36,6 +36,8 @@ assert.doesNotMatch(migration,/update public\.repair_maintenance_faults[\s\S]*FO
 for(const action of ['asset-list','asset-add','asset-update','asset-archive'])assert.ok(api.includes('action === "'+action+'"'),'missing asset API action '+action);
 assert.match(api,/canReadRepairMaintenanceMachinery !== true/);
 assert.match(api,/canManageRepairMaintenanceMachinery !== true/);
+assert.match(api,/action === "export-url"[\s\S]*canReadRepairMaintenanceMachinery!==true/,'opening PDF exports requires Machinery READ');
+assert.match(api,/action === "export-delete"[\s\S]*canReadRepairMaintenanceMachinery!==true/,'deleting PDF exports requires Machinery READ');
 assert.match(api,/\.eq\("asset_id", assetId\)/);
 assert.match(api,/\.is\("asset_id", null\)/);
 assert.match(api,/asset_id: assetId/);
