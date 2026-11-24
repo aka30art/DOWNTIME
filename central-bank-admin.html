@@ -139,6 +139,9 @@ small,.muted{color:var(--muted)}
    <button class="nav" data-section="defaults" data-default-label="System Defaults"><span class="ico">⚙</span><span class="navtext">System Defaults</span></button>
    <div class="navlabel">GOVERNANCE</div>
    <button class="nav" data-section="history" data-default-label="Version History"><span class="ico">◷</span><span class="navtext">Version History</span></button><div class="navlabel">MASTER CONTROLS</div><button class="nav" data-section="navigation" data-default-label="Menu & Labels"><span class="ico">✎</span><span class="navtext">Menu & Labels</span></button>
+   <button class="nav" data-section="modules" data-default-label="Module Registry"><span class="ico">▣</span><span class="navtext">Module Registry</span></button>
+   <button class="nav" data-section="controls" data-default-label="System Controls"><span class="ico">⚑</span><span class="navtext">System Controls</span></button>
+   <button class="nav" data-section="information" data-default-label="System Information"><span class="ico">ⓘ</span><span class="navtext">System Information</span></button>
    <div class="sidefoot"><strong>ROOT DEV AUTHORITY</strong><small>Draft, validate, publish and restore configuration versions. Other accounts are rejected server-side.</small></div>
   </aside>
   <main class="main">
@@ -168,6 +171,12 @@ small,.muted{color:var(--muted)}
      <div class="panel"><div class="eyebrow">SEPARATION OF RESPONSIBILITIES</div><h2>Access & Rights stays separate</h2><p>Account identities and the existing tier-permission matrix remain in ACCESS AND RIGHTS. This control room does not create users, edit PINs or duplicate the permission editor. DEV and DEVACC have identical authority to access the Central Data Bank, change tier privileges, and manage configuration. The DEV OWNER identity remains permanently protected.</p><div style="margin-top:14px"><span class="pill live">DEV / DEVACC ACCESS</span></div></div>
     </div>
    </section>
+
+   <section class="view" id="view-modules"><div class="pagehead"><div><div class="eyebrow">MASTER CONTROLS / MODULES</div><h1>Module registry</h1><p>Maintain a DEV-only catalogue of modules and planned components. This registry is descriptive metadata only; it does not enable, disable, install or change any live DOWNTIME module.</p></div><span class="pill">ISOLATED METADATA</span></div><div class="callout"><strong>NO RUNTIME EFFECT</strong><p>Entries are stored in the isolated configuration registry. They do not change application routes, permissions, feature availability, data or deployed code.</p></div><div class="panel"><label for="moduleRegistry">Registered modules</label><textarea id="moduleRegistry" placeholder="One module name per line"></textarea><div class="hint">Use one canonical module name per line. This list is an administrative inventory, not a feature switch.</div></div></section>
+
+   <section class="view" id="view-controls"><div class="pagehead"><div><div class="eyebrow">GOVERNANCE / CONTROL PLANE</div><h1>System controls</h1><p>Review the safeguards governing this isolated configuration workspace.</p></div><span class="pill">READ ONLY</span></div><div class="editor-grid"><div class="editor"><strong>Authentication boundary</strong><div class="hint">Server-side access is restricted to DEV with OWNER tier and DEVACC. Other tiers are denied regardless of client visibility.</div></div><div class="editor"><strong>Draft and publish separation</strong><div class="hint">Draft saves create versioned snapshots. Publishing requires an explicit action and a matching version check.</div></div><div class="editor"><strong>Recovery controls</strong><div class="hint">Historical snapshots can be restored as a new draft. Restore does not publish automatically.</div></div><div class="editor"><strong>Operational isolation</strong><div class="hint">This control plane does not write to tracker operational records, user accounts, active shifts, reports or live application settings.</div></div></div></section>
+
+   <section class="view" id="view-information"><div class="pagehead"><div><div class="eyebrow">SYSTEM / DIAGNOSTICS</div><h1>System information</h1><p>Static environment and integration status for the DEV configuration workspace.</p></div><span class="pill">READ ONLY</span></div><div class="editor-grid"><div class="editor"><label>Workspace</label><strong>Central Data Bank · Master Configuration</strong></div><div class="editor"><label>Environment</label><strong>DEV administration workspace</strong></div><div class="editor"><label>Configuration schema</label><strong>Version 1 · Backward-compatible extension</strong></div><div class="editor"><label>Live DOWNTIME integration</label><strong>Not connected by design</strong><div class="hint">No runtime integration is included in this PR.</div></div><div class="editor"><label>Configuration storage</label><strong>Isolated central configuration tables</strong></div><div class="editor"><label>Access model</label><strong>DEV OWNER / DEVACC</strong></div></div></section>
 
    <section class="view" id="view-navigation"><div class="pagehead"><div><div class="eyebrow">MASTER CONTROLS / NAVIGATION</div><h1>Menu & label management</h1><p>Rename visible labels in this DEV configuration workspace. Stable section IDs and routes remain unchanged. These labels do not alter the live application.</p></div><span class="pill">DEV WORKSPACE ONLY</span></div><div class="callout"><strong>DISPLAY LABELS ONLY</strong><p>Changes affect this administration interface only. Internal identifiers, API actions, URLs, the DOWNTIME application and its navigation are not editable here.</p></div><div class="editor-grid"><div class="editor"><label for="navLabelOverview">Overview menu title</label><input id="navLabelOverview" maxlength="40"></div><div class="editor"><label for="navLabelOrganisation">Organisation menu title</label><input id="navLabelOrganisation" maxlength="40"></div><div class="editor"><label for="navLabelStructure">Plant & Areas menu title</label><input id="navLabelStructure" maxlength="40"></div><div class="editor"><label for="navLabelLibraries">Operational Libraries menu title</label><input id="navLabelLibraries" maxlength="40"></div><div class="editor"><label for="navLabelDefaults">System Defaults menu title</label><input id="navLabelDefaults" maxlength="40"></div><div class="editor"><label for="navLabelHistory">Version History menu title</label><input id="navLabelHistory" maxlength="40"></div><div class="editor"><label for="navLabelNavigation">Menu & Labels menu title</label><input id="navLabelNavigation" maxlength="40"></div></div></section>
 
@@ -246,7 +255,7 @@ small,.muted{color:var(--muted)}
   if(!response.ok){const error=new Error(data.error||"Central configuration request failed");error.status=response.status;throw error}
   return data;
  }
- function blankConfig(){return {schemaVersion:1,navigation:{overview:"Overview",organisation:"Organisation",structure:"Plant & Areas",libraries:"Operational Libraries",defaults:"System Defaults",history:"Version History",navigation:"Menu & Labels"},organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
+ function blankConfig(){return {schemaVersion:1,navigation:{overview:"Overview",organisation:"Organisation",structure:"Plant & Areas",libraries:"Operational Libraries",defaults:"System Defaults",history:"Version History",navigation:"Menu & Labels",modules:"Module Registry",controls:"System Controls",information:"System Information"},modules:[],organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
  const lines=value=>Array.isArray(value)?value.join("\n"):"";
  function list(id){return $(id).value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean)}
  function setValue(id,value){$(id).value=value??""}
@@ -258,7 +267,7 @@ small,.muted{color:var(--muted)}
   });
  }
  function renderForm(config){
-  const c=config||blankConfig(),org=c.organization||{},structure=c.structure||{},libraries=c.libraries||{},defaults=c.defaults||{},navigation=c.navigation||blankConfig().navigation;
+  const c=config||blankConfig(),org=c.organization||{},structure=c.structure||{},libraries=c.libraries||{},defaults=c.defaults||{},navigation=c.navigation||blankConfig().navigation;setValue("moduleRegistry",lines(c.modules));
   Object.keys(navigation).forEach(key=>setValue("navLabel"+key.charAt(0).toUpperCase()+key.slice(1),navigation[key]));renderNavigation(navigation);
   setValue("companyName",org.companyName);setValue("siteCode",org.siteCode);setValue("timezone",org.timezone||"Europe/London");setValue("locale",org.locale||"en-GB");
   ["sites","plants","areas","stations"].forEach(key=>setValue(key,lines(structure[key])));
@@ -275,6 +284,7 @@ small,.muted{color:var(--muted)}
   if(!Array.isArray(shiftPresets))throw new Error("Shift presets must be a JSON array");
   return {
    schemaVersion:1,
+   modules:list("moduleRegistry"),
    navigation:{overview:$("navLabelOverview").value.trim()||"Overview",organisation:$("navLabelOrganisation").value.trim()||"Organisation",structure:$("navLabelStructure").value.trim()||"Plant & Areas",libraries:$("navLabelLibraries").value.trim()||"Operational Libraries",defaults:$("navLabelDefaults").value.trim()||"System Defaults",history:$("navLabelHistory").value.trim()||"Version History",navigation:$("navLabelNavigation").value.trim()||"Menu & Labels"},
    organization:{companyName:$("companyName").value.trim(),siteCode:$("siteCode").value.trim(),timezone:$("timezone").value.trim(),locale:$("locale").value.trim()},
    structure:{sites:list("sites"),plants:list("plants"),areas:list("areas"),stations:list("stations")},
@@ -293,7 +303,7 @@ small,.muted{color:var(--muted)}
  }
  function countItems(c){
   const s=c.structure||{},l=c.libraries||{};
-  return ["sites","plants","areas","stations"].reduce((n,k)=>n+(s[k]||[]).length,0)+["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].reduce((n,k)=>n+(l[k]||[]).length,0);
+  return (c.modules||[]).length+["sites","plants","areas","stations"].reduce((n,k)=>n+(s[k]||[]).length,0)+["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].reduce((n,k)=>n+(l[k]||[]).length,0);
  }
  function renderOverview(){
   $("publishedKpi").textContent="v"+publishedVersion;$("draftKpi").textContent="v"+draftVersion;
