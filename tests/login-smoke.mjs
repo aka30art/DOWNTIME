@@ -327,15 +327,18 @@ window.supabase={createClient:()=>({
   return ok({error:'Unknown YARD HUB settings action'},400);
  });
  await page.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-config-admin',async route=>{
+  const origin='http://127.0.0.1:4173';
+  const cors={'access-control-allow-origin':origin,'access-control-allow-headers':'apikey, content-type, x-downtime-session','access-control-allow-methods':'POST, OPTIONS','vary':'Origin'};
+  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors});
   const req=route.request().postDataJSON();
-  if(req.action==='yard-hub-menu')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({publishedVersion:1,yardHubMenu:{departments:[
+  if(req.action==='yard-hub-menu')return route.fulfill({status:200,contentType:'application/json',headers:cors,body:JSON.stringify({publishedVersion:1,yardHubMenu:{departments:[
    {id:'downtime',kind:'downtime',title:'DOWNTIME',description:'PLANT DOWNTIME & OPERATIONS',enabled:true,order:0,protected:true,submenus:[]},
    {id:'floor',kind:'floor',title:'FLOOR',description:'FLOOR & YARD OPERATIONS',enabled:true,order:1,protected:false,submenus:[]},
    {id:'check-sheets',kind:'check-sheets',title:'CHECK SHEETS',description:'INSPECTIONS & COMPLIANCE',enabled:true,order:2,protected:false,submenus:[]},
    {id:'repairs-maintenance',kind:'repairs-maintenance',title:'R&M',description:'REPAIRS & MAINTENANCE',enabled:true,order:3,protected:false,submenus:[]},
    {id:'hub-settings',kind:'hub-settings',title:'HUB SETTINGS',description:'YARD HUB CONFIGURATION & ACCESS CONTROL',enabled:true,order:4,protected:true,submenus:[]}
   ]}})});
-  return route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({error:'Unknown central config action'})});
+  return route.fulfill({status:400,contentType:'application/json',headers:cors,body:JSON.stringify({error:'Unknown central config action'})});
  });
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
  await page.route('**/functions/v1/repair-maintenance-api',async route=>{
