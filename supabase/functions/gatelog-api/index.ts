@@ -57,12 +57,11 @@ Deno.serve(async (req: Request) => {
   }
   if(action==="customer-save"){
     const name=clean(body.customerName,120);if(!name)return json({error:"Customer/company name is required."},400);
-    const {data,error}=await db.from("gatelog_customers").upsert({customer_name:name,active:true},{onConflict:"lower(customer_name)"}).select("id,customer_name").single();
-    if(error){
-      const existing=await db.from("gatelog_customers").select("id,customer_name").ilike("customer_name",name).eq("active",true).maybeSingle();
-      if(existing.error||!existing.data)return fail(error);
-      return json({customer:existing.data});
-    }
+    const existing=await db.from("gatelog_customers").select("id,customer_name").ilike("customer_name",name).eq("active",true).maybeSingle();
+    if(existing.error)return fail(existing.error);
+    if(existing.data)return json({customer:existing.data});
+    const {data,error}=await db.from("gatelog_customers").insert({customer_name:name,active:true}).select("id,customer_name").single();
+    if(error)return fail(error);
     return json({customer:data});
   }
   if(action==="vehicle-save"){
@@ -77,24 +76,18 @@ Deno.serve(async (req: Request) => {
     if(!customerId||!registration||!wasteTypes.length)return json({error:"Select a customer, enter a registration and choose at least one waste type."},400);
     const {data:customer,error:customerError}=await db.from("gatelog_customers").select("id").eq("id",customerId).eq("active",true).maybeSingle();
     if(customerError||!customer)return json({error:"Selected customer was not found."},404);
-    const {data:vehicle,error:vehicleError}=await db.from("gatelog_vehicles").upsert({customer_id:customerId,registration,active:true},{onConflict:"customer_id,registration"}).select("id").single();
-    if(vehicleError)return fail(vehicleError);
-    const {data:visit,error:visitError}=await db.from("gatelog_visits").insert({customer_id:customerId,vehicle_id:vehicle.id,vehicle_registration_snapshot:registration,created_by:actor}).select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,status").single();
+    const {data:visitId,error:arrivalError}=await db.rpc("gatelog_create_arrival",{p_customer_id:customerId,p_registration:registration,p_waste_types:wasteTypes,p_actor:actor});
+    if(arrivalError)return fail(arrivalError);
+    const {data:visit,error:visitError}=await db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,status").eq("id",visitId).single();
     if(visitError)return fail(visitError);
-    for(const label of wasteTypes){
-      const {data:waste,error:wasteError}=await db.from("gatelog_waste_types").upsert({label},{onConflict:"label"}).select("id").single();
-      if(wasteError)return fail(wasteError);
-      const {error:linkError}=await db.from("gatelog_visit_waste_types").insert({visit_id:visit.id,waste_type_id:waste.id});
-      if(linkError)return fail(linkError);
-    }
-    await db.from("gatelog_audit").insert({visit_id:visit.id,actor,action:"ARRIVAL",details:{registration,wasteTypes}});
     return json({visit});
   }
   if(action==="departure"){
     const visitId=clean(body.visitId,60);if(!visitId)return json({error:"Visit ID is required."},400);
-    const {data:visit,error}=await db.from("gatelog_visits").update({status:"DEPARTED",time_out:new Date().toISOString(),departed_by:actor}).eq("id",visitId).eq("status","ON_SITE").select("id,time_out,status").maybeSingle();
-    if(error)return fail(error);if(!visit)return json({error:"Visit is no longer on site. Refresh the list."},409);
-    await db.from("gatelog_audit").insert({visit_id:visit.id,actor,action:"DEPARTURE",details:{}});
+    const {data:rows,error}=await db.rpc("gatelog_register_departure",{p_visit_id:visitId,p_actor:actor});
+    if(error)return fail(error);
+    const visit=Array.isArray(rows)?rows[0]:rows;
+    if(!visit)return json({error:"Visit is no longer on site. Refresh the list."},409);
     return json({visit});
   }
   if(action==="history"){
