@@ -190,7 +190,7 @@ const yardHubDepartmentDefaults = [
   { id: "downtime", kind: "downtime", title: "DOWNTIME", description: "PLANT DOWNTIME & OPERATIONS", enabled: true, order: 0, protected: true, submenus: [] },
   { id: "floor", kind: "floor", title: "FLOOR", description: "FLOOR & YARD OPERATIONS", enabled: true, order: 1, protected: false, submenus: [] },
   { id: "check-sheets", kind: "check-sheets", title: "CHECK SHEETS", description: "INSPECTIONS & COMPLIANCE", enabled: true, order: 2, protected: false, submenus: [] },
-  { id: "repairs-maintenance", kind: "repairs-maintenance", title: "R&M", description: "REPAIRS & MAINTENANCE", enabled: true, order: 3, protected: true, submenus: [] },
+  { id: "repairs-maintenance", kind: "repairs-maintenance", title: "R&M", description: "REPAIRS & MAINTENANCE", enabled: true, order: 3, protected: false, submenus: [] },
   { id: "hub-settings", kind: "hub-settings", title: "HUB SETTINGS", description: "YARD HUB CONFIGURATION & ACCESS CONTROL", enabled: true, order: 4, protected: true, submenus: [] },
 ];
 function defaultYardHubMenu() {
@@ -210,15 +210,15 @@ function normalizeYardHubMenu(input: unknown) {
     seenIds.add(id);
     const base = yardHubDepartmentDefaults.find(entry => entry.id === id);
     const kind = base ? base.kind : "custom";
-    const title = configString(item.title ?? base?.title, "Department title", 48);
-    const description = configString(item.description ?? base?.description ?? "", "Department description", 100);
+    const title = base?.kind === "downtime" ? base.title : configString(item.title ?? base?.title, "Department title", 48);
+    const description = base?.kind === "downtime" ? base.description : configString(item.description ?? base?.description ?? "", "Department description", 100);
     if (!title) throw new Error("Department titles cannot be blank");
     const titleKey = title.toLocaleLowerCase();
     if (seenTitles.has(titleKey)) throw new Error("Department titles must be unique");
     seenTitles.add(titleKey);
     const order = Number.isInteger(Number(item.order)) && Number(item.order) >= 0 ? Number(item.order) : index;
     const enabled = base?.protected ? true : item.enabled !== false;
-    const rawSubmenus = Array.isArray(item.submenus) ? item.submenus : [];
+    const rawSubmenus = base?.kind === "downtime" || base?.kind === "hub-settings" ? [] : (Array.isArray(item.submenus) ? item.submenus : []);
     if (rawSubmenus.length > 30) throw new Error("A department can contain no more than 30 sub-menu items");
     const submenuIds = new Set<string>();
     const submenus = rawSubmenus.map((child: any, childIndex: number) => {
