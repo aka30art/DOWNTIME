@@ -408,7 +408,7 @@ small,.muted{color:var(--muted)}
  function renderDepartmentMenu(config){
   const fallback=defaultDepartmentMenu(),source=config&&typeof config==="object"?config:fallback;
   const categories=Array.isArray(source.categories)&&source.categories.length?source.categories:fallback.categories;
-  const entries=fallback.entries.map(base=>{const found=(source.entries||[]).find(item=>item.id===base.id)||{};return {...base,...found,submenu:Array.isArray(found.submenu)?found.submenu:[]};});
+  const categoryIndex=id=>categories.findIndex(item=>item.id===id);const entries=fallback.entries.map(base=>{const found=(source.entries||[]).find(item=>item.id===base.id)||{};return {...base,...found,submenu:Array.isArray(found.submenu)?found.submenu:[]};}).sort((a,b)=>categoryIndex(a.categoryId)-categoryIndex(b.categoryId)||Number(a.order)-Number(b.order));
   const categoryHost=$("departmentCategories"),entryHost=$("departmentEntries");if(!categoryHost||!entryHost)return;
   categoryHost.replaceChildren();entryHost.replaceChildren();
   categories.slice().sort((a,b)=>Number(a.order)-Number(b.order)).forEach((category,index)=>{
