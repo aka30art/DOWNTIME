@@ -230,7 +230,7 @@ try{
  assert.ok(await page.getByText('Server-side access is restricted').count(),'system controls document the server-side access boundary');
  await returnToDepartmentMenu(page);
  await page.locator('[data-section="information"]').click();
- assert.ok(await page.getByText('Not connected by design').count(),'system information confirms no live runtime integration');
+ assert.ok(await page.getByText('YARD HUB + R&M · Read-only').count(),'system information documents the published structure integration as read-only');
  await returnToDepartmentMenu(page);
  await page.locator('[data-section="release"]').click();
  await page.locator('#runImpactBtn').click();
