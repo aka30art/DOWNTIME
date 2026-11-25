@@ -35,9 +35,11 @@
   function closeOverlay(id){$(id)?.classList.remove('open');if(!document.querySelector('.overlay.open'))document.body.style.overflow=''}
   function setBusy(value){busy=value;document.querySelectorAll('button').forEach(b=>{if(b.dataset.busyControl==='true')b.disabled=value})}
   function renderSelector(){setView('selectorView');$('selectorStatus').textContent='Select a machinery category to view its fault register.';}
-  function renderSettingsSelector(){if(access?.canManageRepairMaintenancePresets!==true){say('R&M SETTINGS permission is required to manage configuration.','selectorStatus','error');return}setView('settingsView');$('settingsStatus').textContent='Select a machinery category to configure its R&M settings.';}
+  function canOpenMachineryConfiguration(){return access?.canManageRepairMaintenanceMachinery===true||access?.canManageRepairMaintenancePresets===true;}
+  function canManageRmsPresets(){return access?.canManageRepairMaintenancePresets===true;}
+  function renderSettingsSelector(){if(!canOpenMachineryConfiguration()){say('R&M MACHINERY EDIT or R&M SETTINGS permission is required to manage configuration.','selectorStatus','error');return}setView('settingsView');$('settingsStatus').textContent='Select a machinery category to configure its R&M settings.';}
   async function openMachineSettings(key){
-    if(access?.canManageRepairMaintenancePresets!==true){say('R&M SETTINGS permission is required to manage machine settings.','settingsStatus','error');return}
+    if(!canOpenMachineryConfiguration()){say('R&M MACHINERY EDIT or R&M SETTINGS permission is required to manage machine settings.','settingsStatus','error');return}
     currentMachine=machine(key);machinePresets=[];machineModels=[];
     settingsSelectedAssetId=currentMachine.key===currentAsset?.machine_type?currentAsset.id:'';
     $('presetMachineTitle').textContent=currentMachine.label;
@@ -51,7 +53,8 @@
     }catch(error){say(error.message,'settingsStatus','error')}
   }
   function setRmsSettingsTab(tab='machinery'){
-    const selected=tab==='area-parts'?'area-parts':'machinery';
+    const selected=tab==='area-parts'&&canManageRmsPresets()?'area-parts':'machinery';
+    const areaPartsTab=$('rmsTabAreaParts');if(areaPartsTab)areaPartsTab.hidden=!canManageRmsPresets();
     document.querySelectorAll('[data-rms-tab]').forEach(button=>{
       const active=button.dataset.rmsTab===selected;
       button.classList.toggle('active',active);
@@ -147,9 +150,12 @@
     const canRead=access?.canReadRepairMaintenanceMachinery===true;
     const canManage=access?.canManageRepairMaintenanceMachinery===true;
     const canAdd=access?.canAddRepairMaintenanceMachinery===true||canManage;
-    section.hidden=!canRead&&access?.canManageRepairMaintenancePresets!==true;
+    section.hidden=!canRead;
     const add=$('settingsAddMachineryButton');
     if(add)add.hidden=!canAdd;
+    ['settingsRegistrationSection','settingsModelDropdownSection','settingsAssetSelectorSection'].forEach(id=>{const option=$(id);if(option)option.hidden=!canManageRmsPresets();});
+    const areaPartsTab=$('rmsTabAreaParts');if(areaPartsTab)areaPartsTab.hidden=!canManageRmsPresets();
+    const areaPartsPanel=$('rmsPanelAreaParts');if(areaPartsPanel)areaPartsPanel.hidden=!canManageRmsPresets()||areaPartsPanel.dataset.rmsPanel!=='area-parts';
   }
   function updateRegistrationSaveState(){
     const save=$('saveRegistrationSettings');
@@ -619,8 +625,8 @@
     const canCreate=(access.canCreateRepairMaintenance===true||edit)&&!unassignedMode&&currentAsset?.status==='ACTIVE';
     $('openCreateFault').hidden=!canCreate;$('openCreateFault').disabled=!canCreate;
     $('deleteFault').hidden=!del;$('openReports').hidden=!exp;$('exportReportButton').hidden=!exp;$('pdfExportsButton').hidden=!exp;
-    $('openRmsSettingsShortcut').hidden=access.canManageRepairMaintenancePresets!==true;
-    $('openSettingsWorkspace').hidden=access.canManageRepairMaintenancePresets!==true;
+    $('openRmsSettingsShortcut').hidden=!canOpenMachineryConfiguration();
+    $('openSettingsWorkspace').hidden=!canOpenMachineryConfiguration();
     renderSettingsAssetManager();
   }
   async function init(){
@@ -636,7 +642,7 @@
   document.addEventListener('DOMContentLoaded',()=>{
     $('retrySession')?.addEventListener('click',()=>{document.querySelector('.frame').hidden=false;$('accessDenied').classList.remove('show');$('loadingView').hidden=false;init()});
     document.querySelectorAll('#machineGrid .machine-card[data-machine]').forEach(button=>button.addEventListener('click',()=>loadMachine(button.dataset.machine)));
-    $('openRmsSettingsShortcut')?.addEventListener('click',()=>{if(currentMachine)openMachineSettings(currentMachine.key);else renderSettingsSelector()});
+    $('openRmsSettingsShortcut')?.addEventListener('click',()=>{if(canOpenMachineryConfiguration()){if(currentMachine)openMachineSettings(currentMachine.key);else renderSettingsSelector()}});
     $('openSettingsWorkspace')?.addEventListener('click',renderSettingsSelector);
     $('backToMachineryFromSettings')?.addEventListener('click',renderSelector);
     document.querySelectorAll('#settingsMachineGrid .machine-card[data-settings-machine]').forEach(button=>button.addEventListener('click',()=>openMachineSettings(button.dataset.settingsMachine)));
