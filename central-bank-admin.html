@@ -557,7 +557,7 @@ small,.muted{color:var(--muted)}
   setValue("shiftSchedule",JSON.stringify(defaults.shiftSchedule||{},null,2));setValue("shiftPresets",JSON.stringify(defaults.shiftPresets||[],null,2));
  }
  const cloneHierarchy=value=>JSON.parse(JSON.stringify(Array.isArray(value)?value:[]));
- function hierarchyId(name,siblings){const base=String(name).toLocaleLowerCase().normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,32)||"item";let id=base,n=2;while(siblings.some(item=>item.id===id)){id=base+"-"+n++;}return id;}
+ function hierarchyId(name,siblings){const base=String(name).toLocaleLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,32)||"item";let id=base,n=2;while(siblings.some(item=>item.id===id)){id=base+"-"+n++;}return id;}
  function hierarchyButton(label,action,kind=""){const button=document.createElement("button");button.type="button";button.textContent=label;button.dataset.hierarchyAction=action;if(kind)button.className=kind;return button;}
  function renderHierarchy(value){
   const sites=cloneHierarchy(value),host=$("hierarchyTree"),summary=$("hierarchySummary");host.replaceChildren();summary.replaceChildren();
