@@ -108,8 +108,8 @@ small,.muted{color:var(--muted)}
   <p class="muted">Configuration control plane for organisation structure, master registries, operational libraries and approved system defaults.</p>
   <p class="muted" style="font-size:11px">Connection settings are remembered on this device after you change them. PINs are never saved.</p>
   <div class="formgrid" style="margin-top:20px">
-   <div class="field"><label for="projectUrl">Supabase project URL</label><input id="projectUrl" value="https://phfojlqezudbjslfrnyw.supabase.co" autocomplete="url"></div>
-   <div class="field"><label for="pubKey">Publishable API key</label><input id="pubKey" value="sb_publishable_Ns316awmCfjz_xNQyA5qBw_tQ4YLtT1" autocomplete="off"></div>
+   <div class="field"><label for="projectUrl">Supabase project URL</label><input id="projectUrl" value="https://ygwfipksbbprqynvbklk.supabase.co" autocomplete="url"></div>
+   <div class="field"><label for="pubKey">Publishable API key</label><input id="pubKey" value="sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx" autocomplete="off"></div>
    <div class="field"><label for="username">Username</label><input id="username" autocomplete="username"></div>
    <div class="field"><label for="pin">PIN</label><input id="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password"></div>
   </div>
@@ -244,7 +244,7 @@ small,.muted{color:var(--muted)}
 <script>
 (()=>{
  const $=id=>document.getElementById(id);
- const rememberedConnectionKey="downtime-central-bank-connection-v1";
+ const rememberedConnectionKey="downtime-central-bank-connection-v2";
  function restoreRememberedConnection(){
   try{
    const saved=JSON.parse(localStorage.getItem(rememberedConnectionKey)||"null");
