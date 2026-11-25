@@ -342,7 +342,7 @@ small,.muted{color:var(--muted)}
 
    <section class="view" id="view-application-structure">
     <div class="pagehead"><div><div class="eyebrow">APPLICATION ADMINISTRATION / STRUCTURE</div><h1>YARD HUB application structure</h1><p>Manage the live YARD HUB launcher hierarchy. Rename departments, add or remove custom departments, and maintain sub-menu titles. Every new entry uses the same generated menu component.</p></div><span class="pill">VERSIONED CONFIGURATION</span></div>
-    <div class="callout"><strong>SAFE STRUCTURE MANAGEMENT</strong><p>Changes remain drafts until validated, impact-reviewed and published. Department IDs and existing application routes stay stable. Core DOWNTIME, R&amp;M and HUB SETTINGS entries cannot be deleted; they can be renamed. Custom departments can be removed without deleting application records. New entries open a generated workspace until a dedicated module is assigned.</p></div>
+    <div class="callout"><strong>SAFE STRUCTURE MANAGEMENT</strong><p>Changes remain drafts until validated, impact-reviewed and published. Department IDs and existing application routes stay stable. The DOWNTIME launcher identity and label remain locked and untouched. R&amp;M and HUB SETTINGS cannot be deleted; R&amp;M can be hidden from the menu. Custom departments can be removed without deleting application records. Custom departments can be removed without deleting application records. New entries open a generated workspace until a dedicated module is assigned.</p></div>
     <div class="panel">
      <div class="cdb-menu-toolbar"><div><h2>Departments</h2><p>Each department becomes a standard YARD HUB menu tile. Drag-free ordering is controlled with MOVE UP / MOVE DOWN.</p></div><div class="cdb-menu-actions"><input id="newYardHubDepartmentTitle" maxlength="48" placeholder="New department title" style="width:210px"><button id="addYardHubDepartmentBtn" type="button" class="primary">ADD DEPARTMENT</button></div></div>
      <div id="yardHubStructureDepartments" class="cdb-menu-entries" style="margin-top:14px"></div>
@@ -666,7 +666,7 @@ function defaultDepartmentSettings(){
   {id:"downtime",kind:"downtime",title:"DOWNTIME",description:"PLANT DOWNTIME & OPERATIONS",enabled:true,order:0,protected:true,submenus:[]},
   {id:"floor",kind:"floor",title:"FLOOR",description:"FLOOR & YARD OPERATIONS",enabled:true,order:1,protected:false,submenus:[]},
   {id:"check-sheets",kind:"check-sheets",title:"CHECK SHEETS",description:"INSPECTIONS & COMPLIANCE",enabled:true,order:2,protected:false,submenus:[]},
-  {id:"repairs-maintenance",kind:"repairs-maintenance",title:"R&M",description:"REPAIRS & MAINTENANCE",enabled:true,order:3,protected:true,submenus:[]},
+  {id:"repairs-maintenance",kind:"repairs-maintenance",title:"R&M",description:"REPAIRS & MAINTENANCE",enabled:true,order:3,protected:false,submenus:[]},
   {id:"hub-settings",kind:"hub-settings",title:"HUB SETTINGS",description:"YARD HUB CONFIGURATION & ACCESS CONTROL",enabled:true,order:4,protected:true,submenus:[]}
  ]};}
  function structureSlug(value){return String(value||"").toLocaleLowerCase().normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,32)||"department";}
@@ -679,15 +679,15 @@ function defaultDepartmentSettings(){
    const card=menuNode("div","cdb-menu-entry");card.dataset.yardDepartment="true";card.dataset.yardDepartmentId=entry.id;card.dataset.yardDepartmentKind=entry.kind||"custom";card.dataset.yardDepartmentProtected=entry.protected?"true":"false";
    const head=menuNode("div","cdb-menu-entry-head"),heading=menuNode("strong","",entry.title+" · "+entry.id.toUpperCase()),state=menuNode("span","pill",entry.enabled===false?"HIDDEN FROM YARD HUB":"VISIBLE IN YARD HUB");head.append(heading,state);card.append(head);
    const fields=menuNode("div","cdb-menu-fields");
-   menuInput("Department title",entry.title,48,"yardDepartmentTitle",fields);
-   menuInput("Description",entry.description,100,"yardDepartmentDescription",fields);
+   const titleInput=menuInput("Department title",entry.title,48,"yardDepartmentTitle",fields),descriptionInput=menuInput("Description",entry.description,100,"yardDepartmentDescription",fields);
+   if(entry.kind==="downtime"){titleInput.disabled=true;descriptionInput.disabled=true;titleInput.title="DOWNTIME is protected from YARD HUB structure edits";descriptionInput.title=titleInput.title;}
    const enabledField=menuNode("div","field"),enabledLabel=menuNode("label",""),enabledInput=menuNode("input");enabledInput.type="checkbox";enabledInput.checked=entry.enabled!==false;enabledInput.dataset.yardDepartmentEnabled="true";enabledLabel.append(enabledInput,document.createTextNode("Show department in YARD HUB"));enabledField.append(enabledLabel);fields.append(enabledField);card.append(fields);
    const actions=menuNode("div","cdb-menu-actions");
    const up=menuNode("button","quiet","MOVE UP"),down=menuNode("button","quiet","MOVE DOWN"),add=menuNode("button","quiet","ADD SUB-MENU");
    up.type=down.type=add.type="button";up.disabled=index===0;down.disabled=index===departments.length-1;
-   up.addEventListener("click",()=>moveYardHubDepartment(entry.id,-1));down.addEventListener("click",()=>moveYardHubDepartment(entry.id,1));add.addEventListener("click",()=>addYardHubSubmenu(entry.id));
+   up.addEventListener("click",()=>moveYardHubDepartment(entry.id,-1));down.addEventListener("click",()=>moveYardHubDepartment(entry.id,1));add.disabled=entry.kind==="downtime"||entry.kind==="hub-settings";add.title=add.disabled?"This core application does not support configurable sub-menus.":"";add.addEventListener("click",()=>addYardHubSubmenu(entry.id));
    actions.append(up,down,add);
-   const remove=menuNode("button",entry.protected?"quiet":"danger",entry.protected?"CORE DEPARTMENT":"REMOVE");
+   const remove=menuNode("button",entry.protected?"quiet":"danger",entry.protected?"CORE DEPARTMENT":entry.kind==="custom"?"REMOVE":"HIDE FROM MENU");
    remove.type="button";remove.disabled=entry.protected===true;
    remove.addEventListener("click",()=>removeYardHubDepartment(entry.id));
    actions.append(remove);card.append(actions);
