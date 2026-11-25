@@ -1,3 +1,5 @@
+drop policy if exists "downtime_central_state_broadcast_read" on realtime.messages;
+
 create policy "downtime_central_state_broadcast_read"
 on realtime.messages
 for select
@@ -28,6 +30,8 @@ end;
 $function$;
 
 revoke all on function public.notify_downtime_central_state_change() from public, anon, authenticated;
+
+drop trigger if exists broadcast_downtime_central_state_update on public.downtime_central_bank;
 
 create trigger broadcast_downtime_central_state_update
 after update of payload, version, updated_at
