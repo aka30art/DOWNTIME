@@ -65,6 +65,7 @@
   }
   function renderMenu(){
     const grid=$('.yard-grid');if(!grid||!menu)return;
+    grid.querySelectorAll('.yard-tile-custom').forEach(button=>button.remove());
     const current=new Map();
     grid.querySelectorAll('.yard-tile[data-app]').forEach(button=>current.set(button.dataset.app,button));
     const ordered=[];
