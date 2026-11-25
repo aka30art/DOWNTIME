@@ -42,6 +42,6 @@ try{
  await page.setViewportSize({width:1280,height:900});
  const stats=await page.locator('.gatelog-kpis').boundingBox(),actions=await page.locator('.gatelog-toolbar-actions').boundingBox();
  assert.ok(stats.x+stats.width<actions.x);
- await page.locator('#gatelogModal [data-modal-close]').click();
+ await page.getByRole('button',{name:'Close'}).click();
 }finally{await browser.close()}
 console.log('GATELOG browser workflow: PASS');
