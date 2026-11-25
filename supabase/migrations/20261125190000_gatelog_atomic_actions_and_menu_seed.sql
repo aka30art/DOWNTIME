@@ -81,6 +81,21 @@ revoke all on function public.gatelog_register_departure(uuid,text) from public,
 grant execute on function public.gatelog_create_arrival(uuid,text,text[],text) to service_role;
 grant execute on function public.gatelog_register_departure(uuid,text) to service_role;
 
+create or replace function public.gatelog_customer_visit_stats()
+returns table(customer_id uuid,total_visits bigint,today_visits bigint)
+language sql
+security invoker
+set search_path = public, pg_temp
+as $
+  select v.customer_id,
+         count(*)::bigint as total_visits,
+         count(*) filter (where v.visit_date=(now() at time zone 'Europe/London')::date)::bigint as today_visits
+    from public.gatelog_visits v
+   group by v.customer_id;
+$;
+revoke all on function public.gatelog_customer_visit_stats() from public,anon,authenticated;
+grant execute on function public.gatelog_customer_visit_stats() to service_role;
+
 -- Seed GATELOG into both saved menu versions without replacing other admin edits.
 update public.downtime_central_config_state s
 set draft_payload=jsonb_set(
