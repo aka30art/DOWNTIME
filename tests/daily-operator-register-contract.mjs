@@ -38,7 +38,7 @@ assert.match(html,/dailyOperatorRecords\[iso\(today\)\]/,'main dashboard uses th
 assert.match(html,/CHANGE HISTORY/,'assignment audit history is visible in the record dialog');
 assert.match(html,/async function exportDailyPDF\(\)/,'daily PDF export is available');
 assert.match(html,/pdf\.text\('OFFICIAL OPERATOR ON DUTY'/,'daily PDF prints the official operator');
-assert.match(html,/dailyOperatorRecords\[date\]\?\.operator_name/,'daily PDF resolves the operator from the calendar date');
+assert.match(html,/record=dailyOperatorRecords\[date\]/,'daily PDF resolves the operator from the calendar date');
 
 assert.match(overview,/id="dailyOperatorName"/);
 assert.match(overview,/dailyOperators\|\|\[\]/,'Plant Overview reads the shared daily operator register');
