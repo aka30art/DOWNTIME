@@ -89,7 +89,7 @@ set draft_payload=jsonb_set(
     coalesce(s.draft_payload->'yardHubMenu','{}'::jsonb),'{departments}',
     case when exists(select 1 from jsonb_array_elements(coalesce(s.draft_payload #> '{yardHubMenu,departments}','[]'::jsonb)) d where d->>'id'='gatelog')
       then coalesce(s.draft_payload #> '{yardHubMenu,departments}','[]'::jsonb)
-      else coalesce(s.draft_payload #> '{yardHubMenu,departments}','[]'::jsonb) || jsonb_build_array(jsonb_build_object('id','gatelog','kind','gatelog','title','GATELOG','description','CUSTOMER & SITE ENTRY MANAGEMENT','enabled',true,'order',1,'protected',true,'submenus','[]'::jsonb))
+      else coalesce(s.draft_payload #> '{yardHubMenu,departments}','[]'::jsonb) || jsonb_build_array(jsonb_build_object('id','gatelog','kind','gatelog','title','GATELOG','description','CUSTOMER & SITE ENTRY MANAGEMENT','enabled',true,'order',jsonb_array_length(coalesce(s.draft_payload #> '{yardHubMenu,departments}','[]'::jsonb)),'protected',true,'submenus','[]'::jsonb))
     end,true),true),
 published_payload=jsonb_set(
   coalesce(s.published_payload,'{}'::jsonb),'{yardHubMenu}',
@@ -97,6 +97,6 @@ published_payload=jsonb_set(
     coalesce(s.published_payload->'yardHubMenu','{}'::jsonb),'{departments}',
     case when exists(select 1 from jsonb_array_elements(coalesce(s.published_payload #> '{yardHubMenu,departments}','[]'::jsonb)) d where d->>'id'='gatelog')
       then coalesce(s.published_payload #> '{yardHubMenu,departments}','[]'::jsonb)
-      else coalesce(s.published_payload #> '{yardHubMenu,departments}','[]'::jsonb) || jsonb_build_array(jsonb_build_object('id','gatelog','kind','gatelog','title','GATELOG','description','CUSTOMER & SITE ENTRY MANAGEMENT','enabled',true,'order',1,'protected',true,'submenus','[]'::jsonb))
+      else coalesce(s.published_payload #> '{yardHubMenu,departments}','[]'::jsonb) || jsonb_build_array(jsonb_build_object('id','gatelog','kind','gatelog','title','GATELOG','description','CUSTOMER & SITE ENTRY MANAGEMENT','enabled',true,'order',jsonb_array_length(coalesce(s.published_payload #> '{yardHubMenu,departments}','[]'::jsonb)),'protected',true,'submenus','[]'::jsonb))
     end,true),true)
 where s.id=1;
