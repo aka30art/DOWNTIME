@@ -100,3 +100,43 @@
 body.gatelog-modal-open{overflow:hidden}
 @media(max-width:760px){.gatelog-statistics-grid{grid-template-columns:1fr}.gatelog-stat{padding:11px}.gatelog-stat strong{margin-top:4px}.gatelog-choice-grid{grid-template-columns:1fr}.gatelog-choice{min-height:95px}}
 @media(max-width:520px){.gatelog-statistics{padding:12px}.gatelog-statistics-heading{align-items:flex-start;flex-direction:column}.gatelog-modal{padding:8px}.gatelog-modal-window{max-height:94vh;border-radius:12px;padding:14px}.gatelog-customer-card{grid-template-columns:1fr}.gatelog-customer-card button{width:100%}.gatelog-modal-toolbar{flex-wrap:wrap}.gatelog-modal-toolbar .gatelog-search{flex-basis:100%}}
+
+
+/* GATELOG — R&M HERO HEADER ALIGNMENT */
+.gatelog-hero{position:relative;isolation:isolate;overflow:hidden;min-height:205px;margin:0 0 17px;padding:20px 28px 23px;border:1px solid #263f54;border-radius:18px;background:linear-gradient(100deg,#041524 0 48%,#10283b 100%);color:#f3f6fa}
+.gatelog-hero-grid{position:absolute;z-index:-1;inset:0 0 0 auto;width:51%;background:repeating-linear-gradient(0deg,transparent 0 23px,#b6c2d015 24px 25px),repeating-linear-gradient(90deg,transparent 0 39px,#b6c2d015 40px 41px)}
+.gatelog-hero-stripe{position:absolute;z-index:-1;right:28%;top:-95px;width:175px;height:420px;transform:rotate(36deg);background:#ffd21a;opacity:.96}
+.gatelog-hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;position:relative;z-index:2}
+.gatelog-brand-name{font-size:21px;font-weight:950;letter-spacing:-.5px;color:#f3f6fa}
+.gatelog-brand-name sup{font-size:8px}
+.gatelog-brand-rule{height:5px;width:54px;background:#ffd21a;margin-top:5px}
+.gatelog-hero-actions{display:flex;align-items:flex-start;gap:8px;position:relative;z-index:2}
+.gatelog-session-label{font-size:10px;color:#d6e0e8;font-weight:850;letter-spacing:.7px;text-align:right;max-width:230px;overflow-wrap:anywhere;padding-top:5px}
+.gatelog-session-label strong{display:block;color:#ffd21a;font-size:15px;margin-top:4px}
+.gatelog-hero-icon{height:56px;width:56px;min-width:56px;border:2px solid #40596d;border-radius:13px;background:#0a2032;color:#ffd21a;display:grid;place-items:center;padding:0}
+.gatelog-hero-icon:hover{background:#182f44;border-color:#ffd21a}
+.gatelog-hero-icon svg{width:27px;height:27px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.gatelog-hero-title{position:relative;z-index:1;margin-top:45px}
+.gatelog-hero-title h1{display:flex;align-items:baseline;gap:0;margin:0;font-size:clamp(58px,8vw,100px);line-height:.93;font-weight:1000;font-style:italic;letter-spacing:-5px}
+.gatelog-title-slash,.gatelog-title-main{color:#ffd21a}
+.gatelog-title-light{color:#f3f6fa}
+.gatelog-hero-title p{margin:8px 0 0 6px;font-size:clamp(11px,1.4vw,16px);font-weight:850;letter-spacing:clamp(1.4px,.45vw,3.2px);color:#f3f6fa}
+@media(max-width:600px){
+ .gatelog-hero{min-height:205px;padding:17px 16px 20px;border-radius:16px}
+ .gatelog-hero-top{gap:8px}
+ .gatelog-brand-name{font-size:18px}
+ .gatelog-hero-actions{gap:6px}
+ .gatelog-session-label{max-width:116px;font-size:8px;letter-spacing:.45px}
+ .gatelog-session-label strong{font-size:13px}
+ .gatelog-hero-icon{width:48px;height:48px;min-width:48px;border-radius:11px}
+ .gatelog-hero-icon svg{width:23px;height:23px}
+ .gatelog-hero-title{margin-top:48px}
+ .gatelog-hero-title h1{font-size:clamp(48px,13vw,70px);letter-spacing:-3.5px}
+ .gatelog-hero-title p{font-size:clamp(9px,2.4vw,12px);letter-spacing:1.5px;line-height:1.4}
+}
+@media(max-width:380px){
+ .gatelog-hero{padding-left:12px;padding-right:12px}
+ .gatelog-session-label{max-width:88px;font-size:7px}
+ .gatelog-hero-icon{width:43px;height:43px;min-width:43px}
+ .gatelog-hero-title{margin-top:48px}
+}
