@@ -499,6 +499,8 @@ Deno.serve(async (req: Request) => {
       areas: hierarchy.reduce((n: number, site: any) => n + site.plants.reduce((p: number, plant: any) => p + plant.areas.length, 0), 0),
       stations: hierarchy.reduce((n: number, site: any) => n + site.plants.reduce((p: number, plant: any) => p + plant.areas.reduce((a: number, area: any) => a + area.stations.length, 0), 0), 0),
       modules: config.modules.length,
+      yardHubDepartments: config.yardHubMenu.departments.length,
+      yardHubSubmenus: config.yardHubMenu.departments.reduce((n: number, department: any) => n + department.submenus.length, 0),
       libraryEntries: Object.values(libraries).reduce((n: number, list: any) => n + list.length, 0),
     };
     const warnings: string[] = [];
