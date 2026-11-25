@@ -163,4 +163,12 @@ assert.ok(api.includes('linked fault history and cannot be permanently deleted')
 assert.ok(api.includes('audit("rm-machinery-delete"'),'permanent machinery deletion is audited');
 assert.ok(app.includes("remove.textContent='DELETE'")&&app.includes('deleteRegisteredMachine(asset)'),'every registered machine row exposes a DELETE action');
 assert.ok(app.includes("api('asset-delete'"),'DELETE uses the protected API endpoint');
+assert.match(app,/function canOpenMachineryConfiguration\(\)[\s\S]*canManageRepairMaintenanceMachinery===true\|\|access\?\.canManageRepairMaintenancePresets===true/,'machinery managers can enter configuration independently of preset permissions');
+assert.match(app,/openRmsSettingsShortcut'\)\.hidden=!canOpenMachineryConfiguration\(\)/,'configuration navigation follows the dedicated machinery permission');
+assert.match(app,/async function openMachineSettings\(key\)[\s\S]*if\(!canOpenMachineryConfiguration\(\)\)/,'category settings route accepts machinery managers without granting preset rights');
+assert.match(app,/function setRmsSettingsTab\(tab='machinery'\)[\s\S]*tab==='area-parts'&&canManageRmsPresets\(\)/,'Area & Parts remains restricted to preset managers');
+assert.match(app,/settingsRegistrationSection[\s\S]*!canManageRmsPresets\(\)/,'general R&M configuration controls remain hidden from machinery-only managers');
+assert.match(app,/section\.hidden=!canRead/,'machinery register visibility follows machinery READ permission');
+for(const id of ['settingsRegistrationSection','settingsModelDropdownSection','settingsAssetSelectorSection'])assert.ok(html.includes('id="'+id+'"'),'general configuration section has an explicit permission boundary: '+id);
+assert.ok(html.includes('repair-maintenance-app.js?v=20261125-2'),'R&M script cache version advances with permission fix');
 console.log('R&M machinery registry, category registration setting, asset identity and safe deletion regression: PASS');
