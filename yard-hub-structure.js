@@ -74,7 +74,8 @@
       if(!button)return;
       button.dataset.structureId=entry.id;
       button.dataset.structureKind=kind;
-      button.hidden=entry.enabled===false;
+      if(entry.enabled===false)button.hidden=true;
+      else if(kind!=='hub-settings')button.hidden=false;
       button.setAttribute('aria-label','Open '+entry.title+' department');
       const status=(entry.submenus||[]).some(item=>item.enabled!==false)?'OPEN SUB-MENUS':undefined;
       tileCopy(button,entry.title,entry.description,status);
