@@ -18,7 +18,7 @@ assert.ok(page.includes('DEV and DEVACC have identical authority to access the C
 assert.ok(page.includes('DEV / DEVACC ACCESS'),'the Data Bank badge identifies both authorized account types');
 assert.ok(page.includes('window.confirm("AUTHORISE RELEASE v"+draftVersion'),'publishing requires an explicit confirmation after impact review');
 assert.ok(page.includes('RESTORE AS DRAFT'),'history restore creates a draft rather than publishing directly');
-assert.ok(page.includes('live tracker remains unchanged')&&page.includes('separate, tested integration'),'page clearly explains publication isolation from the operational app');
+assert.ok(page.includes('YARD HUB + R&amp;M · Read-only')&&page.includes('DOWNTIME tracker logic, records, permissions and operational workflows remain untouched'),'page documents the authenticated read-only structure integration and preserves the DOWNTIME operational boundary');
 assert.ok(page.includes('Access & Rights stays separate'),'page distinguishes configuration management from permission management');
 for(const term of ['draft_payload','published_payload','draft_version','published_version','next_version'])assert.ok(migration.includes(term),'isolated config schema field '+term);
 assert.ok(migration.includes('downtime_central_config_history'),'append-only version history table exists');
