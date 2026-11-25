@@ -213,7 +213,59 @@ Deno.serve(async(req)=>{
     await db.from("downtime_central_audit").insert({username:currentUser.username,action:"central-config-restore-draft",details:{sourceVersion,newVersion}});
     return json({ok:true,draftVersion:newVersion,nextVersion:newVersion+1,sourceVersion});
   }
-  if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers||priv.canViewUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canDeleteRecords&&priv.canViewDashboards)restrictedData.weeks=addStableRecordIds(restrictedData.weeks||{});if(!priv.canViewStaff&&!priv.canManageStaff&&!priv.canManageAssignments){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}else if(!priv.canViewStaff&&!priv.canManageStaff&&priv.canManageAssignments){const assignmentProfiles=publicBank.staff?.profiles||{};const minimalProfiles=Object.fromEntries(Object.entries(assignmentProfiles).map(([name,profile]:any)=>[name,{name,onSite:profile?.onSite!==false,station:String(profile?.station||profile?.assignedStation||"").slice(0,100)}]));publicBank.staff={roster:publicBank.staff?.roster||[],profiles:minimalProfiles};restrictedData.staffRoster=publicBank.staff.roster;restrictedData.operatorProfiles=minimalProfiles;}if(!priv.canViewAssignments&&!priv.canManageAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff||priv.canManageStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!(priv.canViewAreaPresets||priv.canManageAreaPresets||priv.canManageSettings))delete restrictedData.areas;if(!(priv.canViewReasonPresets||priv.canManageReasonPresets||priv.canAddDowntimeReasons||priv.canManageSettings))delete restrictedData.reasons;if(!(priv.canViewShiftSchedule||priv.canManageShiftSchedule||priv.canManageSettings)){delete restrictedData.shiftSchedule;delete restrictedData.shiftPresets;}if(!(priv.canViewDailyTasks||priv.canManageDailyTasks||priv.canManageSettings))delete restrictedData.dailyTaskPresets;if(!(priv.canViewAssignments||priv.canManageAssignments||priv.canManageSettings))delete restrictedData.stationConfig;if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
+  if(action==="daily-operator-list"){
+   const fromDate=String(body.fromDate||""),toDate=String(body.toDate||"");
+   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(fromDate)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(toDate)||fromDate>toDate)return json({error:"A valid date range is required"},400);
+   const rangeDays=(Date.parse(toDate+"T00:00:00Z")-Date.parse(fromDate+"T00:00:00Z"))/86400000;
+   if(!Number.isFinite(rangeDays)||rangeDays>370)return json({error:"Date range cannot exceed 370 days"},400);
+   const {data:records,error}=await db.from("downtime_daily_operator_assignments").select("duty_date,operator_name,is_locked,assigned_by,assigned_at,locked_by,locked_at,updated_by,updated_at").gte("duty_date",fromDate).lte("duty_date",toDate).order("duty_date",{ascending:true});
+   if(error)return json({error:"Daily operator register is unavailable"},503);
+   return json({records:records||[]});
+ }
+ if(action==="daily-operator-assign"){
+   if(!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"Supervisor permission is required to assign or change the daily operator"},403);
+   const dutyDate=String(body.dutyDate||""),requested=String(body.operatorName||"").trim();
+   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(dutyDate)||!Number.isFinite(Date.parse(dutyDate+"T00:00:00Z")))return json({error:"A valid calendar date is required"},400);
+   const roster=Array.isArray(bank.staff?.roster)?bank.staff.roster:["Jan","Mick","Gigi","Daz","Shayne"];
+   const operator=roster.find((name:any)=>String(name).toLocaleLowerCase()===requested.toLocaleLowerCase());
+   if(!operator)return json({error:"Select an operator from the current STAFF roster"},400);
+   const {data:existing,error:readError}=await db.from("downtime_daily_operator_assignments").select("*").eq("duty_date",dutyDate).maybeSingle();
+   if(readError)return json({error:"Unable to read the daily operator record"},503);
+   if(existing?.is_locked)return json({error:"This date already has a locked operator. An authorised supervisor must unlock it before replacement."},409);
+   const now=new Date().toISOString();
+   const record={duty_date:dutyDate,operator_name:operator,is_locked:true,assigned_by:existing?.assigned_by||currentUser.username,assigned_at:existing?.assigned_at||now,locked_by:currentUser.username,locked_at:now,updated_by:currentUser.username,updated_at:now};
+   let writeError:any=null;
+   if(existing){
+     const {error}=await db.from("downtime_daily_operator_assignments").update(record).eq("duty_date",dutyDate).eq("is_locked",false);
+     writeError=error;
+   }else{
+     const {error}=await db.from("downtime_daily_operator_assignments").insert(record);
+     writeError=error;
+   }
+   if(writeError)return json({error:"The daily operator record changed in another session. Refresh and retry."},409);
+   const actionName=existing?"REASSIGNED":"ASSIGNED";
+   const {error:auditError}=await db.from("downtime_daily_operator_audit").insert({duty_date:dutyDate,action:actionName,operator_name:operator,previous_operator:existing?.operator_name||null,actor:currentUser.username,reason:String(body.reason||"").trim().slice(0,240)||null});
+   if(auditError)return json({error:"Assignment saved but its audit event could not be recorded. Contact an administrator."},503);
+   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"daily-operator-"+actionName.toLowerCase(),details:{dutyDate,operatorName:operator,previousOperator:existing?.operator_name||null}});
+   return json({ok:true,record});
+ }
+ if(action==="daily-operator-unlock"){
+   if(!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"Supervisor permission is required to unlock the daily operator"},403);
+   const dutyDate=String(body.dutyDate||""),reason=String(body.reason||"").trim().slice(0,240);
+   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(dutyDate))return json({error:"A valid calendar date is required"},400);
+   if(reason.length<4)return json({error:"Enter a reason for unlocking this daily assignment"},400);
+   const {data:existing,error:readError}=await db.from("downtime_daily_operator_assignments").select("*").eq("duty_date",dutyDate).maybeSingle();
+   if(readError)return json({error:"Unable to read the daily operator record"},503);
+   if(!existing||existing.is_locked!==true)return json({error:"There is no locked operator assignment for this date"},409);
+   const now=new Date().toISOString();
+   const {data:write,error}=await db.from("downtime_daily_operator_assignments").update({is_locked:false,updated_by:currentUser.username,updated_at:now}).eq("duty_date",dutyDate).eq("is_locked",true).select("duty_date").maybeSingle();
+   if(error||!write)return json({error:"The daily operator record changed in another session. Refresh and retry."},409);
+   const {error:auditError}=await db.from("downtime_daily_operator_audit").insert({duty_date:dutyDate,action:"UNLOCKED",operator_name:existing.operator_name,previous_operator:existing.operator_name,actor:currentUser.username,reason});
+   if(auditError)return json({error:"Record unlocked but its audit event could not be recorded. Contact an administrator."},503);
+   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"daily-operator-unlock",details:{dutyDate,operatorName:existing.operator_name,reason}});
+   return json({ok:true,dutyDate,isLocked:false,updatedBy:currentUser.username,updatedAt:now});
+ }
+ if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers||priv.canViewUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canDeleteRecords&&priv.canViewDashboards)restrictedData.weeks=addStableRecordIds(restrictedData.weeks||{});if(!priv.canViewStaff&&!priv.canManageStaff&&!priv.canManageAssignments){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}else if(!priv.canViewStaff&&!priv.canManageStaff&&priv.canManageAssignments){const assignmentProfiles=publicBank.staff?.profiles||{};const minimalProfiles=Object.fromEntries(Object.entries(assignmentProfiles).map(([name,profile]:any)=>[name,{name,onSite:profile?.onSite!==false,station:String(profile?.station||profile?.assignedStation||"").slice(0,100)}]));publicBank.staff={roster:publicBank.staff?.roster||[],profiles:minimalProfiles};restrictedData.staffRoster=publicBank.staff.roster;restrictedData.operatorProfiles=minimalProfiles;}if(!priv.canViewAssignments&&!priv.canManageAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff||priv.canManageStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!(priv.canViewAreaPresets||priv.canManageAreaPresets||priv.canManageSettings))delete restrictedData.areas;if(!(priv.canViewReasonPresets||priv.canManageReasonPresets||priv.canAddDowntimeReasons||priv.canManageSettings))delete restrictedData.reasons;if(!(priv.canViewShiftSchedule||priv.canManageShiftSchedule||priv.canManageSettings)){delete restrictedData.shiftSchedule;delete restrictedData.shiftPresets;}if(!(priv.canViewDailyTasks||priv.canManageDailyTasks||priv.canManageSettings))delete restrictedData.dailyTaskPresets;if(!(priv.canViewAssignments||priv.canManageAssignments||priv.canManageSettings))delete restrictedData.stationConfig;if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};return json({payload:publicBank,user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
  if(action==="save-state"){
    if(!priv.canEditTracker)return json({error:"Permission denied"},403);
    const incoming=body?.appData;if(!incoming||typeof incoming!=="object"||Array.isArray(incoming))return json({error:"appData required"},400);
