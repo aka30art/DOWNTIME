@@ -232,7 +232,7 @@ small,.muted{color:var(--muted)}
   <main class="main">
    <div class="topbar">
     <div><div class="path">DOWNTIME <span>/</span> CENTRAL DATA BANK <span>/</span> CONFIGURATION</div><div class="account" style="margin-top:6px"><span class="avatar" id="avatar">A</span><span id="identity">Authenticated administrator</span><span class="pill">RESTRICTED</span></div></div>
-    <div class="topactions"><button id="refreshBtn" class="quiet">REFRESH</button><button id="saveDraftBtn">SAVE DRAFT</button><button id="publishBtn" class="primary" disabled>PUBLISH VERSION</button><button id="logoutBtn" class="quiet">LOG OUT</button></div>
+    <div class="topactions"><button id="refreshBtn" class="quiet">REFRESH</button><button id="validateDraftBtn" class="quiet">VALIDATE DRAFT</button><button id="saveDraftBtn">SAVE DRAFT</button><button id="publishBtn" class="primary" disabled>PUBLISH VERSION</button><button id="logoutBtn" class="quiet">LOG OUT</button></div>
    </div>
 
    <section class="view active" id="view-departments">
@@ -775,6 +775,18 @@ function defaultDepartmentSettings(){
    token=null;me=null;model=null;$("workspace").style.display="none";$("login").style.display="block";$("authStatus").textContent=error.message;
   }finally{$("loginBtn").disabled=false}
  }
+ async function validateDraft(){
+  let config;try{config=collectConfig()}catch(error){status(error.message,true);return}
+  $("validateDraftBtn").disabled=true;status("Running Central Data Bank integrity checks...");
+  try{
+   const result=await callConfig("central-config-validate",{config});
+   const counts=result.counts||{};
+   const summary=["sites","plants","areas","stations","modules","libraryEntries"].map(key=>key.replace(/[A-Z]/g,letter=>" "+letter.toLowerCase())+": "+Number(counts[key]||0)).join(" · ");
+   const warnings=Array.isArray(result.warnings)?result.warnings:[];
+   status("Validation passed · "+summary+(warnings.length?" · "+warnings.length+" warning(s): "+warnings.join("; "):" · No warnings."),warnings.length>0);
+  }catch(error){status("Validation failed: "+error.message,true)}
+  finally{$("validateDraftBtn").disabled=false}
+ }
  async function saveDraft(){
   let config;try{config=collectConfig()}catch(error){status(error.message,true);return}
   $("saveDraftBtn").disabled=true;status("Validating and saving draft snapshot...");
@@ -809,7 +821,7 @@ function defaultDepartmentSettings(){
   try{const result=await call("bootstrap",{bootstrapCode:$("setupCode").value,username:"DEV",pin:$("setupPin").value},false);$("authStatus").textContent=result.message||"Root owner initialised. Sign in as DEV."}
   catch(error){$("authStatus").textContent=error.message}
  });
- $("saveDraftBtn").addEventListener("click",saveDraft);$("publishBtn").addEventListener("click",publish);$("refreshBtn").addEventListener("click",refresh);$("historyRefreshBtn").addEventListener("click",refresh);$("auditRefreshBtn").addEventListener("click",loadAuditLog);$("auditSearch").addEventListener("input",renderAuditLog);$("auditActionFilter").addEventListener("change",renderAuditLog);
+ $("validateDraftBtn").addEventListener("click",validateDraft);$("saveDraftBtn").addEventListener("click",saveDraft);$("publishBtn").addEventListener("click",publish);$("refreshBtn").addEventListener("click",refresh);$("historyRefreshBtn").addEventListener("click",refresh);$("auditRefreshBtn").addEventListener("click",loadAuditLog);$("auditSearch").addEventListener("input",renderAuditLog);$("auditActionFilter").addEventListener("change",renderAuditLog);
  $("logoutBtn").addEventListener("click",async()=>{try{await call("logout")}catch{}finally{token=null;me=null;model=null;auditEvents=[];auditLoaded=false;$("workspace").style.display="none";$("login").style.display="block";$("pin").value="";$("authStatus").textContent="Administrator session closed."}});
  document.querySelectorAll("[data-section]").forEach(button=>button.addEventListener("click",()=>{const section=button.dataset.section;showSection(section);if(section==="audit"&&!auditLoaded)loadAuditLog();}));
  $("navSearch").addEventListener("input",()=>{const query=$("navSearch").value.trim().toLocaleLowerCase();document.querySelectorAll(".nav[data-section]").forEach(button=>{button.hidden=!!query&&!((button.textContent+" "+button.dataset.section).toLocaleLowerCase().includes(query));});});
