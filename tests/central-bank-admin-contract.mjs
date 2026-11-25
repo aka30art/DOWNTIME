@@ -16,7 +16,7 @@ assert.ok(page.includes('callConfig("central-config-state")'),'admin page loads 
 assert.ok(page.includes('if(auth&&token)headers["x-downtime-session"]=token'),'session token is attached only to authenticated admin actions');
 assert.ok(page.includes('DEV and DEVACC have identical authority to access the Central Data Bank'),'configuration UI documents root-equivalent DEVACC access');
 assert.ok(page.includes('DEV / DEVACC ACCESS'),'the Data Bank badge identifies both authorized account types');
-assert.ok(page.includes('window.confirm("Publish configuration version v"+draftVersion'),'publishing requires an explicit confirmation');
+assert.ok(page.includes('window.confirm("AUTHORISE RELEASE v"+draftVersion'),'publishing requires an explicit confirmation after impact review');
 assert.ok(page.includes('RESTORE AS DRAFT'),'history restore creates a draft rather than publishing directly');
 assert.ok(page.includes('live tracker remains unchanged')&&page.includes('separate, tested integration'),'page clearly explains publication isolation from the operational app');
 assert.ok(page.includes('Access & Rights stays separate'),'page distinguishes configuration management from permission management');
