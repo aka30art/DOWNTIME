@@ -28,6 +28,12 @@ try{
  };
  </script><script>${client}</script></body></html>`);
  await page.locator('#launchGatelogBtn').click();
+ // Dashboard structure and mobile layout acceptance checks.
+ await page.locator('.gatelog-toolbar').waitFor();
+ assert.equal(await page.locator('.gatelog-kpi').count(),2,'Dashboard must show exactly two statistics');
+ assert.equal(await page.locator('#gatelogNewVisit').isVisible(),true,'New Visit action must be visible');
+ assert.equal(await page.locator('#gatelogOpenCustomers').isVisible(),true,'Customers action must be visible');
+ assert.equal(await page.locator('.gatelog-toolbar-spacer').evaluate(el=>getComputedStyle(el).display),'none','Flexible spacer is hidden on narrow screens');
  await page.locator('#gatelogCustomer').selectOption('c1');
  await page.locator('#gatelogRegistration').fill('AB12 CDE');
  await page.locator('#gatelogWaste input[value="General Waste"]').check();
@@ -35,6 +41,14 @@ try{
  await page.locator('[data-depart="visit-1"]').waitFor();
  assert.equal(await page.locator('#gatelogWorkspace').isVisible(),true);
  assert.match(await page.locator('#gatelogActive').innerText(),/Example Ltd/);
+ const headers=await page.locator('#gatelogActive thead th').allTextContents();
+ assert.deepEqual(headers.map(x=>x.trim()),['TIME IN','NAME / COMPANY','REG','WASTE TYPE','TIME OUT'],'Live register must use the approved five-column order');
+ assert.match(await page.locator('#gatelogActive tbody tr').innerText(),/ON SITE/,'Active visits must show ON SITE in Time Out');
+ // Desktop layout: stats remain left, action buttons right, spacer fills the gap.
+ await page.setViewportSize({width:1280,height:900});
+ const stats=await page.locator('.gatelog-kpis').boundingBox();
+ const actions=await page.locator('.gatelog-toolbar-actions').boundingBox();
+ assert.ok(stats.x+stats.width < actions.x,'Desktop toolbar must separate stats and actions with flexible space');
  await page.locator('[data-depart="visit-1"]').click();
  await page.locator('#gatelogActive').getByText('No vehicles currently on site.').waitFor();
  await page.locator('#gatelogSearchBtn').click();
