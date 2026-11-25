@@ -810,7 +810,7 @@ function defaultDepartmentSettings(){
   catch(error){$("authStatus").textContent=error.message}
  });
  $("saveDraftBtn").addEventListener("click",saveDraft);$("publishBtn").addEventListener("click",publish);$("refreshBtn").addEventListener("click",refresh);$("historyRefreshBtn").addEventListener("click",refresh);$("auditRefreshBtn").addEventListener("click",loadAuditLog);$("auditSearch").addEventListener("input",renderAuditLog);$("auditActionFilter").addEventListener("change",renderAuditLog);
- $("logoutBtn").addEventListener("click",async()=>{try{await call("logout")}catch{}finally{token=null;me=null;model=null;$("workspace").style.display="none";$("login").style.display="block";$("pin").value="";$("authStatus").textContent="Administrator session closed."}});
+ $("logoutBtn").addEventListener("click",async()=>{try{await call("logout")}catch{}finally{token=null;me=null;model=null;auditEvents=[];auditLoaded=false;$("workspace").style.display="none";$("login").style.display="block";$("pin").value="";$("authStatus").textContent="Administrator session closed."}});
  document.querySelectorAll("[data-section]").forEach(button=>button.addEventListener("click",()=>{const section=button.dataset.section;showSection(section);if(section==="audit"&&!auditLoaded)loadAuditLog();}));
  $("navSearch").addEventListener("input",()=>{const query=$("navSearch").value.trim().toLocaleLowerCase();document.querySelectorAll(".nav[data-section]").forEach(button=>{button.hidden=!!query&&!((button.textContent+" "+button.dataset.section).toLocaleLowerCase().includes(query));});});
  document.querySelectorAll("#workspace input,#workspace textarea,#workspace select").forEach(input=>input.addEventListener("input",updateButtons));
