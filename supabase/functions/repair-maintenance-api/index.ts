@@ -339,6 +339,24 @@ Deno.serve(async (req: Request) => {
       let query = db.from("repair_maintenance_faults")
         .select("id,machine_type,asset_id,fault_name,description,priority,status,created_by,updated_by,created_at,updated_at")
         .eq("machine_type", body.machineType);
+      if (body.allEquipment === true) {
+        if (body.machineType !== "OTHER_EQUIPMENT") return json(fail("The combined equipment register is only available for Other Equipment."), 400);
+        const { data, error } = await query.order("created_at", { ascending: true });
+        if (error) return json({ error: "Unable to load the machinery fault register." }, 503);
+        const rows = data || [];
+        const assetIds = [...new Set(rows.map((fault: any) => fault.asset_id).filter(Boolean))];
+        const assetMap = new Map<string, any>();
+        if (assetIds.length) {
+          const { data: linkedAssets, error: assetError } = await db.from("repair_maintenance_assets")
+            .select("id,name,asset_code").in("id", assetIds);
+          if (assetError) return json({ error: "Unable to load equipment names for the fault register." }, 503);
+          for (const asset of linkedAssets || []) assetMap.set(asset.id, asset);
+        }
+        return json({ faults: rows.map((fault: any) => {
+          const asset = fault.asset_id ? assetMap.get(fault.asset_id) : null;
+          return { ...fault, equipment_name: asset?.name || "UNASSIGNED / LEGACY", equipment_code: asset?.asset_code || null };
+        }) });
+      }
       if (body.unassigned === true) {
         query = query.is("asset_id", null);
       } else {

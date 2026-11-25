@@ -73,7 +73,7 @@ assert.match(api,/buildRepairMaintenancePdf\(faults, filter, generatedAt, select
 assert.match(migration,/repair_maintenance_pdf_exports/);
 assert.ok(archiveMigration.includes('repair_maintenance_pdf_exports'));
 
-assert.ok(html.includes('repair-maintenance-app.js?v=20261124-20'));
+assert.ok(html.includes('repair-maintenance-app.js?v=20261125-1'));
 assert.ok(html.includes('id="modelDropdownEnabled"'));
 assert.ok(html.includes('id="assetSelectorEnabled"'));
 assert.match(app,/function updateAssetSelectorVisibility\(\)/,'registered-machine selector has a dedicated visibility function');
@@ -138,6 +138,14 @@ assert.match(settingsMigration,/revoke all on table public\.repair_maintenance_m
 assert.match(settingsMigration,/revoke all on table public\.repair_maintenance_machine_models from public, anon, authenticated/);
 for(const category of ['KIVERCO_PICKING_LINE','TANNA_SHREDDER','FORKLIFT','TELEHANDLER','EXCAVATORS_360','OTHER_EQUIPMENT'])assert.ok(settingsMigration.includes(category),'default RMS settings row missing for '+category);
 assert.match(app,/currentAsset\?\(currentAsset\.asset_code\?/,'fault details display the selected individual machine');
+assert.match(html,/<div class="fault-table-head">[\s\S]*?EQUIPMENT[\s\S]*?FAULT \/ DEFECT/,'fault register exposes an EQUIPMENT column');
+assert.match(html,/repair-maintenance-app\.js\?v=20261125-1/,'R&M app cache version advances with the register change');
+assert.match(app,/ALL EQUIPMENT — COMBINED REGISTER/,'Other Equipment offers a combined register option');
+assert.match(app,/allEquipmentMode\?\{machineType:currentMachine\.key,allEquipment:true\}/,'combined register requests all Other Equipment records');
+assert.match(app,/fault\.equipment_name\|\|assets\.find\(asset=>asset\.id===fault\.asset_id\)\?\.name/,'fault rows resolve and display the registered equipment name');
+assert.match(app,/currentMachine\.key==='OTHER_EQUIPMENT'&&assets\.length/,'Other Equipment opens in the combined register by default');
+assert.match(api,/body\.allEquipment === true[\s\S]*body\.machineType !== "OTHER_EQUIPMENT"/,'combined register API is restricted to Other Equipment');
+assert.match(api,/equipment_name: asset\?\.name \|\| "UNASSIGNED \/ LEGACY"/,'combined register returns a per-fault equipment label');
 assert.match(app,/Archived machines remain selectable/,'archived machine history remains discoverable');
 assert.ok(html.includes('id="rmsTabMachinery"')&&html.includes('id="rmsTabAreaParts"'),'machinery settings are split into clear Machinery and Area & Parts tabs');
 assert.ok(html.includes('id="rmsPanelMachinery"')&&html.includes('id="rmsPanelAreaParts"'),'each machinery settings tab has its own panel');
