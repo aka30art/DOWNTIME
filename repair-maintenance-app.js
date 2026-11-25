@@ -155,7 +155,6 @@
     if(add)add.hidden=!canAdd;
     ['settingsRegistrationSection','settingsModelDropdownSection','settingsAssetSelectorSection'].forEach(id=>{const option=$(id);if(option)option.hidden=!canManageRmsPresets();});
     const areaPartsTab=$('rmsTabAreaParts');if(areaPartsTab)areaPartsTab.hidden=!canManageRmsPresets();
-    const areaPartsPanel=$('rmsPanelAreaParts');if(areaPartsPanel)areaPartsPanel.hidden=!canManageRmsPresets()||areaPartsPanel.dataset.rmsPanel!=='area-parts';
   }
   function updateRegistrationSaveState(){
     const save=$('saveRegistrationSettings');
