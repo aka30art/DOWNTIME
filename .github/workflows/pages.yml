@@ -118,7 +118,7 @@ jobs:
           ! grep -q 'id="openPresets"' /tmp/live-repair-maintenance.html
           ! grep -q 'id="addMachineryButton"' /tmp/live-repair-maintenance.html
           ! grep -q 'id="editMachineryButton"' /tmp/live-repair-maintenance.html
-          curl --fail --silent --show-error --location "$LIVE_URL/repair-maintenance-app.js?v=20261125-2" -o /tmp/live-repair-maintenance-app.js
+          curl --fail --silent --show-error --location "$LIVE_URL/repair-maintenance-app.js?v=20261125-3" -o /tmp/live-repair-maintenance-app.js
           grep -q 'export-create' /tmp/live-repair-maintenance-app.js
           grep -q 'export-list' /tmp/live-repair-maintenance-app.js
           grep -q 'export-delete' /tmp/live-repair-maintenance-app.js
@@ -127,6 +127,8 @@ jobs:
           grep -q 'function renderMachineModelManager' /tmp/live-repair-maintenance-app.js
           grep -q "assetId:currentAsset.id" /tmp/live-repair-maintenance-app.js
           grep -q 'detailUpdateStatus' /tmp/live-repair-maintenance-app.js
+          grep -q "api('delete',{faultId:currentFault.id})" /tmp/live-repair-maintenance-app.js
+          grep -q 'notes, photos and attached files will be deleted' /tmp/live-repair-maintenance-app.js
           grep -q 'function saveModelDropdownSetting' /tmp/live-repair-maintenance-app.js
           grep -q 'function saveAssetSelectorSetting' /tmp/live-repair-maintenance-app.js
           grep -q 'asset_selector_enabled' /tmp/live-repair-maintenance-app.js

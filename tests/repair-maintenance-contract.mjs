@@ -78,7 +78,7 @@ assert.ok(api.includes('.eq("machine_type", body.machineType)'),'backend checks 
 assert.ok(api.includes('.eq("is_other", false)'),'backend protects OTHER from deletion');
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
-assert.ok(html.includes('repair-maintenance-app.js?v=20261125-2'),'R&M app script cache is refreshed');
+assert.ok(html.includes('repair-maintenance-app.js?v=20261125-3'),'R&M app script cache is refreshed');
 assert.match(app,/function updateAssetSelectorVisibility\(\)[\s\S]*host\.hidden=access\?\.canReadRepairMaintenanceMachinery!==true\|\|machineSettings\.asset_selector_enabled!==true/,'R&M registered-machine selector follows its saved per-category setting');
 assert.match(app,/machineSettings\.model_dropdown_enabled!==true/,'MAKE / MODEL catalogue visibility remains separately configured');
 assert.match(app,/function saveAssetSelectorSetting\(\)/,'registered-machine visibility has an independent save action');
@@ -112,7 +112,11 @@ assert.match(app,/canManageRepairMaintenancePresets!==true/,'RMS settings are pe
 const rmMenuCategories=[...html.matchAll(/data-machine="([^"]+)"/g)].map(match=>match[1]);
 const rmsMenuCategories=[...html.matchAll(/data-settings-machine="([^"]+)"/g)].map(match=>match[1]);
 assert.deepEqual(rmsMenuCategories,rmMenuCategories,'RMS menu mirrors all six R&M machinery categories in the same order');
-assert.match(app,/status:'PERM\. FIX'/,'SOLVED marks fault as PERM. FIX');
+assert.match(app,/async function deleteFault\(\)\{[\s\S]*?api\('delete',\{faultId:currentFault\.id\}\)/,'SOLVED permanently deletes the selected fault through the protected API');
+const solvedHandler=app.match(/async function deleteFault\(\)\{([^\n]*)/)?.[1]||'';
+assert.doesNotMatch(solvedHandler,/api\('update'/,'SOLVED must not merely change the status and retain the record');
+assert.match(solvedHandler,/notes, photos and attached files will be deleted/,'confirmation warns that the record and evidence are permanently deleted');
+assert.ok(app.includes("$('deleteFault').hidden=access.canDeleteRepairMaintenance!==true;"),'SOLVED is only available to accounts with the dedicated DELETE permission');
 assert.match(app,/api\('export-create'/,'PDF export creation is handled by the server');
 assert.match(app,/api\('export-list'/,'PDF archive records are loaded from the server');
 assert.match(api,/canExportRepairMaintenanceReports!==true/,'report API enforces the existing export permission');

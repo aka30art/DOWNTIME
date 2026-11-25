@@ -564,7 +564,7 @@
       renderDetailPriority();renderEvidence(result.attachments||[]);renderNotes(result.notes||[]);
       const editable=access.canEditRepairMaintenance===true;
       ['detailStatus','detailPriority','updateFault','toggleNoteComposer','detailAddNote','attachFile','addPhoto'].forEach(id=>{const e=$(id);if(e)e.disabled=!editable});
-      $('deleteFault').hidden=access.canEditRepairMaintenance!==true;
+      $('deleteFault').hidden=access.canDeleteRepairMaintenance!==true;
       showOverlay('detailsOverlay');
     }catch(error){say(error.message,'dashboardStatus','error')}
   }
@@ -580,7 +580,7 @@
   function startNote(){if(!currentFault)return;$('noteComposer').classList.add('open');$('noteText').focus()}
   async function saveNote(){const note=$('noteText').value.trim();if(!currentFault||!note)return;const button=$('saveNote');button.disabled=true;try{await api('note-add',{faultId:currentFault.id,note});$('noteText').value='';$('noteComposer').classList.remove('open');await refreshDetails()}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false}}
   async function doUpload(file,kind){if(!currentFault||!file)return;const button=kind==='PHOTO'?$('addPhoto'):$('attachFile');button.disabled=true;try{await uploadFile(currentFault.id,file,kind);await refreshDetails();say(`${kind==='PHOTO'?'Photo':'File'} attached successfully.`,'dashboardStatus','ok')}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false;$('photoInput').value='';$('fileInput').value=''}}
-  async function deleteFault(){if(!currentFault||busy)return;if(!window.confirm(`Mark “${currentFault.fault_name}” as PERM. FIX? This will keep its record, notes, and attachments.`))return;const button=$('deleteFault');button.disabled=true;button.textContent='SAVING…';try{await api('update',{faultId:currentFault.id,status:'PERM. FIX',priority:currentFault.priority});closeOverlay('detailsOverlay');await reloadCurrentRegister();say('Fault / defect marked PERM. FIX.','dashboardStatus','ok')}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false;button.textContent='✓ SOLVED'}}
+  async function deleteFault(){if(!currentFault||busy)return;if(!window.confirm(`Mark “${currentFault.fault_name}” as solved and permanently delete it? Its fault record, notes, photos and attached files will be deleted. This action cannot be undone.`))return;const button=$('deleteFault');button.disabled=true;button.textContent='DELETING…';try{const result=await api('delete',{faultId:currentFault.id});if(result?.ok!==true)throw new Error('The R&M service did not confirm that the fault was deleted.');closeOverlay('detailsOverlay');await reloadCurrentRegister();say('Fault / defect solved and permanently deleted, including its notes and attachments.','dashboardStatus','ok')}catch(error){say(error.message,'dashboardStatus','error')}finally{button.disabled=false;button.textContent='✓ SOLVED'}}
   async function populateAssetFilter(typeId,assetId,includeUnassigned=false){
     const typeSelect=$(typeId),assetSelect=$(assetId);if(!typeSelect||!assetSelect)return;
     const machineType=typeSelect.value||'';
