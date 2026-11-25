@@ -34,7 +34,7 @@ function render(){const host=ensureWorkspace();if(!host)return;host.innerHTML=`
   </section>
   <section class="gatelog-panel"><h2>CURRENTLY ON SITE</h2><div id="gatelogActive" class="gatelog-list">${activeMarkup()}</div></section>
   <section class="gatelog-panel"><h2>ENTRY HISTORY</h2><input id="gatelogSearch" class="gatelog-search" placeholder="Search company, registration or waste type"><div class="gatelog-actions"><input id="gatelogDate" type="date" aria-label="Filter by visit date"><button id="gatelogSearchBtn">SEARCH HISTORY</button></div><div id="gatelogHistory" class="gatelog-list"></div></section>
-  <section class="gatelog-panel"><h2>CUSTOMER DIRECTORY</h2><div id="gatelogCustomers" class="gatelog-list">${state.customers.map(c=>`<div class="gatelog-row"><div><strong>${esc(c.customer_name)}</strong><small>${state.vehicles.filter(v=>v.customer_id===c.id).map(v=>esc(v.registration)).join(' · ')||'No vehicles saved'}</small></div><span class="gatelog-status">${state.vehicles.filter(v=>v.customer_id===c.id).length} VEHICLES</span></div>`).join('')||'<div class="gatelog-empty">No saved customers yet.</div>'}</div></section>
+  <section class="gatelog-panel"><h2>CUSTOMER DIRECTORY</h2><div id="gatelogCustomers" class="gatelog-list">${state.customers.map(c=>`<div class="gatelog-row"><div><strong>${esc(c.customer_name)}</strong><small>${state.vehicles.filter(v=>v.customer_id===c.id).map(v=>esc(v.registration)).join(' · ')||'No vehicles saved'}</small></div><button data-customer-history="${c.id}">VIEW HISTORY</button></div>`).join('')||'<div class="gatelog-empty">No saved customers yet.</div>'}</div></section>
  </div>
 </div>`;
  $('gatelogBack').onclick=showHome;
