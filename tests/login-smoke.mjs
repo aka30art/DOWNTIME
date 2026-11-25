@@ -414,6 +414,8 @@ async function signIn(page,pin='2468',username='DEV'){
 }
 
 async function ensureMainMenu(page){
+ // The app applies the section-page class on a zero-delay timer after navigation clicks.
+ await page.waitForTimeout(25);
  const sectionPageOpen=await page.evaluate(()=>document.body.classList.contains('section-page-open'));
  if(!sectionPageOpen)return;
  const back=page.locator('#returnMainMenu');
