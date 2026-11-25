@@ -748,8 +748,8 @@ function defaultDepartmentSettings(){
  }
  function moveYardHubDepartment(id,delta){const menu=collectYardHubStructure(),index=menu.departments.findIndex(item=>item.id===id),target=index+delta;if(index<0||target<0||target>=menu.departments.length)return;[menu.departments[index],menu.departments[target]]=[menu.departments[target],menu.departments[index]];menu.departments.forEach((item,index)=>item.order=index);renderYardHubStructure(menu);updateButtons();}
  function defaultRepairMaintenanceCategories(){return {categories:[
-  {key:"KIVERCO_PICKING_LINE",kind:"native",label:"KIVERCO – PICKING LINE",sub:"CONVEYOR & SORTING SYSTEM",icon:"assets/rm-icons/kiverco.svg",enabled:true,order:0},
-  {key:"TANNA_SHREDDER",kind:"native",label:"TANNA – SHREDDER",sub:"SHREDDING EQUIPMENT",icon:"assets/rm-icons/tanna.svg",enabled:true,order:1},
+  {key:"KIVERCO_PICKING_LINE",kind:"native",label:"KIVERCO — PICKING LINE",sub:"CONVEYORS & SORTING SYSTEM",icon:"assets/rm-icons/kiverco.svg",enabled:true,order:0},
+  {key:"TANNA_SHREDDER",kind:"native",label:"TANNA — SHREDDER",sub:"SHREDDING EQUIPMENT",icon:"assets/rm-icons/tanna.svg",enabled:true,order:1},
   {key:"FORKLIFT",kind:"native",label:"FORKLIFT",sub:"FORKLIFT FLEET",icon:"assets/rm-icons/forklift.svg",enabled:true,order:2},
   {key:"TELEHANDLER",kind:"native",label:"TELEHANDLER",sub:"TELEHANDLER FLEET",icon:"assets/rm-icons/telehandler.svg",enabled:true,order:3},
   {key:"EXCAVATORS_360",kind:"native",label:"360 EXCAVATORS",sub:"EXCAVATOR FLEET",icon:"assets/rm-icons/excavators_360.svg",enabled:true,order:4},
