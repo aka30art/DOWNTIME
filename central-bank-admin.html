@@ -747,7 +747,57 @@ function defaultDepartmentSettings(){
   renderYardHubStructure(menu);updateButtons();
  }
  function moveYardHubDepartment(id,delta){const menu=collectYardHubStructure(),index=menu.departments.findIndex(item=>item.id===id),target=index+delta;if(index<0||target<0||target>=menu.departments.length)return;[menu.departments[index],menu.departments[target]]=[menu.departments[target],menu.departments[index]];menu.departments.forEach((item,index)=>item.order=index);renderYardHubStructure(menu);updateButtons();}
- function blankConfig(){return {schemaVersion:1,departmentMenu:defaultDepartmentMenu(),yardHubMenu:defaultYardHubMenu(),navigation:{overview:"Overview",organisation:"Organisation",structure:"Plant & Areas",libraries:"Operational Libraries",defaults:"System Defaults",history:"Version History",navigation:"Menu & Labels",modules:"Module Registry",controls:"System Controls",information:"System Information"},modules:[],organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[],hierarchy:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
+ function defaultRepairMaintenanceCategories(){return {categories:[
+  {key:"KIVERCO_PICKING_LINE",kind:"native",label:"KIVERCO – PICKING LINE",sub:"CONVEYOR & SORTING SYSTEM",icon:"assets/rm-icons/kiverco.svg",enabled:true,order:0},
+  {key:"TANNA_SHREDDER",kind:"native",label:"TANNA – SHREDDER",sub:"SHREDDING EQUIPMENT",icon:"assets/rm-icons/tanna.svg",enabled:true,order:1},
+  {key:"FORKLIFT",kind:"native",label:"FORKLIFT",sub:"FORKLIFT FLEET",icon:"assets/rm-icons/forklift.svg",enabled:true,order:2},
+  {key:"TELEHANDLER",kind:"native",label:"TELEHANDLER",sub:"TELEHANDLER FLEET",icon:"assets/rm-icons/telehandler.svg",enabled:true,order:3},
+  {key:"EXCAVATORS_360",kind:"native",label:"360 EXCAVATORS",sub:"EXCAVATOR FLEET",icon:"assets/rm-icons/excavators_360.svg",enabled:true,order:4},
+  {key:"OTHER_EQUIPMENT",kind:"native",label:"OTHER EQUIPMENT",sub:"ADDITIONAL MACHINERY",icon:"assets/rm-icons/other_equipment.svg",enabled:true,order:5}
+ ]};}
+ function renderRepairMaintenanceCategories(config){
+  const source=config&&Array.isArray(config.categories)?config:defaultRepairMaintenanceCategories(),host=$("repairMaintenanceCategoryEntries");
+  if(!host)return;host.replaceChildren();const preview=$("repairMaintenanceCategoryPreview");if(preview)preview.replaceChildren();
+  const categories=source.categories.slice().sort((a,b)=>Number(a.order)-Number(b.order)),grid=menuNode("div","rm-category-preview-grid");
+  categories.forEach((entry,index)=>{
+   const card=menuNode("div","rm-category-entry");card.dataset.rmCategory="true";card.dataset.rmCategoryKey=entry.key;card.dataset.rmCategoryKind=entry.kind||"native";
+   const head=menuNode("div","cdb-menu-entry-head"),title=menuNode("strong","",entry.label+" · "+entry.key),state=menuNode("span","pill",entry.enabled===false?"HIDDEN FROM R&M":"VISIBLE IN R&M");head.append(title,state);card.append(head);
+   const fields=menuNode("div","cdb-menu-fields");
+   menuInput("Category title",entry.label,48,"rmCategoryLabel",fields);
+   menuInput("Category description",entry.sub,80,"rmCategorySub",fields);
+   const enabledField=menuNode("div","field"),enabledLabel=menuNode("label",""),enabled=menuNode("input");enabled.type="checkbox";enabled.checked=entry.enabled!==false;enabled.dataset.rmCategoryEnabled="true";enabledLabel.append(enabled,document.createTextNode("Show category in R&M"));enabledField.append(enabledLabel);fields.append(enabledField);card.append(fields);
+   const actions=menuNode("div","cdb-menu-actions"),up=menuNode("button","quiet","MOVE UP"),down=menuNode("button","quiet","MOVE DOWN"),remove=menuNode("button",entry.kind==="custom"?"danger":"quiet",entry.kind==="custom"?"REMOVE":"HIDE FROM R&M");
+   up.type=down.type=remove.type="button";up.disabled=index===0;down.disabled=index===categories.length-1;
+   up.addEventListener("click",()=>moveRmsCategory(entry.key,-1));down.addEventListener("click",()=>moveRmsCategory(entry.key,1));remove.addEventListener("click",()=>removeRmsCategory(entry.key));
+   actions.append(up,down,remove);card.append(actions);host.append(card);
+   const tile=menuNode("div","rm-category-preview-card"),mark=menuNode("span","rm-category-preview-mark",entry.label.split(/\\s+/).map(word=>word[0]).join("").slice(0,2).toUpperCase()),copy=menuNode("span","rm-category-preview-copy");
+   copy.append(menuNode("strong","",entry.label),menuNode("small","",entry.sub),menuNode("em",entry.enabled===false?"muted":"live",entry.enabled===false?"HIDDEN":entry.kind==="custom"?"PLACEHOLDER CATEGORY":"EXISTING R&M CATEGORY"));
+   tile.append(mark,copy);grid.append(tile);
+  });
+  if(preview){preview.append(grid);preview.append(menuNode("p","rm-category-preview-note","Existing category keys, machine records, reports and permissions remain unchanged. Custom categories are menu-only placeholders until a dedicated R&M workflow is implemented."));}
+  host.querySelectorAll("input").forEach(input=>{input.addEventListener("input",()=>{renderRepairMaintenanceCategoryPreview(collectRepairMaintenanceCategories());updateButtons();});input.addEventListener("change",()=>{renderRepairMaintenanceCategoryPreview(collectRepairMaintenanceCategories());updateButtons();});});
+ }
+ function renderRepairMaintenanceCategoryPreview(config){
+  const preview=$("repairMaintenanceCategoryPreview");if(!preview)return;preview.replaceChildren();const grid=menuNode("div","rm-category-preview-grid");
+  (config.categories||[]).forEach(entry=>{if(entry.enabled===false)return;const tile=menuNode("div","rm-category-preview-card"),mark=menuNode("span","rm-category-preview-mark",entry.label.split(/\\s+/).map(word=>word[0]).join("").slice(0,2).toUpperCase()),copy=menuNode("span","rm-category-preview-copy");copy.append(menuNode("strong","",entry.label),menuNode("small","",entry.sub),menuNode("em",entry.kind==="custom"?"muted":"live",entry.kind==="custom"?"PLACEHOLDER":"EXISTING CATEGORY"));tile.append(mark,copy);grid.append(tile);});preview.append(grid);
+ }
+ function collectRepairMaintenanceCategories(){
+  return {categories:Array.from(document.querySelectorAll("[data-rm-category]")).map((card,index)=>({key:card.dataset.rmCategoryKey,kind:card.dataset.rmCategoryKind||"custom",label:card.querySelector("[data-rm-category-label]")?.value.trim()||"",sub:card.querySelector("[data-rm-category-sub]")?.value.trim()||"",enabled:card.querySelector("[data-rm-category-enabled]")?.checked!==false,order:index}))};
+ }
+ function addRmsCategory(){
+  const label=$("newRmsCategoryTitle").value.trim(),sub=$("newRmsCategoryDescription").value.trim();if(!label){status("Enter a machinery category title first.",true);return;}
+  const config=collectRepairMaintenanceCategories();let key="CUSTOM_"+structureSlug(label).replace(/-/g,"_").toUpperCase(),serial=2;while(config.categories.some(item=>item.key===key))key="CUSTOM_"+structureSlug(label).replace(/-/g,"_").toUpperCase()+"_"+serial++;
+  if(config.categories.some(item=>item.label.toLocaleLowerCase()===label.toLocaleLowerCase())){status("A machinery category with that title already exists.",true);return;}
+  config.categories.push({key,kind:"custom",label,sub,enabled:true,order:config.categories.length});$("newRmsCategoryTitle").value="";$("newRmsCategoryDescription").value="";renderRepairMaintenanceCategories(config);updateButtons();status("R&M category added as a menu-only placeholder. Save, validate and publish to make it available.");
+ }
+ function removeRmsCategory(key){
+  const config=collectRepairMaintenanceCategories(),entry=config.categories.find(item=>item.key===key);if(!entry)return;
+  if(entry.kind==="custom"){if(!window.confirm("Remove "+entry.label+" from the R&M category menu draft?"))return;config.categories=config.categories.filter(item=>item.key!==key);}
+  else entry.enabled=false;
+  renderRepairMaintenanceCategories(config);updateButtons();
+ }
+ function moveRmsCategory(key,delta){const config=collectRepairMaintenanceCategories(),index=config.categories.findIndex(item=>item.key===key),target=index+delta;if(index<0||target<0||target>=config.categories.length)return;[config.categories[index],config.categories[target]]=[config.categories[target],config.categories[index]];config.categories.forEach((item,index)=>item.order=index);renderRepairMaintenanceCategories(config);updateButtons();}
+ function blankConfig(){return {schemaVersion:1,departmentMenu:defaultDepartmentMenu(),yardHubMenu:defaultYardHubMenu(),repairMaintenanceCategories:defaultRepairMaintenanceCategories(),navigation:{overview:"Overview",organisation:"Organisation",structure:"Plant & Areas",libraries:"Operational Libraries",defaults:"System Defaults",history:"Version History",navigation:"Menu & Labels",modules:"Module Registry",controls:"System Controls",information:"System Information"},modules:[],organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[],hierarchy:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
  const lines=value=>Array.isArray(value)?value.join("\n"):"";
  function list(id){return $(id).value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean)}
  function setValue(id,value){$(id).value=value??""}
@@ -759,7 +809,7 @@ function defaultDepartmentSettings(){
   });
  }
  function renderForm(config){
-  const c=config||blankConfig(),org=c.organization||{},structure=c.structure||{},libraries=c.libraries||{},defaults=c.defaults||{},navigation=c.navigation||blankConfig().navigation;setValue("moduleRegistry",lines(c.modules));renderDepartmentMenu(c.departmentMenu||defaultDepartmentMenu());renderYardHubStructure(c.yardHubMenu||defaultYardHubMenu());renderDepartmentConfiguration(c.departmentSettings||defaultDepartmentSettings());
+  const c=config||blankConfig(),org=c.organization||{},structure=c.structure||{},libraries=c.libraries||{},defaults=c.defaults||{},navigation=c.navigation||blankConfig().navigation;setValue("moduleRegistry",lines(c.modules));renderDepartmentMenu(c.departmentMenu||defaultDepartmentMenu());renderYardHubStructure(c.yardHubMenu||defaultYardHubMenu());renderRepairMaintenanceCategories(c.repairMaintenanceCategories||defaultRepairMaintenanceCategories());renderDepartmentConfiguration(c.departmentSettings||defaultDepartmentSettings());
   Object.keys(navigation).forEach(key=>setValue("navLabel"+key.charAt(0).toUpperCase()+key.slice(1),navigation[key]));renderNavigation(navigation);
   setValue("companyName",org.companyName);setValue("siteCode",org.siteCode);setValue("timezone",org.timezone||"Europe/London");setValue("locale",org.locale||"en-GB");
   ["sites","plants","areas","stations"].forEach(key=>setValue(key,lines(structure[key])));hierarchyDraft=cloneHierarchy(structure.hierarchy||[]);renderHierarchy(hierarchyDraft);
@@ -818,6 +868,7 @@ function defaultDepartmentSettings(){
    modules:list("moduleRegistry"),
    departmentMenu:collectDepartmentMenu(),
    yardHubMenu:collectYardHubStructure(),
+   repairMaintenanceCategories:collectRepairMaintenanceCategories(),
    departmentSettings:collectDepartmentConfiguration(),
    navigation:{overview:$("navLabelOverview").value.trim()||"Overview",organisation:$("navLabelOrganisation").value.trim()||"Organisation",structure:$("navLabelStructure").value.trim()||"Plant & Areas",libraries:$("navLabelLibraries").value.trim()||"Operational Libraries",defaults:$("navLabelDefaults").value.trim()||"System Defaults",history:$("navLabelHistory").value.trim()||"Version History",navigation:$("navLabelNavigation").value.trim()||"Menu & Labels",modules:$("navLabelModules").value.trim()||"Module Registry",controls:$("navLabelControls").value.trim()||"System Controls",information:$("navLabelInformation").value.trim()||"System Information"},
    organization:{companyName:$("companyName").value.trim(),siteCode:$("siteCode").value.trim(),timezone:$("timezone").value.trim(),locale:$("locale").value.trim()},
@@ -837,7 +888,7 @@ function defaultDepartmentSettings(){
  }
  function countItems(c){
   const s=c.structure||{},l=c.libraries||{};
-  const tree=(s.hierarchy||[]).reduce((n,site)=>n+1+(site.plants||[]).reduce((p,plant)=>p+1+(plant.areas||[]).reduce((a,area)=>a+1+(area.stations||[]).length,0),0),0);const hubMenu=c.yardHubMenu?.departments||[];const hubItems=hubMenu.length+hubMenu.reduce((n,item)=>n+(item.submenus||[]).length,0);return (c.modules||[]).length+tree+hubItems+["sites","plants","areas","stations"].reduce((n,k)=>n+(s[k]||[]).length,0)+["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].reduce((n,k)=>n+(l[k]||[]).length,0);
+  const tree=(s.hierarchy||[]).reduce((n,site)=>n+1+(site.plants||[]).reduce((p,plant)=>p+1+(plant.areas||[]).reduce((a,area)=>a+1+(area.stations||[]).length,0),0),0);const hubMenu=c.yardHubMenu?.departments||[];const hubItems=hubMenu.length+hubMenu.reduce((n,item)=>n+(item.submenus||[]).length,0);const rmsCategories=c.repairMaintenanceCategories?.categories||[];return (c.modules||[]).length+tree+hubItems+rmsCategories.length+["sites","plants","areas","stations"].reduce((n,k)=>n+(s[k]||[]).length,0)+["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].reduce((n,k)=>n+(l[k]||[]).length,0);
  }
  function renderOverview(){
   $("releaseDraftVersion").textContent=String(draftVersion);$("releasePublishedVersion").textContent=String(publishedVersion);
@@ -960,7 +1011,7 @@ function defaultDepartmentSettings(){
   try{
    const result=await callConfig("central-config-validate",{config});
    const counts=result.counts||{};
-   const summary=["sites","plants","areas","stations","modules","yardHubDepartments","yardHubSubmenus","libraryEntries"].map(key=>key.replace(/[A-Z]/g,letter=>" "+letter.toLowerCase())+": "+Number(counts[key]||0)).join(" · ");
+   const summary=["sites","plants","areas","stations","modules","yardHubDepartments","yardHubSubmenus","repairMaintenanceCategories","libraryEntries"].map(key=>key.replace(/[A-Z]/g,letter=>" "+letter.toLowerCase())+": "+Number(counts[key]||0)).join(" · ");
    const warnings=Array.isArray(result.warnings)?result.warnings:[];
    status("Validation passed · "+summary+(warnings.length?" · "+warnings.length+" warning(s): "+warnings.join("; "):" · No warnings."),warnings.length>0);
   }catch(error){status("Validation failed: "+error.message,true)}
@@ -1013,6 +1064,9 @@ function defaultDepartmentSettings(){
  $("addSiteBtn").addEventListener("click",()=>{try{addHierarchyNode("site");}catch(error){status(error.message,true);}});$("hierarchyTree").addEventListener("click",handleHierarchyAction);
  $("addDepartmentCategoryBtn").addEventListener("click",addDepartmentCategory);
  $("addYardHubDepartmentBtn").addEventListener("click",addYardHubDepartment);
+ $("addRmsCategoryBtn").addEventListener("click",addRmsCategory);
+ $("newRmsCategoryTitle").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();addRmsCategory();}});
+ $("newRmsCategoryDescription").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();addRmsCategory();}});
  $("newYardHubDepartmentTitle").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();addYardHubDepartment();}});
  $("newDepartmentCategory").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();addDepartmentCategory();}});
  $("restoreDepartmentMenuBtn").addEventListener("click",()=>{if(!window.confirm("Restore the original five department entries and two default categories? Save Draft is required to persist this reset."))return;renderDepartmentMenu(defaultDepartmentMenu());updateButtons();status("Original department menu restored locally. Save Draft to persist this reset.");});
