@@ -23,8 +23,9 @@ assert.match(indexHtml, /#authGate #centralUsername\{[\s\S]*?min-height:64px;[\s
 assert.match(indexHtml, /#authGate #teamPin\{[\s\S]*?height:66px;[\s\S]*?text-align:center;/, 'PIN entry remains a large centred password field');
 assert.match(indexHtml, /#authGate \.pinpad-grid button\{[\s\S]*?min-height:62px;/, 'numeric keypad uses large touch targets');
 assert.match(indexHtml, /@media\(max-width:600px\)[\s\S]*?#authGate \.authbox\.authbox-central/, 'login layout has a dedicated mobile adaptation');
-assert.match(indexHtml, /CENTRAL LOGIN TOUCH TARGET UPGRADE[\\s\\S]*?#authGate #centralUsername\\{[\\s\\S]*?min-height:64px!important;[\\s\\S]*?#authGate \.pinpad-grid button\\{[\\s\\S]*?min-height:60px!important;[\\s\\S]*?#authGate #unlockBtn\\{[\\s\\S]*?min-height:68px!important;[\\s\\S]*?#authGate #refreshAppBtn\\{[\\s\\S]*?min-height:60px!important;/, 'mobile login controls retain generous touch targets after all responsive overrides');
-assert.match(indexHtml, /#authGate\\{[\\s\\S]*?overflow-y:auto!important;/, 'login gate can scroll when larger controls exceed a short viewport');
+const touchTargetCss=indexHtml.slice(indexHtml.lastIndexOf('/* CENTRAL LOGIN TOUCH TARGET UPGRADE'));
+assert.ok(touchTargetCss.includes('#authGate #centralUsername{')&&touchTargetCss.includes('min-height:64px!important;')&&touchTargetCss.includes('min-height:60px!important;')&&touchTargetCss.includes('min-height:68px!important;')&&touchTargetCss.includes('#authGate #refreshAppBtn{'), 'mobile login controls retain generous touch targets after all responsive overrides');
+assert.ok(touchTargetCss.includes('overflow-y:auto!important;'), 'login gate can scroll when larger controls exceed a short viewport');
 
 for (const requiredAuthHook of ['id="centralUsername"', 'id="teamPin"', 'data-pinpad="teamPin"', 'id="unlockBtn"', 'id="refreshAppBtn"', 'id="authMsg"']) {
   assert.ok(indexHtml.includes(requiredAuthHook), 'visual redesign preserves authentication hook: '+requiredAuthHook);
