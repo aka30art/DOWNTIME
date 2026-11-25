@@ -25,6 +25,9 @@ assert.match(edge, /function normalizeYardHubMenu\(/, "Server validates YARD HUB
 assert.match(edge, /between 1 and 100 departments/, "Server enforces department count limits");
 assert.match(edge, /no more than 30 sub-menu items/, "Server enforces sub-menu count limits");
 assert.match(edge, /yardHubMenu: normalizeYardHubMenu\(input\.yardHubMenu\)/, "Server normalizes the new config domain");
+assert.match(edge, /yardHubDepartments: config\.yardHubMenu\.departments\.length/, "Server validation reports department totals");
+assert.match(edge, /yardHubSubmenus: config\.yardHubMenu\.departments\.reduce/, "Server validation reports sub-menu totals");
+assert.match(admin, /"yardHubDepartments","yardHubSubmenus"/, "Administrator sees structure counts in validation results");
 assert.match(edge, /action === "yard-hub-menu"/, "Authenticated read-only launcher action exists");
 assert.match(edge, /publishedVersion: Number\(configState\.published_version\)/, "Runtime receives published version only");
 const publicRead = edge.indexOf('if (action === "yard-hub-menu")');
