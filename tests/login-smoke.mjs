@@ -413,6 +413,8 @@ async function signIn(page,pin='2468',username='DEV'){
 }
 
 async function openStaffSettings(page){
+ const back=page.locator('#returnMainMenu');
+ if(await back.isVisible())await back.click();
  await dismissPlantTransitionAlerts(page);
  const menu=page.locator('.nav-menu');
  if(!await menu.evaluate(node=>node.open))await menu.locator(':scope > summary').click();
@@ -424,6 +426,8 @@ async function openStaffSettings(page){
 }
 
 async function openSettingsHub(page){
+ const back=page.locator('#returnMainMenu');
+ if(await back.isVisible())await back.click();
  const menu=page.locator('.nav-menu');
  if(!await menu.evaluate(node=>node.open))await menu.locator(':scope > summary').click();
  await page.locator('.nav[data-view="settings"]').click();
