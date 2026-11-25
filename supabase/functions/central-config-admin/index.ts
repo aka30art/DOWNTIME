@@ -76,6 +76,7 @@ function normalizeDepartmentMenu(input: unknown) {
   }
   const categories: Array<{ id: string; label: string; order: number }> = [];
   const categoryIds = new Set<string>();
+  const categoryLabels = new Set<string>();
   suppliedCategories.forEach((item: any, index: number) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("Department categories must be objects");
     const id = configString(item.id, "Category ID", 32).toLowerCase();
@@ -84,6 +85,9 @@ function normalizeDepartmentMenu(input: unknown) {
     categoryIds.add(id);
     const label = configString(item.label, "Category label", 40);
     if (!label) throw new Error("Category labels cannot be blank");
+    const labelKey = label.toLocaleLowerCase();
+    if (categoryLabels.has(labelKey)) throw new Error("Department category labels must be unique");
+    categoryLabels.add(labelKey);
     const order = Number.isInteger(Number(item.order)) && Number(item.order) >= 0 ? Number(item.order) : index;
     categories.push({ id, label, order });
   });
