@@ -78,7 +78,11 @@ assert.ok(api.includes('.eq("machine_type", body.machineType)'),'backend checks 
 assert.ok(api.includes('.eq("is_other", false)'),'backend protects OTHER from deletion');
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
-assert.ok(html.includes('repair-maintenance-app.js?v=20261125-3'),'R&M app script cache is refreshed');
+assert.ok(html.includes('repair-maintenance-app.js?v=20261125-4'),'R&M app script cache is refreshed');
+assert.ok(html.includes('repair-maintenance-structure.js?v=phase09-1'),'R&M loads the published category structure adapter');
+assert.ok(html.includes('id="customCategoryView"'),'R&M includes a placeholder workspace for custom categories');
+assert.match(app,/function applyMachineCategoryConfig\(/,'R&M app applies published category labels without changing machine keys');
+assert.match(app,/function openCustomCategory\(/,'custom R&M categories open a placeholder rather than invoking the machine API');
 assert.match(app,/function updateAssetSelectorVisibility\(\)[\s\S]*host\.hidden=access\?\.canReadRepairMaintenanceMachinery!==true\|\|machineSettings\.asset_selector_enabled!==true/,'R&M registered-machine selector follows its saved per-category setting');
 assert.match(app,/machineSettings\.model_dropdown_enabled!==true/,'MAKE / MODEL catalogue visibility remains separately configured');
 assert.match(app,/function saveAssetSelectorSetting\(\)/,'registered-machine visibility has an independent save action');
