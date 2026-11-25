@@ -81,3 +81,5 @@ jobs:
         run: deno check --node-modules-dir=auto supabase/functions/yard-hub-settings-api/index.ts
       - name: Type-check the Photo Evidence Edge Function
         run: deno check --node-modules-dir=auto supabase/functions/photo-evidence/index.ts
+      - name: Verify staging rejects unauthenticated photo-evidence actions
+        run: node tests/photo-evidence-staging-auth.mjs
