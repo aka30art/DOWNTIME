@@ -29,4 +29,6 @@ assert.match(loginSmoke, /successful login lands on YARD HUB first/, 'browser sm
 assert.match(loginSmoke, /launching DOWNTIME closes YARD HUB/, 'browser smoke verifies module launch');
 assert.ok(packageJson.scripts['test:smoke'].includes('tests/yard-hub-contract.mjs'), 'YARD HUB contract is part of the full smoke suite');
 
+assert.doesNotMatch(html, /yard-tile-index|<span[^>]*>0[1-5]<\/span>/, 'YARD HUB application tiles do not display sequence numbering');
+
 console.log('YARD HUB platform contract: PASS');
