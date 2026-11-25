@@ -7,6 +7,8 @@ const overviewHtml=await readFile(resolve('plant-overview-preview.html'),'utf8')
 const migration=await readFile(resolve('supabase/migrations/20261121050415_central_state_realtime_broadcast.sql'),'utf8');
 
 assert.match(migration,/create policy "downtime_central_state_broadcast_read"/i,'Realtime read policy must be created');
+assert.match(migration,/drop policy if exists "downtime_central_state_broadcast_read" on realtime\.messages/i,'Realtime policy migration must be safe to re-run on staging');
+assert.match(migration,/drop trigger if exists broadcast_downtime_central_state_update on public\.downtime_central_bank/i,'Realtime trigger migration must be safe to re-run on staging');
 assert.match(migration,/for select\s+to authenticated/i,'Only authenticated app sessions may receive the channel broadcast');
 assert.match(migration,/extension = 'broadcast'/i,'Policy must be limited to Broadcast messages');
 assert.match(migration,/realtime\.topic\(\) = 'downtime-central-state'/i,'Policy must be limited to the DOWNTIME central-state topic');

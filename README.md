@@ -1,31 +1,50 @@
-# Plant Downtime Tracker
+# DOWNTIME — YARD OPERATIONS CORE
 
-A dependency-free weekly downtime recording app designed for GitHub Pages.
+DOWNTIME is part of the YARD HUB operations platform. The application is hosted as a static GitHub Pages frontend, with operational state and administrative actions mediated by Supabase Edge Functions.
 
-## Features
-- Monday–Saturday weekly sheets and individual day detail.
-- Preset plant-area and downtime-reason buttons, plus manual entry.
-- Manual duration entry in hours and minutes.
-- Plant start/stop times and automatic 75-minute daily break deduction.
-- Daily and correctly weighted weekly downtime/running percentages.
-- Edit/delete entries and browser-local persistence.
-- Weekly report print layout for saving as PDF.
-- Direct browser print-to-PDF export (choose Save as PDF in the print/share sheet). The export preserves the active week; automatic reset/archive is intentionally disabled because browsers cannot confirm that a PDF was actually saved.
+## Application modules
 
-## Deploy with GitHub Pages
-1. Open **Settings → Pages** in this repository.
-2. Under **Build and deployment → Source**, select **GitHub Actions**.
-3. Push to `main` or manually run **Deploy Plant Downtime Tracker** from the Actions tab.
-4. Wait for the workflow's **Deploy** job to succeed, then open https://aka30art.github.io/DOWNTIME/.
+- **YARD HUB** — authenticated application launcher and shared session entry point.
+- **DOWNTIME** — weekly downtime entry, daily plant operation data, area/reason presets, staff and station assignments, plant overview, analytics and report workflows.
+- **REPAIR & MAINTENANCE** — machinery categories, registered machinery, fault records, priorities/statuses, notes/evidence and archived PDF exports.
+- **Central Data Bank** — central USER and STAFF data, role permissions, audit records and versioned tracker state.
+- **Master Configuration** — DEV-only configuration workspace for organisation, plant structure, operational libraries, defaults, navigation labels and configuration history. The published administration page is currently configured to use the isolated staging project only.
 
-## Data and export behaviour
-This first version stores active weeks and the report archive in the browser's local storage. Use the same browser/device for continuity. It does not sync data between devices or users. PDF export uses the browser print dialog; select **Save as PDF**. 
+FLOOR and CHECK SHEETS remain reserved YARD HUB tiles. They are not included as implemented production modules in this release scope.
 
-PDF export opens the browser's print dialog. The app does not automatically reset or archive a week because the browser cannot tell whether a user saved the PDF or cancelled printing. Reset/archive needs a separate explicit action or server-backed download flow.
+## Architecture and data handling
 
+The browser uses the Central Bank client adapter and an opaque session token held in tab-scoped session storage. Credential verification, session validation and role enforcement are performed by the Central Bank Edge Function. The current implementation uses a username and PIN flow; credentials are stored as salted hashes, not plaintext.
 
-## YARD HUB application platform
+Tracker and central configuration writes are version-checked by the server. Concurrent changes are rejected rather than silently replacing a newer version. Cross-device state updates use a private Realtime notification containing version metadata only; clients then retrieve authorised state through the server API.
 
-After central USER authentication, the application opens **YARD HUB — YARD OPERATIONS CORE** as the application launcher. The existing DOWNTIME tracker is launched from the first tile and remains in the same authenticated session. A persistent YARD HUB control returns the user to the launcher; sign-out is available from both the hub and DOWNTIME.
+Protected database tables use row-level security and server-side service-role access. The browser must not receive service-role credentials or access protected application tables directly.
 
-FLOOR, CHECK SHEETS, and REPAIR & MAINTENANCE are reserved module tiles and remain disabled until their applications are implemented. The hub is the authenticated entry shell; it does not replace or migrate DOWNTIME records, permissions, Supabase state, or the Central Bank API.
+## Reports and evidence
+
+DOWNTIME provides weekly reporting and archive workflows. REPAIR & MAINTENANCE provides machinery/fault workflows, evidence attachments and a private PDF export archive. Access to records and actions is subject to server-side tier permissions.
+
+## Local validation
+
+Install the repository dependencies with Node.js 22, then run:
+
+```sh
+npm install
+npm run test:smoke
+```
+
+The smoke command chains the repository's static contracts and Playwright browser checks, including Central Bank, YARD HUB, DOWNTIME, realtime, mobile layout, reporting and REPAIR & MAINTENANCE coverage. The CI workflow also type-checks the Supabase Edge Functions with Deno.
+
+## GitHub Pages deployment
+
+The Pages workflow runs the smoke suite for pull requests and configured feature branches. It builds a Pages artifact for pull requests and `main`, but its deploy job is restricted to `main`. A passing pull-request build does not deploy the live site.
+
+Production deployment requires a reviewed pull request, passing checks, an approved data/function migration plan and separate explicit release authorisation.
+
+## Environment separation
+
+- Production Pages: https://aka30art.github.io/DOWNTIME/
+- Production Supabase project: `ygwfipksbbprqynvbklk`
+- Isolated development/staging Supabase project: `phfojlqezudbjslfrnyw`
+
+The live application and live Supabase project are protected during development. Do not apply staging migrations, deploy staging Edge Functions, or point production pages at staging credentials as a production cutover. See [the production release runbook](docs/PRODUCTION_RELEASE_RUNBOOK.md) before any release activity.
