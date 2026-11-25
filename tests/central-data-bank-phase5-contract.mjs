@@ -1,0 +1,18 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+const html = await readFile(new URL("../central-bank-admin.html", import.meta.url), "utf8");
+const api = await readFile(new URL("../supabase/functions/central-config-admin/index.ts", import.meta.url), "utf8");
+const runtime = await readFile(new URL("../index.html", import.meta.url), "utf8");
+assert.match(html, /id="view-audit"/);
+assert.match(html, /READ ONLY · CDB/);
+assert.match(html, /data-section="audit"/);
+assert.match(html, /callConfig\("central-config-audit"/);
+assert.match(html, /auditActionFilter/);
+assert.match(html, /auditSearch/);
+assert.match(api, /action === "central-config-audit"/);
+assert.match(api, /from\("downtime_central_audit"\)/);
+assert.match(api, /select\("id,username,action,created_at,details"\)/);
+assert.match(api, /requestedLimit > 200/);
+assert.match(api, /scope: "central-data-bank"/);
+assert.doesNotMatch(runtime, /central-config-audit|downtime_central_audit/);
+console.log("CDB Phase 05 audit governance contracts passed.");
