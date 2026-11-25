@@ -23,6 +23,10 @@ assert.match(indexHtml, /#authGate #centralUsername\{[\s\S]*?min-height:64px;[\s
 assert.match(indexHtml, /#authGate #teamPin\{[\s\S]*?height:66px;[\s\S]*?text-align:center;/, 'PIN entry remains a large centred password field');
 assert.match(indexHtml, /#authGate \.pinpad-grid button\{[\s\S]*?min-height:62px;/, 'numeric keypad uses large touch targets');
 assert.match(indexHtml, /@media\(max-width:600px\)[\s\S]*?#authGate \.authbox\.authbox-central/, 'login layout has a dedicated mobile adaptation');
+const touchTargetCss=indexHtml.slice(indexHtml.lastIndexOf('/* CENTRAL LOGIN TOUCH TARGET UPGRADE'));
+assert.ok(touchTargetCss.includes('#authGate #centralUsername{')&&touchTargetCss.includes('min-height:64px!important;')&&touchTargetCss.includes('min-height:60px!important;')&&touchTargetCss.includes('min-height:68px!important;')&&touchTargetCss.includes('#authGate #refreshAppBtn{'), 'mobile login controls retain generous touch targets after all responsive overrides');
+assert.ok(touchTargetCss.includes('overflow-y:auto!important;'), 'login gate can scroll when larger controls exceed a short viewport');
+
 for (const requiredAuthHook of ['id="centralUsername"', 'id="teamPin"', 'data-pinpad="teamPin"', 'id="unlockBtn"', 'id="refreshAppBtn"', 'id="authMsg"']) {
   assert.ok(indexHtml.includes(requiredAuthHook), 'visual redesign preserves authentication hook: '+requiredAuthHook);
 }
@@ -336,18 +340,27 @@ window.supabase={createClient:()=>({
   const mobileOverflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);
   assert.ok(mobileBox&&mobileBox.x>=0&&mobileBox.x+mobileBox.width<=390,'mobile login panel stays within the viewport');
   assert.equal(mobileOverflow,false,'mobile login has no horizontal overflow');
-  const mobileFit=await page.evaluate(()=>{const gate=document.querySelector('#authGate'),box=document.querySelector('#authGate .authbox-central'),controls=[...box.querySelectorAll('#centralUsername,#teamPin,.pinpad,#unlockBtn,#refreshAppBtn')];return {gateScroll:gate.scrollHeight>gate.clientHeight+1,boxScroll:box.scrollHeight>box.clientHeight+1,controlsFit:controls.every(el=>{const r=el.getBoundingClientRect(),g=gate.getBoundingClientRect();return r.top>=g.top-1&&r.bottom<=g.bottom+1})}});
+  const mobileFit=await page.evaluate(()=>{const gate=document.querySelector('#authGate'),box=document.querySelector('#authGate .authbox-central'),height=selector=>Math.round(document.querySelector(selector).getBoundingClientRect().height),keyHeights=[...box.querySelectorAll('.pinpad-grid button')].map(el=>Math.round(el.getBoundingClientRect().height)),controls=[...box.querySelectorAll('#centralUsername,#teamPin,.pinpad,#unlockBtn,#refreshAppBtn')];return {gateScroll:gate.scrollHeight>gate.clientHeight+1,boxScroll:box.scrollHeight>box.clientHeight+1,controlsFit:controls.every(el=>{const r=el.getBoundingClientRect(),g=gate.getBoundingClientRect();return r.top>=g.top-1&&r.bottom<=g.bottom+1}),touchTargets:{user:height('#centralUsername'),pin:height('#teamPin'),keypadMin:Math.min(...keyHeights),signIn:height('#unlockBtn'),refresh:height('#refreshAppBtn')}}});
   assert.equal(mobileFit.gateScroll,false,'mobile login gate does not scroll');
   assert.equal(mobileFit.boxScroll,false,'mobile login card does not scroll');
   assert.equal(mobileFit.controlsFit,true,'all mobile login controls fit within the visible card');
+  assert.ok(mobileFit.touchTargets.user>=64,'mobile user selector has a 64px touch target');
+  assert.ok(mobileFit.touchTargets.pin>=64,'mobile PIN field has a 64px touch target');
+  assert.ok(mobileFit.touchTargets.keypadMin>=60,'every numeric keypad key has a 60px touch target');
+  assert.ok(mobileFit.touchTargets.signIn>=68,'SIGN IN has a 68px touch target');
+  assert.ok(mobileFit.touchTargets.refresh>=60,'REFRESH USER LIST has a 60px touch target');
+
   await page.setViewportSize({width:1280,height:720});
   const desktopFit=await page.evaluate(()=>{const gate=document.querySelector('#authGate'),box=document.querySelector('#authGate .authbox-central'),controls=[...box.querySelectorAll('#centralUsername,#teamPin,.pinpad,#unlockBtn,#refreshAppBtn')];return {gateScroll:gate.scrollHeight>gate.clientHeight+1,boxScroll:box.scrollHeight>box.clientHeight+1,controlsFit:controls.every(el=>{const r=el.getBoundingClientRect(),g=gate.getBoundingClientRect();return r.top>=g.top-1&&r.bottom<=g.bottom+1})}});
   assert.equal(desktopFit.gateScroll,false,'desktop login gate does not scroll');
   assert.equal(desktopFit.boxScroll,false,'desktop login card does not scroll');
   assert.equal(desktopFit.controlsFit,true,'all desktop login controls fit within the visible card');
   await page.setViewportSize({width:375,height:667});
-  const compactFit=await page.evaluate(()=>{const gate=document.querySelector('#authGate'),box=document.querySelector('#authGate .authbox-central');return gate.scrollHeight<=gate.clientHeight+1&&box.scrollHeight<=box.clientHeight+1});
-  assert.equal(compactFit,true,'compact mobile viewport also displays the complete login without scrolling');
+  const compactFit=await page.evaluate(()=>{const gate=document.querySelector('#authGate'),box=document.querySelector('#authGate .authbox-central'),refresh=document.querySelector('#refreshAppBtn'),style=getComputedStyle(box);const needsScroll=box.scrollHeight>box.clientHeight+1;box.scrollTop=box.scrollHeight;const r=refresh.getBoundingClientRect(),b=box.getBoundingClientRect();return {gateScroll:gate.scrollHeight>gate.clientHeight+1,needsScroll,scrollEnabled:style.overflowY==='auto',refreshReachable:r.bottom<=b.bottom+1&&r.top>=b.top-1}});
+  assert.equal(compactFit.gateScroll,false,'compact mobile login stays within the page viewport');
+  assert.equal(compactFit.needsScroll,true,'compact mobile login uses internal scrolling rather than shrinking touch targets');
+  assert.equal(compactFit.scrollEnabled,true,'compact mobile login card exposes vertical scrolling');
+  assert.equal(compactFit.refreshReachable,true,'REFRESH USER LIST remains reachable at the bottom of a compact login viewport');
   await page.setViewportSize({width:1280,height:720});
   loginPresentationVerified=true;
  }
