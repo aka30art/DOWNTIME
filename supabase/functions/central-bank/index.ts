@@ -220,7 +220,9 @@ Deno.serve(async(req)=>{
    if(!Number.isFinite(rangeDays)||rangeDays>370)return json({error:"Date range cannot exceed 370 days"},400);
    const {data:records,error}=await db.from("downtime_daily_operator_assignments").select("duty_date,operator_name,is_locked,assigned_by,assigned_at,locked_by,locked_at,updated_by,updated_at").gte("duty_date",fromDate).lte("duty_date",toDate).order("duty_date",{ascending:true});
    if(error)return json({error:"Daily operator register is unavailable"},503);
-   return json({records:records||[]});
+   const {data:history,error:historyError}=await db.from("downtime_daily_operator_audit").select("duty_date,action,operator_name,previous_operator,actor,reason,created_at").gte("duty_date",fromDate).lte("duty_date",toDate).order("created_at",{ascending:false});
+   if(historyError)return json({error:"Daily operator audit history is unavailable"},503);
+   return json({records:records||[],history:history||[]});
  }
  if(action==="daily-operator-assign"){
    if(!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"Supervisor permission is required to assign or change the daily operator"},403);
