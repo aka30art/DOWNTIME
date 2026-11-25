@@ -146,7 +146,7 @@ try{
  await page.locator('#username').fill('DEVACC');
  await page.locator('#pin').fill('1234');
  await page.locator('#loginBtn').click();
- await page.locator('#view-departments').waitFor({state:'visible'});
+ await page.locator('#workspace').waitFor({state:'visible'});
  assert.equal(await page.locator('#workspace').isVisible(),true,'DEVACC is admitted to the Central Data Bank');
  assert.ok((await page.locator('#identity').textContent()).includes('DEVACC'),'DEVACC identity is shown in the control room');
  await page.locator('[data-section="organisation"]').click();
