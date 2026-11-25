@@ -243,15 +243,15 @@ Deno.serve(async(req)=>{
    if(existing?.is_locked)return json({error:"This date already has a locked operator. An authorised supervisor must unlock it before replacement."},409);
    const now=new Date().toISOString();
    const record={duty_date:dutyDate,operator_name:operator,is_locked:true,assigned_by:existing?.assigned_by||currentUser.username,assigned_at:existing?.assigned_at||now,locked_by:currentUser.username,locked_at:now,updated_by:currentUser.username,updated_at:now};
-   let writeError:any=null;
+   let write:any=null,writeError:any=null;
    if(existing){
-     const {error}=await db.from("downtime_daily_operator_assignments").update(record).eq("duty_date",dutyDate).eq("is_locked",false);
-     writeError=error;
+     const {data,error}=await db.from("downtime_daily_operator_assignments").update(record).eq("duty_date",dutyDate).eq("is_locked",false).select("duty_date").maybeSingle();
+     write=data;writeError=error;
    }else{
-     const {error}=await db.from("downtime_daily_operator_assignments").insert(record);
-     writeError=error;
+     const {data,error}=await db.from("downtime_daily_operator_assignments").insert(record).select("duty_date").maybeSingle();
+     write=data;writeError=error;
    }
-   if(writeError)return json({error:"The daily operator record changed in another session. Refresh and retry."},409);
+   if(writeError||!write)return json({error:"The daily operator record changed in another session. Refresh and retry."},409);
    const actionName=existing?"REASSIGNED":"ASSIGNED";
    const {error:auditError}=await db.from("downtime_daily_operator_audit").insert({duty_date:dutyDate,action:actionName,operator_name:operator,previous_operator:existing?.operator_name||null,actor:currentUser.username,reason:String(body.reason||"").trim().slice(0,240)||null});
    if(auditError)return json({error:"Assignment saved but its audit event could not be recorded. Contact an administrator."},503);
