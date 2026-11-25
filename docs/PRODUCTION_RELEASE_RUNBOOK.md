@@ -71,8 +71,12 @@ The following additive migrations were applied to staging from the repository mi
 - `rm_machine_model_catalog` — creates per-category machine settings and make/model catalogue tables and seeds six machine categories.
 - `rm_asset_selector_visibility` — adds the independent registered-machine selector visibility flag.
 - `rm_registration_field_setting` — adds the optional registration-field visibility flag.
+- `photo_attachment_privilege_hardening` — revokes all table privileges on `downtime_attachments` from `PUBLIC`, `anon` and `authenticated`, retaining CRUD access for `service_role`.
+- `central_state_realtime_broadcast` — adds the authenticated private Broadcast read policy, metadata-only notification function and version-change trigger for the central bank.
 
-Post-application SQL verification confirmed the two tables and all three flags. Six categories are present, with each flag enabled by default. The staging make/model catalogue currently contains zero entries; this is an empty staging catalogue, not evidence that production catalogue data should be overwritten.
+Post-application SQL verification confirmed the two R&M settings tables and all three per-category flags. Six categories are present, with each flag enabled by default. The staging make/model catalogue currently contains zero entries; this is an empty staging catalogue, not evidence that production catalogue data should be overwritten.
+
+The staging privilege audit now confirms that anonymous/authenticated roles have no SELECT or INSERT privileges on `downtime_attachments`, RLS is enabled, and `service_role` retains the required access. The Realtime policy, trigger and trigger function are now present in staging and match the intended migration contract. A real authenticated two-browser/device event-propagation test is still outstanding.
 
 Staging is a test environment, not a production data replica. Its machinery/fault rows differ from production counts. Do not copy staging operational records into production.
 
