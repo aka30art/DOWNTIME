@@ -27,7 +27,13 @@ assert.match(edge, /no more than 30 sub-menu items/, "Server enforces sub-menu c
 assert.match(edge, /yardHubMenu: normalizeYardHubMenu\(input\.yardHubMenu\)/, "Server normalizes the new config domain");
 assert.match(edge, /yardHubDepartments: config\.yardHubMenu\.departments\.length/, "Server validation reports department totals");
 assert.match(edge, /yardHubSubmenus: config\.yardHubMenu\.departments\.reduce/, "Server validation reports sub-menu totals");
-assert.match(admin, /"yardHubDepartments","yardHubSubmenus"/, "Administrator sees structure counts in validation results");
+assert.match(edge, /repairMaintenanceCategories: normalizeRepairMaintenanceCategories\(input\.repairMaintenanceCategories\)/, "Server normalizes R&M machinery category configuration");
+assert.match(edge, /repairMaintenanceCategories: config\.repairMaintenanceCategories\.categories\.length/, "Server validation reports R&M category totals");
+assert.match(edge, /publishedRepairMaintenanceCategories/, "Authenticated menu response includes published R&M categories");
+assert.match(admin, /"yardHubDepartments","yardHubSubmenus","repairMaintenanceCategories"/, "Administrator sees YARD HUB and R&M structure counts in validation results");
+assert.match(admin, /repairMaintenanceCategories:collectRepairMaintenanceCategories\(\)/, "R&M category configuration is included in saved drafts");
+assert.match(admin, /function addRmsCategory\(/, "Administrator can add menu-only R&M categories");
+assert.match(admin, /function removeRmsCategory\(/, "Administrator can hide or remove R&M categories");
 assert.match(edge, /action === "yard-hub-menu"/, "Authenticated read-only launcher action exists");
 assert.match(edge, /publishedVersion: Number\(configState\.published_version\)/, "Runtime receives published version only");
 const publicRead = edge.indexOf('if (action === "yard-hub-menu")');
