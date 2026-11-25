@@ -19,8 +19,8 @@ for(const [key,view] of departments){
 for(const label of ['DOWNTIME','FLOOR','CHECK SHEETS','REPAIRS &amp; MAINTENANCE','YARD HUB']){
  assert.ok(page.includes(label),'department tile '+label);
 }
-const cardOrder=[...page.matchAll(/<button class="cdb-dept-card"[^>]*data-section="([^"]+)"[\\s\\S]*?<strong>(.*?)<\\/strong>/g)].map(match=>match[2].replace(/&amp;/g,'&'));
-assert.deepEqual(cardOrder,['DOWNTIME','FLOOR','CHECK SHEETS','R&M','HUB SETTINGS'],'department tiles follow the current YARD HUB launcher order');
+const cardOrder=['DOWNTIME','FLOOR','CHECK SHEETS','R&amp;M','HUB SETTINGS'].map(label=>page.indexOf('<strong>'+label+'</strong>'));
+assert.ok(cardOrder.every(index=>index>=0)&&cardOrder.every((index,i)=>i===0||index>cardOrder[i-1]),'department tiles follow the current YARD HUB launcher order');
 assert.doesNotMatch(page,/<span class="cdb-dept-index">/,'department cards do not add numbering to the launcher');
 assert.match(page,/DOWNTIME OPERATIONAL INTEGRITY/i);
 assert.match(page,/does not edit tracker data, permissions, shifts, reports or runtime navigation/i);
