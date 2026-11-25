@@ -473,7 +473,7 @@ small,.muted{color:var(--muted)}
  function addDepartmentSubmenu(id){
   const menu=collectDepartmentMenu(),entry=menu.entries.find(item=>item.id===id);if(!entry)return;
   if(entry.submenu.length>=12){status("A department can have no more than 12 submenu items.",true);return;}
-  entry.submenu.push({id:"menu-link-"+(entry.submenu.length+1),label:"New link",target:"overview",enabled:true,order:entry.submenu.length});renderDepartmentMenu(menu);updateButtons();
+  let serial=1;while(entry.submenu.some(item=>item.id==="menu-link-"+serial))serial++;entry.submenu.push({id:"menu-link-"+serial,label:"New link",target:"overview",enabled:true,order:entry.submenu.length});renderDepartmentMenu(menu);updateButtons();
  }
  function addDepartmentCategory(){
   const value=$("newDepartmentCategory").value.trim();if(!value){status("Enter a category name first.",true);return;}
