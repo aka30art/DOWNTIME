@@ -462,6 +462,17 @@ body.overview-overlay-open{overflow:hidden}
  #authGate #authMsg{min-height:10px!important;margin-top:2px!important}
 }
 
+
+.operator-duty-inline{display:inline-flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.operator-duty-status{font-size:10px;font-weight:900;letter-spacing:.7px;color:#a9bdca;border:1px solid #385366;border-radius:7px;padding:6px 8px;background:#0b1b26}
+.operator-duty-status.locked{color:#7fe0a0;border-color:#34704c;background:#10291e}
+.operator-duty-button{padding:8px 11px;font-size:10px;letter-spacing:.6px;background:#263b4b;border-color:#5b7485;color:#fff}
+.daily-operator-modal{max-width:430px}
+.daily-operator-modal h2{color:var(--yellow);margin:13px 0}
+.daily-operator-modal .detailbox{font-size:12px;line-height:1.6}
+.daily-operator-modal .modalfoot{flex-wrap:wrap}
+.day-setup summary{gap:10px}
+@media(max-width:600px){.operator-duty-inline{width:100%;margin:5px 0 0;justify-content:space-between}.operator-duty-button{flex:1}.operator-duty-status{font-size:9px}.daily-operator-modal{width:100%}}
 </style><style>
 .day-setup-panel{position:relative}
 .day-setup>summary{padding-right:122px}
@@ -765,6 +776,7 @@ body.overview-overlay-open{overflow:hidden}
 <span class="day-setup-label">DAY TO DAY</span>
 <strong id="dayHeading">MONDAY</strong>
 <span class="day-setup-hint">Shift settings</span>
+<span class="operator-duty-inline"><span id="dailyOperatorStatus" class="operator-duty-status">NOT ASSIGNED</span><button id="openDailyOperator" type="button" class="operator-duty-button">OPERATOR ON DUTY</button></span>
 <span class="disclosure-chevron" aria-hidden="true">⌄</span>
 </summary>
 <div class="day-picker-wrap">
@@ -982,6 +994,7 @@ body.overview-overlay-open{overflow:hidden}
   
   <iframe id="overviewFrame" class="overview-overlay-frame" title="Live Plant Overview" loading="lazy"></iframe>
 </div>
+<div class="modalback" id="dailyOperatorModal"><div class="modal daily-operator-modal"><div class="detailtop"><small>OFFICIAL DAILY OPERATOR RECORD</small><button id="closeDailyOperator" type="button" aria-label="Close">✕</button></div><h2>OPERATOR ON DUTY</h2><p id="dailyOperatorDateLabel" class="muted">Select a calendar date and operator.</p><div class="field"><label for="dailyOperatorDate">CALENDAR DATE</label><input id="dailyOperatorDate" class="input" type="date"></div><div class="field" style="margin-top:12px"><label for="dailyOperatorSelect">AVAILABLE OPERATORS</label><select id="dailyOperatorSelect" class="input"></select></div><div id="dailyOperatorRecordMeta" class="detailbox">No assignment recorded for this date.</div><div class="field" style="margin-top:10px"><label for="dailyOperatorReason">REASON (REQUIRED WHEN UNLOCKING)</label><textarea id="dailyOperatorReason" class="input" rows="2" maxlength="240" placeholder="Reason for changing the official assignment"></textarea></div><div class="modalfoot"><button id="unlockDailyOperator" class="danger" type="button" hidden>UNLOCK ASSIGNMENT</button><button id="confirmDailyOperator" class="primary" type="button">CONFIRM &amp; LOCK</button></div><small id="dailyOperatorAccessNote" class="muted"></small></div></div>
 <div class="modalback" id="detailsModal"><div class="modal detailsmodal"><div class="detailtop"><small id="detailNumber">DOWNTIME ENTRY</small><button id="closeDetails">✕</button></div><h2 id="detailArea">Area</h2><div class="detailbox"><label>Reason</label><p id="detailReason"></p></div><div class="detailbox"><label>Duration</label><strong id="detailDuration"></strong></div><div class="detailbox" id="detailPhotoBox" style="display:none"><label>PHOTO EVIDENCE</label><div id="detailPhotoContent"></div></div><div class="modalfoot"><button id="detailDelete" class="danger">DELETE ENTRY</button><button id="detailEdit" class="primary">EDIT ENTRY</button></div></div></div>
 <div class="modalback" id="entryModal"><div class="modal"><h2>Add downtime entry</h2>
 <div class="field"><label>Part / area of plant</label><div class="presetrow" id="areaButtons"></div><input class="input" id="areaManual" placeholder="Or enter area manually" style="margin-top:8px"></div>
