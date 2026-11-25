@@ -73,7 +73,7 @@ assert.match(api,/buildRepairMaintenancePdf\(faults, filter, generatedAt, select
 assert.match(migration,/repair_maintenance_pdf_exports/);
 assert.ok(archiveMigration.includes('repair_maintenance_pdf_exports'));
 
-assert.ok(html.includes('repair-maintenance-app.js?v=20261125-1'));
+assert.ok(html.includes('repair-maintenance-app.js?v=20261125-2'));
 assert.ok(html.includes('id="modelDropdownEnabled"'));
 assert.ok(html.includes('id="assetSelectorEnabled"'));
 assert.match(app,/function updateAssetSelectorVisibility\(\)/,'registered-machine selector has a dedicated visibility function');
@@ -139,7 +139,7 @@ assert.match(settingsMigration,/revoke all on table public\.repair_maintenance_m
 for(const category of ['KIVERCO_PICKING_LINE','TANNA_SHREDDER','FORKLIFT','TELEHANDLER','EXCAVATORS_360','OTHER_EQUIPMENT'])assert.ok(settingsMigration.includes(category),'default RMS settings row missing for '+category);
 assert.match(app,/currentAsset\?\(currentAsset\.asset_code\?/,'fault details display the selected individual machine');
 assert.match(html,/<div class="fault-table-head">[\s\S]*?EQUIPMENT[\s\S]*?FAULT \/ DEFECT/,'fault register exposes an EQUIPMENT column');
-assert.match(html,/repair-maintenance-app\.js\?v=20261125-1/,'R&M app cache version advances with the register change');
+assert.match(html,/repair-maintenance-app\.js\?v=20261125-2/,'R&M app cache version advances with the register change');
 assert.match(app,/ALL EQUIPMENT — COMBINED REGISTER/,'Other Equipment offers a combined register option');
 assert.match(app,/allEquipmentMode\?\{machineType:currentMachine\.key,allEquipment:true\}/,'combined register requests all Other Equipment records');
 assert.match(app,/fault\.equipment_name\|\|assets\.find\(asset=>asset\.id===fault\.asset_id\)\?\.name/,'fault rows resolve and display the registered equipment name');
