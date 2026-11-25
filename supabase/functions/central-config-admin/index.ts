@@ -224,6 +224,9 @@ function normalizeRepairMaintenanceCategories(input: unknown) {
       enabled: item.enabled !== false, order,
     };
   }).sort((a: any, b: any) => a.order - b.order || a.key.localeCompare(b.key));
+  for (const base of repairMaintenanceCategoryDefaults) {
+    if (!seenKeys.has(base.key)) throw new Error("Native R&M category identities cannot be deleted; hide them instead");
+  }
   const usedOrders = new Set<number>();
   for (const item of categories) {
     if (usedOrders.has(item.order)) throw new Error("R&M machinery category order values must be unique");
@@ -283,6 +286,9 @@ function normalizeYardHubMenu(input: unknown) {
       submenus,
     };
   }).sort((a: any, b: any) => a.order - b.order || a.id.localeCompare(b.id));
+  for (const base of yardHubDepartmentDefaults.filter(entry => entry.protected)) {
+    if (!seenIds.has(base.id)) throw new Error("Protected YARD HUB departments cannot be deleted");
+  }
   const usedOrders = new Set<number>();
   for (const item of departments) {
     if (usedOrders.has(item.order)) throw new Error("YARD HUB department order values must be unique");
