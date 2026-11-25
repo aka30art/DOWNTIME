@@ -37,4 +37,7 @@
     async removeStaffPhoto(path){return call("staff-photo-remove",{path})},
     async bootstrap(data){return call("bootstrap",data,null)}
   };
+  // Compatibility aliases for previously cached Operator on Duty UI builds.
+  window.DowntimeCentral["assign-DailyOperator"]=window.DowntimeCentral.assignDailyOperator;
+  window.DowntimeCentral.assign_daily_operator=window.DowntimeCentral.assignDailyOperator;
 })();
