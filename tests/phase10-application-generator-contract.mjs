@@ -10,6 +10,7 @@ assert.match(admin, /id="generateModuleBtn"/, "Administrator can generate a modu
 assert.match(admin, /function generateDepartment\(/, "Department generation creates a standard workspace blueprint");
 assert.match(admin, /function generateModule\(/, "Module generation creates a linked submenu blueprint");
 assert.match(admin, /applicationGenerator:collectApplicationGenerator\(\)/, "Generated blueprints are included in the versioned draft");
+assert.match(admin, /applicationGenerator:defaultApplicationGenerator\(\)/, "Legacy configuration defaults safely to an empty generator registry");
 assert.match(admin, /status:"placeholder"/, "Generated workspaces remain placeholders");
 assert.match(admin, /generatedDepartments.*generatedModules/, "Validation summary reports generated output");
 
