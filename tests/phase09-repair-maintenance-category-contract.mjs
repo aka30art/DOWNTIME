@@ -19,6 +19,8 @@ assert.match(admin,/function addRmsCategory\(/,"R&M custom categories can be add
 assert.match(admin,/function removeRmsCategory\(/,"R&M categories can be hidden or removed");
 assert.match(edge,/function normalizeRepairMaintenanceCategories\(/,"server validates R&M category configuration");
 assert.match(edge,/New R&M category keys must use the CUSTOM_ prefix/,"server distinguishes menu-only categories from native data types");
+assert.match(edge,/Native R&M category identities cannot be deleted/,"native machine data keys cannot be removed from configuration");
+assert.match(edge,/Protected YARD HUB departments cannot be deleted/,"protected YARD HUB routes remain present");
 assert.match(edge,/icon: base\?\.icon \|\| "assets\/rm-icons\/other_equipment\.svg"/,"custom categories use a safe built-in icon");
 assert.match(rmHtml,/id="customCategoryView"/,"R&M has a dedicated placeholder workspace for custom categories");
 assert.match(rmHtml,/repair-maintenance-structure\.js/,"R&M loads the published category configuration adapter");
