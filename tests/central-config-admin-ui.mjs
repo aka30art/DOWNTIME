@@ -78,13 +78,13 @@ try{
  assert.equal(await page.locator('.cdb-dept-card').count(),5,'department launcher presents all five YARD HUB application areas');
  await page.locator('[data-section="dept-downtime"]').click();
  assert.ok(await page.getByText('DOWNTIME OPERATIONAL INTEGRITY').count(),'DOWNTIME control page states the operational protection boundary');
- await page.locator('[data-section="departments"]').last().click();
+ await page.locator('#view-dept-downtime [data-section="departments"]').click();
  await page.locator('[data-section="dept-floor"]').click();
  assert.ok(await page.getByText('RESERVED MODULE').count(),'FLOOR remains a reserved module');
- await page.locator('[data-section="departments"]').last().click();
+ await page.locator('#view-dept-floor [data-section="departments"]').click();
  await page.locator('[data-section="dept-checksheets"]').click();
  assert.ok(await page.getByText('CHECK SHEETS is not currently released').count(),'CHECK SHEETS remains unreleased');
- await page.locator('[data-section="departments"]').last().click();
+ await page.locator('#view-dept-checksheets [data-section="departments"]').click();
  assert.equal(await page.locator('#publishedKpi').textContent(),'v1');
  assert.equal(await page.locator('#draftKpi').textContent(),'v1');
  assert.ok(await page.locator('text=Access & Rights stays separate').count(),'separate responsibilities are explained');
