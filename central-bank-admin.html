@@ -106,6 +106,7 @@ small,.muted{color:var(--muted)}
  <div class="login-card">
   <div class="brandline"><div class="brandmark">D</div><div><div class="eyebrow">SYSTEM CONTROL / RESTRICTED</div><h1>CENTRAL DATA BANK ADMIN</h1></div></div>
   <p class="muted">Configuration control plane for organisation structure, master registries, operational libraries and approved system defaults.</p>
+  <p class="muted" style="font-size:11px">Connection settings are remembered on this device after you change them. PINs are never saved.</p>
   <div class="formgrid" style="margin-top:20px">
    <div class="field"><label for="projectUrl">Supabase project URL</label><input id="projectUrl" value="https://phfojlqezudbjslfrnyw.supabase.co" autocomplete="url"></div>
    <div class="field"><label for="pubKey">Publishable API key</label><input id="pubKey" value="sb_publishable_Ns316awmCfjz_xNQyA5qBw_tQ4YLtT1" autocomplete="off"></div>
@@ -243,6 +244,20 @@ small,.muted{color:var(--muted)}
 <script>
 (()=>{
  const $=id=>document.getElementById(id);
+ const rememberedConnectionKey="downtime-central-bank-connection-v1";
+ function restoreRememberedConnection(){
+  try{
+   const saved=JSON.parse(localStorage.getItem(rememberedConnectionKey)||"null");
+   if(saved&&typeof saved.projectUrl==="string"&&typeof saved.pubKey==="string"){
+    $("projectUrl").value=saved.projectUrl;
+    $("pubKey").value=saved.pubKey;
+   }
+  }catch{}
+ }
+ function rememberConnection(){
+  try{localStorage.setItem(rememberedConnectionKey,JSON.stringify({projectUrl:$("projectUrl").value.trim(),pubKey:$("pubKey").value.trim()}));}catch{}
+ }
+ restoreRememberedConnection();
  let token=null,me=null,model=null,draftVersion=0,publishedVersion=0,nextVersion=0,versions=[],baseline="";
  const DAYS=["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"];
  const endpoint=()=> $("projectUrl").value.trim().replace(/\/$/,"")+"/functions/v1/central-bank";
@@ -393,6 +408,7 @@ small,.muted{color:var(--muted)}
  document.querySelectorAll("[data-section]").forEach(button=>button.addEventListener("click",()=>showSection(button.dataset.section)));
  $("navSearch").addEventListener("input",()=>{const query=$("navSearch").value.trim().toLocaleLowerCase();document.querySelectorAll(".nav[data-section]").forEach(button=>{button.hidden=!!query&&!((button.textContent+" "+button.dataset.section).toLocaleLowerCase().includes(query));});});
  document.querySelectorAll("#workspace input,#workspace textarea,#workspace select").forEach(input=>input.addEventListener("input",updateButtons));
+ $("projectUrl").addEventListener("change",rememberConnection);$("pubKey").addEventListener("change",rememberConnection);
  buildDayChecks();renderForm(blankConfig());updateButtons();
 })();
 </script>
