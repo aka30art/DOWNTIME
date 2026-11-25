@@ -330,6 +330,41 @@ function normalizeMasterHierarchy(input: unknown) {
   return sites;
 }
 
+function normalizeApplicationGenerator(input: unknown, yardHubMenu: any) {
+  const raw = input && typeof input === "object" && !Array.isArray(input) ? input as Record<string, any> : {};
+  const supplied = Array.isArray(raw.items) ? raw.items : [];
+  if (supplied.length > 400) throw new Error("Application Generator can contain no more than 400 blueprints");
+  const seenIds = new Set<string>();
+  const items = supplied.map((item: any, index: number) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("Generated application blueprints must be objects");
+    const id = configString(item.id, "Generated blueprint ID", 80).toLowerCase();
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id) || seenIds.has(id)) throw new Error("Generated blueprint IDs must be unique lowercase slugs");
+    seenIds.add(id);
+    const type = configString(item.type, "Generated blueprint type", 20);
+    if (!["department", "module"].includes(type)) throw new Error("Generated blueprint type must be department or module");
+    const title = configString(item.title, "Generated blueprint title", 48);
+    if (!title) throw new Error("Generated blueprint titles cannot be blank");
+    const description = configString(item.description || "", "Generated blueprint description", 100);
+    const template = configString(item.template, "Generated workspace template", 32);
+    const allowedTemplates = type === "department" ? ["standard-workspace"] : ["standard-workspace", "register-workspace", "checklist-workspace", "reports-workspace"];
+    if (!allowedTemplates.includes(template)) throw new Error("Unsupported generated workspace template");
+    if (item.status !== "placeholder") throw new Error("Generated workspaces must remain placeholders until separately implemented");
+    const order = Number.isInteger(Number(item.order)) && Number(item.order) >= 0 ? Number(item.order) : index;
+    if (type === "department") {
+      const departmentId = configString(item.departmentId, "Generated department ID", 40).toLowerCase();
+      const department = yardHubMenu.departments.find((entry: any) => entry.id === departmentId && entry.kind === "custom");
+      if (!department) throw new Error("Generated department blueprint must reference an existing custom YARD HUB department");
+      return { id, type, title, description, departmentId, template, status: "placeholder", order };
+    }
+    const parentDepartmentId = configString(item.parentDepartmentId, "Generated module parent", 40).toLowerCase();
+    const submenuId = configString(item.submenuId, "Generated module menu ID", 48).toLowerCase();
+    const parent = yardHubMenu.departments.find((entry: any) => entry.id === parentDepartmentId);
+    if (!parent || ["downtime", "repairs-maintenance", "hub-settings"].includes(parent.kind)) throw new Error("Generated modules cannot target protected core departments");
+    if (!parent.submenus.some((entry: any) => entry.id === submenuId)) throw new Error("Generated module blueprint must reference an existing sub-menu entry");
+    return { id, type, title, description, parentDepartmentId, submenuId, template, status: "placeholder", order };
+  });
+  return { items };
+}
 function normalizeCentralConfig(input: any) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Configuration object required");
   if (JSON.stringify(input).length > 250000) throw new Error("Configuration is too large");
@@ -341,6 +376,8 @@ function normalizeCentralConfig(input: any) {
     navigation[key] = value || fallback;
   }
   const modules = configStringList(input.modules || [], "Module registry", 100, 80);
+  const yardHubMenu = normalizeYardHubMenu(input.yardHubMenu);
+  const applicationGenerator = normalizeApplicationGenerator(input.applicationGenerator, yardHubMenu);
   const organization = input.organization || {};
   const structure = input.structure || {};
   const libraries = input.libraries || {};
@@ -373,6 +410,7 @@ function normalizeCentralConfig(input: any) {
     modules,
     departmentMenu: normalizeDepartmentMenu(input.departmentMenu),
     yardHubMenu: normalizeYardHubMenu(input.yardHubMenu),
+    applicationGenerator,
     repairMaintenanceCategories: normalizeRepairMaintenanceCategories(input.repairMaintenanceCategories),
     departmentSettings: normalizeDepartmentSettings(input.departmentSettings),
     organization: { companyName, siteCode, timezone, locale },
@@ -556,6 +594,8 @@ Deno.serve(async (req: Request) => {
       yardHubDepartments: config.yardHubMenu.departments.length,
       yardHubSubmenus: config.yardHubMenu.departments.reduce((n: number, department: any) => n + department.submenus.length, 0),
       repairMaintenanceCategories: config.repairMaintenanceCategories.categories.length,
+      generatedDepartments: config.applicationGenerator.items.filter((item: any) => item.type === "department").length,
+      generatedModules: config.applicationGenerator.items.filter((item: any) => item.type === "module").length,
       libraryEntries: Object.values(libraries).reduce((n: number, list: any) => n + list.length, 0),
     };
     const warnings: string[] = [];
