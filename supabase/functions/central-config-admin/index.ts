@@ -409,7 +409,7 @@ function normalizeCentralConfig(input: any) {
     navigation,
     modules,
     departmentMenu: normalizeDepartmentMenu(input.departmentMenu),
-    yardHubMenu,
+    yardHubMenu: normalizeYardHubMenu(input.yardHubMenu),
     applicationGenerator,
     repairMaintenanceCategories: normalizeRepairMaintenanceCategories(input.repairMaintenanceCategories),
     departmentSettings: normalizeDepartmentSettings(input.departmentSettings),
