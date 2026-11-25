@@ -42,7 +42,7 @@ Deno.serve(async (req: Request) => {
     const [customers,vehicles,active,waste,todayVisits,customerStats,overallStats,registerRows] = await Promise.all([
       db.from("gatelog_customers").select("id,customer_name,created_at").eq("active",true).order("customer_name"),
       db.from("gatelog_vehicles").select("id,customer_id,registration").eq("active",true).order("registration"),
-      db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,status").eq("status","ON_SITE").order("time_in",{ascending:false}),
+      db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,status").is("time_out",null).order("time_in",{ascending:false}),
       db.from("gatelog_waste_types").select("id,label").order("label"),
       db.from("gatelog_visits").select("id,status").eq("visit_date",today),
       db.rpc("gatelog_customer_visit_stats"),
