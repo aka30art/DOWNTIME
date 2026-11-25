@@ -7,8 +7,8 @@ const ci=fs.readFileSync('.github/workflows/ci.yml','utf8');
 
 assert.ok(config.includes('[functions.central-config-admin]')&&/\[functions\.central-config-admin\][\s\S]*?verify_jwt\s*=\s*false/.test(config),
   'isolated endpoint is configured for the existing opaque CDB session pattern');
-assert.ok(fn.includes('x-downtime-session')&&fn.includes('SHA-256')===false&&fn.includes('crypto.subtle.digest'),
-  'endpoint hashes the opaque CDB session token before lookup');
+assert.ok(fn.includes('x-downtime-session')&&fn.includes('SHA-256')&&fn.includes('crypto.subtle.digest'),
+  'endpoint hashes the opaque CDB session token with SHA-256 before lookup');
 assert.ok(fn.includes('downtime_central_sessions')&&fn.includes('.gt("expires_at"'),
   'expired and unknown sessions are denied');
 assert.ok(fn.includes('username === "DEV" && tier === "OWNER"')&&fn.includes('tier === "DEVACC"'),
