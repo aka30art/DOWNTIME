@@ -31,6 +31,17 @@ const server=http.createServer((req,res)=>{
  res.writeHead(404);res.end('Not found');
 });
 const browser=await chromium.launch({headless:true});
+async function returnToDepartmentMenu(page){
+ await page.waitForTimeout(25);
+ const sectionPageOpen=await page.locator('#workspace').evaluate(el=>el.classList.contains('cdb-section-page'));
+ if(!sectionPageOpen)return;
+ const back=page.locator('#cdbBackToMenu');
+ await back.waitFor({state:'visible',timeout:5000});
+ await back.click();
+ await page.waitForFunction(()=>!document.querySelector('#workspace')?.classList.contains('cdb-section-page'),{timeout:5000});
+ await page.locator('#view-departments').waitFor({state:'visible',timeout:5000});
+}
+
 try{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const address=server.address();
@@ -118,20 +129,22 @@ try{
  await page.locator('#loginBtn').click();
  await page.locator('#view-departments').waitFor({state:'visible'});
  assert.equal(await page.locator('.cdb-dept-card').count(),5,'department launcher presents all five YARD HUB application areas');
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="dept-downtime"]').click();
  assert.ok(await page.getByText('DOWNTIME OPERATIONAL INTEGRITY').count(),'DOWNTIME control page states the operational protection boundary');
- await page.locator('#view-dept-downtime [data-section="departments"]').click();
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="dept-floor"]').click();
  assert.ok(await page.getByText('RESERVED MODULE').count(),'FLOOR remains a reserved module');
- await page.locator('#view-dept-floor [data-section="departments"]').click();
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="dept-checksheets"]').click();
  assert.ok(await page.getByText('CHECK SHEETS is not currently released').count(),'CHECK SHEETS remains unreleased');
- await page.locator('#view-dept-checksheets [data-section="departments"]').click();
+ await returnToDepartmentMenu(page);
  assert.equal(await page.locator('#publishedKpi').textContent(),'v1');
  assert.equal(await page.locator('#draftKpi').textContent(),'v1');
  assert.ok(await page.locator('text=Access & Rights stays separate').count(),'separate responsibilities are explained');
 
  // Phase 03: create and persist a fully parented site → plant → area → station hierarchy.
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="structure"]').click();
  promptValues.push('North Yard');await page.locator('#addSiteBtn').click();
  const site=page.locator('#hierarchyTree [data-node-level="site"]').filter({hasText:'North Yard'});
@@ -147,6 +160,7 @@ try{
  assert.equal(await page.locator('#saveDraftBtn').isEnabled(),true,'hierarchy edits mark the configuration draft dirty');
 
  // Phase 02: department label, category, visibility, ordering and submenu controls.
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="department-menu-settings"]').click();
  await page.locator('[data-menu-entry-id="downtime"] [data-menu-entry-title]').fill('PLANT CONTROL');
  await page.locator('[data-menu-entry-id="downtime"] [data-menu-entry-description]').fill('PLANT OPERATIONS & SHIFT CONTROL');
@@ -165,14 +179,18 @@ try{
  assert.ok(launcherOrder.indexOf('dept-rm')<launcherOrder.indexOf('dept-checksheets'),'department move controls reorder launcher cards');
  assert.ok(await page.locator('#departmentLauncher .cdb-dept-group-title').filter({hasText:'Support'}).count(),'new categories are reflected in launcher grouping');
 
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="navigation"]').click();
  await page.locator('#navLabelStructure').fill('Facility Map');
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="modules"]').click();
  await page.locator('#moduleRegistry').fill('Central Data Bank\nYARD HUB\nRepair & Maintenance\nDEV Diagnostics');
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="navigation"]').click();
  await page.locator('#navLabelModules').fill('Component Catalogue');
  await page.locator('#navLabelControls').fill('Safety Controls');
  await page.locator('#navLabelInformation').fill('Diagnostics');
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="organisation"]').click();
  await page.locator('#companyName').fill('QA Example Company');
  await page.locator('#saveDraftBtn').click();
@@ -197,6 +215,7 @@ try{
  assert.equal(await page.locator('#departmentLauncher [data-section="dept-floor"]').count(),0,'department visibility persists after reload');
  assert.equal(await page.locator('#departmentLauncher [data-section="overview"]').count(),1,'department submenu persists after reload');
  assert.ok(await page.locator('#departmentLauncher .cdb-dept-group-title').filter({hasText:'Support'}).count(),'new category persists after reload');
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="department-menu-settings"]').click();
  await page.locator('#restoreDepartmentMenuBtn').click();
  assert.equal((await page.locator('#departmentLauncher [data-section="dept-downtime"] strong').textContent()).trim(),'DOWNTIME','restore returns the original department title');
@@ -206,10 +225,13 @@ try{
  await page.locator('#username').fill('DEV');await page.locator('#pin').fill('1234');await page.locator('#loginBtn').click();
  await page.locator('#view-departments').waitFor({state:'visible'});
  assert.equal((await page.locator('#departmentLauncher [data-section="dept-downtime"] strong').textContent()).trim(),'PLANT CONTROL','unsaved reset is discarded while the saved menu remains durable');
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="controls"]').click();
  assert.ok(await page.getByText('Server-side access is restricted').count(),'system controls document the server-side access boundary');
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="information"]').click();
  assert.ok(await page.getByText('Not connected by design').count(),'system information confirms no live runtime integration');
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="release"]').click();
  await page.locator('#runImpactBtn').click();
  await page.getByText('Impact analysis complete. Inspect the change register before confirming review.').waitFor();
@@ -220,12 +242,14 @@ try{
  await page.getByText('Reviewed configuration v2 published to the isolated registry.',{exact:false}).waitFor();
  assert.equal(await page.locator('#publishedKpi').textContent(),'v2','publish updates the published registry version');
 
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="history"]').click();
  await page.locator('[data-restore-version="1"]').click();
  await page.getByText('restored as new draft',{exact:false}).waitFor();
  assert.equal(await page.locator('#draftKpi').textContent(),'v3','restore creates a new draft version');
  assert.equal(await page.locator('#publishedKpi').textContent(),'v2','restore does not change the published version');
 
+ await returnToDepartmentMenu(page);
  await page.setViewportSize({width:390,height:844});
  assert.equal(await page.locator('button.nav[data-section="departments"]').isVisible(),true,'mobile department navigation remains available');
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth);
@@ -245,6 +269,7 @@ try{
  await page.locator('#workspace').waitFor({state:'visible'});
  assert.equal(await page.locator('#workspace').isVisible(),true,'DEVACC is admitted to the Central Data Bank');
  assert.ok((await page.locator('#identity').textContent()).includes('DEVACC'),'DEVACC identity is shown in the control room');
+ await returnToDepartmentMenu(page);
  await page.locator('[data-section="organisation"]').click();
  await page.locator('#companyName').fill('DEVACC authority validation');
  await page.locator('#saveDraftBtn').click();
