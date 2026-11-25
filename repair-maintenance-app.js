@@ -84,7 +84,7 @@
     if(!list.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='No faults or defects are currently recorded for this machine.';host.append(empty);return}
     list.forEach((fault,index)=>{
       const row=document.createElement('button');row.type='button';row.className='faultrow';row.setAttribute('aria-label',`Open fault ${fault.fault_name}, priority ${fault.priority}`);
-      const equipmentName=fault.equipment_name||assets.find(asset=>asset.id===fault.asset_id)?.name||currentAsset?.name||currentMachine?.label||'—';
+      const equipmentName=fault.equipment_name||assets.find(asset=>asset.id===fault.asset_id)?.name||(unassignedMode?'UNASSIGNED / LEGACY':currentAsset?.name||currentMachine?.label)||'—';
       row.innerHTML=`<span class="rownum">${String(index+1).padStart(2,'0')}</span><span class="equipment-name">${safe(equipmentName)}</span><span class="faultname">${safe(fault.fault_name)}</span><span class="description">${safe(fault.description)}</span><span class="priority-pill ${priorityClass(fault.priority)}">${safe(fault.priority)}</span>`;
       row.addEventListener('click',()=>openDetails(fault.id,index+1));host.append(row);
     });
