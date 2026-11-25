@@ -48,6 +48,7 @@ try{
  const narrowHeader=await page.locator('.gatelog-hero').boundingBox();
  assert.ok(narrowHeader&&narrowHeader.width<=320,'GATELOG header must fit a 320px viewport');
  const narrowOverflow=await page.evaluate(()=>({width:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth,offenders:[...document.querySelectorAll('body *')].map(e=>({tag:e.tagName,cls:typeof e.className==='string'?e.className:'',id:e.id,left:Math.round(e.getBoundingClientRect().left),right:Math.round(e.getBoundingClientRect().right),width:Math.round(e.getBoundingClientRect().width)})).filter(x=>x.right>innerWidth+1||x.left< -1).slice(0,20)}));
+ console.log('GATELOG 320px overflow diagnostic',JSON.stringify(narrowOverflow));
  assert.ok(narrowOverflow.html<=narrowOverflow.width,'GATELOG must not overflow at 320px: '+JSON.stringify(narrowOverflow));
  assert.equal(await page.locator('.gatelog-toolbar-spacer').evaluate(el=>getComputedStyle(el).display),'none');
  assert.match(await page.locator('#gatelogRegister').innerText(),/TIME IN|No visits/);
