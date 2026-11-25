@@ -13,7 +13,7 @@ assert.ok(page.includes('configEndpoint()')&&page.includes('/functions/v1/centra
   'CDB configuration uses the dedicated endpoint and not operational central-bank API writes');
 assert.ok(page.includes('callConfig("central-config-state")')&&page.includes('callConfig("central-config-save-draft",')&&page.includes('callConfig("central-config-publish",')&&page.includes('callConfig("central-config-restore-draft",'),
   'state, draft, publish and restore actions use the isolated endpoint');
-assert.ok(page.includes('departmentMenu: collectDepartmentMenu()'),'department menu is part of the versioned configuration payload');
+assert.ok(page.includes('departmentMenu:collectDepartmentMenu()'),'department menu is part of the versioned configuration payload');
 assert.ok(page.includes('defaultDepartmentMenu()')&&page.includes('restoreDepartmentMenuBtn'),'original menu settings can be restored');
 assert.ok(page.includes('entry.enabled!==false')&&page.includes('entry.categoryId===category.id'),'disabled department entries are hidden from the launcher');
 assert.ok(page.includes('item.enabled!==false'),'disabled submenu entries are hidden');
