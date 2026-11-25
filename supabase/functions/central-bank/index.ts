@@ -213,7 +213,14 @@ Deno.serve(async(req)=>{
     await db.from("downtime_central_audit").insert({username:currentUser.username,action:"central-config-restore-draft",details:{sourceVersion,newVersion}});
     return json({ok:true,draftVersion:newVersion,nextVersion:newVersion+1,sourceVersion});
   }
-  if(action==="daily-operator-list"){
+  const bumpCentralVersion=async()=>{
+   const {data:current}=await db.from("downtime_central_bank").select("version").eq("id",1).maybeSingle();
+   if(!current)return null;
+   const next=Number(current.version||0)+1;
+   const {data:updated}=await db.from("downtime_central_bank").update({version:next,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(current.version||0)).select("id").maybeSingle();
+   return updated?next:null;
+ };
+ if(action==="daily-operator-list"){
    const fromDate=String(body.fromDate||""),toDate=String(body.toDate||"");
    if(!/^\d{4}-\d{2}-\d{2}$/.test(fromDate)||!/^\d{4}-\d{2}-\d{2}$/.test(toDate)||fromDate>toDate)return json({error:"A valid date range is required"},400);
    const rangeDays=(Date.parse(toDate+"T00:00:00Z")-Date.parse(fromDate+"T00:00:00Z"))/86400000;
@@ -249,7 +256,8 @@ Deno.serve(async(req)=>{
    const {error:auditError}=await db.from("downtime_daily_operator_audit").insert({duty_date:dutyDate,action:actionName,operator_name:operator,previous_operator:existing?.operator_name||null,actor:currentUser.username,reason:String(body.reason||"").trim().slice(0,240)||null});
    if(auditError)return json({error:"Assignment saved but its audit event could not be recorded. Contact an administrator."},503);
    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"daily-operator-"+actionName.toLowerCase(),details:{dutyDate,operatorName:operator,previousOperator:existing?.operator_name||null}});
-   return json({ok:true,record});
+   const centralVersion=await bumpCentralVersion();
+   return json({ok:true,record,centralVersion});
  }
  if(action==="daily-operator-unlock"){
    if(!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"Supervisor permission is required to unlock the daily operator"},403);
@@ -265,7 +273,8 @@ Deno.serve(async(req)=>{
    const {error:auditError}=await db.from("downtime_daily_operator_audit").insert({duty_date:dutyDate,action:"UNLOCKED",operator_name:existing.operator_name,previous_operator:existing.operator_name,actor:currentUser.username,reason});
    if(auditError)return json({error:"Record unlocked but its audit event could not be recorded. Contact an administrator."},503);
    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"daily-operator-unlock",details:{dutyDate,operatorName:existing.operator_name,reason}});
-   return json({ok:true,dutyDate,isLocked:false,updatedBy:currentUser.username,updatedAt:now});
+   const centralVersion=await bumpCentralVersion();
+   return json({ok:true,dutyDate,isLocked:false,updatedBy:currentUser.username,updatedAt:now,centralVersion});
  }
  if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers||priv.canViewUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canDeleteRecords&&priv.canViewDashboards)restrictedData.weeks=addStableRecordIds(restrictedData.weeks||{});if(!priv.canViewStaff&&!priv.canManageStaff&&!priv.canManageAssignments){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}else if(!priv.canViewStaff&&!priv.canManageStaff&&priv.canManageAssignments){const assignmentProfiles=publicBank.staff?.profiles||{};const minimalProfiles=Object.fromEntries(Object.entries(assignmentProfiles).map(([name,profile]:any)=>[name,{name,onSite:profile?.onSite!==false,station:String(profile?.station||profile?.assignedStation||"").slice(0,100)}]));publicBank.staff={roster:publicBank.staff?.roster||[],profiles:minimalProfiles};restrictedData.staffRoster=publicBank.staff.roster;restrictedData.operatorProfiles=minimalProfiles;}if(!priv.canViewAssignments&&!priv.canManageAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff||priv.canManageStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!(priv.canViewAreaPresets||priv.canManageAreaPresets||priv.canManageSettings))delete restrictedData.areas;if(!(priv.canViewReasonPresets||priv.canManageReasonPresets||priv.canAddDowntimeReasons||priv.canManageSettings))delete restrictedData.reasons;if(!(priv.canViewShiftSchedule||priv.canManageShiftSchedule||priv.canManageSettings)){delete restrictedData.shiftSchedule;delete restrictedData.shiftPresets;}if(!(priv.canViewDailyTasks||priv.canManageDailyTasks||priv.canManageSettings))delete restrictedData.dailyTaskPresets;if(!(priv.canViewAssignments||priv.canManageAssignments||priv.canManageSettings))delete restrictedData.stationConfig;if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};const {data:dailyOperators,error:dailyOperatorError}=await db.from("downtime_daily_operator_assignments").select("duty_date,operator_name,is_locked,assigned_by,assigned_at,locked_by,locked_at,updated_by,updated_at").order("duty_date",{ascending:false}).limit(400);if(dailyOperatorError)return json({error:"Daily operator register is unavailable"},503);publicBank.dailyOperators=dailyOperators||[];return json({payload:publicBank,dailyOperators:dailyOperators||[],user:safeUser(currentUser),version:row?.version||0,updatedAt:row?.updated_at});}
  if(action==="save-state"){
