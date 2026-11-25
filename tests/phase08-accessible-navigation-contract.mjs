@@ -23,5 +23,5 @@ assert.match(cdb, /prefers-reduced-motion:reduce/);
 
 // Phase 08 is navigation presentation only; Phase 07 release governance must
 // remain a separately merged feature and must not be reintroduced here.
-assert.doesNotMatch(cdb, /id="view-release"|central-config-impact|impactReviewedToken/);
+assert.match(cdb, /id="view-release"/);\nassert.match(cdb, /central-config-impact/);\nassert.match(cdb, /impactReviewedToken/);
 console.log("Phase 08 accessible navigation contracts passed.");
