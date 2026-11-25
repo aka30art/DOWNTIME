@@ -91,6 +91,8 @@ Current repository implementation uses:
 
 These are source and contract-level facts. They do not substitute for a final live-like penetration test, multi-user concurrency test or device-to-device acceptance test.
 
+**Photo-evidence security finding:** the currently deployed production `photo-evidence` v1 endpoint accepts upload, view and delete actions without validating a Central Bank session or tier permission. The current branch adds opaque-session validation, server-side permission checks and origin-restricted CORS, and updates the browser to send the session header. This patch is not yet deployed to staging or production. Treat photo-evidence security as a release blocker until the corrected function has passed CI and authenticated staging runtime tests. The live function has deliberately not been changed during this preparation work.
+
 The older PR #47 proposal for a separate Auth/central-sync implementation is stale and diverges significantly from current main. Do not merge it or apply its old migration chain. Current repository Central Bank architecture is the source of truth for continued work.
 
 ## 5. Staging acceptance gates still required
@@ -102,6 +104,7 @@ The environment alignment completed during this session is a prerequisite, not f
 - Complete authenticated staging tests for YARD HUB, DOWNTIME, user/role administration, STAFF, station assignments, plant overview, reports and REPAIR & MAINTENANCE.
 - Test at least two independent browser sessions/devices for state propagation and simultaneous-update conflicts.
 - Verify session expiry, logout, disabled account, insufficient privilege and lockout behaviours.
+- Deploy the corrected photo-evidence function to staging only after its CI type-check and contract tests pass; then verify anonymous calls fail, authenticated upload/view works for permitted tiers, and delete is rejected unless `canDeleteRecords` is true.
 - Verify report/PDF generation, private archive access and evidence upload/read/delete permissions.
 - Verify R&M asset creation/edit/archive, fault-to-asset relationships, per-category model/asset/registration settings and historical unassigned records.
 - Test failure recovery: dropped network, API errors, stale version, interrupted upload, retry and safe refresh without silent loss of unsaved edits.
