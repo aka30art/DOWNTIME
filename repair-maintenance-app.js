@@ -35,7 +35,7 @@
   function closeOverlay(id){$(id)?.classList.remove('open');if(!document.querySelector('.overlay.open'))document.body.style.overflow=''}
   function setBusy(value){busy=value;document.querySelectorAll('button').forEach(b=>{if(b.dataset.busyControl==='true')b.disabled=value})}
   function renderSelector(){setView('selectorView');$('selectorStatus').textContent='Select a machinery category to view its fault register.';}
-  function canOpenMachineryConfiguration(){return access?.canManageRepairMaintenanceMachinery===true||access?.canManageRepairMaintenancePresets===true;}
+  function canOpenMachineryConfiguration(){return access?.canAddRepairMaintenanceMachinery===true||access?.canManageRepairMaintenanceMachinery===true||access?.canManageRepairMaintenancePresets===true;}
   function canManageRmsPresets(){return access?.canManageRepairMaintenancePresets===true;}
   function renderSettingsSelector(){if(!canOpenMachineryConfiguration()){say('R&M MACHINERY EDIT or R&M SETTINGS permission is required to manage configuration.','selectorStatus','error');return}setView('settingsView');$('settingsStatus').textContent='Select a machinery category to configure its R&M settings.';}
   async function openMachineSettings(key){
