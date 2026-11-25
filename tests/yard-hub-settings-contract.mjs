@@ -12,6 +12,9 @@ const hubApi=fs.readFileSync('supabase/functions/yard-hub-settings-api/index.ts'
 const rmApi=fs.readFileSync('supabase/functions/repair-maintenance-api/index.ts','utf8');
 const centralApi=fs.readFileSync('supabase/functions/central-bank/index.ts','utf8');
 const centralClient=fs.readFileSync('central-bank-client.js','utf8');
+const rmHtml=fs.readFileSync('repair-maintenance.html','utf8');
+const rmApp=fs.readFileSync('repair-maintenance-app.js','utf8');
+const rmStructure=fs.readFileSync('repair-maintenance-structure.js','utf8');
 
 // YARD HUB Settings is an additive surface inside the Hub, not inside the DOWNTIME application shell.
 assert.match(html,/id="yardHubSettingsBtn" data-app="settings" type="button"[^>]*hidden/,'Settings must be the fifth, access-gated application tile');
@@ -34,7 +37,14 @@ assert.ok(html.includes('yard-hub-settings.js?v=20261124-5'),'YARD HUB settings 
 assert.ok(pagesWorkflow.includes("if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'"),'Pages artifact build runs on PRs for pre-merge validation');
 assert.ok(pagesWorkflow.includes("if: github.ref == 'refs/heads/main'"),'Pages deployment remains restricted to main');
 assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261124-5'),'live deployment smoke test verifies the updated Hub settings asset');
-assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261125-3'),'live deployment smoke test verifies the updated R&M app asset');
+assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261125-4'),'live deployment smoke test verifies the updated R&M app asset');
+assert.ok(pagesWorkflow.includes('yard-hub-structure.js?v=phase09-1'),'live deployment smoke test verifies the YARD HUB structure runtime');
+assert.ok(pagesWorkflow.includes('repair-maintenance-structure.js?v=phase09-1'),'live deployment smoke test verifies the R&M structure runtime');
+assert.ok(rmHtml.includes('repair-maintenance-app.js?v=20261125-4'),'R&M app bundle is cache-busted for category structure updates');
+assert.ok(rmHtml.includes('repair-maintenance-structure.js?v=phase09-1'),'R&M page loads the published category adapter');
+assert.ok(rmHtml.includes('id="customCategoryView"'),'R&M exposes a generated placeholder workspace for custom categories');
+assert.ok(rmApp.includes('function applyMachineCategoryConfig(')&&rmApp.includes('function openCustomCategory('),'R&M renders published category labels and custom placeholder categories');
+assert.ok(rmStructure.includes("action:'yard-hub-menu'")&&rmStructure.includes('repairMaintenanceCategories'),'R&M reads published categories through the authenticated read-only structure endpoint');
 for(const id of ['openRmsSettingsShortcut','openSettingsWorkspace','saveModelDropdownSettings','settingsAddMachineryButton','machineModelItems','presetItems'])assert.ok(pagesWorkflow.includes(id),'live deployment verification covers current RMS control '+id);
 assert.ok(pagesWorkflow.includes('MACHINERY &amp; MODEL REGISTER') && pagesWorkflow.includes('REGISTERED MACHINE · FAULT REGISTER'),'live deployment verification distinguishes registered assets from make/model catalogue');
 assert.ok(pagesWorkflow.includes('! grep -q \'id="openPresets"\''),'live deployment verification rejects obsolete dashboard preset control');
