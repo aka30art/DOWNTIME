@@ -62,6 +62,7 @@ Staging Edge Function versions after this session's staging-only alignment:
 | `central-bank` | 7 | ACTIVE |
 | `repair-maintenance-api` | 10 | ACTIVE |
 | `yard-hub-settings-api` | 3 | ACTIVE |
+| `photo-evidence` | 1 | ACTIVE (session-gated branch build) |
 
 The R&M API and YARD HUB Settings API were deployed from the current repository source to staging. Their production counterparts were not changed.
 
@@ -91,7 +92,7 @@ Current repository implementation uses:
 
 These are source and contract-level facts. They do not substitute for a final live-like penetration test, multi-user concurrency test or device-to-device acceptance test.
 
-**Photo-evidence security finding:** the currently deployed production `photo-evidence` v1 endpoint accepts upload, view and delete actions without validating a Central Bank session or tier permission. The current branch adds opaque-session validation, server-side permission checks and origin-restricted CORS, and updates the browser to send the session header. This patch is not yet deployed to staging or production. Treat photo-evidence security as a release blocker until the corrected function has passed CI and authenticated staging runtime tests. The live function has deliberately not been changed during this preparation work.
+**Photo-evidence security finding:** the currently deployed production `photo-evidence` v1 endpoint accepts upload, view and delete actions without validating a Central Bank session or tier permission. The current branch adds opaque-session validation, server-side permission checks and origin-restricted CORS, and updates the browser to send the session header. The corrected function is deployed to staging as `photo-evidence` v1. CI has exercised the staging endpoint and confirmed unauthenticated upload, view and delete requests are rejected with HTTP 401. Authenticated positive-path and tier-matrix runtime tests remain pending. The live function has deliberately not been changed during this preparation work.
 
 The older PR #47 proposal for a separate Auth/central-sync implementation is stale and diverges significantly from current main. Do not merge it or apply its old migration chain. Current repository Central Bank architecture is the source of truth for continued work.
 
