@@ -343,8 +343,8 @@ window.supabase={createClient:()=>({
    {key:'KIVERCO_PICKING_LINE',kind:'native',label:'KIVERCO – PICKING LINE',sub:'CONVEYOR & SORTING SYSTEM',icon:'assets/rm-icons/kiverco.svg',enabled:true,order:0},
    {key:'TANNA_SHREDDER',kind:'native',label:'TANNA – SHREDDER',sub:'SHREDDING EQUIPMENT',icon:'assets/rm-icons/tanna.svg',enabled:true,order:1},
    {key:'FORKLIFT',kind:'native',label:'FORKLIFT',sub:'FORKLIFT FLEET',icon:'assets/rm-icons/forklift.svg',enabled:true,order:2},
-   {key:'TELEHANDLER',kind:'native',label:'TELEHANDLER',sub:'TELEHANDLER FLEET',icon:'assets/rm-icons/telehandler.svg',enabled:true,order:3},
-   {key:'EXCAVATORS_360',kind:'native',label:'360 EXCAVATORS',sub:'EXCAVATOR FLEET',icon:'assets/rm-icons/excavators_360.svg',enabled:true,order:4},
+   {key:'TELEHANDLER',kind:'native',label:'TELEHANDLER — STRUCTURE TEST',sub:'TELEHANDLER FLEET',icon:'assets/rm-icons/telehandler.svg',enabled:true,order:3},
+   {key:'EXCAVATORS_360',kind:'native',label:'360 EXCAVATORS — STRUCTURE TEST',sub:'EXCAVATOR FLEET',icon:'assets/rm-icons/excavators_360.svg',enabled:true,order:4},
    {key:'OTHER_EQUIPMENT',kind:'native',label:'OTHER EQUIPMENT',sub:'ADDITIONAL MACHINERY',icon:'assets/rm-icons/other_equipment.svg',enabled:true,order:5}
   ]}})});
   return route.fulfill({status:400,contentType:'application/json',headers:cors,body:JSON.stringify({error:'Unknown central config action'})});
@@ -422,6 +422,8 @@ async function signIn(page,pin='2468',username='DEV'){
     page.locator('#launchRepairMaintenanceBtn').click()
    ]);
    await page.locator('#selectorView').waitFor({state:'visible',timeout:5000});
+   await page.waitForFunction(()=>document.querySelector('#selectorView [data-machine="TELEHANDLER"] strong')?.textContent==='TELEHANDLER — STRUCTURE TEST',{timeout:5000});
+   assert.equal(await page.locator('#selectorView [data-machine="EXCAVATORS_360"] strong').textContent(),'360 EXCAVATORS — STRUCTURE TEST','R&M category titles must be read from the published application structure without changing machine keys');
    assert.equal(await page.locator('#loadingView').isVisible(),false,'R&M must leave session verification after a successful access response');
    assert.equal((await page.locator('#sessionUser').textContent()).trim(),'DEV','R&M must render the user authenticated by the shared YARD HUB session');
    assert.equal(await page.locator('#accessDenied').evaluate(el=>el.classList.contains('show')),false,'R&M must not show its access-denied state for an authorised session');
