@@ -2,6 +2,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const state={customers:[],vehicles:[],active:[],wasteTypes:[],screen:null};
+function ensureWorkspace(){let host=$('gatelogWorkspace');if(host)return host;const parent=document.querySelector('.yard-hub-inner');if(!parent)return null;host=document.createElement('section');host.id='gatelogWorkspace';host.hidden=true;parent.insertBefore(host,parent.querySelector('.yard-hub-footer'));return host;}
 const endpoint=()=>window.GATELOG_API||'';
 const session=()=>window.DowntimeCentral?.session||null;
 const apiKey=()=>String(window.DOWNTIME_CENTRAL_API_KEY||'').trim();
@@ -16,9 +17,9 @@ function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;'
 function stamp(value){return value?new Date(value).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'}):'—'}
 function message(text,error=false){const node=$('gatelogMessage');if(node){node.textContent=text;node.className='gatelog-message'+(error?' error':'');node.hidden=!text}}
 function showHome(){ $('gatelogWorkspace').hidden=true;document.querySelectorAll('.yard-hub-inner>.yard-hero,.yard-hub-inner>.yard-modules-heading,.yard-hub-inner>.yard-grid,.yard-hub-inner>.yard-hub-footer').forEach(x=>x.hidden=false);window.dispatchEvent(new Event('yard-hub:shown'));window.scrollTo({top:0,behavior:'instant'})}
-function open(){const hub=$('yardHub');if(!hub||hub.hidden)return;document.querySelectorAll('.yard-hub-inner>.yard-hero,.yard-hub-inner>.yard-modules-heading,.yard-hub-inner>.yard-grid,.yard-hub-inner>.yard-hub-footer').forEach(x=>x.hidden=true);$('gatelogWorkspace').hidden=false;window.scrollTo({top:0,behavior:'instant'});load().catch(e=>message(e.message,true))}
+function open(){const hub=$('yardHub');if(!hub||hub.hidden)return;ensureWorkspace();document.querySelectorAll('.yard-hub-inner>.yard-hero,.yard-hub-inner>.yard-modules-heading,.yard-hub-inner>.yard-grid,.yard-hub-inner>.yard-hub-footer').forEach(x=>x.hidden=true);$('gatelogWorkspace').hidden=false;window.scrollTo({top:0,behavior:'instant'});load().catch(e=>message(e.message,true))}
 async function load(){const data=await call('bootstrap');state.customers=data.customers||[];state.vehicles=data.vehicles||[];state.active=data.activeVisits||[];state.wasteTypes=data.wasteTypes||[];render()}
-function render(){const host=$('gatelogWorkspace');if(!host)return;host.innerHTML=`
+function render(){const host=ensureWorkspace();if(!host)return;host.innerHTML=`
 <div class="gatelog-screen">
  <header class="gatelog-head"><button id="gatelogBack" class="gatelog-back">‹ BACK TO YARD HUB</button><div><div class="gatelog-eyebrow">YARD OPERATIONS CORE</div><h1>GATELOG</h1><div class="gatelog-muted">CUSTOMER & SITE ENTRY MANAGEMENT</div></div></header>
  <div id="gatelogMessage" class="gatelog-message" hidden></div>
@@ -50,4 +51,5 @@ async function searchHistory(){try{const data=await call('history',{search:$('ga
 document.addEventListener('click',async e=>{const button=e.target.closest('[data-depart]');if(!button)return;button.disabled=true;try{await call('departure',{visitId:button.dataset.depart});await load();message('Departure recorded. Time Out was generated automatically.')}catch(err){message(err.message,true);button.disabled=false}});
 document.addEventListener('yard-hub:shown',()=>{if(!$('gatelogWorkspace')?.hidden)load().catch(e=>message(e.message,true))});
 window.GATELOG={open,showHome};
+const launchButton=$('launchGatelogBtn');if(launchButton)launchButton.addEventListener('click',e=>{e.preventDefault();open()});
 })();
