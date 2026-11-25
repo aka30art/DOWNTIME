@@ -239,7 +239,7 @@ try{
  assert.equal(await page.locator('#publishBtn').isEnabled(),true,'saved draft can be published only after impact review');
 
  await page.locator('#publishBtn').click();
- await page.getByText('Reviewed configuration v2 published to the isolated registry.',{exact:false}).waitFor();
+ await page.getByText('Configuration v2 published. YARD HUB menu changes are now available to authenticated users after the launcher refreshes.',{exact:false}).waitFor();
  assert.equal(await page.locator('#publishedKpi').textContent(),'v2','publish updates the published registry version');
 
  await returnToDepartmentMenu(page);
