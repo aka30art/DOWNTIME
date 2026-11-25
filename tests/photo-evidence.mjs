@@ -34,7 +34,9 @@ assert.doesNotMatch(fn,/"Access-Control-Allow-Origin": "\*"/,'photo endpoint doe
 assert.match(fn,/async function resolveAccess/,'photo endpoint resolves authenticated DOWNTIME access server-side');
 assert.match(fn,/from\("downtime_central_sessions"\)/,'photo endpoint validates opaque sessions against the central session table');
 assert.match(fn,/from\("downtime_central_bank"\)/,'photo endpoint resolves the current enabled account and tier');
-assert.match(fn,/if\(!access\.canEditTracker\)/,'upload and delete require server-side tracker edit permission');
+assert.match(fn,/if\(!access\.canEditTracker\)/,'photo upload requires server-side tracker edit permission');
+assert.match(fn,/if\(!access\.canDeleteRecords\)/,'photo deletion requires the separate server-side record-delete permission');
+assert.match(html,/photoUploading\|\|!permission\('canDeleteRecords'\)/,'photo removal control is gated by the record-delete right');
 assert.match(fn,/if\(!access\.canViewDashboards\)/,'view requires server-side dashboard view permission');
 assert.match(fn,/DOWNTIME session expired/,'expired sessions are rejected');
 
