@@ -45,7 +45,7 @@ assert.match(atomic,/yardHubMenu/);
 assert.match(customerArrival,/gatelog_create_customer_arrival/);
 assert.match(customerArrival,/customer_record/);
 assert.match(customerArrival,/gatelog_visits/);
-assert.match(customerArrival,/gatelog_audit/);
+assert.match(customerArrival,/gatelog_audit/);\nassert.match(customerArrival,/gatelog_overall_statistics/);\nassert.match(customerArrival,/average_minutes/);\nassert.match(api,/gatelog_overall_statistics/);
 assert.match(menuApi,/id: "gatelog", kind: "gatelog"/);
 assert.match(admin,/id:"gatelog",kind:"gatelog"/);
 console.log('GATELOG module contract: PASS');
