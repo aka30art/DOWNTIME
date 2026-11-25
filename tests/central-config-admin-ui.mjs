@@ -128,7 +128,7 @@ try{
  await page.locator('#pin').fill('1234');
  await page.locator('#loginBtn').click();
  await page.locator('#view-departments').waitFor({state:'visible'});
- assert.equal(await page.locator('.cdb-dept-card').count(),5,'department launcher presents all five YARD HUB application areas');
+ assert.equal(await page.locator('#view-departments .cdb-dept-card').count(),5,'department launcher presents all five YARD HUB application areas');
  await returnToDepartmentMenu(page);
  await page.locator('[data-section="dept-downtime"]').click();
  assert.ok(await page.getByText('DOWNTIME OPERATIONAL INTEGRITY').count(),'DOWNTIME control page states the operational protection boundary');
