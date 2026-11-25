@@ -14,9 +14,9 @@ begin
   if v_name = '' or length(v_name) > 120 then raise exception 'A valid customer/company name is required'; end if;
   if v_registration = '' or length(v_registration) > 20 then raise exception 'A valid vehicle registration is required'; end if;
   if coalesce(array_length(p_waste_types,1),0)=0 then raise exception 'Select at least one waste type'; end if;
-  insert into public.gatelog_customers(customer_name,active) values(v_name,true)
+  insert into public.gatelog_customers as customer_record(customer_name,active) values(v_name,true)
   on conflict (lower(customer_name)) where active do update set customer_name=excluded.customer_name
-  returning id, public.gatelog_customers.customer_name into v_customer_id, v_name;
+  returning customer_record.id, customer_record.customer_name into v_customer_id, v_name;
   insert into public.gatelog_vehicles(customer_id,registration,active) values(v_customer_id,v_registration,true)
   on conflict(customer_id,registration) do update set active=true returning id into v_vehicle_id;
   insert into public.gatelog_visits(customer_id,vehicle_id,vehicle_registration_snapshot,created_by)
