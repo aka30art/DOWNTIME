@@ -567,6 +567,8 @@ try{
  assert.equal(await owner.page.locator('#reportPreviewFrame').getAttribute('src'),null,'closing the preview releases its PDF object URL');
  await owner.page.locator('#returnMainMenu').click();
  await owner.page.locator('.nav[data-view="weekly"]').click();
+ await owner.page.locator('#returnMainMenu').waitFor({state:'visible',timeout:5000});
+ await owner.page.locator('#returnMainMenu').click();
  assert.equal(await owner.page.locator('.nav[data-view="staff"]').count(),0,'STAFF is no longer a standalone navigation item');
  assert.equal(await owner.page.locator('.nav[data-view="settings"]').isVisible(),true,'OWNER can open Settings');
  await openSettingsHub(owner.page);
