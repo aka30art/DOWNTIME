@@ -139,6 +139,39 @@ function normalizeDepartmentMenu(input: unknown) {
     entries: entries.sort((a, b) => a.order - b.order || a.id.localeCompare(b.id)),
   };
 }
+function normalizeMasterHierarchy(input: unknown) {
+  if (input === undefined || input === null) return [];
+  if (!Array.isArray(input)) throw new Error("Master hierarchy must be a list of sites");
+  if (input.length > 100) throw new Error("Master hierarchy cannot contain more than 100 sites");
+  const seenIds = new Set<string>();
+  const cleanLevel = (items: any[], level: string, max: number, childKey: string | null, parentPath: string): any[] => {
+    if (!Array.isArray(items)) throw new Error(parentPath + " must be a list");
+    if (items.length > max) throw new Error(parentPath + " contains too many records");
+    const seenNames = new Set<string>();
+    return items.map((item: any) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error(parentPath + " entries must be objects");
+      const id = configString(item.id, level + " ID", 40).toLowerCase();
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) throw new Error(level + " IDs must use lowercase letters, numbers and hyphens");
+      if (seenIds.has(id)) throw new Error("Master hierarchy contains a duplicate record ID: " + id);
+      seenIds.add(id);
+      const name = configString(item.name, level + " name", 80);
+      if (!name) throw new Error(level + " names cannot be blank");
+      const key = name.toLocaleLowerCase();
+      if (seenNames.has(key)) throw new Error(parentPath + " contains a duplicate name: " + name);
+      seenNames.add(key);
+      const result: any = { id, name };
+      if (childKey) result[childKey] = cleanLevel(item[childKey] ?? [], ({ plants: "plant", areas: "area", stations: "station" } as Record<string,string>)[childKey]!, childKey === "plants" ? 300 : childKey === "areas" ? 1000 : 3000, childKey === "plants" ? "areas" : childKey === "areas" ? "stations" : null, level + " " + name + " " + childKey);
+      else if (item.stations !== undefined) throw new Error("Stations cannot contain child records");
+      return result;
+    });
+  };
+  const sites = cleanLevel(input as any[], "site", 100, "plants", "Sites");
+  const totals = { plants: 0, areas: 0, stations: 0 };
+  sites.forEach((site: any) => site.plants.forEach((plant: any) => { totals.plants++; plant.areas.forEach((area: any) => { totals.areas++; totals.stations += area.stations.length; }); }));
+  if (totals.plants > 300 || totals.areas > 1000 || totals.stations > 3000) throw new Error("Master hierarchy exceeds the registry limits");
+  return sites;
+}
+
 function normalizeCentralConfig(input: any) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Configuration object required");
   if (JSON.stringify(input).length > 250000) throw new Error("Configuration is too large");
@@ -187,6 +220,7 @@ function normalizeCentralConfig(input: any) {
       plants: configStringList(structure.plants || [], "Plants"),
       areas: configStringList(structure.areas || [], "Plant areas"),
       stations: configStringList(structure.stations || [], "Stations"),
+      hierarchy: normalizeMasterHierarchy(structure.hierarchy),
     },
     libraries: {
       areaPresets: configStringList(libraries.areaPresets || [], "Area presets"),

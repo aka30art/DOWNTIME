@@ -121,6 +121,33 @@ small,.muted{color:var(--muted)}
 @media(max-width:760px){.cdb-dept-grid{gap:10px}.cdb-dept-card{min-height:150px;padding:18px 16px;grid-template-columns:78px minmax(0,1fr);gap:12px}.cdb-dept-mark{width:66px;height:66px;font-size:21px}.cdb-dept-copy{padding-left:10px}.cdb-dept-copy strong{font-size:18px}}
 @media(max-width:540px){.cdb-dept-heading{align-items:flex-start;flex-direction:column;gap:4px}.cdb-dept-grid{grid-template-columns:1fr;gap:9px}.cdb-dept-card{min-height:126px;padding:16px}.cdb-dept-copy strong{font-size:21px}.cdb-detail-grid{grid-template-columns:1fr}}
 
+/* Phase 03 · structured master registry */
+.cdb-hierarchy-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:15px 17px;border:1px solid #3b5969;border-radius:12px;background:linear-gradient(120deg,#152f40,#0b1d29);margin-bottom:12px}
+.cdb-hierarchy-toolbar strong{display:block;color:#ffdb52;font-size:11px;letter-spacing:1px}
+.cdb-hierarchy-toolbar small{display:block;color:#8fa7b6;font-size:10px;margin-top:4px}
+.cdb-hierarchy-summary{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 13px}
+.cdb-hierarchy-stat{padding:7px 10px;border:1px solid #294655;border-radius:8px;background:#0a1b26;color:#a9bdc9;font-size:10px}
+.cdb-hierarchy-stat strong{color:#f5d65d;margin-right:4px}
+.cdb-hierarchy-tree{display:grid;gap:12px}
+.cdb-hierarchy-empty{padding:28px 18px;text-align:center;border:1px dashed #456174;border-radius:12px;color:#9db1bd;background:#091923}
+.cdb-hierarchy-site{border:1px solid #536a7b;border-radius:12px;background:linear-gradient(145deg,#112b3b,#0a1b26);overflow:hidden}
+.cdb-hierarchy-site-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;background:#173448;border-bottom:1px solid #35566a}
+.cdb-hierarchy-site-head strong{font-size:13px;letter-spacing:.4px}
+.cdb-hierarchy-children{padding:12px;display:grid;gap:9px}
+.cdb-hierarchy-node{border:1px solid #2e4b5c;border-radius:9px;background:#0a1b26;overflow:hidden}
+.cdb-hierarchy-node-head{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:10px 12px}
+.cdb-hierarchy-node-head strong{font-size:11px;color:#e9f0f4}
+.cdb-hierarchy-node-head small{display:block;color:#829cab;font-size:9px;margin-top:2px}
+.cdb-hierarchy-node-body{padding:0 12px 11px 22px;display:grid;gap:8px}
+.cdb-hierarchy-actions{display:flex;gap:5px;flex-wrap:wrap}
+.cdb-hierarchy-actions button{padding:6px 8px;font-size:9px}
+.cdb-hierarchy-add{border-color:#426c58;color:#a9ebc3;background:#10291f}
+.cdb-hierarchy-delete{border-color:#70463f;color:#ffb1a7;background:#2a1718}
+.cdb-hierarchy-level{color:#ffdc54;font-size:9px;font-weight:950;letter-spacing:1px;text-transform:uppercase}
+.cdb-legacy-data{margin-top:15px;padding:12px 14px;border:1px solid #2b4656;border-radius:10px;background:#091923}
+.cdb-legacy-data summary{cursor:pointer;color:#a9bdc9;font-size:11px;font-weight:850}
+.cdb-legacy-data p{color:#829cab;font-size:10px;line-height:1.5}
+@media(max-width:600px){.cdb-hierarchy-site-head,.cdb-hierarchy-node-head{align-items:flex-start;flex-direction:column}.cdb-hierarchy-actions{width:100%}.cdb-hierarchy-actions button{flex:1}}
 /* Phase 02 · isolated department menu editor */
 .cdb-menu-layout{display:grid;gap:14px}
 .cdb-menu-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
@@ -309,13 +336,18 @@ small,.muted{color:var(--muted)}
    </section>
 
    <section class="view" id="view-structure">
-    <div class="pagehead"><div><div class="eyebrow">MASTER REGISTRY / 02</div><h1>Plant & Areas</h1><p>Maintain the structural hierarchy used to describe company sites, plants, operational areas and stations.</p></div><span class="pill">REFERENCE DATA</span></div>
-    <div class="editor-grid">
-     <div class="editor"><label for="sites">Sites</label><textarea id="sites" placeholder="One site per line"></textarea><div class="hint">One unique site name or code per line.</div></div>
-     <div class="editor"><label for="plants">Plants / facilities</label><textarea id="plants" placeholder="One plant per line"></textarea><div class="hint">Plant or facility records belonging to the configured sites.</div></div>
-     <div class="editor"><label for="areas">Plant areas</label><textarea id="areas" placeholder="One operational area per line"></textarea><div class="hint">Named areas within each plant, for example processing zones or departments.</div></div>
-     <div class="editor"><label for="stations">Stations / work positions</label><textarea id="stations" placeholder="One station per line"></textarea><div class="hint">Standard station names used by plant operations.</div></div>
-    </div>
+    <div class="pagehead"><div><div class="eyebrow">MASTER REGISTRY / 02</div><h1>Plant & Areas</h1><p>Build the organisation's physical hierarchy. Every plant belongs to a site, every area belongs to a plant, and every station belongs to an area.</p></div><span class="pill">REFERENCE DATA</span></div>
+    <div class="cdb-hierarchy-toolbar"><div><strong>MASTER LOCATION HIERARCHY</strong><small>Changes remain in the CDB draft until saved and published.</small></div><button id="addSiteBtn" type="button" class="primary">＋ ADD SITE</button></div>
+    <div id="hierarchySummary" class="cdb-hierarchy-summary" aria-live="polite"></div>
+    <div id="hierarchyTree" class="cdb-hierarchy-tree"></div>
+    <details class="cdb-legacy-data"><summary>Legacy flat reference lists · compatibility only</summary><p>These lists are retained for compatibility with earlier configuration snapshots. New master records should be created in the hierarchy above. Existing values are preserved and are not automatically assigned to a parent.</p>
+     <div class="editor-grid">
+      <div class="editor"><label for="sites">Legacy sites</label><textarea id="sites" placeholder="One site per line"></textarea></div>
+      <div class="editor"><label for="plants">Legacy plants / facilities</label><textarea id="plants" placeholder="One plant per line"></textarea></div>
+      <div class="editor"><label for="areas">Legacy plant areas</label><textarea id="areas" placeholder="One area per line"></textarea></div>
+      <div class="editor"><label for="stations">Legacy stations / work positions</label><textarea id="stations" placeholder="One station per line"></textarea></div>
+     </div>
+    </details>
    </section>
 
    <section class="view" id="view-libraries">
@@ -503,7 +535,7 @@ small,.muted{color:var(--muted)}
   host.querySelectorAll("button[data-section]").forEach(button=>button.addEventListener("click",()=>showSection(button.dataset.section)));
  }
 
- function blankConfig(){return {schemaVersion:1,departmentMenu:defaultDepartmentMenu(),navigation:{overview:"Overview",organisation:"Organisation",structure:"Plant & Areas",libraries:"Operational Libraries",defaults:"System Defaults",history:"Version History",navigation:"Menu & Labels",modules:"Module Registry",controls:"System Controls",information:"System Information"},modules:[],organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
+ function blankConfig(){return {schemaVersion:1,departmentMenu:defaultDepartmentMenu(),navigation:{overview:"Overview",organisation:"Organisation",structure:"Plant & Areas",libraries:"Operational Libraries",defaults:"System Defaults",history:"Version History",navigation:"Menu & Labels",modules:"Module Registry",controls:"System Controls",information:"System Information"},modules:[],organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[],hierarchy:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
  const lines=value=>Array.isArray(value)?value.join("\n"):"";
  function list(id){return $(id).value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean)}
  function setValue(id,value){$(id).value=value??""}
@@ -518,12 +550,51 @@ small,.muted{color:var(--muted)}
   const c=config||blankConfig(),org=c.organization||{},structure=c.structure||{},libraries=c.libraries||{},defaults=c.defaults||{},navigation=c.navigation||blankConfig().navigation;setValue("moduleRegistry",lines(c.modules));renderDepartmentMenu(c.departmentMenu||defaultDepartmentMenu());
   Object.keys(navigation).forEach(key=>setValue("navLabel"+key.charAt(0).toUpperCase()+key.slice(1),navigation[key]));renderNavigation(navigation);
   setValue("companyName",org.companyName);setValue("siteCode",org.siteCode);setValue("timezone",org.timezone||"Europe/London");setValue("locale",org.locale||"en-GB");
-  ["sites","plants","areas","stations"].forEach(key=>setValue(key,lines(structure[key])));
+  ["sites","plants","areas","stations"].forEach(key=>setValue(key,lines(structure[key])));hierarchyDraft=cloneHierarchy(structure.hierarchy||[]);renderHierarchy(hierarchyDraft);
   ["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].forEach(key=>setValue(key,lines(libraries[key])));
   setValue("weekStartsOn",defaults.weekStartsOn||"MONDAY");setValue("breakDeductionMinutes",Number.isInteger(Number(defaults.breakDeductionMinutes))?defaults.breakDeductionMinutes:75);
   document.querySelectorAll("[data-operating-day]").forEach(input=>input.checked=(defaults.operatingDays||DAYS.slice(0,6)).includes(input.value));
   setValue("shiftSchedule",JSON.stringify(defaults.shiftSchedule||{},null,2));setValue("shiftPresets",JSON.stringify(defaults.shiftPresets||[],null,2));
  }
+ const cloneHierarchy=value=>JSON.parse(JSON.stringify(Array.isArray(value)?value:[]));
+ function hierarchyId(name){const ids=new Set();const walk=sites=>sites.forEach(site=>{ids.add(site.id);(site.plants||[]).forEach(plant=>{ids.add(plant.id);(plant.areas||[]).forEach(area=>{ids.add(area.id);(area.stations||[]).forEach(station=>ids.add(station.id));});});});walk(hierarchyDraft);const base=String(name).toLocaleLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,32)||"item";let id=base,n=2;while(ids.has(id)){id=base+"-"+n++;}return id;}
+ function hierarchyButton(label,action,kind=""){const button=document.createElement("button");button.type="button";button.textContent=label;button.dataset.hierarchyAction=action;if(kind)button.className=kind;return button;}
+ function renderHierarchy(value){
+  const sites=cloneHierarchy(value),host=$("hierarchyTree"),summary=$("hierarchySummary");host.replaceChildren();summary.replaceChildren();
+  const counts={sites:sites.length,plants:0,areas:0,stations:0};sites.forEach(site=>(site.plants||[]).forEach(plant=>{counts.plants++;(plant.areas||[]).forEach(area=>{counts.areas++;counts.stations+=(area.stations||[]).length;});}));
+  [["SITES",counts.sites],["PLANTS",counts.plants],["AREAS",counts.areas],["STATIONS",counts.stations]].forEach(([label,count])=>{const item=document.createElement("span");item.className="cdb-hierarchy-stat";const strong=document.createElement("strong");strong.textContent=String(count);item.append(strong,document.createTextNode(label));summary.append(item);});
+  if(!sites.length){const empty=document.createElement("div");empty.className="cdb-hierarchy-empty";empty.textContent="No sites have been registered. Add a site to begin building the master hierarchy.";host.append(empty);}
+  const actions=(node,level)=>{const wrap=document.createElement("div");wrap.className="cdb-hierarchy-actions";wrap.append(hierarchyButton("RENAME","rename"),hierarchyButton("DELETE","delete","cdb-hierarchy-delete"));if(level!=="station")wrap.append(hierarchyButton("＋ ADD "+({site:"PLANT",plant:"AREA",area:"STATION"}[level]),"add-"+({site:"plant",plant:"area",area:"station"}[level]),"cdb-hierarchy-add"));node.append(wrap);};
+  sites.forEach(site=>{
+   const card=document.createElement("section");card.className="cdb-hierarchy-site";card.dataset.nodeId=site.id;card.dataset.nodeLevel="site";
+   const head=document.createElement("div");head.className="cdb-hierarchy-site-head";const name=document.createElement("strong");name.textContent=site.name;const level=document.createElement("span");level.className="cdb-hierarchy-level";level.textContent="SITE";head.append(name,level);actions(head,"site");card.append(head);
+   const children=document.createElement("div");children.className="cdb-hierarchy-children";
+   (site.plants||[]).forEach(plant=>{
+    const p=document.createElement("div");p.className="cdb-hierarchy-node";p.dataset.nodeId=plant.id;p.dataset.nodeLevel="plant";const ph=document.createElement("div");ph.className="cdb-hierarchy-node-head";const pc=document.createElement("div"),pn=document.createElement("strong"),pl=document.createElement("small");pn.textContent=plant.name;pl.textContent="PLANT / FACILITY";pc.append(pn,pl);ph.append(pc);actions(ph,"plant");p.append(ph);
+    const pbody=document.createElement("div");pbody.className="cdb-hierarchy-node-body";
+    (plant.areas||[]).forEach(area=>{
+     const a=document.createElement("div");a.className="cdb-hierarchy-node";a.dataset.nodeId=area.id;a.dataset.nodeLevel="area";const ah=document.createElement("div");ah.className="cdb-hierarchy-node-head";const ac=document.createElement("div"),an=document.createElement("strong"),al=document.createElement("small");an.textContent=area.name;al.textContent="OPERATIONAL AREA";ac.append(an,al);ah.append(ac);actions(ah,"area");a.append(ah);
+     const abody=document.createElement("div");abody.className="cdb-hierarchy-node-body";
+     (area.stations||[]).forEach(station=>{const s=document.createElement("div");s.className="cdb-hierarchy-node";s.dataset.nodeId=station.id;s.dataset.nodeLevel="station";const sh=document.createElement("div");sh.className="cdb-hierarchy-node-head";const sc=document.createElement("div"),sn=document.createElement("strong"),sl=document.createElement("small");sn.textContent=station.name;sl.textContent="WORK STATION";sc.append(sn,sl);sh.append(sc);actions(sh,"station");s.append(sh);abody.append(s);});
+     if(!(area.stations||[]).length){const hint=document.createElement("small");hint.className="muted";hint.textContent="No stations assigned.";abody.append(hint);}
+     a.append(abody);pbody.append(a);
+    });
+    if(!(plant.areas||[]).length){const hint=document.createElement("small");hint.className="muted";hint.textContent="No areas assigned.";pbody.append(hint);}
+    p.append(pbody);children.append(p);
+   });
+   if(!(site.plants||[]).length){const hint=document.createElement("small");hint.className="muted";hint.textContent="No plants assigned.";children.append(hint);}
+   card.append(children);host.append(card);
+  });
+ }
+ function collectHierarchy(){return cloneHierarchy(hierarchyDraft);}
+ let hierarchyDraft=[];
+ function findHierarchyNode(id,level){for(const site of hierarchyDraft){if(level==="site"&&site.id===id)return {node:site,parent:null};for(const plant of site.plants||[]){if(level==="plant"&&plant.id===id)return {node:plant,parent:site};for(const area of plant.areas||[]){if(level==="area"&&area.id===id)return {node:area,parent:plant};for(const station of area.stations||[])if(level==="station"&&station.id===id)return {node:station,parent:area};}}}return null;}
+ function hierarchySiblings(level,parent){if(level==="site")return hierarchyDraft;if(level==="plant")return parent.plants;if(level==="area")return parent.areas;return parent.stations;}
+ function hierarchyPromptName(label,current=""){const value=window.prompt(label,current);if(value===null)return null;const name=value.trim();if(!name)throw new Error("Names cannot be blank.");if(name.length>80)throw new Error("Names must be 80 characters or fewer.");return name;}
+ function addHierarchyNode(level,parentId){const parent=level==="site"?null:findHierarchyNode(parentId,({plant:"site",area:"plant",station:"area"})[level])?.node;if(level!=="site"&&!parent)throw new Error("The selected parent record could not be found.");const label=({site:"Site name",plant:"Plant / facility name",area:"Operational area name",station:"Station name"})[level];const name=hierarchyPromptName("Enter "+label);if(name===null)return;const siblings=hierarchySiblings(level,parent);if(siblings.some(item=>item.name.toLocaleLowerCase()===name.toLocaleLowerCase()))throw new Error("A record with this name already exists at this level.");const node={id:hierarchyId(name),name};if(level==="site")node.plants=[];if(level==="plant")node.areas=[];if(level==="area")node.stations=[];siblings.push(node);renderHierarchy(hierarchyDraft);updateButtons();}
+ function renameHierarchyNode(id,level){const found=findHierarchyNode(id,level);if(!found)return;const name=hierarchyPromptName("Rename "+level,found.node.name);if(name===null)return;const siblings=hierarchySiblings(level,found.parent);if(siblings.some(item=>item.id!==id&&item.name.toLocaleLowerCase()===name.toLocaleLowerCase()))throw new Error("A record with this name already exists at this level.");found.node.name=name;renderHierarchy(hierarchyDraft);updateButtons();}
+ function deleteHierarchyNode(id,level){const found=findHierarchyNode(id,level);if(!found)return;const children=level==="site"?(found.node.plants||[]):level==="plant"?(found.node.areas||[]):level==="area"?(found.node.stations||[]):[];if(children.length)throw new Error("This record has child records. Remove or reassign them before deleting the parent.");if(!window.confirm("Delete "+level+" '"+found.node.name+"' from the draft hierarchy?"))return;const siblings=hierarchySiblings(level,found.parent);const index=siblings.findIndex(item=>item.id===id);if(index>=0)siblings.splice(index,1);renderHierarchy(hierarchyDraft);updateButtons();}
+ function handleHierarchyAction(event){const button=event.target.closest("button[data-hierarchy-action]");if(!button)return;const card=button.closest("[data-node-id]");const id=card?.dataset.nodeId,level=card?.dataset.nodeLevel,action=button.dataset.hierarchyAction;try{if(action==="add-site")addHierarchyNode("site");else if(action.startsWith("add-"))addHierarchyNode(action.slice(4),id);else if(action==="rename")renameHierarchyNode(id,level);else if(action==="delete")deleteHierarchyNode(id,level);}catch(error){status(error.message,true);}}
  function collectConfig(){
   let shiftSchedule,shiftPresets;
   try{shiftSchedule=JSON.parse($("shiftSchedule").value||"{}")}catch{throw new Error("Shift schedule must be valid JSON")}
@@ -536,7 +607,7 @@ small,.muted{color:var(--muted)}
    departmentMenu:collectDepartmentMenu(),
    navigation:{overview:$("navLabelOverview").value.trim()||"Overview",organisation:$("navLabelOrganisation").value.trim()||"Organisation",structure:$("navLabelStructure").value.trim()||"Plant & Areas",libraries:$("navLabelLibraries").value.trim()||"Operational Libraries",defaults:$("navLabelDefaults").value.trim()||"System Defaults",history:$("navLabelHistory").value.trim()||"Version History",navigation:$("navLabelNavigation").value.trim()||"Menu & Labels",modules:$("navLabelModules").value.trim()||"Module Registry",controls:$("navLabelControls").value.trim()||"System Controls",information:$("navLabelInformation").value.trim()||"System Information"},
    organization:{companyName:$("companyName").value.trim(),siteCode:$("siteCode").value.trim(),timezone:$("timezone").value.trim(),locale:$("locale").value.trim()},
-   structure:{sites:list("sites"),plants:list("plants"),areas:list("areas"),stations:list("stations")},
+   structure:{sites:list("sites"),plants:list("plants"),areas:list("areas"),stations:list("stations"),hierarchy:collectHierarchy()},
    libraries:{areaPresets:list("areaPresets"),downtimeReasons:list("downtimeReasons"),dailyTaskPresets:list("dailyTaskPresets"),equipmentCategories:list("equipmentCategories"),eventCategories:list("eventCategories"),statusCategories:list("statusCategories")},
    defaults:{shiftSchedule,shiftPresets,weekStartsOn:$("weekStartsOn").value,operatingDays:Array.from(document.querySelectorAll("[data-operating-day]:checked")).map(input=>input.value),breakDeductionMinutes:Number($("breakDeductionMinutes").value)}
   };
@@ -552,7 +623,7 @@ small,.muted{color:var(--muted)}
  }
  function countItems(c){
   const s=c.structure||{},l=c.libraries||{};
-  return (c.modules||[]).length+["sites","plants","areas","stations"].reduce((n,k)=>n+(s[k]||[]).length,0)+["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].reduce((n,k)=>n+(l[k]||[]).length,0);
+  const tree=(s.hierarchy||[]).reduce((n,site)=>n+1+(site.plants||[]).reduce((p,plant)=>p+1+(plant.areas||[]).reduce((a,area)=>a+1+(area.stations||[]).length,0),0),0);return (c.modules||[]).length+tree+["sites","plants","areas","stations"].reduce((n,k)=>n+(s[k]||[]).length,0)+["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].reduce((n,k)=>n+(l[k]||[]).length,0);
  }
  function renderOverview(){
   $("publishedKpi").textContent="v"+publishedVersion;$("draftKpi").textContent="v"+draftVersion;
@@ -644,6 +715,7 @@ small,.muted{color:var(--muted)}
  document.querySelectorAll("#workspace input,#workspace textarea,#workspace select").forEach(input=>input.addEventListener("input",updateButtons));
  $("projectUrl").addEventListener("change",rememberConnection);$("pubKey").addEventListener("change",rememberConnection);
  buildDayChecks();renderForm(blankConfig());updateButtons();
+ $("addSiteBtn").addEventListener("click",()=>{try{addHierarchyNode("site");}catch(error){status(error.message,true);}});$("hierarchyTree").addEventListener("click",handleHierarchyAction);
  $("addDepartmentCategoryBtn").addEventListener("click",addDepartmentCategory);
  $("newDepartmentCategory").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();addDepartmentCategory();}});
  $("restoreDepartmentMenuBtn").addEventListener("click",()=>{if(!window.confirm("Restore the original five department entries and two default categories? Save Draft is required to persist this reset."))return;renderDepartmentMenu(defaultDepartmentMenu());updateButtons();status("Original department menu restored locally. Save Draft to persist this reset.");});
