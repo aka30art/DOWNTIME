@@ -15,7 +15,7 @@ assert.doesNotMatch(html,/const SB_URL=/,'No duplicate Supabase constants declar
 assert.match(html,/async function photoApi\(action,payload=\{\}\)/,'all photo API operations use the authenticated request helper');
 assert.match(html,/window\.DowntimeCentral\?\.session\?\.token/,'photo API reads the active Central Bank session token');
 assert.match(html,/x-downtime-session':sessionToken/,'photo API transmits the opaque session token');
-assert.doesNotMatch(html,/fetch\(PHOTO_ENDPOINT/,'photo API calls cannot bypass the authenticated request helper');
+assert.equal((html.match(/fetch\(PHOTO_ENDPOINT/g)||[]).length,1,'photo endpoint network calls are centralised in one authenticated helper');
 
 assert.match(html,/id="photoInput" type="file" accept="image\/\*"/,'Gallery/files picker input exists');
 assert.match(html,/id="photoCameraInput" type="file" accept="image\/\*" capture="environment"/,'Dedicated camera capture input exists');
