@@ -39,16 +39,16 @@ Deno.serve(async (req: Request) => {
 
   if(action==="bootstrap"){
     const today = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/London" });
-    const [customers,vehicles,active,waste,todayVisits,customerStats,allVisits] = await Promise.all([
+    const [customers,vehicles,active,waste,todayVisits,customerStats,allVisits,registerRows] = await Promise.all([
       db.from("gatelog_customers").select("id,customer_name,created_at").eq("active",true).order("customer_name"),
       db.from("gatelog_vehicles").select("id,customer_id,registration").eq("active",true).order("registration"),
       db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,status").eq("status","ON_SITE").order("time_in",{ascending:false}),
       db.from("gatelog_waste_types").select("id,label").order("label"),
       db.from("gatelog_visits").select("id,status").eq("visit_date",today),
       db.rpc("gatelog_customer_visit_stats"),
-      db.from("gatelog_visits").select("id,status,time_in,time_out,gatelog_visit_waste_types(gatelog_waste_types(label))")
+      db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,time_out,status,gatelog_customers(customer_name),gatelog_visit_waste_types(gatelog_waste_types(label))").order("time_in",{ascending:false}).limit(100)
     ]);
-    const error=[customers,vehicles,active,waste,todayVisits,customerStats,allVisits].find(x=>x.error)?.error;if(error)return json({error:"GATELOG data could not be loaded."},503);
+    const error=[customers,vehicles,active,waste,todayVisits,customerStats,allVisits,registerRows].find(x=>x.error)?.error;if(error)return json({error:"GATELOG data could not be loaded."},503);
     const customerIds=(customers.data||[]).map((x:any)=>x.id);
     const visits=active.data||[];
     const ids=visits.map((x:any)=>x.id);
@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
     const wasteCounts=new Map<string,number>();let completedMinutes=0,completedCount=0;
     for(const visit of historical){for(const item of visit.gatelog_visit_waste_types||[]){const label=item.gatelog_waste_types?.label;if(label)wasteCounts.set(label,(wasteCounts.get(label)||0)+1);}if(visit.status==="DEPARTED"&&visit.time_in&&visit.time_out){const duration=(new Date(visit.time_out).getTime()-new Date(visit.time_in).getTime())/60000;if(Number.isFinite(duration)&&duration>=0){completedMinutes+=duration;completedCount++;}}}
     const mostCommon=[...wasteCounts.entries()].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0];
-    return json({customers:customers.data||[],vehicles:vehicles.data||[],customerStats:Object.fromEntries((customerStats.data||[]).map((row:any)=>[row.customer_id,{totalVisits:Number(row.total_visits)||0,todayVisits:Number(row.today_visits)||0}])),arrivalsToday:(todayVisits.data||[]).length,departuresToday:(todayVisits.data||[]).filter((v:any)=>v.status==="DEPARTED").length,activeVisits:visits.map((v:any)=>({...v,customer_name:(customerRows.data||[]).find((c:any)=>c.id===v.customer_id)?.customer_name||"Unknown",waste_types:(visitWaste.data||[]).filter((w:any)=>w.visit_id===v.id).map((w:any)=>w.gatelog_waste_types?.label).filter(Boolean)})),wasteTypes:waste.data||[],statistics:{overallVisits:historical.length,mostCommonWasteType:mostCommon?.[0]||"—",averageMinutes:completedCount?Math.round(completedMinutes/completedCount):null,completedVisits:completedCount}});
+    return json({customers:customers.data||[],vehicles:vehicles.data||[],customerStats:Object.fromEntries((customerStats.data||[]).map((row:any)=>[row.customer_id,{totalVisits:Number(row.total_visits)||0,todayVisits:Number(row.today_visits)||0}])),arrivalsToday:(todayVisits.data||[]).length,departuresToday:(todayVisits.data||[]).filter((v:any)=>v.status==="DEPARTED").length,activeVisits:visits.map((v:any)=>({...v,customer_name:(customerRows.data||[]).find((c:any)=>c.id===v.customer_id)?.customer_name||"Unknown",waste_types:(visitWaste.data||[]).filter((w:any)=>w.visit_id===v.id).map((w:any)=>w.gatelog_waste_types?.label).filter(Boolean)})),wasteTypes:waste.data||[],statistics:{overallVisits:historical.length,mostCommonWasteType:mostCommon?.[0]||"—",averageMinutes:completedCount?Math.round(completedMinutes/completedCount):null,completedVisits:completedCount},register:(registerRows.data||[]).map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)}))});
   }
   if(action==="customer-arrival"){
     const name=clean(body.customerName,120),registration=clean(body.registration,20).toUpperCase();
