@@ -78,7 +78,7 @@ assert.ok(api.includes('.eq("machine_type", body.machineType)'),'backend checks 
 assert.ok(api.includes('.eq("is_other", false)'),'backend protects OTHER from deletion');
 assert.doesNotMatch(html,/id="detailAddNote"/,'duplicate bottom ADD NOTE button removed');
 assert.doesNotMatch(html,/id="attachFile"/,'duplicate bottom ATTACH FILE button removed');
-assert.ok(html.includes('repair-maintenance-app.js?v=20261125-1'),'R&M app script cache is refreshed');
+assert.ok(html.includes('repair-maintenance-app.js?v=20261125-2'),'R&M app script cache is refreshed');
 assert.match(app,/function updateAssetSelectorVisibility\(\)[\s\S]*host\.hidden=access\?\.canReadRepairMaintenanceMachinery!==true\|\|machineSettings\.asset_selector_enabled!==true/,'R&M registered-machine selector follows its saved per-category setting');
 assert.match(app,/machineSettings\.model_dropdown_enabled!==true/,'MAKE / MODEL catalogue visibility remains separately configured');
 assert.match(app,/function saveAssetSelectorSetting\(\)/,'registered-machine visibility has an independent save action');
@@ -162,7 +162,7 @@ assert.match(html,/<div class="machine-nav-actions">[\s\S]*?id="backToMachinery"
 const heroMarkup = html.match(/<header class="hero">[\s\S]*?<\/header>/)?.[0] || '';
 assert.ok(heroMarkup,'R&M hero header exists');
 assert.doesNotMatch(heroMarkup,/openRmsSettingsShortcut/,'ambiguous gear shortcut is no longer in hero navigation');
-assert.match(app,/function renderSettingsSelector\(\)\{if\(access\?\.canManageRepairMaintenancePresets!==true\)/,'Configuration workspace entry remains permission-gated');
+assert.match(app,/function renderSettingsSelector\(\)\{if\(!canOpenMachineryConfiguration\(\)\)/,'Configuration workspace entry requires a dedicated machinery INPUT/EDIT or R&M Settings permission');
 assert.match(html,/class="dialog configuration-dialog"[\s\S]*?CONFIGURATION MODE[\s\S]*?NOT THE FAULT REGISTER/,'every machinery configuration modal has an explicit mode warning');
 assert.match(html,/\.configuration-mode \.machine-card\{[^}]*#332b1d/,'configuration cards use a separate amber administrative visual language');
 assert.ok(html.includes('shared-ui-system.css?v=20261124-2'),'R&M shared stylesheet cache is refreshed');
