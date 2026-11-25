@@ -16,6 +16,10 @@ assert.match(admin, /function addYardHubSubmenu\(/, "Sub-menu creation is suppor
 assert.match(admin, /yardHubMenu:collectYardHubStructure\(\)/, "YARD HUB structure is saved in the versioned configuration payload");
 assert.match(admin, /YARD HUB launcher structure will update for authenticated users/, "Publish confirmation describes the live YARD HUB effect");
 assert.match(admin, /CORE DEPARTMENT/, "Protected core departments cannot be removed");
+assert.match(admin, /titleInput.disabled=true;descriptionInput.disabled=true/, "DOWNTIME launcher identity and label remain locked");
+assert.match(admin, /add.disabled=entry.kind==="downtime"\|\|entry.kind==="hub-settings"/, "DOWNTIME and HUB SETTINGS cannot be redirected through configurable sub-menus");
+assert.match(edge, /base\?\.kind === "downtime" \? base\.title/, "Server enforces the immutable DOWNTIME launcher title");
+assert.match(edge, /base\?\.kind === "downtime" \|\| base\?\.kind === "hub-settings"/, "Server prevents configurable sub-menus from intercepting protected core routes");
 
 assert.match(edge, /function normalizeYardHubMenu\(/, "Server validates YARD HUB structure");
 assert.match(edge, /between 1 and 100 departments/, "Server enforces department count limits");
