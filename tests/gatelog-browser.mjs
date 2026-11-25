@@ -26,7 +26,7 @@ try{
   if(body.action==='customer-save')return {ok:true,json:async()=>({customer:{id:'c2',customer_name:body.customerName}})};
   return {ok:false,json:async()=>({error:'Unexpected action'})};
  };
- </script><script>${client.replace(/<\\/script/gi,'<\\/script')}</script></body></html>`);
+ </script><script>${client}</script></body></html>`);
  await page.locator('#launchGatelogBtn').click();
  await page.locator('#gatelogCustomer').selectOption('c1');
  await page.locator('#gatelogRegistration').fill('AB12 CDE');
