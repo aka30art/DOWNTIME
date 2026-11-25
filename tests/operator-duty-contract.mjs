@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const api=fs.readFileSync(new URL('../supabase/functions/central-bank/index.ts',import.meta.url),'utf8');
-const pdf=html.slice(html.indexOf('function reportData()'),html.indexOf('let pdfLibrariesPromise'));
+const pdf=html.slice(html.indexOf('async function buildReportPDF(data)'),html.indexOf('async function saveCloudReport'));
 assert.match(html,/id="operatorDutyBtn"/,'Day to Day includes the Operator on Duty control');
 assert.match(html,/function saveOperatorDuty\(\)/,'daily operator assignment has a dedicated save action');
 assert.match(html,/d\.operator=name;d\.operatorLocked=true/,'confirmation locks the selected operator to the date');
