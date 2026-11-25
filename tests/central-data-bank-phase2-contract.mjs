@@ -4,8 +4,9 @@ import fs from 'node:fs';
 const page=fs.readFileSync('central-bank-admin.html','utf8');
 const fn=fs.readFileSync('supabase/functions/central-config-admin/index.ts','utf8');
 
-for(const id of ['department-menu-settings','departmentCategories','departmentEntries','newDepartmentCategory','addDepartmentCategoryBtn','restoreDepartmentMenuBtn','departmentLauncher'])
+for(const id of ['view-department-menu-settings','departmentCategories','departmentEntries','newDepartmentCategory','addDepartmentCategoryBtn','restoreDepartmentMenuBtn','departmentLauncher'])
   assert.ok(page.includes('id="'+id+'"'),'Phase 02 UI control '+id);
+assert.ok(page.includes('data-section="department-menu-settings"'),'Department Menu sidebar route exists');
 for(const field of ['menuEntryTitle','menuEntryDescription','menuEntryCategory','menuEntryEnabled','menuEntryMoveUp','menuEntryMoveDown','menuSubmenuLabel','menuSubmenuTarget','ADD SUBMENU ITEM','removeSubmenu'])
   assert.ok(page.includes(field),'Phase 02 editable field/action '+field);
 assert.ok(page.includes('configEndpoint()')&&page.includes('/functions/v1/central-config-admin'),
