@@ -8,7 +8,7 @@ const visualCss=await readFile('yard-hub-visual-system.css','utf8');
 const browser=await chromium.launch({headless:true});
 try{
  const page=await browser.newPage({viewport:{width:390,height:844}});
- await page.setContent(`<!doctype html><html><head><style>*{box-sizing:border-box}</style><style>${sharedCss}</style><style>${css}</style><style>${visualCss}</style></head><body>
+ await page.setContent(`<!doctype html><html><head><style>*{box-sizing:border-box}html,body{margin:0}</style><style>${sharedCss}</style><style>${css}</style><style>${visualCss}</style></head><body>
  <main id="yardHub" class="yard-hub"><div class="yard-hub-inner"><header class="yard-hero">YARD HUB</header><div class="yard-modules-heading">APPLICATIONS</div><div class="yard-grid"><button id="launchGatelogBtn">GATELOG</button></div><footer class="yard-hub-footer">FOOTER</footer></div></main>
  <div class="rm-module-root" style="position:absolute;left:-9999px;width:390px;visibility:hidden"><header class="hero"><div class="hero-top"><div><div class="downtime-mark">DOWNTIME®</div><div class="mark-rule"></div></div><div class="hero-actions"><div class="session-label">HUB AUTHENTICATED AS<strong>USER</strong></div><button class="icon-button">▤</button><a class="icon-button" href="#">⌂</a></div></div><div class="hero-word">/R&amp;M</div><p class="hero-tag">REPAIRS &amp; MAINTENANCE</p></header></div>
  <script>
@@ -48,7 +48,6 @@ try{
  const narrowHeader=await page.locator('.gatelog-hero').boundingBox();
  assert.ok(narrowHeader&&narrowHeader.width<=320,'GATELOG header must fit a 320px viewport');
  const narrowOverflow=await page.evaluate(()=>({width:innerWidth,html:document.documentElement.scrollWidth,body:document.body.scrollWidth,offenders:[...document.querySelectorAll('body *')].map(e=>({tag:e.tagName,cls:typeof e.className==='string'?e.className:'',id:e.id,left:Math.round(e.getBoundingClientRect().left),right:Math.round(e.getBoundingClientRect().right),width:Math.round(e.getBoundingClientRect().width)})).filter(x=>x.right>innerWidth+1||x.left< -1).slice(0,20)}));
- console.log('GATELOG 320px overflow diagnostic',JSON.stringify(narrowOverflow));
  assert.ok(narrowOverflow.html<=narrowOverflow.width,'GATELOG must not overflow at 320px: '+JSON.stringify(narrowOverflow));
  assert.equal(await page.locator('.gatelog-toolbar-spacer').evaluate(el=>getComputedStyle(el).display),'none');
  assert.match(await page.locator('#gatelogRegister').innerText(),/TIME IN|No visits/);
