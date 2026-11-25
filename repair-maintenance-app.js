@@ -13,7 +13,7 @@
   const PRIORITIES=['HIGH','MEDIUM','LOW'];
   const STATUSES=['OPEN','PERM. FIX'];
   const $=id=>document.getElementById(id);
-  let access=null,currentMachine=null,currentAsset=null,currentFault=null,faults=[],machinePresets=[],machineModels=[],machineSettings={model_dropdown_enabled:true,asset_selector_enabled:true,registration_enabled:true},modelDropdownDraft=true,assetSelectorDraft=true,registrationDraft=true,assets=[],settingsAssets=[],settingsSelectedAssetId='',unassignedCount=0,unassignedMode=false,editingAssetId=null,editingAssetRecord=null,assetEditorFromSettings=false,assetEditorDashboardVisible=false,busy=false,exportOffset=0,exportsLoading=false;
+  let access=null,currentMachine=null,currentAsset=null,currentFault=null,allEquipmentMode=false,faults=[],machinePresets=[],machineModels=[],machineSettings={model_dropdown_enabled:true,asset_selector_enabled:true,registration_enabled:true},modelDropdownDraft=true,assetSelectorDraft=true,registrationDraft=true,assets=[],settingsAssets=[],settingsSelectedAssetId='',unassignedCount=0,unassignedMode=false,editingAssetId=null,editingAssetRecord=null,assetEditorFromSettings=false,assetEditorDashboardVisible=false,busy=false,exportOffset=0,exportsLoading=false;
   const sessionToken=()=>window.DowntimeCentral?.session?.token||'';
   const headers=()=>({'Content-Type':'application/json','apikey':API_KEY,'x-downtime-session':sessionToken()});
   async function api(action,body={},timeoutMs=15000){
@@ -84,7 +84,8 @@
     if(!list.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='No faults or defects are currently recorded for this machine.';host.append(empty);return}
     list.forEach((fault,index)=>{
       const row=document.createElement('button');row.type='button';row.className='faultrow';row.setAttribute('aria-label',`Open fault ${fault.fault_name}, priority ${fault.priority}`);
-      row.innerHTML=`<span class="rownum">${String(index+1).padStart(2,'0')}</span><span class="faultname">${safe(fault.fault_name)}</span><span class="description">${safe(fault.description)}</span><span class="priority-pill ${priorityClass(fault.priority)}">${safe(fault.priority)}</span>`;
+      const equipmentName=fault.equipment_name||assets.find(asset=>asset.id===fault.asset_id)?.name||currentAsset?.name||currentMachine?.label||'—';
+      row.innerHTML=`<span class="rownum">${String(index+1).padStart(2,'0')}</span><span class="equipment-name">${safe(equipmentName)}</span><span class="faultname">${safe(fault.fault_name)}</span><span class="description">${safe(fault.description)}</span><span class="priority-pill ${priorityClass(fault.priority)}">${safe(fault.priority)}</span>`;
       row.addEventListener('click',()=>openDetails(fault.id,index+1));host.append(row);
     });
   }
@@ -326,9 +327,12 @@
   }
   function renderAssetSelect(){
     const select=$('machineAssetSelect');if(!select)return;
-    const previous=currentAsset?.id||select.value;
+    const previous=allEquipmentMode?'__ALL_EQUIPMENT__':currentAsset?.id||select.value;
     select.replaceChildren();
     const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='SELECT REGISTERED MACHINE';select.appendChild(placeholder);
+    if(currentMachine?.key==='OTHER_EQUIPMENT'){
+      const all=document.createElement('option');all.value='__ALL_EQUIPMENT__';all.textContent='ALL EQUIPMENT — COMBINED REGISTER';select.appendChild(all);
+    }
     assets.forEach(asset=>{
       const option=document.createElement('option');option.value=asset.id;
       option.textContent=[asset.asset_code,asset.name,asset.make_model,asset.status==='ARCHIVED'?'ARCHIVED':null].filter(Boolean).join(' · ');
@@ -350,13 +354,14 @@
     else{
       currentAsset=null;unassignedMode=false;
       const active=assets.filter(asset=>asset.status==='ACTIVE');
-      if(active.length===1){$('machineAssetSelect').value=active[0].id;await selectMachineAsset(active[0].id)}
+      if(currentMachine.key==='OTHER_EQUIPMENT'&&assets.length){$('machineAssetSelect').value='__ALL_EQUIPMENT__';await selectMachineAsset('__ALL_EQUIPMENT__')}
+      else if(active.length===1){$('machineAssetSelect').value=active[0].id;await selectMachineAsset(active[0].id)}
       else setRegisterMessage(assets.length?(machineSettings.asset_selector_enabled===true?'Select an individual machine from the dropdown to view its own fault register.':'The registered-machine menu is disabled in R&M settings. Enable it to choose a machine and view its fault register.'):'No machines are registered in this category yet.');
       applyPermissions();
     }
   }
   async function loadMachine(key){
-    currentMachine=machine(key);currentAsset=null;unassignedMode=false;assets=[];unassignedCount=0;machinePresets=[];machineSettings={model_dropdown_enabled:true,asset_selector_enabled:true,registration_enabled:true};modelDropdownDraft=true;assetSelectorDraft=true;registrationDraft=true;
+    currentMachine=machine(key);currentAsset=null;unassignedMode=false;allEquipmentMode=false;assets=[];unassignedCount=0;machinePresets=[];machineSettings={model_dropdown_enabled:true,asset_selector_enabled:true,registration_enabled:true};modelDropdownDraft=true;assetSelectorDraft=true;registrationDraft=true;
     setView('dashboardView');
     const icon=$('machineIcon');if(icon)icon.src=currentMachine.icon;
     $('machineCategoryLabel').textContent=currentMachine.sub;
@@ -378,7 +383,10 @@
       unassignedCount=Number(result.unassignedCount)||0;
       renderAssetSelect();
       const active=assets.filter(asset=>asset.status==='ACTIVE');
-      if(active.length===1){
+      if(currentMachine.key==='OTHER_EQUIPMENT'&&assets.length){
+        $('machineAssetSelect').value='__ALL_EQUIPMENT__';
+        await selectMachineAsset('__ALL_EQUIPMENT__');
+      }else if(active.length===1){
         $('machineAssetSelect').value=active[0].id;
         await selectMachineAsset(active[0].id);
       }else if(active.length>1){
@@ -403,26 +411,27 @@
   }
   async function selectMachineAsset(value){
     if(!currentMachine||!value)return;
+    allEquipmentMode=value==='__ALL_EQUIPMENT__';
     unassignedMode=value==='__UNASSIGNED__';
-    currentAsset=unassignedMode?null:assets.find(asset=>asset.id===value)||null;
-    if(!unassignedMode&&!currentAsset){say('The selected machine is no longer available. Refresh the category and try again.','dashboardStatus','error');return}
-    $('machineTitle').textContent=unassignedMode?'UNASSIGNED / LEGACY FAULTS':currentAsset.name;
+    currentAsset=(unassignedMode||allEquipmentMode)?null:assets.find(asset=>asset.id===value)||null;
+    if(!unassignedMode&&!allEquipmentMode&&!currentAsset){say('The selected machine is no longer available. Refresh the category and try again.','dashboardStatus','error');return}
+    $('machineTitle').textContent=allEquipmentMode?'ALL OTHER EQUIPMENT':unassignedMode?'UNASSIGNED / LEGACY FAULTS':currentAsset.name;
     $('machineAssetSelect').value=value;
-    const canCreate=(access?.canCreateRepairMaintenance===true||access?.canEditRepairMaintenance===true)&&!unassignedMode&&currentAsset?.status==='ACTIVE';
+    const canCreate=(access?.canCreateRepairMaintenance===true||access?.canEditRepairMaintenance===true)&&!unassignedMode&&!allEquipmentMode&&currentAsset?.status==='ACTIVE';
     $('openCreateFault').hidden=!canCreate;
     $('openCreateFault').disabled=!canCreate;
     setRegisterMessage('Loading fault records…');
     try{
-      const args=unassignedMode?{machineType:currentMachine.key,unassigned:true}:{machineType:currentMachine.key,assetId:currentAsset.id};
+      const args=allEquipmentMode?{machineType:currentMachine.key,allEquipment:true}:unassignedMode?{machineType:currentMachine.key,unassigned:true}:{machineType:currentMachine.key,assetId:currentAsset.id};
       const result=await api('list',args);faults=Array.isArray(result.faults)?result.faults:[];renderRows();
-      try{await refreshMachinePresets();say(`${faults.length} fault${faults.length===1?'':'s'} loaded · ${unassignedMode?'Legacy records':currentAsset.name} · ${new Date().toLocaleTimeString('en-GB')}`,'dashboardStatus','ok')}
+      try{if(!allEquipmentMode)await refreshMachinePresets();else renderPresetSelect();say(`${faults.length} fault${faults.length===1?'':'s'} loaded · ${allEquipmentMode?'All registered equipment':unassignedMode?'Legacy records':currentAsset.name} · ${new Date().toLocaleTimeString('en-GB')}`,'dashboardStatus','ok')}
       catch(error){renderPresetSelect();say(`Faults loaded, but machine presets could not be loaded: ${error.message}`,'dashboardStatus','error')}
     }catch(error){faults=[];renderRows();say(error.message,'dashboardStatus','error')}
     applyPermissions();
   }
   async function reloadCurrentRegister(){
     if(!currentMachine)return;
-    const selected=unassignedMode?'__UNASSIGNED__':currentAsset?.id;
+    const selected=allEquipmentMode?'__ALL_EQUIPMENT__':unassignedMode?'__UNASSIGNED__':currentAsset?.id;
     if(selected)return selectMachineAsset(selected);
   }
   async function openAssetEditor(asset=null){
