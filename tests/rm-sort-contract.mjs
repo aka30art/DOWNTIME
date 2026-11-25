@@ -21,3 +21,10 @@ assert.match(html,/option value="newest">NEWEST/);
 assert.match(html,/option value="oldest">OLDEST/);
 assert.doesNotMatch(html,/option value="number"|option value="recent"|>NUMBER</);
 console.log('R&M sorting regression: PASS');
+
+assert.match(app,/fault-card-top/,'fault cards use a dedicated equipment and priority header');
+assert.match(app,/fault-card-body/,'fault name and description share a full-width body');
+assert.match(app,/equipment-name/,'equipment remains visible on each fault card');
+assert.match(html,/\.fault-card-top\{display:grid;grid-template-columns:38px minmax\(0,1fr\) auto/,'desktop fault card header has a flexible equipment column');
+assert.match(html,/\.fault-card-body\{display:grid;gap:4px;min-width:0;padding:10px 0 1px 48px\}/,'fault details render beneath the equipment header');
+assert.match(html,/@media\(max-width:620px\)[\s\S]*?\.fault-card-top\{grid-template-columns:30px minmax\(0,1fr\) auto/,'mobile fault cards preserve the full-width hierarchy');
