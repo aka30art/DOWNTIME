@@ -19,6 +19,9 @@ for(const [key,view] of departments){
 for(const label of ['DOWNTIME','FLOOR','CHECK SHEETS','REPAIRS &amp; MAINTENANCE','YARD HUB']){
  assert.ok(page.includes(label),'department tile '+label);
 }
+const cardOrder=[...page.matchAll(/<button class="cdb-dept-card"[^>]*data-section="([^"]+)"[\\s\\S]*?<strong>(.*?)<\\/strong>/g)].map(match=>match[2].replace(/&amp;/g,'&'));
+assert.deepEqual(cardOrder,['DOWNTIME','FLOOR','CHECK SHEETS','R&M','HUB SETTINGS'],'department tiles follow the current YARD HUB launcher order');
+assert.doesNotMatch(page,/<span class="cdb-dept-index">/,'department cards do not add numbering to the launcher');
 assert.match(page,/DOWNTIME OPERATIONAL INTEGRITY/i);
 assert.match(page,/does not edit tracker data, permissions, shifts, reports or runtime navigation/i);
 assert.match(page,/FLOOR is not currently released/i);
