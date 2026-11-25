@@ -38,6 +38,12 @@ assert.match(fn,/if\(!access\.canEditTracker\)/,'photo upload requires server-si
 assert.match(fn,/if\(!access\.canDeleteRecords\)/,'photo deletion requires the separate server-side record-delete permission');
 assert.match(html,/photoUploading\|\|!permission\('canDeleteRecords'\)/,'photo removal control is gated by the record-delete right');
 assert.match(fn,/if\(!access\.canViewDashboards\)/,'view requires server-side dashboard view permission');
+assert.match(fn,/OWNER:\{canEditTracker:true,canViewDashboards:true,canDeleteRecords:true\}/,'OWNER default permits upload, view and delete');
+assert.match(fn,/SUPERVISOR:\{canEditTracker:true,canViewDashboards:true,canDeleteRecords:false\}/,'SUPERVISOR can upload and view but cannot delete');
+assert.match(fn,/USER:\{canEditTracker:false,canViewDashboards:true,canDeleteRecords:false\}/,'USER can view but cannot upload or delete');
+assert.match(fn,/SPECTATOR:\{canEditTracker:false,canViewDashboards:false,canDeleteRecords:false\}/,'SPECTATOR cannot upload, view or delete');
+assert.match(fn,/canDeleteRecords:root\?true:\(typeof saved\.canDeleteRecords==="boolean"\?saved\.canDeleteRecords:defaults\.canDeleteRecords\)/,'only server-resolved root authority overrides the persisted delete right');
+
 assert.match(fn,/DOWNTIME session expired/,'expired sessions are rejected');
 
 assert.match(fn,/createSignedUrl\(row\.storage_path,60\)/,'View URL TTL is 60 seconds');
