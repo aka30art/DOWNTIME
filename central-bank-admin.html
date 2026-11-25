@@ -408,7 +408,8 @@ small,.muted{color:var(--muted)}
  document.querySelectorAll("[data-section]").forEach(button=>button.addEventListener("click",()=>showSection(button.dataset.section)));
  $("navSearch").addEventListener("input",()=>{const query=$("navSearch").value.trim().toLocaleLowerCase();document.querySelectorAll(".nav[data-section]").forEach(button=>{button.hidden=!!query&&!((button.textContent+" "+button.dataset.section).toLocaleLowerCase().includes(query));});});
  document.querySelectorAll("#workspace input,#workspace textarea,#workspace select").forEach(input=>input.addEventListener("input",updateButtons));
- $("projectUrl").addEventListener("change",rememberConnection);$("pubKey").addEventListener("change",rememberConnection);\n buildDayChecks();renderForm(blankConfig());updateButtons();
+ $("projectUrl").addEventListener("change",rememberConnection);$("pubKey").addEventListener("change",rememberConnection);
+ buildDayChecks();renderForm(blankConfig());updateButtons();
 })();
 </script>
 </body>
