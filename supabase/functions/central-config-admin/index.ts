@@ -350,6 +350,18 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  if (action === "central-config-audit") {
+    const requestedLimit = body.limit === undefined ? 100 : Number(body.limit);
+    if (!Number.isInteger(requestedLimit) || requestedLimit < 1 || requestedLimit > 200) {
+      return json({ error: "Audit log limit must be between 1 and 200" }, 400);
+    }
+    const { data: events, error: auditError } = await db.from("downtime_central_audit")
+      .select("id,username,action,created_at,details")
+      .order("id", { ascending: false }).limit(requestedLimit);
+    if (auditError) return json({ error: "Central Data Bank audit log unavailable" }, 503);
+    return json({ events: events || [] });
+  }
+
   if (action === "central-config-save-draft") {
     let config: any;
     try { config = normalizeCentralConfig(body.config); }
@@ -374,7 +386,7 @@ Deno.serve(async (req: Request) => {
       await db.from("downtime_central_config_history").delete().eq("version", newVersion);
       return json({ error: "Draft changed in another session. Refresh before saving." }, 409);
     }
-    await db.from("downtime_central_audit").insert({ username: actor, action: "central-config-draft-save", details: { version: newVersion, scope: "department-menu" } });
+    await db.from("downtime_central_audit").insert({ username: actor, action: "central-config-draft-save", details: { version: newVersion, scope: "central-data-bank" } });
     return json({ ok: true, draftVersion: newVersion, nextVersion: newVersion + 1, updatedAt: new Date().toISOString() });
   }
 
@@ -393,7 +405,7 @@ Deno.serve(async (req: Request) => {
     }).eq("id", 1).eq("draft_version", Number(body.draftVersion)).eq("published_version", Number(body.publishedVersion)).select("id").maybeSingle();
     if (error || !write) return json({ error: "Configuration changed in another session. Refresh before publishing." }, 409);
     await db.from("downtime_central_config_history").update({ published_at: now }).eq("version", Number(configState.draft_version));
-    await db.from("downtime_central_audit").insert({ username: actor, action: "central-config-publish", details: { version: Number(configState.draft_version), scope: "department-menu" } });
+    await db.from("downtime_central_audit").insert({ username: actor, action: "central-config-publish", details: { version: Number(configState.draft_version), scope: "central-data-bank" } });
     return json({ ok: true, publishedVersion: Number(configState.draft_version), publishedAt: now });
   }
 
@@ -423,7 +435,7 @@ Deno.serve(async (req: Request) => {
       await db.from("downtime_central_config_history").delete().eq("version", newVersion);
       return json({ error: "Draft changed in another session. Refresh before restoring." }, 409);
     }
-    await db.from("downtime_central_audit").insert({ username: actor, action: "central-config-restore-draft", details: { sourceVersion, newVersion, scope: "department-menu" } });
+    await db.from("downtime_central_audit").insert({ username: actor, action: "central-config-restore-draft", details: { sourceVersion, newVersion, scope: "central-data-bank" } });
     return json({ ok: true, draftVersion: newVersion, nextVersion: newVersion + 1, sourceVersion });
   }
   return json({ error: "Unsupported configuration action" }, 400);

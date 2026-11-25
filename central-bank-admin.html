@@ -101,6 +101,7 @@ small,.muted{color:var(--muted)}
 @media(max-width:480px){#login{margin:2vh auto;padding:12px}.login-card{padding:17px}.kpis{gap:7px}.kpi{padding:12px}.kpi strong{font-size:22px}.nav{flex-basis:30%;font-size:9px}.account{width:100%;justify-content:space-between}}
 
 .cdb-department-config-list{display:grid;gap:13px}.cdb-department-config-card{padding:16px;border:1px solid #304d5e;border-radius:12px;background:linear-gradient(145deg,#122a38,#0b1c27)}.cdb-department-config-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.cdb-department-config-head strong{font-size:14px;letter-spacing:.5px}.cdb-department-config-row{display:grid;grid-template-columns:minmax(180px,.7fr) minmax(220px,1fr);gap:12px;align-items:end}.cdb-department-config-row>label,.cdb-department-feature{display:flex;align-items:center;gap:8px;color:#dce7ed;font-size:11px;font-weight:800}.cdb-department-config-row input[type=checkbox],.cdb-department-feature input{width:16px;height:16px;accent-color:var(--yellow)}.cdb-department-config-group{margin-top:15px;padding-top:13px;border-top:1px solid #294655}.cdb-department-config-group>strong{display:block;color:#80b9e7;font-size:10px;letter-spacing:1px;margin-bottom:10px}.cdb-department-feature-grid,.cdb-department-display-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.cdb-department-display-grid{grid-template-columns:repeat(4,minmax(0,1fr));align-items:end}.cdb-department-feature{padding:9px;border:1px solid #294655;border-radius:8px;background:#0a1b26;min-height:38px}.cdb-department-feature input{flex:0 0 auto}.cdb-department-display-grid .field{min-width:0}@media(max-width:760px){.cdb-department-config-row,.cdb-department-feature-grid,.cdb-department-display-grid{grid-template-columns:1fr 1fr}}@media(max-width:480px){.cdb-department-config-row,.cdb-department-feature-grid,.cdb-department-display-grid{grid-template-columns:1fr}.cdb-department-config-head{align-items:flex-start;flex-direction:column}}
+.audit-toolbar{display:grid;grid-template-columns:minmax(220px,2fr) minmax(180px,1fr);gap:12px;margin:0 0 16px}.audit-item{display:grid;grid-template-columns:76px minmax(0,1fr);gap:14px;align-items:start;padding:14px;border-bottom:1px solid var(--line)}.audit-id{font-size:12px;font-weight:900;color:var(--yellow);font-variant-numeric:tabular-nums}.audit-details{min-width:0}.audit-details strong{display:block;font-size:12px;letter-spacing:.4px}.audit-details small{display:block;margin-top:4px;overflow-wrap:anywhere}.audit-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:7px}@media(max-width:600px){.audit-toolbar{grid-template-columns:1fr}.audit-item{grid-template-columns:48px minmax(0,1fr);gap:9px}}
 </style>
 <style id="central-data-bank-foundation">
 .cdb-dept-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 2px 13px}
@@ -219,7 +220,8 @@ small,.muted{color:var(--muted)}
    <button class="nav" data-section="libraries" data-default-label="Operational Libraries"><span class="ico">▤</span><span class="navtext">Operational Libraries</span></button>
    <button class="nav" data-section="defaults" data-default-label="System Defaults"><span class="ico">⚙</span><span class="navtext">System Defaults</span></button>
    <div class="navlabel">GOVERNANCE</div>
-   <button class="nav" data-section="history" data-default-label="Version History"><span class="ico">◷</span><span class="navtext">Version History</span></button><div class="navlabel">MASTER CONTROLS</div><button class="nav" data-section="navigation" data-default-label="Menu & Labels"><span class="ico">✎</span><span class="navtext">Menu & Labels</span></button>
+   <button class="nav" data-section="history" data-default-label="Version History"><span class="ico">◷</span><span class="navtext">Version History</span></button>
+   <button class="nav" data-section="audit" data-default-label="Audit Log"><span class="ico">▤</span><span class="navtext">Audit Log</span></button><div class="navlabel">MASTER CONTROLS</div><button class="nav" data-section="navigation" data-default-label="Menu & Labels"><span class="ico">✎</span><span class="navtext">Menu & Labels</span></button>
    <button class="nav" data-section="department-menu-settings" data-default-label="Department Menu"><span class="ico">☷</span><span class="navtext">Department Menu</span></button>
    <button class="nav" data-section="department-configuration" data-default-label="Department Configuration"><span class="ico">⚙</span><span class="navtext">Department Configuration</span></button>
    <button class="nav" data-section="modules" data-default-label="Module Registry"><span class="ico">▣</span><span class="navtext">Module Registry</span></button>
@@ -392,6 +394,14 @@ small,.muted{color:var(--muted)}
     <div class="panel"><div class="sectionhead"><div><h2>Configuration snapshots</h2><p id="historySummary">Latest versions appear first.</p></div><button id="historyRefreshBtn" class="quiet">REFRESH HISTORY</button></div><div id="historyList" class="history-list"></div></div>
    </section>
 
+   <section class="view" id="view-audit">
+    <div class="pagehead"><div><div class="eyebrow">GOVERNANCE / PHASE 05</div><h1>Audit Log</h1><p>Read-only record of Central Data Bank configuration actions, actors and timestamps. This log does not expose operational activity records.</p></div><span class="pill">READ ONLY · CDB</span></div>
+    <div class="panel"><div class="sectionhead"><div><h2>Configuration activity</h2><p id="auditSummary">Latest 200 events · newest first</p></div><button id="auditRefreshBtn" class="quiet">REFRESH AUDIT LOG</button></div>
+     <div class="audit-toolbar"><div class="field"><label for="auditSearch">Search activity</label><input id="auditSearch" type="search" placeholder="Search actor, action or details"></div><div class="field"><label for="auditActionFilter">Action</label><select id="auditActionFilter"><option value="">All actions</option><option value="central-config-draft-save">Draft saved</option><option value="central-config-publish">Configuration published</option><option value="central-config-restore-draft">Draft restored</option></select></div></div>
+     <div id="auditList" class="history-list"></div>
+    </div>
+   </section>
+
    <div id="status" class="status" role="status" aria-live="polite"></div>
    <div class="pagefoot"><span>DOWNTIME · CENTRAL DATA BANK CONFIGURATION CONTROL</span><span id="footVersion">Draft v1 · Published v1</span></div>
   </main>
@@ -415,7 +425,7 @@ small,.muted{color:var(--muted)}
   try{localStorage.setItem(rememberedConnectionKey,JSON.stringify({projectUrl:$("projectUrl").value.trim(),pubKey:$("pubKey").value.trim()}));}catch{}
  }
  restoreRememberedConnection();
- let token=null,me=null,model=null,draftVersion=0,publishedVersion=0,nextVersion=0,versions=[],baseline="";
+ let token=null,me=null,model=null,draftVersion=0,publishedVersion=0,nextVersion=0,versions=[],baseline="",auditEvents=[],auditLoaded=false;
  const DAYS=["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"];
  const endpoint=()=> $("projectUrl").value.trim().replace(/\/$/,"")+"/functions/v1/central-bank";
  function status(message,error=false){$("status").textContent=message;$("status").style.color=error?"#ff9a8e":"#ffd45d"}
@@ -708,6 +718,40 @@ function defaultDepartmentSettings(){
   });
   host.querySelectorAll("[data-restore-version]").forEach(button=>button.addEventListener("click",()=>restoreVersion(Number(button.dataset.restoreVersion))));
  }
+ function auditDetailsText(details){
+  if(!details||typeof details!=="object"||Array.isArray(details))return "No additional details";
+  const allowed=["version","sourceVersion","newVersion","scope"];
+  const parts=allowed.filter(key=>details[key]!==undefined&&details[key]!==null).map(key=>key.replace(/[A-Z]/g,letter=>" "+letter.toLowerCase())+": "+String(details[key]));
+  return parts.length?parts.join(" · "):"No additional details";
+ }
+ function renderAuditLog(){
+  const host=$("auditList"),query=$("auditSearch").value.trim().toLocaleLowerCase(),action=$("auditActionFilter").value;
+  host.replaceChildren();
+  const filtered=auditEvents.filter(item=>{
+   if(action&&item.action!==action)return false;
+   const haystack=[item.username,item.action,auditDetailsText(item.details)].join(" ").toLocaleLowerCase();
+   return !query||haystack.includes(query);
+  });
+  $("auditSummary").textContent=filtered.length+" of "+auditEvents.length+" events shown · latest 200 loaded";
+  if(!filtered.length){const empty=document.createElement("div");empty.className="empty";empty.textContent=auditEvents.length?"No audit events match these filters.":"No Central Data Bank audit events are available.";host.append(empty);return;}
+  filtered.forEach(item=>{
+   const row=document.createElement("div");row.className="audit-item";
+   const id=document.createElement("div");id.className="audit-id";id.textContent="#"+item.id;
+   const details=document.createElement("div");details.className="audit-details";
+   const title=document.createElement("strong");title.textContent=(item.action||"unknown action").replace(/^central-config-/,"").replace(/-/g," ").toUpperCase()+" · "+(item.username||"SYSTEM");
+   const meta=document.createElement("small");meta.textContent=(item.created_at?new Date(item.created_at).toLocaleString():"Timestamp unavailable")+" · "+auditDetailsText(item.details);
+   details.append(title,meta);row.append(id,details);host.append(row);
+  });
+ }
+ async function loadAuditLog(){
+  $("auditRefreshBtn").disabled=true;
+  try{
+   const data=await callConfig("central-config-audit",{limit:200});
+   auditEvents=Array.isArray(data.events)?data.events:[];
+   auditLoaded=true;renderAuditLog();
+  }catch(error){status("Audit log unavailable: "+error.message,true);}
+  finally{$("auditRefreshBtn").disabled=false;}
+ }
  async function loadState(){
   const data=await callConfig("central-config-state");
   model=data;draftVersion=Number(data.draftVersion);publishedVersion=Number(data.publishedVersion);nextVersion=Number(data.nextVersion);versions=data.versions||[];
@@ -765,9 +809,9 @@ function defaultDepartmentSettings(){
   try{const result=await call("bootstrap",{bootstrapCode:$("setupCode").value,username:"DEV",pin:$("setupPin").value},false);$("authStatus").textContent=result.message||"Root owner initialised. Sign in as DEV."}
   catch(error){$("authStatus").textContent=error.message}
  });
- $("saveDraftBtn").addEventListener("click",saveDraft);$("publishBtn").addEventListener("click",publish);$("refreshBtn").addEventListener("click",refresh);$("historyRefreshBtn").addEventListener("click",refresh);
- $("logoutBtn").addEventListener("click",async()=>{try{await call("logout")}catch{}finally{token=null;me=null;model=null;$("workspace").style.display="none";$("login").style.display="block";$("pin").value="";$("authStatus").textContent="Administrator session closed."}});
- document.querySelectorAll("[data-section]").forEach(button=>button.addEventListener("click",()=>showSection(button.dataset.section)));
+ $("saveDraftBtn").addEventListener("click",saveDraft);$("publishBtn").addEventListener("click",publish);$("refreshBtn").addEventListener("click",refresh);$("historyRefreshBtn").addEventListener("click",refresh);$("auditRefreshBtn").addEventListener("click",loadAuditLog);$("auditSearch").addEventListener("input",renderAuditLog);$("auditActionFilter").addEventListener("change",renderAuditLog);
+ $("logoutBtn").addEventListener("click",async()=>{try{await call("logout")}catch{}finally{token=null;me=null;model=null;auditEvents=[];auditLoaded=false;$("workspace").style.display="none";$("login").style.display="block";$("pin").value="";$("authStatus").textContent="Administrator session closed."}});
+ document.querySelectorAll("[data-section]").forEach(button=>button.addEventListener("click",()=>{const section=button.dataset.section;showSection(section);if(section==="audit"&&!auditLoaded)loadAuditLog();}));
  $("navSearch").addEventListener("input",()=>{const query=$("navSearch").value.trim().toLocaleLowerCase();document.querySelectorAll(".nav[data-section]").forEach(button=>{button.hidden=!!query&&!((button.textContent+" "+button.dataset.section).toLocaleLowerCase().includes(query));});});
  document.querySelectorAll("#workspace input,#workspace textarea,#workspace select").forEach(input=>input.addEventListener("input",updateButtons));
  $("projectUrl").addEventListener("change",rememberConnection);$("pubKey").addEventListener("change",rememberConnection);
