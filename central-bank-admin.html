@@ -120,6 +120,34 @@ small,.muted{color:var(--muted)}
 .cdb-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
 @media(max-width:760px){.cdb-dept-grid{gap:10px}.cdb-dept-card{min-height:150px;padding:18px 16px;grid-template-columns:78px minmax(0,1fr);gap:12px}.cdb-dept-mark{width:66px;height:66px;font-size:21px}.cdb-dept-copy{padding-left:10px}.cdb-dept-copy strong{font-size:18px}}
 @media(max-width:540px){.cdb-dept-heading{align-items:flex-start;flex-direction:column;gap:4px}.cdb-dept-grid{grid-template-columns:1fr;gap:9px}.cdb-dept-card{min-height:126px;padding:16px}.cdb-dept-copy strong{font-size:21px}.cdb-detail-grid{grid-template-columns:1fr}}
+
+/* Phase 02 · isolated department menu editor */
+.cdb-menu-layout{display:grid;gap:14px}
+.cdb-menu-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cdb-menu-categories,.cdb-menu-entries{display:grid;gap:10px}
+.cdb-menu-category{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;padding:12px;border:1px solid #2b4859;border-radius:10px;background:#0a1b26}
+.cdb-menu-entry{padding:15px;border:1px solid #345163;border-radius:12px;background:linear-gradient(145deg,#112b3a,#0a1b26);display:grid;gap:12px}
+.cdb-menu-entry-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.cdb-menu-entry-head strong{font-size:12px;letter-spacing:.5px;color:#ffda52}
+.cdb-menu-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.cdb-menu-toggle{display:flex;align-items:center;gap:8px;padding:9px;border:1px solid #294757;border-radius:8px;color:#b7c9d4;font-size:11px;font-weight:800}
+.cdb-menu-toggle input{width:16px;height:16px;margin:0;accent-color:var(--yellow)}
+.cdb-menu-submenus{display:grid;gap:8px;padding:11px;border:1px solid #2b4859;border-radius:10px;background:#071821}
+.cdb-menu-submenu{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(120px,1fr) auto auto;gap:8px;align-items:center}
+.cdb-menu-submenu input,.cdb-menu-submenu select{padding:8px;font-size:11px}
+.cdb-menu-submenu .cdb-menu-toggle{padding:7px}
+.cdb-menu-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.cdb-menu-actions button{padding:7px 10px;font-size:10px}
+.cdb-menu-note{color:#829cab;font-size:10px;line-height:1.5}
+.cdb-dept-group{margin-bottom:18px}
+.cdb-dept-group-title{display:flex;align-items:center;gap:9px;margin:5px 2px 10px;color:#ffd21a;font-size:11px;font-weight:950;letter-spacing:1.5px;text-transform:uppercase}
+.cdb-dept-group-title:after{content:"";height:1px;flex:1;background:#294655}
+.cdb-launch-entry{display:grid;gap:8px;min-width:0}
+.cdb-dept-submenu{display:flex;gap:7px;flex-wrap:wrap;padding:0 5px 5px}
+.cdb-dept-submenu button{padding:7px 10px;font-size:10px;background:#102634;border-color:#35566a;color:#b9d0dd}
+.cdb-dept-submenu button:hover{border-color:var(--yellow);color:#fff}
+.cdb-menu-empty{padding:18px;border:1px dashed #365264;border-radius:10px;color:#91a8b7;text-align:center;font-size:12px}
+@media(max-width:760px){.cdb-menu-fields{grid-template-columns:1fr}.cdb-menu-submenu{grid-template-columns:1fr 1fr}.cdb-menu-submenu .cdb-menu-toggle{grid-column:1}.cdb-menu-submenu button{grid-column:2}.cdb-menu-category{grid-template-columns:1fr}.cdb-menu-category button{justify-self:start}}
 </style>
 
 </head>
@@ -163,6 +191,7 @@ small,.muted{color:var(--muted)}
    <button class="nav" data-section="defaults" data-default-label="System Defaults"><span class="ico">⚙</span><span class="navtext">System Defaults</span></button>
    <div class="navlabel">GOVERNANCE</div>
    <button class="nav" data-section="history" data-default-label="Version History"><span class="ico">◷</span><span class="navtext">Version History</span></button><div class="navlabel">MASTER CONTROLS</div><button class="nav" data-section="navigation" data-default-label="Menu & Labels"><span class="ico">✎</span><span class="navtext">Menu & Labels</span></button>
+   <button class="nav" data-section="department-menu-settings" data-default-label="Department Menu"><span class="ico">☷</span><span class="navtext">Department Menu</span></button>
    <button class="nav" data-section="modules" data-default-label="Module Registry"><span class="ico">▣</span><span class="navtext">Module Registry</span></button>
    <button class="nav" data-section="controls" data-default-label="System Controls"><span class="ico">⚑</span><span class="navtext">System Controls</span></button>
    <button class="nav" data-section="information" data-default-label="System Information"><span class="ico">ⓘ</span><span class="navtext">System Information</span></button>
@@ -177,7 +206,7 @@ small,.muted{color:var(--muted)}
    <section class="view active" id="view-departments">
     <div class="pagehead"><div><div class="eyebrow">YARDHUB · COMPANY ADMINISTRATION</div><h1>Central Data Bank</h1><p>Choose a department to review its administration workspace. The layout follows the familiar YARDHUB application launcher.</p></div><span class="tag"><i class="dot"></i>ADMINISTRATOR SESSION ACTIVE</span></div>
     <div class="cdb-dept-heading"><strong>DEPARTMENT CONTROLS</strong><span>SELECT A DEPARTMENT TO CONTINUE</span></div>
-    <div class="cdb-dept-grid">
+    <div class="cdb-dept-grid" id="departmentLauncher">
      <button class="cdb-dept-card" type="button" data-section="dept-downtime"><span class="cdb-dept-mark">D</span><span class="cdb-dept-copy"><strong>DOWNTIME</strong><small>PLANT DOWNTIME &amp; OPERATIONS</small><em class="live">PROTECTED LIVE APPLICATION</em></span></button>
      <button class="cdb-dept-card" type="button" data-section="dept-floor"><span class="cdb-dept-mark">F</span><span class="cdb-dept-copy"><strong>FLOOR</strong><small>FLOOR &amp; YARD OPERATIONS</small><em class="planned">RESERVED MODULE</em></span></button>
      <button class="cdb-dept-card" type="button" data-section="dept-checksheets"><span class="cdb-dept-mark">CS</span><span class="cdb-dept-copy"><strong>CHECK SHEETS</strong><small>INSPECTIONS &amp; COMPLIANCE</small><em class="planned">RESERVED MODULE</em></span></button>
@@ -248,6 +277,24 @@ small,.muted{color:var(--muted)}
    <section class="view" id="view-information"><div class="pagehead"><div><div class="eyebrow">SYSTEM / DIAGNOSTICS</div><h1>System information</h1><p>Static environment and integration status for the DEV configuration workspace.</p></div><span class="pill">READ ONLY</span></div><div class="editor-grid"><div class="editor"><label>Workspace</label><strong>Central Data Bank · Master Configuration</strong></div><div class="editor"><label>Environment</label><strong>DEV administration workspace</strong></div><div class="editor"><label>Configuration schema</label><strong>Version 1 · Backward-compatible extension</strong></div><div class="editor"><label>Live DOWNTIME integration</label><strong>Not connected by design</strong><div class="hint">No runtime integration is included in this PR.</div></div><div class="editor"><label>Configuration storage</label><strong>Isolated central configuration tables</strong></div><div class="editor"><label>Access model</label><strong>DEV OWNER / DEVACC</strong></div></div></section>
 
    <section class="view" id="view-navigation"><div class="pagehead"><div><div class="eyebrow">MASTER CONTROLS / NAVIGATION</div><h1>Menu & label management</h1><p>Rename visible labels in this DEV configuration workspace. Stable section IDs and routes remain unchanged. These labels do not alter the live application.</p></div><span class="pill">DEV WORKSPACE ONLY</span></div><div class="callout"><strong>DISPLAY LABELS ONLY</strong><p>Changes affect this administration interface only. Internal identifiers, API actions, URLs, the DOWNTIME application and its navigation are not editable here.</p></div><div class="editor-grid"><div class="editor"><label for="navLabelOverview">Overview menu title</label><input id="navLabelOverview" maxlength="40"></div><div class="editor"><label for="navLabelOrganisation">Organisation menu title</label><input id="navLabelOrganisation" maxlength="40"></div><div class="editor"><label for="navLabelStructure">Plant & Areas menu title</label><input id="navLabelStructure" maxlength="40"></div><div class="editor"><label for="navLabelLibraries">Operational Libraries menu title</label><input id="navLabelLibraries" maxlength="40"></div><div class="editor"><label for="navLabelDefaults">System Defaults menu title</label><input id="navLabelDefaults" maxlength="40"></div><div class="editor"><label for="navLabelHistory">Version History menu title</label><input id="navLabelHistory" maxlength="40"></div><div class="editor"><label for="navLabelNavigation">Menu & Labels menu title</label><input id="navLabelNavigation" maxlength="40"></div><div class="editor"><label for="navLabelModules">Module Registry menu title</label><input id="navLabelModules" maxlength="40"></div><div class="editor"><label for="navLabelControls">System Controls menu title</label><input id="navLabelControls" maxlength="40"></div><div class="editor"><label for="navLabelInformation">System Information menu title</label><input id="navLabelInformation" maxlength="40"></div></div></section>
+
+
+   <section class="view" id="view-department-menu-settings">
+    <div class="pagehead"><div><div class="eyebrow">MASTER CONTROLS / DEPARTMENT NAVIGATION</div><h1>Department Menu Controls</h1><p>Configure the CDB department launcher, supported menu categories, visibility, ordering and internal department submenus.</p></div><span class="pill">CDB CONFIGURATION ONLY</span></div>
+    <div class="callout"><strong>ISOLATED ADMINISTRATIVE CONFIGURATION</strong><p>Department Menu settings are isolated from the YARD HUB launcher and every operational application. Changes are versioned as CDB drafts; publishing this registry does not change live application navigation, routes, access rights or operational data.</p></div>
+    <div class="cdb-menu-layout">
+     <div class="panel">
+      <div class="cdb-menu-toolbar"><div><h2>Menu categories</h2><p>Create, rename or remove unused categories. A category in use cannot be removed until its departments are reassigned.</p></div><div class="cdb-menu-actions"><input id="newDepartmentCategory" maxlength="40" placeholder="New category name" style="width:190px"><button id="addDepartmentCategoryBtn" type="button">ADD CATEGORY</button></div></div>
+      <div id="departmentCategories" class="cdb-menu-categories" style="margin-top:12px"></div>
+     </div>
+     <div class="panel">
+      <div class="cdb-menu-toolbar"><div><h2>Department entries</h2><p>Rename titles, edit descriptions, assign categories, control visibility and change the order within each category.</p></div><button id="restoreDepartmentMenuBtn" type="button" class="danger">RESTORE ORIGINAL SETTINGS</button></div>
+      <div id="departmentEntries" class="cdb-menu-entries" style="margin-top:12px"></div>
+      <div class="cdb-menu-note" style="margin-top:12px">Department identities, route IDs, icons and operational status indicators are system-defined. This editor changes the CDB launcher presentation only.</div>
+     </div>
+     <div class="panel"><div class="sectionhead"><div><div class="eyebrow">LIVE PREVIEW</div><h2>Department launcher preview</h2></div><span class="pill">UNPUBLISHED DRAFT</span></div><div id="departmentMenuPreview"></div></div>
+    </div>
+   </section>
 
    <section class="view" id="view-organisation">
     <div class="pagehead"><div><div class="eyebrow">MASTER REGISTRY / 01</div><h1>Organisation</h1><p>Define the organisation identity and regional conventions used by the configuration registry.</p></div><span class="pill">DRAFT EDITABLE</span></div>
@@ -338,7 +385,125 @@ small,.muted{color:var(--muted)}
   if(!response.ok){const error=new Error(data.error||"Central configuration request failed");error.status=response.status;throw error}
   return data;
  }
- function blankConfig(){return {schemaVersion:1,navigation:{overview:"Overview",organisation:"Organisation",structure:"Plant & Areas",libraries:"Operational Libraries",defaults:"System Defaults",history:"Version History",navigation:"Menu & Labels",modules:"Module Registry",controls:"System Controls",information:"System Information"},modules:[],organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
+
+ const SUPPORTED_MENU_TARGETS=["overview","organisation","structure","libraries","defaults","history","navigation","department-menu-settings","modules","controls","information","dept-downtime","dept-floor","dept-checksheets","dept-rm","dept-yardhub"];
+ function defaultDepartmentMenu(){return {categories:[{id:"operations",label:"Operations",order:0},{id:"administration",label:"Administration",order:1}],entries:[{id:"downtime",route:"dept-downtime",mark:"D",title:"DOWNTIME",description:"PLANT DOWNTIME & OPERATIONS",categoryId:"operations",enabled:true,order:0,status:"PROTECTED LIVE APPLICATION",statusTone:"live",submenu:[]},{id:"floor",route:"dept-floor",mark:"F",title:"FLOOR",description:"FLOOR & YARD OPERATIONS",categoryId:"operations",enabled:true,order:1,status:"RESERVED MODULE",statusTone:"planned",submenu:[]},{id:"check-sheets",route:"dept-checksheets",mark:"CS",title:"CHECK SHEETS",description:"INSPECTIONS & COMPLIANCE",categoryId:"operations",enabled:true,order:2,status:"RESERVED MODULE",statusTone:"planned",submenu:[]},{id:"repairs-maintenance",route:"dept-rm",mark:"R&M",title:"R&M",description:"REPAIRS & MAINTENANCE",categoryId:"operations",enabled:true,order:3,status:"EXISTING APPLICATION",statusTone:"live",submenu:[]},{id:"hub-settings",route:"dept-yardhub",mark:"YH",title:"HUB SETTINGS",description:"YARD HUB & APPLICATION ACCESS",categoryId:"administration",enabled:true,order:0,status:"ADMINISTRATION",statusTone:"admin",submenu:[]}]};}
+ function configEndpoint(){return $("projectUrl").value.trim().replace(/\/$/,"")+"/functions/v1/central-config-admin";}
+ async function callConfig(action,payload={}) {
+  const headers={"Content-Type":"application/json","apikey":$("pubKey").value.trim()};
+  if(token)headers["x-downtime-session"]=token;
+  const response=await fetch(configEndpoint(),{method:"POST",headers,body:JSON.stringify({action,...payload})});
+  const data=await response.json().catch(()=>({error:"Invalid CDB configuration response"}));
+  if(!response.ok){const error=new Error(data.error||"CDB configuration request failed");error.status=response.status;throw error;}
+  return data;
+ }
+ function menuNode(tag,className,text){const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;}
+ function menuInput(labelText,value,maxLength,datasetKey,host){
+  const field=menuNode("div","field"),label=menuNode("label","",labelText),input=menuNode("input");
+  input.value=value??"";input.maxLength=maxLength;input.dataset[datasetKey]="true";label.append(input);field.append(label);host.append(field);return input;
+ }
+ function menuToggle(text,checked,datasetKey,host){
+  const label=menuNode("label","cdb-menu-toggle"),input=menuNode("input");input.type="checkbox";input.checked=checked!==false;input.dataset[datasetKey]="true";label.append(input,document.createTextNode(text));host.append(label);return input;
+ }
+ function renderDepartmentMenu(config){
+  const fallback=defaultDepartmentMenu(),source=config&&typeof config==="object"?config:fallback;
+  const categories=Array.isArray(source.categories)&&source.categories.length?source.categories:fallback.categories;
+  const categoryIndex=id=>categories.findIndex(item=>item.id===id);const entries=fallback.entries.map(base=>{const found=(source.entries||[]).find(item=>item.id===base.id)||{};return {...base,...found,submenu:Array.isArray(found.submenu)?found.submenu:[]};}).sort((a,b)=>categoryIndex(a.categoryId)-categoryIndex(b.categoryId)||Number(a.order)-Number(b.order));
+  const categoryHost=$("departmentCategories"),entryHost=$("departmentEntries");if(!categoryHost||!entryHost)return;
+  categoryHost.replaceChildren();entryHost.replaceChildren();
+  categories.slice().sort((a,b)=>Number(a.order)-Number(b.order)).forEach((category,index)=>{
+   const card=menuNode("div","cdb-menu-category");card.dataset.menuCategory="true";card.dataset.categoryId=category.id;
+   menuInput("Category name",category.label,40,"menuCategoryLabel",card);
+   const remove=menuNode("button","danger","REMOVE");remove.type="button";remove.addEventListener("click",()=>{
+    const menu=collectDepartmentMenu(),used=menu.entries.some(entry=>entry.categoryId===category.id);
+    if(used){status("Reassign departments before removing a category.",true);return;}
+    if(menu.categories.length<=1){status("At least one category must remain.",true);return;}
+    renderDepartmentMenu({...menu,categories:menu.categories.filter(item=>item.id!==category.id)});updateButtons();
+   });
+   card.append(remove);categoryHost.append(card);
+  });
+  entries.forEach(entry=>{
+   const card=menuNode("div","cdb-menu-entry");card.dataset.menuEntry="true";card.dataset.menuEntryId=entry.id;card.dataset.entryOrder=String(entry.order);card.dataset.menuEntryRoute=entry.route;card.dataset.menuEntryMark=entry.mark;card.dataset.menuEntryStatus=entry.status;card.dataset.menuEntryTone=entry.statusTone;
+   const head=menuNode("div","cdb-menu-entry-head"),heading=menuNode("strong","",entry.title+" · "+entry.id.toUpperCase()),state=menuNode("span","pill",entry.enabled===false?"HIDDEN FROM LAUNCHER":"VISIBLE IN LAUNCHER");head.append(heading,state);card.append(head);
+   const fields=menuNode("div","cdb-menu-fields");
+   menuInput("Department title",entry.title,48,"menuEntryTitle",fields);
+   menuInput("Description",entry.description,100,"menuEntryDescription",fields);
+   const catField=menuNode("div","field"),catLabel=menuNode("label","","Menu category"),catSelect=menuNode("select");catSelect.dataset.menuEntryCategory="true";
+   categories.forEach(category=>{const option=menuNode("option","",category.label);option.value=category.id;catSelect.append(option);});
+   catSelect.value=entry.categoryId;catLabel.append(catSelect);catField.append(catLabel);fields.append(catField);
+   const enabledWrap=menuNode("div","field");menuToggle("Show in department launcher",entry.enabled,"menuEntryEnabled",enabledWrap);fields.append(enabledWrap);card.append(fields);
+   const actions=menuNode("div","cdb-menu-actions"),up=menuNode("button","quiet","MOVE UP"),down=menuNode("button","quiet","MOVE DOWN"),add=menuNode("button","quiet","ADD SUBMENU ITEM");
+   up.type=down.type=add.type="button";up.dataset.menuEntryMoveUp=entry.id;down.dataset.menuEntryMoveDown=entry.id;up.addEventListener("click",()=>moveDepartmentEntry(entry.id,-1));down.addEventListener("click",()=>moveDepartmentEntry(entry.id,1));add.addEventListener("click",()=>addDepartmentSubmenu(entry.id));actions.append(up,down,add);card.append(actions);
+   const submenuHost=menuNode("div","cdb-menu-submenus");submenuHost.dataset.menuSubmenus=entry.id;submenuHost.append(menuNode("strong","","SUBMENU ITEMS"));
+   (entry.submenu||[]).forEach((item,index)=>submenuHost.append(makeSubmenuEditor(entry.id,item,index)));
+   card.append(submenuHost);entryHost.append(card);
+  });
+  categoryHost.querySelectorAll("input").forEach(input=>input.addEventListener("input",()=>{renderDepartmentLauncher(collectDepartmentMenu());updateButtons();}));
+  entryHost.querySelectorAll("input,select").forEach(input=>input.addEventListener("input",()=>{renderDepartmentLauncher(collectDepartmentMenu());updateButtons();}));
+  entryHost.querySelectorAll('input[type="checkbox"]').forEach(input=>input.addEventListener("change",()=>{renderDepartmentLauncher(collectDepartmentMenu());updateButtons();}));
+  renderDepartmentLauncher(collectDepartmentMenu());
+ }
+ function makeSubmenuEditor(entryId,item,index){
+  const row=menuNode("div","cdb-menu-submenu");row.dataset.menuSubmenu="true";row.dataset.menuSubmenuId=item.id||("item-"+index);
+  const label=menuNode("input");label.value=item.label||"";label.maxLength=40;label.placeholder="Menu label";label.dataset.menuSubmenuLabel="true";
+  const target=menuNode("select");target.dataset.menuSubmenuTarget="true";SUPPORTED_MENU_TARGETS.forEach(value=>{const option=menuNode("option","",value.replace(/-/g," ").toUpperCase());option.value=value;target.append(option);});target.value=item.target||"overview";
+  const enabledWrap=menuNode("div");menuToggle("ON",item.enabled,"menuSubmenuEnabled",enabledWrap);
+  const remove=menuNode("button","danger","REMOVE");remove.type="button";remove.dataset.removeSubmenu="true";remove.addEventListener("click",()=>{const menu=collectDepartmentMenu(),entry=menu.entries.find(value=>value.id===entryId);entry.submenu=entry.submenu.filter(value=>value.id!==row.dataset.menuSubmenuId);renderDepartmentMenu(menu);updateButtons();});
+  row.append(label,target,enabledWrap,remove);
+  [label,target].forEach(input=>input.addEventListener("input",()=>{renderDepartmentLauncher(collectDepartmentMenu());updateButtons();}));
+  enabledWrap.querySelector("input").addEventListener("change",()=>{renderDepartmentLauncher(collectDepartmentMenu());updateButtons();});
+  return row;
+ }
+ function collectDepartmentMenu(){
+  const categories=Array.from(document.querySelectorAll("[data-menu-category]")).map((card,index)=>({id:card.dataset.categoryId,label:card.querySelector("[data-menu-category-label]")?.value.trim()||"",order:index}));
+  const entries=Array.from(document.querySelectorAll("[data-menu-entry]")).map((card,index)=>{
+   const base=defaultDepartmentMenu().entries.find(item=>item.id===card.dataset.menuEntryId);
+   const submenu=Array.from(card.querySelectorAll("[data-menu-submenu]")).map((row,childIndex)=>({id:row.dataset.menuSubmenuId||("submenu-"+childIndex),label:row.querySelector("[data-menu-submenu-label]")?.value.trim()||"",target:row.querySelector("[data-menu-submenu-target]")?.value||"overview",enabled:row.querySelector("[data-menu-submenu-enabled]")?.checked!==false,order:childIndex}));
+   return {id:base.id,route:base.route,mark:base.mark,title:card.querySelector("[data-menu-entry-title]")?.value.trim()||"",description:card.querySelector("[data-menu-entry-description]")?.value.trim()||"",categoryId:card.querySelector("[data-menu-entry-category]")?.value||base.categoryId,enabled:card.querySelector("[data-menu-entry-enabled]")?.checked!==false,order:Number(card.dataset.entryOrder??index),status:base.status,statusTone:base.statusTone,submenu};
+  });
+  for(const category of categories){entries.filter(entry=>entry.categoryId===category.id).sort((a,b)=>a.order-b.order).forEach((entry,index)=>entry.order=index);}
+  return {categories,entries};
+ }
+ function moveDepartmentEntry(id,delta){
+  const menu=collectDepartmentMenu(),entry=menu.entries.find(item=>item.id===id);if(!entry)return;
+  const peers=menu.entries.filter(item=>item.categoryId===entry.categoryId).sort((a,b)=>a.order-b.order),index=peers.findIndex(item=>item.id===id),target=index+delta;
+  if(target<0||target>=peers.length)return;[peers[index],peers[target]]=[peers[target],peers[index]];peers.forEach((item,index)=>item.order=index);
+  const updated=menu.entries.map(item=>peers.find(peer=>peer.id===item.id)||item);renderDepartmentMenu({...menu,entries:updated});updateButtons();
+ }
+ function addDepartmentSubmenu(id){
+  const menu=collectDepartmentMenu(),entry=menu.entries.find(item=>item.id===id);if(!entry)return;
+  if(entry.submenu.length>=12){status("A department can have no more than 12 submenu items.",true);return;}
+  let serial=1;while(entry.submenu.some(item=>item.id==="menu-link-"+serial))serial++;entry.submenu.push({id:"menu-link-"+serial,label:"New link",target:"overview",enabled:true,order:entry.submenu.length});renderDepartmentMenu(menu);updateButtons();
+ }
+ function addDepartmentCategory(){
+  const value=$("newDepartmentCategory").value.trim();if(!value){status("Enter a category name first.",true);return;}
+  const menu=collectDepartmentMenu(),id=value.toLocaleLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  if(!id||menu.categories.some(item=>item.id===id||item.label.toLocaleLowerCase()===value.toLocaleLowerCase())){status("That category already exists or has an invalid name.",true);return;}
+  if(menu.categories.length>=20){status("A maximum of 20 categories is supported.",true);return;}
+  menu.categories.push({id,label:value,order:menu.categories.length});$("newDepartmentCategory").value="";renderDepartmentMenu(menu);updateButtons();
+ }
+ function renderDepartmentLauncher(config){
+  const host=$("departmentLauncher"),preview=$("departmentMenuPreview");if(!host)return;
+  const menu=config&&Array.isArray(config.entries)?config:defaultDepartmentMenu();host.replaceChildren();if(preview)preview.replaceChildren();
+  const categories=(menu.categories||[]).slice().sort((a,b)=>Number(a.order)-Number(b.order));let visible=0;
+  categories.forEach(category=>{
+   const entries=(menu.entries||[]).filter(entry=>entry.categoryId===category.id&&entry.enabled!==false).slice().sort((a,b)=>Number(a.order)-Number(b.order));if(!entries.length)return;visible+=entries.length;
+   const group=menuNode("section","cdb-dept-group"),heading=menuNode("div","cdb-dept-group-title",category.label),grid=menuNode("div","cdb-dept-grid");group.append(heading,grid);
+   entries.forEach(entry=>{
+    const wrap=menuNode("div","cdb-launch-entry"),button=menuNode("button","cdb-dept-card"),mark=menuNode("span","cdb-dept-mark",entry.mark),copy=menuNode("span","cdb-dept-copy"),title=menuNode("strong","",entry.title),description=menuNode("small","",entry.description),statusMark=menuNode("em",entry.statusTone,entry.status);
+    button.type="button";button.dataset.section=entry.route;copy.append(title,description,statusMark);button.append(mark,copy);wrap.append(button);
+    const submenu=(entry.submenu||[]).filter(item=>item.enabled!==false);
+    if(submenu.length){const links=menuNode("div","cdb-dept-submenu");submenu.slice().sort((a,b)=>a.order-b.order).forEach(item=>{const link=menuNode("button","",item.label);link.type="button";link.dataset.section=item.target;links.append(link);});wrap.append(links);}
+    grid.append(wrap);
+   });
+   host.append(group);
+   if(preview){const previewGroup=menuNode("section","cdb-dept-group"),previewHeading=menuNode("div","cdb-dept-group-title",category.label),previewGrid=menuNode("div","cdb-dept-grid");previewGroup.append(previewHeading,previewGrid);entries.forEach(entry=>{const card=menuNode("div","feature");card.append(menuNode("strong","",entry.title),menuNode("small","",entry.description));(entry.submenu||[]).filter(item=>item.enabled!==false).forEach(item=>card.append(menuNode("small","",item.label+" → "+item.target)));previewGrid.append(card);});preview.append(previewGroup);}
+  });
+  if(!visible){host.append(menuNode("div","cdb-menu-empty","All department entries are currently hidden. Enable at least one entry to display the launcher."));if(preview)preview.append(menuNode("div","cdb-menu-empty","No visible departments."));}
+  host.querySelectorAll("button[data-section]").forEach(button=>button.addEventListener("click",()=>showSection(button.dataset.section)));
+ }
+
+ function blankConfig(){return {schemaVersion:1,departmentMenu:defaultDepartmentMenu(),navigation:{overview:"Overview",organisation:"Organisation",structure:"Plant & Areas",libraries:"Operational Libraries",defaults:"System Defaults",history:"Version History",navigation:"Menu & Labels",modules:"Module Registry",controls:"System Controls",information:"System Information"},modules:[],organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
  const lines=value=>Array.isArray(value)?value.join("\n"):"";
  function list(id){return $(id).value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean)}
  function setValue(id,value){$(id).value=value??""}
@@ -350,7 +515,7 @@ small,.muted{color:var(--muted)}
   });
  }
  function renderForm(config){
-  const c=config||blankConfig(),org=c.organization||{},structure=c.structure||{},libraries=c.libraries||{},defaults=c.defaults||{},navigation=c.navigation||blankConfig().navigation;setValue("moduleRegistry",lines(c.modules));
+  const c=config||blankConfig(),org=c.organization||{},structure=c.structure||{},libraries=c.libraries||{},defaults=c.defaults||{},navigation=c.navigation||blankConfig().navigation;setValue("moduleRegistry",lines(c.modules));renderDepartmentMenu(c.departmentMenu||defaultDepartmentMenu());
   Object.keys(navigation).forEach(key=>setValue("navLabel"+key.charAt(0).toUpperCase()+key.slice(1),navigation[key]));renderNavigation(navigation);
   setValue("companyName",org.companyName);setValue("siteCode",org.siteCode);setValue("timezone",org.timezone||"Europe/London");setValue("locale",org.locale||"en-GB");
   ["sites","plants","areas","stations"].forEach(key=>setValue(key,lines(structure[key])));
@@ -368,6 +533,7 @@ small,.muted{color:var(--muted)}
   return {
    schemaVersion:1,
    modules:list("moduleRegistry"),
+   departmentMenu:collectDepartmentMenu(),
    navigation:{overview:$("navLabelOverview").value.trim()||"Overview",organisation:$("navLabelOrganisation").value.trim()||"Organisation",structure:$("navLabelStructure").value.trim()||"Plant & Areas",libraries:$("navLabelLibraries").value.trim()||"Operational Libraries",defaults:$("navLabelDefaults").value.trim()||"System Defaults",history:$("navLabelHistory").value.trim()||"Version History",navigation:$("navLabelNavigation").value.trim()||"Menu & Labels",modules:$("navLabelModules").value.trim()||"Module Registry",controls:$("navLabelControls").value.trim()||"System Controls",information:$("navLabelInformation").value.trim()||"System Information"},
    organization:{companyName:$("companyName").value.trim(),siteCode:$("siteCode").value.trim(),timezone:$("timezone").value.trim(),locale:$("locale").value.trim()},
    structure:{sites:list("sites"),plants:list("plants"),areas:list("areas"),stations:list("stations")},
@@ -415,7 +581,7 @@ small,.muted{color:var(--muted)}
   host.querySelectorAll("[data-restore-version]").forEach(button=>button.addEventListener("click",()=>restoreVersion(Number(button.dataset.restoreVersion))));
  }
  async function loadState(){
-  const data=await call("central-config-state");
+  const data=await callConfig("central-config-state");
   model=data;draftVersion=Number(data.draftVersion);publishedVersion=Number(data.publishedVersion);nextVersion=Number(data.nextVersion);versions=data.versions||[];
   renderForm(model.draft);baseline=stable(collectConfig());$("avatar").textContent=(data.user?.displayName||data.user?.username||"A").slice(0,1).toUpperCase();
   $("identity").textContent=(data.user?.displayName||data.user?.username||"ADMIN")+" · "+data.user?.tier;
@@ -441,7 +607,7 @@ small,.muted{color:var(--muted)}
   let config;try{config=collectConfig()}catch(error){status(error.message,true);return}
   $("saveDraftBtn").disabled=true;status("Validating and saving draft snapshot...");
   try{
-   const saved=await call("central-config-save-draft",{config,draftVersion,nextVersion,note:"Saved from Central Data Bank Admin"});
+   const saved=await callConfig("central-config-save-draft",{config,draftVersion,nextVersion,note:"Saved from Central Data Bank Admin"});
    await loadState();status("Draft saved as version v"+saved.draftVersion+". The published configuration and live tracker are unchanged.");
   }catch(error){status(error.message,true);$("saveDraftBtn").disabled=false}
  }
@@ -451,13 +617,13 @@ small,.muted{color:var(--muted)}
   const approved=window.confirm("Publish configuration version v"+draftVersion+" to the Central Data Bank registry? This will not change the running tracker. Tracker integration requires a separate tested release.");
   if(!approved)return;
   $("publishBtn").disabled=true;status("Publishing approved configuration version...");
-  try{const saved=await call("central-config-publish",{draftVersion,publishedVersion});await loadState();status("Configuration version v"+saved.publishedVersion+" published to the isolated registry. The live tracker remains unchanged.");}
+  try{const saved=await callConfig("central-config-publish",{draftVersion,publishedVersion});await loadState();status("Configuration version v"+saved.publishedVersion+" published to the isolated registry. The live tracker remains unchanged.");}
   catch(error){status(error.message,true);$("publishBtn").disabled=false}
  }
  async function restoreVersion(sourceVersion){
   if(!window.confirm("Restore version v"+sourceVersion+" as a new draft? The current published version will remain active until a separate publish action."))return;
   status("Restoring historical snapshot as a new draft...");
-  try{const result=await call("central-config-restore-draft",{sourceVersion,draftVersion,nextVersion});await loadState();showSection("overview");status("Version v"+sourceVersion+" restored as new draft v"+result.draftVersion+". Review and publish when ready.");}
+  try{const result=await callConfig("central-config-restore-draft",{sourceVersion,draftVersion,nextVersion});await loadState();showSection("overview");status("Version v"+sourceVersion+" restored as new draft v"+result.draftVersion+". Review and publish when ready.");}
   catch(error){status(error.message,true)}
  }
  async function refresh(){
@@ -478,6 +644,11 @@ small,.muted{color:var(--muted)}
  document.querySelectorAll("#workspace input,#workspace textarea,#workspace select").forEach(input=>input.addEventListener("input",updateButtons));
  $("projectUrl").addEventListener("change",rememberConnection);$("pubKey").addEventListener("change",rememberConnection);
  buildDayChecks();renderForm(blankConfig());updateButtons();
+ $("addDepartmentCategoryBtn").addEventListener("click",addDepartmentCategory);
+ $("newDepartmentCategory").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();addDepartmentCategory();}});
+ $("restoreDepartmentMenuBtn").addEventListener("click",()=>{if(!window.confirm("Restore the original five department entries and two default categories? Save Draft is required to persist this reset."))return;renderDepartmentMenu(defaultDepartmentMenu());updateButtons();status("Original department menu restored locally. Save Draft to persist this reset.");});
+ $("workspace").addEventListener("input",event=>{if(event.target instanceof Element&&event.target.matches("input,select,textarea"))updateButtons();});
+ $("workspace").addEventListener("change",event=>{if(event.target instanceof Element&&event.target.matches("input,select,textarea"))updateButtons();});
 })();
 </script>
 </body>

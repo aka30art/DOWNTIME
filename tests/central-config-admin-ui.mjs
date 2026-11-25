@@ -5,8 +5,10 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
 const file=fileURLToPath(new URL('../central-bank-admin.html',import.meta.url));
+function defaultDepartmentMenu(){return {categories:[{id:'operations',label:'Operations',order:0},{id:'administration',label:'Administration',order:1}],entries:[{id:'downtime',route:'dept-downtime',mark:'D',title:'DOWNTIME',description:'PLANT DOWNTIME & OPERATIONS',categoryId:'operations',enabled:true,order:0,status:'PROTECTED LIVE APPLICATION',statusTone:'live',submenu:[]},{id:'floor',route:'dept-floor',mark:'F',title:'FLOOR',description:'FLOOR & YARD OPERATIONS',categoryId:'operations',enabled:true,order:1,status:'RESERVED MODULE',statusTone:'planned',submenu:[]},{id:'check-sheets',route:'dept-checksheets',mark:'CS',title:'CHECK SHEETS',description:'INSPECTIONS & COMPLIANCE',categoryId:'operations',enabled:true,order:2,status:'RESERVED MODULE',statusTone:'planned',submenu:[]},{id:'repairs-maintenance',route:'dept-rm',mark:'R&M',title:'R&M',description:'REPAIRS & MAINTENANCE',categoryId:'operations',enabled:true,order:3,status:'EXISTING APPLICATION',statusTone:'live',submenu:[]},{id:'hub-settings',route:'dept-yardhub',mark:'YH',title:'HUB SETTINGS',description:'YARD HUB & APPLICATION ACCESS',categoryId:'administration',enabled:true,order:0,status:'ADMINISTRATION',statusTone:'admin',submenu:[]}]};}
 let draft={
  schemaVersion:1,
+ departmentMenu:defaultDepartmentMenu(),
  modules:['Central Data Bank','YARD HUB','Repair & Maintenance'],
  navigation:{overview:'Overview',organisation:'Organisation',structure:'Plant & Areas',libraries:'Operational Libraries',defaults:'System Defaults',history:'Version History',navigation:'Menu & Labels',modules:'Module Registry',controls:'System Controls',information:'System Information'},
  organization:{companyName:'',siteCode:'',timezone:'Europe/London',locale:'en-GB'},
@@ -14,6 +16,7 @@ let draft={
  libraries:{areaPresets:['Line 1'],downtimeReasons:['Mechanical failure'],dailyTaskPresets:['Check guards'],equipmentCategories:[],eventCategories:[],statusCategories:['Running','Stopped']},
  defaults:{shiftSchedule:{MONDAY:{start:'06:30',stop:'17:00'}},shiftPresets:[],weekStartsOn:'MONDAY',operatingDays:['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'],breakDeductionMinutes:75}
 };
+const initialDraft=structuredClone(draft);
 let draftVersion=1,publishedVersion=1,nextVersion=2,activeTestUser='DEV';
 let versions=[{version:1,parent_version:null,action:'initial',actor:'SYSTEM',note:'Initial baseline',created_at:new Date().toISOString(),published_at:new Date().toISOString(),status:'PUBLISHED'}];
 const calls=[];
@@ -69,6 +72,38 @@ try{
   }
   await route.fulfill({status:400,json:{error:'Unexpected action '+body.action}});
  });
+ await page.route('**/functions/v1/central-config-admin',async route=>{
+  const request=route.request();
+  if(request.method()==='OPTIONS'){
+   await route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'POST, OPTIONS','access-control-allow-headers':'content-type, apikey, x-downtime-session'}});return;
+  }
+  const body=request.postDataJSON();calls.push(body.action);
+  const user=activeTestUser==='DEV'?{username:'DEV',displayName:'DEV',tier:'OWNER'}:{username:activeTestUser,displayName:activeTestUser,tier:activeTestUser==='DEVACC'?'DEVACC':'ADMIN'};
+  if(body.action==='central-config-state'){
+   if(!((user.username==='DEV'&&user.tier==='OWNER')||user.tier==='DEVACC')){await route.fulfill({status:403,json:{error:'Central Data Bank access is restricted to DEV and DEVACC only.'}});return;}
+   await route.fulfill({json:state(user)});return;
+  }
+  if(body.action==='central-config-save-draft'){
+   if(body.draftVersion!==draftVersion||body.nextVersion!==nextVersion){await route.fulfill({status:409,json:{error:'Draft changed in another session.'}});return;}
+   draft=structuredClone(body.config);draftVersion=nextVersion;nextVersion++;
+   versions.unshift({version:draftVersion,parent_version:draftVersion-1,action:'draft-save',actor:activeTestUser,note:body.note,created_at:new Date().toISOString(),published_at:null,status:'CURRENT DRAFT'});
+   await route.fulfill({json:{ok:true,draftVersion,nextVersion}});return;
+  }
+  if(body.action==='central-config-publish'){
+   if(body.draftVersion!==draftVersion||body.publishedVersion!==publishedVersion||draftVersion===publishedVersion){await route.fulfill({status:409,json:{error:'Publish conflict.'}});return;}
+   publishedVersion=draftVersion;versions=versions.map(v=>v.version===publishedVersion?{...v,published_at:new Date().toISOString(),status:'PUBLISHED'}:v);
+   await route.fulfill({json:{ok:true,publishedVersion,publishedAt:new Date().toISOString()}});return;
+  }
+  if(body.action==='central-config-restore-draft'){
+   if(body.draftVersion!==draftVersion||body.nextVersion!==nextVersion){await route.fulfill({status:409,json:{error:'Restore conflict.'}});return;}
+   draft=body.sourceVersion===1?structuredClone(initialDraft):structuredClone(draft);
+   draftVersion=nextVersion;nextVersion++;
+   versions.unshift({version:draftVersion,parent_version:body.sourceVersion,action:'restore-draft',actor:activeTestUser,note:'Restored historical snapshot',created_at:new Date().toISOString(),published_at:null,status:'CURRENT DRAFT'});
+   await route.fulfill({json:{ok:true,draftVersion,nextVersion,sourceVersion:body.sourceVersion}});return;
+  }
+  await route.fulfill({status:400,json:{error:'Unexpected config action '+body.action}});
+ });
+ page.on('dialog',dialog=>dialog.accept());
  await page.goto('http://127.0.0.1:'+address.port+'/central-bank-admin.html');
  assert.equal(await page.locator('#workspace').isVisible(),false,'workspace starts inaccessible before authentication');
  await page.locator('#username').fill('DEV');
@@ -88,6 +123,25 @@ try{
  assert.equal(await page.locator('#publishedKpi').textContent(),'v1');
  assert.equal(await page.locator('#draftKpi').textContent(),'v1');
  assert.ok(await page.locator('text=Access & Rights stays separate').count(),'separate responsibilities are explained');
+
+ // Phase 02: department label, category, visibility, ordering and submenu controls.
+ await page.locator('[data-section="department-menu-settings"]').click();
+ await page.locator('[data-menu-entry-id="downtime"] [data-menu-entry-title]').fill('PLANT CONTROL');
+ await page.locator('[data-menu-entry-id="downtime"] [data-menu-entry-description]').fill('PLANT OPERATIONS & SHIFT CONTROL');
+ await page.locator('[data-menu-entry-id="floor"] [data-menu-entry-enabled]').uncheck();
+ await page.locator('[data-menu-entry-id="repairs-maintenance"] [data-menu-entry-move-up]').click();
+ await page.locator('#newDepartmentCategory').fill('Support');
+ await page.locator('#addDepartmentCategoryBtn').click();
+ await page.locator('[data-menu-entry-id="hub-settings"] [data-menu-entry-category]').selectOption('support');
+ await page.locator('[data-menu-entry-id="downtime"] button').filter({hasText:'ADD SUBMENU ITEM'}).click();
+ await page.locator('[data-menu-entry-id="downtime"] [data-menu-submenu-label]').fill('Control Overview');
+ await page.locator('[data-menu-entry-id="downtime"] [data-menu-submenu-target]').selectOption('overview');
+ assert.equal(await page.locator('#departmentLauncher [data-section="dept-floor"]').count(),0,'disabled departments are hidden from the launcher');
+ assert.equal((await page.locator('#departmentLauncher [data-section="dept-downtime"] strong').textContent()).trim(),'PLANT CONTROL','department titles update in the launcher');
+ assert.equal(await page.locator('#departmentLauncher [data-section="overview"]').count(),1,'enabled submenu links are rendered in the launcher');
+ const launcherOrder=await page.locator('#departmentLauncher .cdb-dept-card').evaluateAll(cards=>cards.map(card=>card.dataset.section));
+ assert.ok(launcherOrder.indexOf('dept-rm')<launcherOrder.indexOf('dept-checksheets'),'department move controls reorder launcher cards');
+ assert.ok(await page.locator('#departmentLauncher .cdb-dept-group-title').filter({hasText:'Support'}).count(),'new categories are reflected in launcher grouping');
 
  await page.locator('[data-section="navigation"]').click();
  await page.locator('#navLabelStructure').fill('Facility Map');
@@ -113,13 +167,25 @@ try{
  assert.equal((await page.locator('[data-section="modules"] .navtext').textContent()).trim(),'Component Catalogue','module menu label persists after reload');
  assert.equal((await page.locator('[data-section="controls"] .navtext').textContent()).trim(),'Safety Controls','system controls menu label persists after reload');
  assert.equal((await page.locator('[data-section="information"] .navtext').textContent()).trim(),'Diagnostics','system information menu label persists after reload');
+ assert.equal((await page.locator('#departmentLauncher [data-section="dept-downtime"] strong').textContent()).trim(),'PLANT CONTROL','department title persists in the versioned configuration');
+ assert.equal(await page.locator('#departmentLauncher [data-section="dept-floor"]').count(),0,'department visibility persists after reload');
+ assert.equal(await page.locator('#departmentLauncher [data-section="overview"]').count(),1,'department submenu persists after reload');
+ assert.ok(await page.locator('#departmentLauncher .cdb-dept-group-title').filter({hasText:'Support'}).count(),'new category persists after reload');
+ await page.locator('[data-section="department-menu-settings"]').click();
+ await page.locator('#restoreDepartmentMenuBtn').click();
+ assert.equal((await page.locator('#departmentLauncher [data-section="dept-downtime"] strong').textContent()).trim(),'DOWNTIME','restore returns the original department title');
+ assert.equal(await page.locator('#departmentLauncher [data-section="dept-floor"]').count(),1,'restore re-enables original department visibility');
+ assert.equal(await page.locator('#departmentLauncher [data-section="overview"]').count(),0,'restore clears configured submenu links');
+ await page.reload();
+ await page.locator('#username').fill('DEV');await page.locator('#pin').fill('1234');await page.locator('#loginBtn').click();
+ await page.locator('#view-departments').waitFor({state:'visible'});
+ assert.equal((await page.locator('#departmentLauncher [data-section="dept-downtime"] strong').textContent()).trim(),'PLANT CONTROL','unsaved reset is discarded while the saved menu remains durable');
  await page.locator('[data-section="controls"]').click();
  assert.ok(await page.getByText('Server-side access is restricted').count(),'system controls document the server-side access boundary');
  await page.locator('[data-section="information"]').click();
  assert.ok(await page.getByText('Not connected by design').count(),'system information confirms no live runtime integration');
  assert.equal(await page.locator('#publishBtn').isEnabled(),true,'saved draft can be explicitly published');
 
- page.on('dialog',dialog=>dialog.accept());
  await page.locator('#publishBtn').click();
  await page.getByText('Configuration version v2 published',{exact:false}).waitFor();
  assert.equal(await page.locator('#publishedKpi').textContent(),'v2','publish updates the published registry version');

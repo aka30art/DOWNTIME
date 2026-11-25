@@ -14,7 +14,7 @@ assert.ok(page.includes('option.disabled=!isRootDevAccount()'),'the DEVACC tier 
 assert.ok(page.includes("protectedDevacc=user.tier==='DEVACC'&&!canAccessCentralBank()"),'DEVACC accounts are not protected from another root-equivalent administrator');
 assert.ok(!page.includes('rootAccountMigration')&&!page.includes('splitRootAccountBtn'),'retired split panel is absent');
 
-assert.ok(adminPage.includes('call("central-config-state")'),'standalone configuration page uses the isolated config state action');
+assert.ok(adminPage.includes('callConfig("central-config-state")')&&adminPage.includes('/functions/v1/central-config-admin'),'standalone configuration page uses the dedicated isolated config endpoint');
 assert.ok(!adminPage.includes('call("central-admin-state")')&&!adminPage.includes('call("get-state")'),'configuration UI does not fall back to legacy admin/tracker state');
 assert.ok(api.includes('const isCentralBankAccess=isRootAuthority;'),'backend Data Bank authority includes DEVACC');
 assert.ok(api.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),'configuration actions require DEV or DEVACC');

@@ -12,7 +12,7 @@ assert.ok(tracker.includes('Only root DEV can assign the DEVACC tier.'),'account
 for(const legacy of ['user-save','user-delete','staff-save','staff-photo-url','tiers-save','saveUser','saveStaff','saveTiers','centralUsersPanel','centralStaffPanel'])assert.ok(!page.includes(legacy),'new Data Bank Admin must not duplicate Access & Rights or account/staff management: '+legacy);
 assert.ok(page.includes('x-downtime-session'),'configuration requests carry the opaque central session');
 assert.ok(page.includes('"apikey":$("pubKey").value.trim()'),'configuration requests send the publishable API key');
-assert.ok(page.includes('call("central-config-state")'),'admin page loads configuration control-plane state');
+assert.ok(page.includes('callConfig("central-config-state")'),'admin page loads configuration control-plane state');
 assert.ok(page.includes('if(auth&&token)headers["x-downtime-session"]=token'),'session token is attached only to authenticated admin actions');
 assert.ok(page.includes('DEV and DEVACC have identical authority to access the Central Data Bank'),'configuration UI documents root-equivalent DEVACC access');
 assert.ok(page.includes('DEV / DEVACC ACCESS'),'the Data Bank badge identifies both authorized account types');
