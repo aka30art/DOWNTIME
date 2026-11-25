@@ -104,7 +104,7 @@ try{
   }
   await route.fulfill({status:400,json:{error:'Unexpected config action '+body.action}});
  });
- page.on('dialog',dialog=>dialog.accept(dialog.type==='prompt'?(promptValues.shift()||''):''));
+ page.on('dialog',dialog=>dialog.accept(dialog.type()==='prompt'?(promptValues.shift()||''):''));
  await page.goto('http://127.0.0.1:'+address.port+'/central-bank-admin.html');
  assert.equal(await page.locator('#workspace').isVisible(),false,'workspace starts inaccessible before authentication');
  await page.locator('#username').fill('DEV');
