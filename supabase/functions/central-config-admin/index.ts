@@ -381,8 +381,8 @@ Deno.serve(async (req: Request) => {
   // administrative configuration actions remain restricted to DEV OWNER / DEVACC.
   if (action === "yard-hub-menu") {
     try {
-      const published = normalizeCentralConfig(configState.published_payload);
-      return json({ yardHubMenu: published.yardHubMenu, publishedVersion: Number(configState.published_version) });
+      const publishedYardHubMenu = normalizeYardHubMenu(configState.published_payload?.yardHubMenu);
+      return json({ yardHubMenu: publishedYardHubMenu, publishedVersion: Number(configState.published_version) });
     } catch (error) {
       return json({ error: error instanceof Error ? error.message : "Published YARD HUB menu is invalid" }, 503);
     }
