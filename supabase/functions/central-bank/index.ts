@@ -215,7 +215,7 @@ Deno.serve(async(req)=>{
   }
   if(action==="daily-operator-list"){
    const fromDate=String(body.fromDate||""),toDate=String(body.toDate||"");
-   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(fromDate)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(toDate)||fromDate>toDate)return json({error:"A valid date range is required"},400);
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(fromDate)||!/^\d{4}-\d{2}-\d{2}$/.test(toDate)||fromDate>toDate)return json({error:"A valid date range is required"},400);
    const rangeDays=(Date.parse(toDate+"T00:00:00Z")-Date.parse(fromDate+"T00:00:00Z"))/86400000;
    if(!Number.isFinite(rangeDays)||rangeDays>370)return json({error:"Date range cannot exceed 370 days"},400);
    const {data:records,error}=await db.from("downtime_daily_operator_assignments").select("duty_date,operator_name,is_locked,assigned_by,assigned_at,locked_by,locked_at,updated_by,updated_at").gte("duty_date",fromDate).lte("duty_date",toDate).order("duty_date",{ascending:true});
@@ -227,7 +227,7 @@ Deno.serve(async(req)=>{
  if(action==="daily-operator-assign"){
    if(!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"Supervisor permission is required to assign or change the daily operator"},403);
    const dutyDate=String(body.dutyDate||""),requested=String(body.operatorName||"").trim();
-   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(dutyDate)||!Number.isFinite(Date.parse(dutyDate+"T00:00:00Z")))return json({error:"A valid calendar date is required"},400);
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate)||!Number.isFinite(Date.parse(dutyDate+"T00:00:00Z")))return json({error:"A valid calendar date is required"},400);
    const roster=Array.isArray(bank.staff?.roster)?bank.staff.roster:["Jan","Mick","Gigi","Daz","Shayne"];
    const operator=roster.find((name:any)=>String(name).toLocaleLowerCase()===requested.toLocaleLowerCase());
    if(!operator)return json({error:"Select an operator from the current STAFF roster"},400);
@@ -254,7 +254,7 @@ Deno.serve(async(req)=>{
  if(action==="daily-operator-unlock"){
    if(!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"Supervisor permission is required to unlock the daily operator"},403);
    const dutyDate=String(body.dutyDate||""),reason=String(body.reason||"").trim().slice(0,240);
-   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(dutyDate))return json({error:"A valid calendar date is required"},400);
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate))return json({error:"A valid calendar date is required"},400);
    if(reason.length<4)return json({error:"Enter a reason for unlocking this daily assignment"},400);
    const {data:existing,error:readError}=await db.from("downtime_daily_operator_assignments").select("*").eq("duty_date",dutyDate).maybeSingle();
    if(readError)return json({error:"Unable to read the daily operator record"},503);
