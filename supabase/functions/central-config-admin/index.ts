@@ -350,6 +350,28 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  if (action === "central-config-validate") {
+    let config: any;
+    try { config = normalizeCentralConfig(body.config); }
+    catch (error) { return json({ valid: false, error: error instanceof Error ? error.message : "Configuration validation failed" }, 400); }
+    const structure = config.structure;
+    const libraries = config.libraries;
+    const hierarchy = structure.hierarchy;
+    const counts = {
+      sites: hierarchy.length,
+      plants: hierarchy.reduce((n: number, site: any) => n + site.plants.length, 0),
+      areas: hierarchy.reduce((n: number, site: any) => n + site.plants.reduce((p: number, plant: any) => p + plant.areas.length, 0), 0),
+      stations: hierarchy.reduce((n: number, site: any) => n + site.plants.reduce((p: number, plant: any) => p + plant.areas.reduce((a: number, area: any) => a + area.stations.length, 0), 0), 0),
+      modules: config.modules.length,
+      libraryEntries: Object.values(libraries).reduce((n: number, list: any) => n + list.length, 0),
+    };
+    const warnings: string[] = [];
+    if (!config.organization.companyName) warnings.push("Company name is not set");
+    if (!config.organization.siteCode) warnings.push("Site code is not set");
+    if (!counts.sites && !structure.sites.length) warnings.push("No site hierarchy or legacy site references are registered");
+    return json({ valid: true, counts, warnings });
+  }
+
   if (action === "central-config-audit") {
     const requestedLimit = body.limit === undefined ? 100 : Number(body.limit);
     if (!Number.isInteger(requestedLimit) || requestedLimit < 1 || requestedLimit > 200) {
