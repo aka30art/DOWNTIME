@@ -356,8 +356,11 @@ window.supabase={createClient:()=>({
   assert.equal(desktopFit.boxScroll,false,'desktop login card does not scroll');
   assert.equal(desktopFit.controlsFit,true,'all desktop login controls fit within the visible card');
   await page.setViewportSize({width:375,height:667});
-  const compactFit=await page.evaluate(()=>{const gate=document.querySelector('#authGate'),box=document.querySelector('#authGate .authbox-central');return gate.scrollHeight<=gate.clientHeight+1&&box.scrollHeight<=box.clientHeight+1});
-  assert.equal(compactFit,true,'compact mobile viewport also displays the complete login without scrolling');
+  const compactFit=await page.evaluate(()=>{const gate=document.querySelector('#authGate'),box=document.querySelector('#authGate .authbox-central'),refresh=document.querySelector('#refreshAppBtn'),style=getComputedStyle(box);const needsScroll=box.scrollHeight>box.clientHeight+1;box.scrollTop=box.scrollHeight;const r=refresh.getBoundingClientRect(),b=box.getBoundingClientRect();return {gateScroll:gate.scrollHeight>gate.clientHeight+1,needsScroll,scrollEnabled:style.overflowY==='auto',refreshReachable:r.bottom<=b.bottom+1&&r.top>=b.top-1}});
+  assert.equal(compactFit.gateScroll,false,'compact mobile login stays within the page viewport');
+  assert.equal(compactFit.needsScroll,true,'compact mobile login uses internal scrolling rather than shrinking touch targets');
+  assert.equal(compactFit.scrollEnabled,true,'compact mobile login card exposes vertical scrolling');
+  assert.equal(compactFit.refreshReachable,true,'REFRESH USER LIST remains reachable at the bottom of a compact login viewport');
   await page.setViewportSize({width:1280,height:720});
   loginPresentationVerified=true;
  }
