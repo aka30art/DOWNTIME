@@ -209,7 +209,13 @@ small,.muted{color:var(--muted)}
 }
 @media(prefers-reduced-motion:reduce){#workspace .sidebar .nav{transition:none!important}}
 </style>
-</head>
+<style id="cdb-section-page-navigation">
+#workspace.cdb-section-page .sidebar{display:none!important}
+#workspace.cdb-section-page .shell{grid-template-columns:minmax(0,1fr)!important}
+#cdbBackToMenu{display:none;min-height:46px;margin:0 0 16px;text-align:left}
+#workspace.cdb-section-page #cdbBackToMenu{display:inline-flex;align-items:center;gap:9px}
+@media(max-width:760px){#workspace.cdb-section-page .main{padding-top:12px}#workspace.cdb-section-page #cdbBackToMenu{width:100%;justify-content:flex-start}}
+</style></head>
 <body>
 <section id="login">
  <div class="login-card">
@@ -260,6 +266,7 @@ small,.muted{color:var(--muted)}
    <div class="sidefoot"><strong>ROOT DEV AUTHORITY</strong><small>Draft, validate, publish and restore configuration versions. Other accounts are rejected server-side.</small></div>
   </aside>
   <main class="main">
+    <button id="cdbBackToMenu" class="quiet" type="button">← &nbsp; BACK TO CENTRAL DATA BANK MENU</button>
    <div class="topbar">
     <div><div class="path">DOWNTIME <span>/</span> CENTRAL DATA BANK <span>/</span> CONFIGURATION</div><div class="account" style="margin-top:6px"><span class="avatar" id="avatar">A</span><span id="identity">Authenticated administrator</span><span class="pill">RESTRICTED</span></div></div>
     <div class="topactions"><button id="refreshBtn" class="quiet">REFRESH</button><button id="validateDraftBtn" class="quiet">VALIDATE DRAFT</button><button id="saveDraftBtn">SAVE DRAFT</button><button id="publishBtn" class="primary" disabled>PUBLISH VERSION</button><button id="logoutBtn" class="quiet">LOG OUT</button></div>
@@ -810,6 +817,7 @@ function defaultDepartmentSettings(){
   if(section==="release"){$("releaseDraftVersion").textContent=String(draftVersion);$("releasePublishedVersion").textContent=String(publishedVersion);}
   document.querySelectorAll(".view").forEach(view=>view.classList.toggle("active",view.id==="view-"+section));
   document.querySelectorAll("[data-section]").forEach(button=>button.classList.toggle("active",button.dataset.section===section));
+  const workspace=$("workspace");if(workspace)workspace.classList.toggle("cdb-section-page",section!=="departments");
  }
  async function login(){
   $("loginBtn").disabled=true;status("Authenticating administrator...");
@@ -909,5 +917,10 @@ function defaultDepartmentSettings(){
  $("workspace").addEventListener("change",event=>{if(event.target instanceof Element&&event.target.matches("input,select,textarea"))updateButtons();});
 })();
 </script>
-</body>
+<script id="cdb-section-page-navigation-script">
+document.getElementById("cdbBackToMenu")?.addEventListener("click",function(){
+ showSection("departments");
+ window.scrollTo({top:0,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+});
+</script></body>
 </html>
