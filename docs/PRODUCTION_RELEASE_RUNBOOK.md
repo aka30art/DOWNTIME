@@ -125,7 +125,7 @@ This is an intentional isolation guard, not a production-ready administrative en
 
 Do not simply replace the staging URL/key with production values. Verify endpoint authorisation, data boundaries, bootstrap controls, config history, RLS and rollback first.
 
-Also reconcile the current repository Central Bank source against the deployed production Central Bank Edge Function. The staging Central Bank source is the development target, while the production function has a different deployed version/source hash. No production function update is included in this preparation branch.
+The Central Bank source diff has been narrowed to one known feature block: production `central-bank` v13 lacks the seven repository lines that normalise Master Configuration navigation labels and the module registry in the configuration payload. Staging `central-bank` v7 matches the current repository source byte-for-byte. Production's R&M API v13 and YARD HUB Settings API v7 also match the repository source byte-for-byte. No production function update is included in this preparation branch.
 
 ## 7. Production release sequence — only after approval
 
