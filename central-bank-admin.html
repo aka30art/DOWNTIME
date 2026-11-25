@@ -955,7 +955,7 @@ function defaultDepartmentSettings(){
   try{
    const result=await callConfig("central-config-validate",{config});
    const counts=result.counts||{};
-   const summary=["sites","plants","areas","stations","modules","libraryEntries"].map(key=>key.replace(/[A-Z]/g,letter=>" "+letter.toLowerCase())+": "+Number(counts[key]||0)).join(" · ");
+   const summary=["sites","plants","areas","stations","modules","yardHubDepartments","yardHubSubmenus","libraryEntries"].map(key=>key.replace(/[A-Z]/g,letter=>" "+letter.toLowerCase())+": "+Number(counts[key]||0)).join(" · ");
    const warnings=Array.isArray(result.warnings)?result.warnings:[];
    status("Validation passed · "+summary+(warnings.length?" · "+warnings.length+" warning(s): "+warnings.join("; "):" · No warnings."),warnings.length>0);
   }catch(error){status("Validation failed: "+error.message,true)}
