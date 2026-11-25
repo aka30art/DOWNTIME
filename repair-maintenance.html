@@ -204,6 +204,14 @@
   </div>
   <div class="statusbar" id="settingsStatus" role="status" aria-live="polite"></div>
 </section>
+<section id="customCategoryView" class="view configuration-mode" hidden>
+  <div class="rm-mode-banner configuration-banner" role="status"><span class="rm-mode-icon" aria-hidden="true">＋</span><span><strong>NEW MACHINERY CATEGORY</strong><small>APPLICATION STRUCTURE · GENERATED MENU ENTRY</small></span><span class="rm-mode-tag">PLACEHOLDER</span></div>
+  <div class="section-head">
+    <div><div class="section-title" id="customCategoryTitle">MACHINERY CATEGORY</div><div class="section-note" id="customCategoryDescription">CATEGORY DESCRIPTION</div></div>
+    <button class="machine-back" id="backFromCustomCategory" type="button">← MACHINERY</button>
+  </div>
+  <div class="statusbar" id="customCategoryStatus" role="status">This category is registered in Data Center but does not yet have a dedicated machine data type or operational workflow. Existing R&amp;M records and reports remain unchanged.</div>
+</section>
 <section id="dashboardView" class="view" hidden>
   <div class="machinebar"><div class="machineicon" aria-hidden="true"><img id="machineIcon" src="assets/rm-icons/kiverco.svg" alt="" decoding="async"></div><div class="machine-header-copy"><span class="machinelabel" id="machineCategoryLabel">MACHINE TYPE</span><strong id="machineTitle">—</strong><div class="machine-asset-controls" id="machineAssetControls" hidden><label for="machineAssetSelect">REGISTERED MACHINE · FAULT REGISTER</label><select id="machineAssetSelect"><option value="">SELECT REGISTERED MACHINE</option></select><small class="form-help">This selects an existing machine record. Its model is shown in the Machinery &amp; Model Register.</small></div></div><div class="machine-nav-actions"><button class="machine-back" id="backToMachinery" type="button">← MACHINERY</button><button class="machine-back machine-config-action" id="openRmsSettingsShortcut" type="button" aria-label="Open current machinery configuration" title="Configure selected machinery" hidden>CONFIGURATION</button></div></div>
   <div class="stats"><div class="stat"><span class="staticon">🔧</span><div><div class="statlabel">TOTAL FAULTS</div><div class="statnum" id="totalCount">0</div></div></div><div class="stat"><span class="staticon">⚠</span><div><div class="statlabel">HIGH</div><div class="statnum" id="highCount">0</div></div></div><div class="stat"><span class="staticon">⚠</span><div><div class="statlabel">MEDIUM</div><div class="statnum" id="mediumCount">0</div></div></div><div class="stat"><span class="staticon">ⓘ</span><div><div class="statlabel">LOW</div><div class="statnum" id="lowCount">0</div></div></div></div>
@@ -347,7 +355,12 @@
 </div></div>
 <div class="overlay" id="messageOverlay" role="dialog" aria-modal="true"><div class="dialog" style="max-width:420px"><div class="dialog-head"><div class="dialog-title" id="messageTitle">NOTICE</div><button class="close" type="button" data-close="messageOverlay" aria-label="Close">×</button></div><p id="messageText"></p><div class="modal-footer"><button class="btn primary" type="button" data-close="messageOverlay">CLOSE</button></div></div></div>
 
-<script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';window.REPAIR_MAINTENANCE_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/repair-maintenance-api';</script>
+<script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';window.REPAIR_MAINTENANCE_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/repair-maintenance-api';window.CENTRAL_CONFIG_ADMIN_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-config-admin';</script>
 <script src="central-bank-client.js"></script>
 <script src="repair-maintenance-app.js?v=20261125-3"></script>
+<script src="repair-maintenance-structure.js?v=phase09-1"></script>
+<style>
+.rm-custom-category-icon{display:grid;place-items:center;width:100%;height:100%;color:#ffd21a;font-size:24px;font-weight:950;letter-spacing:-1px}
+#customCategoryStatus{margin-top:18px;padding:16px;border:1px solid #665723;border-radius:11px;background:linear-gradient(110deg,#332c16,#1c241e);color:#cabf99;line-height:1.6}
+</style>
 </body></html>

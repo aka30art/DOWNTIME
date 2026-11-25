@@ -128,7 +128,7 @@ try{
  await page.locator('#pin').fill('1234');
  await page.locator('#loginBtn').click();
  await page.locator('#view-departments').waitFor({state:'visible'});
- assert.equal(await page.locator('.cdb-dept-card').count(),5,'department launcher presents all five YARD HUB application areas');
+ assert.equal(await page.locator('#view-departments .cdb-dept-card').count(),5,'department launcher presents all five YARD HUB application areas');
  await returnToDepartmentMenu(page);
  await page.locator('[data-section="dept-downtime"]').click();
  assert.ok(await page.getByText('DOWNTIME OPERATIONAL INTEGRITY').count(),'DOWNTIME control page states the operational protection boundary');
@@ -230,7 +230,7 @@ try{
  assert.ok(await page.getByText('Server-side access is restricted').count(),'system controls document the server-side access boundary');
  await returnToDepartmentMenu(page);
  await page.locator('[data-section="information"]').click();
- assert.ok(await page.getByText('Not connected by design').count(),'system information confirms no live runtime integration');
+ assert.ok(await page.getByText('YARD HUB + R&M · Read-only').count(),'system information documents the published structure integration as read-only');
  await returnToDepartmentMenu(page);
  await page.locator('[data-section="release"]').click();
  await page.locator('#runImpactBtn').click();
@@ -239,7 +239,7 @@ try{
  assert.equal(await page.locator('#publishBtn').isEnabled(),true,'saved draft can be published only after impact review');
 
  await page.locator('#publishBtn').click();
- await page.getByText('Reviewed configuration v2 published to the isolated registry.',{exact:false}).waitFor();
+ await page.getByText('Configuration v2 published. YARD HUB menu changes are now available to authenticated users after the launcher refreshes.',{exact:false}).waitFor();
  assert.equal(await page.locator('#publishedKpi').textContent(),'v2','publish updates the published registry version');
 
  await returnToDepartmentMenu(page);

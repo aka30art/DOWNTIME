@@ -29,8 +29,63 @@
   function clearStatus(target){const el=$(target);if(!el)return;el.textContent='';el.className='statusbar';el.hidden=true;}
   function safe(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function machine(key){return MACHINES.find(m=>m.key===key)||MACHINES[0]}
+  function openCustomCategory(category){
+    $('customCategoryTitle').textContent=category.label||'MACHINERY CATEGORY';
+    $('customCategoryDescription').textContent=category.sub||'CUSTOM R&M CATEGORY';
+    $('customCategoryStatus').textContent='“'+(category.label||'This category')+'” is registered in the application structure, but it does not yet have a dedicated machine data type or operational workflow. Existing machine records, reports and permissions remain unchanged.';
+    setView('customCategoryView');
+  }
+  function applyMachineCategoryConfig(categories){
+    if(!Array.isArray(categories)||!categories.length)return;
+    const existing=new Map(MACHINES.map(item=>[item.key,item]));
+    const ordered=categories.slice().sort((a,b)=>Number(a.order)-Number(b.order));
+    const next=ordered.map(category=>{
+      const item=existing.get(category.key)||{key:category.key,icon:category.icon||'assets/rm-icons/other_equipment.svg'};
+      item.label=category.label;item.sub=category.sub||'';item.icon=category.icon||item.icon;item.enabled=category.enabled!==false;item.kind=category.kind||'native';item.order=Number(category.order)||0;
+      return item;
+    });
+    MACHINES.splice(0,MACHINES.length,...next);
+    const grid=$('machineGrid');
+    if(grid){
+      grid.querySelectorAll('[data-custom-category="true"]').forEach(button=>button.remove());
+      const nativeButtons=new Map(Array.from(grid.querySelectorAll('.machine-card[data-machine]:not([data-custom-category])')).map(button=>[button.dataset.machine,button]));
+      ordered.forEach(category=>{
+        let button;
+        if(category.kind==='custom'){
+          button=document.createElement('button');button.type='button';button.className='machine-card';button.dataset.machine=category.key;button.dataset.customCategory='true';
+          const art=document.createElement('span');art.className='machine-art';const icon=document.createElement('span');icon.className='rm-custom-category-icon';icon.textContent=String(category.label||'').trim().split(/\\s+/).map(part=>part[0]||'').join('').slice(0,2).toUpperCase();art.append(icon);
+          const copy=document.createElement('span');copy.className='machine-copy';const title=document.createElement('strong');title.textContent=category.label;const description=document.createElement('small');description.textContent=category.sub||'CUSTOM MACHINERY CATEGORY';const open=document.createElement('span');open.className='machine-open';open.textContent='OPEN WORKSPACE →';copy.append(title,description,open);button.append(art,copy);
+          button.addEventListener('click',()=>openCustomCategory(category));
+        }else button=nativeButtons.get(category.key);
+        if(!button)return;
+        button.hidden=category.enabled===false;
+        const title=button.querySelector('strong'),description=button.querySelector('small');
+        if(title)title.textContent=category.label;if(description)description.textContent=category.sub||'';
+        grid.append(button);
+      });
+      nativeButtons.forEach((button,key)=>{if(!ordered.some(category=>category.key===key))button.hidden=true});
+    }
+    const settingsGrid=$('settingsMachineGrid');
+    if(settingsGrid){
+      const buttons=new Map(Array.from(settingsGrid.querySelectorAll('.machine-card[data-settings-machine]')).map(button=>[button.dataset.settingsMachine,button]));
+      ordered.filter(category=>category.kind!=='custom').forEach(category=>{
+        const button=buttons.get(category.key);if(!button)return;
+        button.hidden=category.enabled===false;
+        const title=button.querySelector('strong'),description=button.querySelector('small');
+        if(title)title.textContent=category.label;if(description)description.textContent=category.sub||'';
+        settingsGrid.append(button);
+      });
+    }
+    ['reportMachineType','pdfExportsMachineType'].forEach(id=>{
+      const select=$(id);if(!select)return;
+      ordered.filter(category=>category.kind!=='custom').forEach(category=>{
+        const option=Array.from(select.options).find(item=>item.value===category.key);if(!option)return;
+        option.textContent=category.label;option.hidden=category.enabled===false;select.append(option);
+      });
+    });
+  }
   function priorityClass(value){return String(value||'LOW').toLowerCase()}
-  function setView(id){['selectorView','settingsView','dashboardView'].forEach(view=>$(view).hidden=view!==id);}
+  function setView(id){['selectorView','settingsView','dashboardView','customCategoryView'].forEach(view=>$(view).hidden=view!==id);}
   function showOverlay(id){$(id)?.classList.add('open');document.body.style.overflow='hidden'}
   function closeOverlay(id){$(id)?.classList.remove('open');if(!document.querySelector('.overlay.open'))document.body.style.overflow=''}
   function setBusy(value){busy=value;document.querySelectorAll('button').forEach(b=>{if(b.dataset.busyControl==='true')b.disabled=value})}
@@ -644,6 +699,8 @@
     $('openRmsSettingsShortcut')?.addEventListener('click',()=>{if(canOpenMachineryConfiguration()){if(currentMachine)openMachineSettings(currentMachine.key);else renderSettingsSelector()}});
     $('openSettingsWorkspace')?.addEventListener('click',renderSettingsSelector);
     $('backToMachineryFromSettings')?.addEventListener('click',renderSelector);
+    $('backFromCustomCategory')?.addEventListener('click',renderSelector);
+    window.addEventListener('yard-hub:application-structure',event=>applyMachineCategoryConfig(event.detail?.repairMaintenanceCategories?.categories));
     document.querySelectorAll('#settingsMachineGrid .machine-card[data-settings-machine]').forEach(button=>button.addEventListener('click',()=>openMachineSettings(button.dataset.settingsMachine)));
     $('machineAssetSelect')?.addEventListener('change',event=>selectMachineAsset(event.target.value));
     document.querySelectorAll('[data-rms-tab]').forEach(button=>button.addEventListener('click',()=>setRmsSettingsTab(button.dataset.rmsTab)));

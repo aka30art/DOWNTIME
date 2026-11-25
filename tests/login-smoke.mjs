@@ -13,6 +13,9 @@ const repairMaintenanceHtml=await readFile(resolve('repair-maintenance.html'),'u
 const repairMaintenanceApp=await readFile(resolve('repair-maintenance-app.js'),'utf8');
 const yardHubSettingsScript=await readFile(resolve('yard-hub-settings.js'),'utf8');
 const yardHubSettingsCss=await readFile(resolve('yard-hub-settings.css'),'utf8');
+const yardHubStructureScript=await readFile(resolve('yard-hub-structure.js'),'utf8');
+const yardHubStructureCss=await readFile(resolve('yard-hub-structure.css'),'utf8');
+const repairMaintenanceStructureScript=await readFile(resolve('repair-maintenance-structure.js'),'utf8');
 
 /* Central login presentation contract: styling changes must preserve auth wiring. */
 assert.match(indexHtml, /class="authbox authbox-central"/, 'central login uses the refreshed visual container');
@@ -32,8 +35,8 @@ for (const requiredAuthHook of ['id="centralUsername"', 'id="teamPin"', 'data-pi
 }
 const server=createServer((req,res)=>{
   const pathname=String(req.url||'').split('?')[0];
-  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js'||pathname==='/yard-hub-settings.js';
-  const isCss=pathname==='/yard-hub-settings.css';
+  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js'||pathname==='/yard-hub-settings.js'||pathname==='/yard-hub-structure.js'||pathname==='/repair-maintenance-structure.js';
+  const isCss=pathname==='/yard-hub-settings.css'||pathname==='/yard-hub-structure.css';
   res.writeHead(200,{'content-type':isJavaScript?'application/javascript; charset=utf-8':isCss?'text/css; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store'});
   if(pathname==='/central-bank-client.js')return res.end(adapter);
   if(pathname==='/assets/staff/staff-image-library.js')return res.end(staffImageLibrary);
@@ -42,6 +45,9 @@ const server=createServer((req,res)=>{
   if(pathname==='/repair-maintenance.html')return res.end(repairMaintenanceHtml);
   if(pathname==='/yard-hub-settings.js')return res.end(yardHubSettingsScript);
   if(pathname==='/yard-hub-settings.css')return res.end(yardHubSettingsCss);
+  if(pathname==='/yard-hub-structure.js')return res.end(yardHubStructureScript);
+  if(pathname==='/yard-hub-structure.css')return res.end(yardHubStructureCss);
+  if(pathname==='/repair-maintenance-structure.js')return res.end(repairMaintenanceStructureScript);
   res.end(pathname==='/plant-overview-preview.html'?overviewHtml:indexHtml);
 });
 await new Promise((ok,fail)=>{server.once('error',fail);server.listen(4173,'127.0.0.1',ok)});
@@ -322,6 +328,28 @@ window.supabase={createClient:()=>({
   }
   return ok({error:'Unknown YARD HUB settings action'},400);
  });
+ await page.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-config-admin',async route=>{
+  const origin='http://127.0.0.1:4173';
+  const cors={'access-control-allow-origin':origin,'access-control-allow-headers':'apikey, content-type, x-downtime-session','access-control-allow-methods':'POST, OPTIONS','vary':'Origin'};
+  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors});
+  const req=route.request().postDataJSON();
+  if(req.action==='yard-hub-menu')return route.fulfill({status:200,contentType:'application/json',headers:cors,body:JSON.stringify({publishedVersion:1,yardHubMenu:{departments:[
+   {id:'downtime',kind:'downtime',title:'DOWNTIME',description:'PLANT DOWNTIME & OPERATIONS',enabled:true,order:0,protected:true,submenus:[]},
+   {id:'floor',kind:'floor',title:'FLOOR',description:'FLOOR & YARD OPERATIONS',enabled:true,order:1,protected:false,submenus:[]},
+   {id:'check-sheets',kind:'check-sheets',title:'CHECK SHEETS',description:'INSPECTIONS & COMPLIANCE',enabled:true,order:2,protected:false,submenus:[]},
+   {id:'repairs-maintenance',kind:'repairs-maintenance',title:'R&M',description:'REPAIRS & MAINTENANCE',enabled:true,order:3,protected:false,submenus:[]},
+   {id:'hub-settings',kind:'hub-settings',title:'HUB SETTINGS',description:'YARD HUB CONFIGURATION & ACCESS CONTROL',enabled:true,order:4,protected:true,submenus:[]}
+  ]},repairMaintenanceCategories:{categories:[
+   {key:'KIVERCO_PICKING_LINE',kind:'native',label:'KIVERCO – PICKING LINE',sub:'CONVEYOR & SORTING SYSTEM',icon:'assets/rm-icons/kiverco.svg',enabled:true,order:0},
+   {key:'TANNA_SHREDDER',kind:'native',label:'TANNA – SHREDDER',sub:'SHREDDING EQUIPMENT',icon:'assets/rm-icons/tanna.svg',enabled:true,order:1},
+   {key:'FORKLIFT',kind:'native',label:'FORKLIFT',sub:'FORKLIFT FLEET',icon:'assets/rm-icons/forklift.svg',enabled:true,order:2},
+   {key:'TELEHANDLER',kind:'native',label:'TELEHANDLER — STRUCTURE TEST',sub:'TELEHANDLER FLEET',icon:'assets/rm-icons/telehandler.svg',enabled:true,order:3},
+   {key:'EXCAVATORS_360',kind:'native',label:'360 EXCAVATORS — STRUCTURE TEST',sub:'EXCAVATOR FLEET',icon:'assets/rm-icons/excavators_360.svg',enabled:true,order:4},
+   {key:'OTHER_EQUIPMENT',kind:'native',label:'OTHER EQUIPMENT',sub:'ADDITIONAL MACHINERY',icon:'assets/rm-icons/other_equipment.svg',enabled:true,order:5},
+   {key:'CUSTOM_DUMPERS',kind:'custom',label:'DUMPERS',sub:'DUMPER FLEET',icon:'assets/rm-icons/other_equipment.svg',enabled:true,order:6}
+  ]}})});
+  return route.fulfill({status:400,contentType:'application/json',headers:cors,body:JSON.stringify({error:'Unknown central config action'})});
+ });
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
  await page.route('**/functions/v1/repair-maintenance-api',async route=>{
   const origin='http://127.0.0.1:4173';
@@ -395,6 +423,13 @@ async function signIn(page,pin='2468',username='DEV'){
     page.locator('#launchRepairMaintenanceBtn').click()
    ]);
    await page.locator('#selectorView').waitFor({state:'visible',timeout:5000});
+   await page.waitForFunction(()=>document.querySelector('#selectorView [data-machine="TELEHANDLER"] strong')?.textContent==='TELEHANDLER — STRUCTURE TEST',{timeout:5000});
+   assert.equal(await page.locator('#selectorView [data-machine="EXCAVATORS_360"] strong').textContent(),'360 EXCAVATORS — STRUCTURE TEST','R&M category titles must be read from the published application structure without changing machine keys');
+   await page.locator('#selectorView [data-machine="CUSTOM_DUMPERS"]').click();
+   assert.equal(await page.locator('#customCategoryView').isVisible(),true,'custom R&M categories open a generated placeholder workspace');
+   assert.equal(await page.locator('#customCategoryTitle').textContent(),'DUMPERS','custom R&M category workspace uses the configured title');
+   await page.locator('#backFromCustomCategory').click();
+   assert.equal(await page.locator('#selectorView').isVisible(),true,'custom category back control returns to the R&M selector');
    assert.equal(await page.locator('#loadingView').isVisible(),false,'R&M must leave session verification after a successful access response');
    assert.equal((await page.locator('#sessionUser').textContent()).trim(),'DEV','R&M must render the user authenticated by the shared YARD HUB session');
    assert.equal(await page.locator('#accessDenied').evaluate(el=>el.classList.contains('show')),false,'R&M must not show its access-denied state for an authorised session');

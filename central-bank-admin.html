@@ -259,6 +259,7 @@ small,.muted{color:var(--muted)}
    <button class="nav" data-section="release" data-default-label="Change Impact & Release"><span class="ico">⇧</span><span class="navtext">Change Impact & Release</span></button>
    <button class="nav" data-section="audit" data-default-label="Audit Log"><span class="ico">▤</span><span class="navtext">Audit Log</span></button><div class="navlabel">ADVANCED SETTINGS</div><button class="nav" data-section="navigation" data-default-label="Menu & Labels"><span class="ico">✎</span><span class="navtext">Menu & Labels</span></button>
    <button class="nav" data-section="department-menu-settings" data-default-label="Department Menu"><span class="ico">☷</span><span class="navtext">Department Menu</span></button>
+   <button class="nav" data-section="application-structure" data-default-label="Application Structure"><span class="ico">⌘</span><span class="navtext">Application Structure</span></button>
    <button class="nav" data-section="department-configuration" data-default-label="Department Configuration"><span class="ico">⚙</span><span class="navtext">Department Configuration</span></button>
    <button class="nav" data-section="modules" data-default-label="Module Registry"><span class="ico">▣</span><span class="navtext">Module Registry</span></button>
    <button class="nav" data-section="controls" data-default-label="System Controls"><span class="ico">⚑</span><span class="navtext">System Controls</span></button>
@@ -339,18 +340,33 @@ small,.muted{color:var(--muted)}
     </div>
    </section>
 
+   <section class="view" id="view-application-structure">
+    <div class="pagehead"><div><div class="eyebrow">APPLICATION ADMINISTRATION / STRUCTURE</div><h1>Application Structure Manager</h1><p>Manage the YARD HUB launcher hierarchy and R&amp;M machinery categories. Rename departments and machine categories, add or remove menu entries, and publish consistent generated navigation without changing permanent data identities.</p></div><span class="pill">VERSIONED CONFIGURATION</span></div>
+    <div class="callout"><strong>SAFE STRUCTURE MANAGEMENT</strong><p>Changes remain drafts until validated, impact-reviewed and published. Department IDs and existing application routes stay stable. The DOWNTIME launcher identity and label remain locked. R&amp;M and HUB SETTINGS cannot be deleted; R&amp;M can be hidden from the YARD HUB menu. Existing R&amp;M machine keys, records, permissions and API routes remain unchanged while category labels are managed here. Custom YARD HUB departments and R&amp;M categories can be removed from their menus without deleting operational records. New custom entries open generated placeholder workspaces until dedicated module functionality is assigned. YARD HUB and R&amp;M consume only the published structure through an authenticated read-only endpoint; DOWNTIME tracker logic, records, permissions and operational workflows remain untouched.</p></div>
+    <div class="panel">
+     <div class="cdb-menu-toolbar"><div><h2>Departments</h2><p>Each department becomes a standard YARD HUB menu tile. Drag-free ordering is controlled with MOVE UP / MOVE DOWN. Existing R&amp;M machine types such as Telehandler and 360 Excavators are managed in the dedicated R&amp;M category panel below so their permanent data keys and workflows stay intact.</p></div><div class="cdb-menu-actions"><input id="newYardHubDepartmentTitle" maxlength="48" placeholder="New department title" style="width:210px"><button id="addYardHubDepartmentBtn" type="button" class="primary">ADD DEPARTMENT</button></div></div>
+     <div id="yardHubStructureDepartments" class="cdb-menu-entries" style="margin-top:14px"></div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+     <div class="cdb-menu-toolbar"><div><h2>R&amp;M machinery categories</h2><p>Rename existing machinery categories without changing their permanent data keys. Hide categories from the selector without deleting their records. New custom categories generate a standard placeholder tile until a dedicated R&amp;M data workflow is assigned.</p></div><div class="cdb-menu-actions"><input id="newRmsCategoryTitle" maxlength="48" placeholder="New machinery category" style="width:190px"><input id="newRmsCategoryDescription" maxlength="80" placeholder="Category description" style="width:190px"><button id="addRmsCategoryBtn" type="button" class="primary">ADD CATEGORY</button></div></div>
+     <div id="repairMaintenanceCategoryEntries" class="cdb-menu-entries" style="margin-top:14px"></div>
+    </div>
+    <div class="panel" style="margin-top:14px"><div class="sectionhead"><div><div class="eyebrow">LIVE STRUCTURE PREVIEW</div><h2>YARD HUB launcher</h2></div><span class="pill">CURRENT DRAFT</span></div><div id="yardHubStructurePreview"></div></div>
+    <div class="panel" style="margin-top:14px"><div class="sectionhead"><div><div class="eyebrow">LIVE STRUCTURE PREVIEW</div><h2>R&amp;M machinery selector</h2></div><span class="pill">CURRENT DRAFT</span></div><div id="repairMaintenanceCategoryPreview"></div></div>
+   </section>
+
    <section class="view" id="view-modules"><div class="pagehead"><div><div class="eyebrow">MASTER CONTROLS / MODULES</div><h1>Module registry</h1><p>Maintain a DEV-only catalogue of modules and planned components. This registry is descriptive metadata only; it does not enable, disable, install or change any live DOWNTIME module.</p></div><span class="pill">ISOLATED METADATA</span></div><div class="callout"><strong>NO RUNTIME EFFECT</strong><p>Entries are stored in the isolated configuration registry. They do not change application routes, permissions, feature availability, data or deployed code.</p></div><div class="panel"><label for="moduleRegistry">Registered modules</label><textarea id="moduleRegistry" placeholder="One module name per line"></textarea><div class="hint">Use one canonical module name per line. This list is an administrative inventory, not a feature switch.</div></div></section>
 
    <section class="view" id="view-controls"><div class="pagehead"><div><div class="eyebrow">GOVERNANCE / CONTROL PLANE</div><h1>System controls</h1><p>Review the safeguards governing this isolated configuration workspace.</p></div><span class="pill">READ ONLY</span></div><div class="editor-grid"><div class="editor"><strong>Authentication boundary</strong><div class="hint">Server-side access is restricted to DEV with OWNER tier and DEVACC. Other tiers are denied regardless of client visibility.</div></div><div class="editor"><strong>Draft and publish separation</strong><div class="hint">Draft saves create versioned snapshots. Publishing requires an explicit action and a matching version check.</div></div><div class="editor"><strong>Recovery controls</strong><div class="hint">Historical snapshots can be restored as a new draft. Restore does not publish automatically.</div></div><div class="editor"><strong>Operational isolation</strong><div class="hint">This control plane does not write to tracker operational records, user accounts, active shifts, reports or live application settings.</div></div></div></section>
 
-   <section class="view" id="view-information"><div class="pagehead"><div><div class="eyebrow">SYSTEM / DIAGNOSTICS</div><h1>System information</h1><p>Static environment and integration status for the DEV configuration workspace.</p></div><span class="pill">READ ONLY</span></div><div class="editor-grid"><div class="editor"><label>Workspace</label><strong>Central Data Bank · Master Configuration</strong></div><div class="editor"><label>Environment</label><strong>DEV administration workspace</strong></div><div class="editor"><label>Configuration schema</label><strong>Version 1 · Backward-compatible extension</strong></div><div class="editor"><label>Live DOWNTIME integration</label><strong>Not connected by design</strong><div class="hint">No runtime integration is included in this PR.</div></div><div class="editor"><label>Configuration storage</label><strong>Isolated central configuration tables</strong></div><div class="editor"><label>Access model</label><strong>DEV OWNER / DEVACC</strong></div></div></section>
+   <section class="view" id="view-information"><div class="pagehead"><div><div class="eyebrow">SYSTEM / DIAGNOSTICS</div><h1>System information</h1><p>Static environment and integration status for the DEV configuration workspace.</p></div><span class="pill">READ ONLY</span></div><div class="editor-grid"><div class="editor"><label>Workspace</label><strong>Central Data Bank · Master Configuration</strong></div><div class="editor"><label>Environment</label><strong>DEV administration workspace</strong></div><div class="editor"><label>Configuration schema</label><strong>Version 1 · Backward-compatible extension</strong></div><div class="editor"><label>Published structure integration</label><strong>YARD HUB + R&amp;M · Read-only</strong><div class="hint">Authenticated clients read the published YARD HUB menu and R&amp;M category labels only. DOWNTIME operational data and the R&amp;M API remain separate and unchanged.</div></div><div class="editor"><label>Configuration storage</label><strong>Separate central configuration tables</strong></div><div class="editor"><label>Access model</label><strong>DEV OWNER / DEVACC</strong></div></div></section>
 
    <section class="view" id="view-navigation"><div class="pagehead"><div><div class="eyebrow">MASTER CONTROLS / NAVIGATION</div><h1>Menu & label management</h1><p>Rename visible labels in this DEV configuration workspace. Stable section IDs and routes remain unchanged. These labels do not alter the live application.</p></div><span class="pill">DEV WORKSPACE ONLY</span></div><div class="callout"><strong>DISPLAY LABELS ONLY</strong><p>Changes affect this administration interface only. Internal identifiers, API actions, URLs, the DOWNTIME application and its navigation are not editable here.</p></div><div class="editor-grid"><div class="editor"><label for="navLabelOverview">Overview menu title</label><input id="navLabelOverview" maxlength="40"></div><div class="editor"><label for="navLabelOrganisation">Organisation menu title</label><input id="navLabelOrganisation" maxlength="40"></div><div class="editor"><label for="navLabelStructure">Plant & Areas menu title</label><input id="navLabelStructure" maxlength="40"></div><div class="editor"><label for="navLabelLibraries">Operational Libraries menu title</label><input id="navLabelLibraries" maxlength="40"></div><div class="editor"><label for="navLabelDefaults">System Defaults menu title</label><input id="navLabelDefaults" maxlength="40"></div><div class="editor"><label for="navLabelHistory">Version History menu title</label><input id="navLabelHistory" maxlength="40"></div><div class="editor"><label for="navLabelNavigation">Menu & Labels menu title</label><input id="navLabelNavigation" maxlength="40"></div><div class="editor"><label for="navLabelModules">Module Registry menu title</label><input id="navLabelModules" maxlength="40"></div><div class="editor"><label for="navLabelControls">System Controls menu title</label><input id="navLabelControls" maxlength="40"></div><div class="editor"><label for="navLabelInformation">System Information menu title</label><input id="navLabelInformation" maxlength="40"></div></div></section>
 
 
    <section class="view" id="view-department-menu-settings">
-    <div class="pagehead"><div><div class="eyebrow">MASTER CONTROLS / DEPARTMENT NAVIGATION</div><h1>Department Menu Controls</h1><p>Configure the CDB department launcher, supported menu categories, visibility, ordering and internal department submenus.</p></div><span class="pill">CDB CONFIGURATION ONLY</span></div>
-    <div class="callout"><strong>ISOLATED ADMINISTRATIVE CONFIGURATION</strong><p>Department Menu settings are isolated from the YARD HUB launcher and every operational application. Changes are versioned as CDB drafts; publishing this registry does not change live application navigation, routes, access rights or operational data.</p></div>
+    <div class="pagehead"><div><div class="eyebrow">MASTER CONTROLS / DEPARTMENT NAVIGATION</div><h1>Department Menu Controls</h1><p>Configure the Central Data Bank's own department launcher, supported menu categories, visibility, ordering and internal department submenus.</p></div><span class="pill">CENTRAL DATA BANK ONLY</span></div>
+    <div class="callout"><strong>ISOLATED ADMINISTRATIVE CONFIGURATION</strong><p>Department Menu settings are isolated from the YARD HUB launcher and every operational application. These controls affect the Central Data Bank launcher only. YARD HUB's live application menu is managed separately under Application Structure.</p></div>
     <div class="cdb-menu-layout">
      <div class="panel">
       <div class="cdb-menu-toolbar"><div><h2>Menu categories</h2><p>Create, rename or remove unused categories. A category in use cannot be removed until its departments are reassigned.</p></div><div class="cdb-menu-actions"><input id="newDepartmentCategory" maxlength="40" placeholder="New category name" style="width:190px"><button id="addDepartmentCategoryBtn" type="button">ADD CATEGORY</button></div></div>
@@ -359,7 +375,7 @@ small,.muted{color:var(--muted)}
      <div class="panel">
       <div class="cdb-menu-toolbar"><div><h2>Department entries</h2><p>Rename titles, edit descriptions, assign categories, control visibility and change the order within each category.</p></div><button id="restoreDepartmentMenuBtn" type="button" class="danger">RESTORE ORIGINAL SETTINGS</button></div>
       <div id="departmentEntries" class="cdb-menu-entries" style="margin-top:12px"></div>
-      <div class="cdb-menu-note" style="margin-top:12px">Department identities, route IDs, icons and operational status indicators are system-defined. This editor changes the CDB launcher presentation only.</div>
+      <div class="cdb-menu-note" style="margin-top:12px">Department identities and route IDs remain system-defined. This editor changes only the Central Data Bank launcher presentation.</div>
      </div>
      <div class="panel"><div class="sectionhead"><div><div class="eyebrow">LIVE PREVIEW</div><h2>Department launcher preview</h2></div><span class="pill">UNPUBLISHED DRAFT</span></div><div id="departmentMenuPreview"></div></div>
     </div>
@@ -651,7 +667,137 @@ function defaultDepartmentSettings(){
   host.querySelectorAll("button[data-section]").forEach(button=>button.addEventListener("click",()=>showSection(button.dataset.section)));
  }
 
- function blankConfig(){return {schemaVersion:1,departmentMenu:defaultDepartmentMenu(),navigation:{overview:"Overview",organisation:"Organisation",structure:"Plant & Areas",libraries:"Operational Libraries",defaults:"System Defaults",history:"Version History",navigation:"Menu & Labels",modules:"Module Registry",controls:"System Controls",information:"System Information"},modules:[],organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[],hierarchy:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
+ function defaultYardHubMenu(){return {departments:[
+  {id:"downtime",kind:"downtime",title:"DOWNTIME",description:"PLANT DOWNTIME & OPERATIONS",enabled:true,order:0,protected:true,submenus:[]},
+  {id:"floor",kind:"floor",title:"FLOOR",description:"FLOOR & YARD OPERATIONS",enabled:true,order:1,protected:false,submenus:[]},
+  {id:"check-sheets",kind:"check-sheets",title:"CHECK SHEETS",description:"INSPECTIONS & COMPLIANCE",enabled:true,order:2,protected:false,submenus:[]},
+  {id:"repairs-maintenance",kind:"repairs-maintenance",title:"R&M",description:"REPAIRS & MAINTENANCE",enabled:true,order:3,protected:false,submenus:[]},
+  {id:"hub-settings",kind:"hub-settings",title:"HUB SETTINGS",description:"YARD HUB CONFIGURATION & ACCESS CONTROL",enabled:true,order:4,protected:true,submenus:[]}
+ ]};}
+ function structureSlug(value){return String(value||"").toLocaleLowerCase().normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,32)||"department";}
+ function renderYardHubStructure(config){
+  const source=config&&Array.isArray(config.departments)?config:defaultYardHubMenu(),host=$("yardHubStructureDepartments"),preview=$("yardHubStructurePreview");
+  if(!host)return;host.replaceChildren();if(preview)preview.replaceChildren();
+  const departments=source.departments.slice().sort((a,b)=>Number(a.order)-Number(b.order));
+  const grid=menuNode("div","yard-hub-structure-preview-grid");
+  departments.forEach((entry,index)=>{
+   const card=menuNode("div","cdb-menu-entry");card.dataset.yardDepartment="true";card.dataset.yardDepartmentId=entry.id;card.dataset.yardDepartmentKind=entry.kind||"custom";card.dataset.yardDepartmentProtected=entry.protected?"true":"false";
+   const head=menuNode("div","cdb-menu-entry-head"),heading=menuNode("strong","",entry.title+" · "+entry.id.toUpperCase()),state=menuNode("span","pill",entry.enabled===false?"HIDDEN FROM YARD HUB":"VISIBLE IN YARD HUB");head.append(heading,state);card.append(head);
+   const fields=menuNode("div","cdb-menu-fields");
+   const titleInput=menuInput("Department title",entry.title,48,"yardDepartmentTitle",fields),descriptionInput=menuInput("Description",entry.description,100,"yardDepartmentDescription",fields);
+   if(entry.kind==="downtime"){titleInput.disabled=true;descriptionInput.disabled=true;titleInput.title="DOWNTIME is protected from YARD HUB structure edits";descriptionInput.title=titleInput.title;}
+   const enabledField=menuNode("div","field"),enabledLabel=menuNode("label",""),enabledInput=menuNode("input");enabledInput.type="checkbox";enabledInput.checked=entry.enabled!==false;enabledInput.dataset.yardDepartmentEnabled="true";enabledLabel.append(enabledInput,document.createTextNode("Show department in YARD HUB"));enabledField.append(enabledLabel);fields.append(enabledField);card.append(fields);
+   const actions=menuNode("div","cdb-menu-actions");
+   const up=menuNode("button","quiet","MOVE UP"),down=menuNode("button","quiet","MOVE DOWN"),add=menuNode("button","quiet","ADD SUB-MENU");
+   up.type=down.type=add.type="button";up.disabled=index===0;down.disabled=index===departments.length-1;
+   up.addEventListener("click",()=>moveYardHubDepartment(entry.id,-1));down.addEventListener("click",()=>moveYardHubDepartment(entry.id,1));add.disabled=entry.kind==="downtime"||entry.kind==="repairs-maintenance"||entry.kind==="hub-settings";add.title=add.disabled?"This core application does not support configurable sub-menus.":"";add.addEventListener("click",()=>addYardHubSubmenu(entry.id));
+   actions.append(up,down,add);
+   const remove=menuNode("button",entry.protected?"quiet":"danger",entry.protected?"CORE DEPARTMENT":entry.kind==="custom"?"REMOVE":"HIDE FROM MENU");
+   remove.type="button";remove.disabled=entry.protected===true;
+   remove.addEventListener("click",()=>removeYardHubDepartment(entry.id));
+   actions.append(remove);card.append(actions);
+   const submenuHost=menuNode("div","cdb-menu-submenus");submenuHost.append(menuNode("strong","","SUB-MENU ITEMS"));
+   (entry.submenus||[]).slice().sort((a,b)=>Number(a.order)-Number(b.order)).forEach((child,childIndex)=>{
+    const row=menuNode("div","cdb-menu-submenu");row.dataset.yardSubmenu="true";row.dataset.yardSubmenuId=child.id;
+    const label=menuNode("input");label.value=child.label||"";label.maxLength=48;label.placeholder="Sub-menu title";label.dataset.yardSubmenuLabel="true";
+    const toggleWrap=menuNode("div"),toggleLabel=menuNode("label","cdb-menu-toggle"),toggle=menuNode("input");toggle.type="checkbox";toggle.checked=child.enabled!==false;toggle.dataset.yardSubmenuEnabled="true";toggleLabel.append(toggle,document.createTextNode("VISIBLE"));toggleWrap.append(toggleLabel);
+    const childOrder=menuNode("small","muted","ORDER "+(childIndex+1));
+    const removeChild=menuNode("button","danger","REMOVE");removeChild.type="button";removeChild.addEventListener("click",()=>removeYardHubSubmenu(entry.id,child.id));
+    row.append(label,toggleWrap,childOrder,removeChild);submenuHost.append(row);
+   });
+   if(!(entry.submenus||[]).length)submenuHost.append(menuNode("small","muted","No sub-menu items. Add one for equipment types, sub-departments or dedicated workspace links."));
+   card.append(submenuHost);host.append(card);
+   const previewCard=menuNode("div","yard-hub-structure-preview-card"),mark=menuNode("span","yard-hub-structure-preview-mark",entry.title.split(/\\s+/).map(word=>word[0]).join("").slice(0,2).toUpperCase()),copy=menuNode("span","yard-hub-structure-preview-copy");
+   copy.append(menuNode("strong","",entry.title),menuNode("small","",entry.description),menuNode("em",entry.enabled===false?"planned":"live",entry.enabled===false?"HIDDEN":"YARD HUB TILE"));
+   previewCard.append(mark,copy);grid.append(previewCard);
+   (entry.submenus||[]).filter(item=>item.enabled!==false).forEach(child=>grid.append(menuNode("small","muted",entry.title+" → "+child.label)));
+  });
+  if(preview){preview.append(grid);preview.append(menuNode("p","yard-hub-structure-preview-note","Preview reflects the department and sub-menu order in this draft. Changes reach the live YARD HUB launcher only after publish."));}
+  host.querySelectorAll("input").forEach(input=>{input.addEventListener("input",()=>{renderYardHubStructurePreview(collectYardHubStructure());updateButtons();});input.addEventListener("change",()=>{renderYardHubStructurePreview(collectYardHubStructure());updateButtons();});});
+ }
+ function renderYardHubStructurePreview(config){
+  const preview=$("yardHubStructurePreview");if(!preview)return;preview.replaceChildren();const grid=menuNode("div","yard-hub-structure-preview-grid");
+  (config.departments||[]).forEach(entry=>{if(entry.enabled===false)return;const card=menuNode("div","yard-hub-structure-preview-card"),mark=menuNode("span","yard-hub-structure-preview-mark",entry.title.split(/\\s+/).map(word=>word[0]).join("").slice(0,2).toUpperCase()),copy=menuNode("span","yard-hub-structure-preview-copy");copy.append(menuNode("strong","",entry.title),menuNode("small","",entry.description),menuNode("em","live",(entry.submenus||[]).filter(item=>item.enabled!==false).length+" SUB-MENU ITEMS"));card.append(mark,copy);grid.append(card);});preview.append(grid);
+ }
+ function collectYardHubStructure(){
+  const departments=Array.from(document.querySelectorAll("[data-yard-department]")).map((card,index)=>{
+   const id=card.dataset.yardDepartmentId,base=defaultYardHubMenu().departments.find(item=>item.id===id),submenus=Array.from(card.querySelectorAll("[data-yard-submenu]")).map((row,childIndex)=>({id:row.dataset.yardSubmenuId,label:row.querySelector("[data-yard-submenu-label]")?.value.trim()||"",enabled:row.querySelector("[data-yard-submenu-enabled]")?.checked!==false,order:childIndex}));
+   return {id,kind:base?.kind||"custom",title:card.querySelector("[data-yard-department-title]")?.value.trim()||"",description:card.querySelector("[data-yard-department-description]")?.value.trim()||"",enabled:card.querySelector("[data-yard-department-enabled]")?.checked!==false,order:index,protected:base?.protected===true,submenus};
+  });
+  return {departments};
+ }
+ function addYardHubDepartment(){
+  const title=$("newYardHubDepartmentTitle").value.trim();if(!title){status("Enter a department title first.",true);return;}
+  const menu=collectYardHubStructure();let id=structureSlug(title),serial=2;while(menu.departments.some(item=>item.id===id))id=structureSlug(title)+"-"+serial++;
+  if(menu.departments.some(item=>item.title.toLocaleLowerCase()===title.toLocaleLowerCase())){status("A department with that title already exists.",true);return;}
+  menu.departments.push({id,kind:"custom",title,description:"",enabled:true,order:menu.departments.length,protected:false,submenus:[]});
+  $("newYardHubDepartmentTitle").value="";renderYardHubStructure(menu);updateButtons();status("Department added to the draft. Save, validate and publish to make it appear in YARD HUB.");
+ }
+ function addYardHubSubmenu(id){
+  const menu=collectYardHubStructure(),entry=menu.departments.find(item=>item.id===id);if(!entry)return;
+  if(entry.submenus.length>=30){status("A department can contain no more than 30 sub-menu items.",true);return;}
+  let label="New sub-menu",base=structureSlug(label),childId=base,n=2;while(entry.submenus.some(item=>item.id===childId))childId=base+"-"+n++;
+  entry.submenus.push({id:childId,label,enabled:true,order:entry.submenus.length});renderYardHubStructure(menu);updateButtons();
+ }
+ function removeYardHubSubmenu(departmentId,submenuId){const menu=collectYardHubStructure(),entry=menu.departments.find(item=>item.id===departmentId);if(!entry)return;entry.submenus=entry.submenus.filter(item=>item.id!==submenuId);renderYardHubStructure(menu);updateButtons();}
+ function removeYardHubDepartment(id){
+  const menu=collectYardHubStructure(),entry=menu.departments.find(item=>item.id===id);if(!entry||entry.protected)return;
+  if(entry.kind!=="custom"){entry.enabled=false;status(entry.title+" has been hidden from YARD HUB. Its application identity remains reserved.");}
+  else {if(!window.confirm("Remove "+entry.title+" from the YARD HUB menu draft? This does not delete any application data."))return;menu.departments=menu.departments.filter(item=>item.id!==id);status(entry.title+" removed from the draft menu.");}
+  renderYardHubStructure(menu);updateButtons();
+ }
+ function moveYardHubDepartment(id,delta){const menu=collectYardHubStructure(),index=menu.departments.findIndex(item=>item.id===id),target=index+delta;if(index<0||target<0||target>=menu.departments.length)return;[menu.departments[index],menu.departments[target]]=[menu.departments[target],menu.departments[index]];menu.departments.forEach((item,index)=>item.order=index);renderYardHubStructure(menu);updateButtons();}
+ function defaultRepairMaintenanceCategories(){return {categories:[
+  {key:"KIVERCO_PICKING_LINE",kind:"native",label:"KIVERCO — PICKING LINE",sub:"CONVEYORS & SORTING SYSTEM",icon:"assets/rm-icons/kiverco.svg",enabled:true,order:0},
+  {key:"TANNA_SHREDDER",kind:"native",label:"TANNA — SHREDDER",sub:"SHREDDING EQUIPMENT",icon:"assets/rm-icons/tanna.svg",enabled:true,order:1},
+  {key:"FORKLIFT",kind:"native",label:"FORKLIFT",sub:"FORKLIFT FLEET",icon:"assets/rm-icons/forklift.svg",enabled:true,order:2},
+  {key:"TELEHANDLER",kind:"native",label:"TELEHANDLER",sub:"TELEHANDLER FLEET",icon:"assets/rm-icons/telehandler.svg",enabled:true,order:3},
+  {key:"EXCAVATORS_360",kind:"native",label:"360 EXCAVATORS",sub:"EXCAVATOR FLEET",icon:"assets/rm-icons/excavators_360.svg",enabled:true,order:4},
+  {key:"OTHER_EQUIPMENT",kind:"native",label:"OTHER EQUIPMENT",sub:"ADDITIONAL MACHINERY",icon:"assets/rm-icons/other_equipment.svg",enabled:true,order:5}
+ ]};}
+ function renderRepairMaintenanceCategories(config){
+  const source=config&&Array.isArray(config.categories)?config:defaultRepairMaintenanceCategories(),host=$("repairMaintenanceCategoryEntries");
+  if(!host)return;host.replaceChildren();const preview=$("repairMaintenanceCategoryPreview");if(preview)preview.replaceChildren();
+  const categories=source.categories.slice().sort((a,b)=>Number(a.order)-Number(b.order)),grid=menuNode("div","rm-category-preview-grid");
+  categories.forEach((entry,index)=>{
+   const card=menuNode("div","rm-category-entry");card.dataset.rmCategory="true";card.dataset.rmCategoryKey=entry.key;card.dataset.rmCategoryKind=entry.kind||"native";
+   const head=menuNode("div","cdb-menu-entry-head"),title=menuNode("strong","",entry.label+" · "+entry.key),state=menuNode("span","pill",entry.enabled===false?"HIDDEN FROM R&M":"VISIBLE IN R&M");head.append(title,state);card.append(head);
+   const fields=menuNode("div","cdb-menu-fields");
+   menuInput("Category title",entry.label,48,"rmCategoryLabel",fields);
+   menuInput("Category description",entry.sub,80,"rmCategorySub",fields);
+   const enabledField=menuNode("div","field"),enabledLabel=menuNode("label",""),enabled=menuNode("input");enabled.type="checkbox";enabled.checked=entry.enabled!==false;enabled.dataset.rmCategoryEnabled="true";enabledLabel.append(enabled,document.createTextNode("Show category in R&M"));enabledField.append(enabledLabel);fields.append(enabledField);card.append(fields);
+   const actions=menuNode("div","cdb-menu-actions"),up=menuNode("button","quiet","MOVE UP"),down=menuNode("button","quiet","MOVE DOWN"),remove=menuNode("button",entry.kind==="custom"?"danger":"quiet",entry.kind==="custom"?"REMOVE":"HIDE FROM R&M");
+   up.type=down.type=remove.type="button";up.disabled=index===0;down.disabled=index===categories.length-1;
+   up.addEventListener("click",()=>moveRmsCategory(entry.key,-1));down.addEventListener("click",()=>moveRmsCategory(entry.key,1));remove.addEventListener("click",()=>removeRmsCategory(entry.key));
+   actions.append(up,down,remove);card.append(actions);host.append(card);
+   const tile=menuNode("div","rm-category-preview-card"),mark=menuNode("span","rm-category-preview-mark",entry.label.split(/\\s+/).map(word=>word[0]).join("").slice(0,2).toUpperCase()),copy=menuNode("span","rm-category-preview-copy");
+   copy.append(menuNode("strong","",entry.label),menuNode("small","",entry.sub),menuNode("em",entry.enabled===false?"muted":"live",entry.enabled===false?"HIDDEN":entry.kind==="custom"?"PLACEHOLDER CATEGORY":"EXISTING R&M CATEGORY"));
+   tile.append(mark,copy);grid.append(tile);
+  });
+  if(preview){preview.append(grid);preview.append(menuNode("p","rm-category-preview-note","Existing category keys, machine records, reports and permissions remain unchanged. Custom categories are menu-only placeholders until a dedicated R&M workflow is implemented."));}
+  host.querySelectorAll("input").forEach(input=>{input.addEventListener("input",()=>{renderRepairMaintenanceCategoryPreview(collectRepairMaintenanceCategories());updateButtons();});input.addEventListener("change",()=>{renderRepairMaintenanceCategoryPreview(collectRepairMaintenanceCategories());updateButtons();});});
+ }
+ function renderRepairMaintenanceCategoryPreview(config){
+  const preview=$("repairMaintenanceCategoryPreview");if(!preview)return;preview.replaceChildren();const grid=menuNode("div","rm-category-preview-grid");
+  (config.categories||[]).forEach(entry=>{if(entry.enabled===false)return;const tile=menuNode("div","rm-category-preview-card"),mark=menuNode("span","rm-category-preview-mark",entry.label.split(/\\s+/).map(word=>word[0]).join("").slice(0,2).toUpperCase()),copy=menuNode("span","rm-category-preview-copy");copy.append(menuNode("strong","",entry.label),menuNode("small","",entry.sub),menuNode("em",entry.kind==="custom"?"muted":"live",entry.kind==="custom"?"PLACEHOLDER":"EXISTING CATEGORY"));tile.append(mark,copy);grid.append(tile);});preview.append(grid);
+ }
+ function collectRepairMaintenanceCategories(){
+  return {categories:Array.from(document.querySelectorAll("[data-rm-category]")).map((card,index)=>({key:card.dataset.rmCategoryKey,kind:card.dataset.rmCategoryKind||"custom",label:card.querySelector("[data-rm-category-label]")?.value.trim()||"",sub:card.querySelector("[data-rm-category-sub]")?.value.trim()||"",enabled:card.querySelector("[data-rm-category-enabled]")?.checked!==false,order:index}))};
+ }
+ function addRmsCategory(){
+  const label=$("newRmsCategoryTitle").value.trim(),sub=$("newRmsCategoryDescription").value.trim();if(!label){status("Enter a machinery category title first.",true);return;}
+  const config=collectRepairMaintenanceCategories();let key="CUSTOM_"+structureSlug(label).replace(/-/g,"_").toUpperCase(),serial=2;while(config.categories.some(item=>item.key===key))key="CUSTOM_"+structureSlug(label).replace(/-/g,"_").toUpperCase()+"_"+serial++;
+  if(config.categories.some(item=>item.label.toLocaleLowerCase()===label.toLocaleLowerCase())){status("A machinery category with that title already exists.",true);return;}
+  config.categories.push({key,kind:"custom",label,sub,enabled:true,order:config.categories.length});$("newRmsCategoryTitle").value="";$("newRmsCategoryDescription").value="";renderRepairMaintenanceCategories(config);updateButtons();status("R&M category added as a menu-only placeholder. Save, validate and publish to make it available.");
+ }
+ function removeRmsCategory(key){
+  const config=collectRepairMaintenanceCategories(),entry=config.categories.find(item=>item.key===key);if(!entry)return;
+  if(entry.kind==="custom"){if(!window.confirm("Remove "+entry.label+" from the R&M category menu draft?"))return;config.categories=config.categories.filter(item=>item.key!==key);}
+  else entry.enabled=false;
+  renderRepairMaintenanceCategories(config);updateButtons();
+ }
+ function moveRmsCategory(key,delta){const config=collectRepairMaintenanceCategories(),index=config.categories.findIndex(item=>item.key===key),target=index+delta;if(index<0||target<0||target>=config.categories.length)return;[config.categories[index],config.categories[target]]=[config.categories[target],config.categories[index]];config.categories.forEach((item,index)=>item.order=index);renderRepairMaintenanceCategories(config);updateButtons();}
+ function blankConfig(){return {schemaVersion:1,departmentMenu:defaultDepartmentMenu(),yardHubMenu:defaultYardHubMenu(),repairMaintenanceCategories:defaultRepairMaintenanceCategories(),navigation:{overview:"Overview",organisation:"Organisation",structure:"Plant & Areas",libraries:"Operational Libraries",defaults:"System Defaults",history:"Version History",navigation:"Menu & Labels",modules:"Module Registry",controls:"System Controls",information:"System Information"},modules:[],organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[],hierarchy:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
  const lines=value=>Array.isArray(value)?value.join("\n"):"";
  function list(id){return $(id).value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean)}
  function setValue(id,value){$(id).value=value??""}
@@ -663,7 +809,7 @@ function defaultDepartmentSettings(){
   });
  }
  function renderForm(config){
-  const c=config||blankConfig(),org=c.organization||{},structure=c.structure||{},libraries=c.libraries||{},defaults=c.defaults||{},navigation=c.navigation||blankConfig().navigation;setValue("moduleRegistry",lines(c.modules));renderDepartmentMenu(c.departmentMenu||defaultDepartmentMenu());renderDepartmentConfiguration(c.departmentSettings||defaultDepartmentSettings());
+  const c=config||blankConfig(),org=c.organization||{},structure=c.structure||{},libraries=c.libraries||{},defaults=c.defaults||{},navigation=c.navigation||blankConfig().navigation;setValue("moduleRegistry",lines(c.modules));renderDepartmentMenu(c.departmentMenu||defaultDepartmentMenu());renderYardHubStructure(c.yardHubMenu||defaultYardHubMenu());renderRepairMaintenanceCategories(c.repairMaintenanceCategories||defaultRepairMaintenanceCategories());renderDepartmentConfiguration(c.departmentSettings||defaultDepartmentSettings());
   Object.keys(navigation).forEach(key=>setValue("navLabel"+key.charAt(0).toUpperCase()+key.slice(1),navigation[key]));renderNavigation(navigation);
   setValue("companyName",org.companyName);setValue("siteCode",org.siteCode);setValue("timezone",org.timezone||"Europe/London");setValue("locale",org.locale||"en-GB");
   ["sites","plants","areas","stations"].forEach(key=>setValue(key,lines(structure[key])));hierarchyDraft=cloneHierarchy(structure.hierarchy||[]);renderHierarchy(hierarchyDraft);
@@ -721,6 +867,8 @@ function defaultDepartmentSettings(){
    schemaVersion:1,
    modules:list("moduleRegistry"),
    departmentMenu:collectDepartmentMenu(),
+   yardHubMenu:collectYardHubStructure(),
+   repairMaintenanceCategories:collectRepairMaintenanceCategories(),
    departmentSettings:collectDepartmentConfiguration(),
    navigation:{overview:$("navLabelOverview").value.trim()||"Overview",organisation:$("navLabelOrganisation").value.trim()||"Organisation",structure:$("navLabelStructure").value.trim()||"Plant & Areas",libraries:$("navLabelLibraries").value.trim()||"Operational Libraries",defaults:$("navLabelDefaults").value.trim()||"System Defaults",history:$("navLabelHistory").value.trim()||"Version History",navigation:$("navLabelNavigation").value.trim()||"Menu & Labels",modules:$("navLabelModules").value.trim()||"Module Registry",controls:$("navLabelControls").value.trim()||"System Controls",information:$("navLabelInformation").value.trim()||"System Information"},
    organization:{companyName:$("companyName").value.trim(),siteCode:$("siteCode").value.trim(),timezone:$("timezone").value.trim(),locale:$("locale").value.trim()},
@@ -740,7 +888,7 @@ function defaultDepartmentSettings(){
  }
  function countItems(c){
   const s=c.structure||{},l=c.libraries||{};
-  const tree=(s.hierarchy||[]).reduce((n,site)=>n+1+(site.plants||[]).reduce((p,plant)=>p+1+(plant.areas||[]).reduce((a,area)=>a+1+(area.stations||[]).length,0),0),0);return (c.modules||[]).length+tree+["sites","plants","areas","stations"].reduce((n,k)=>n+(s[k]||[]).length,0)+["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].reduce((n,k)=>n+(l[k]||[]).length,0);
+  const tree=(s.hierarchy||[]).reduce((n,site)=>n+1+(site.plants||[]).reduce((p,plant)=>p+1+(plant.areas||[]).reduce((a,area)=>a+1+(area.stations||[]).length,0),0),0);const hubMenu=c.yardHubMenu?.departments||[];const hubItems=hubMenu.length+hubMenu.reduce((n,item)=>n+(item.submenus||[]).length,0);const rmsCategories=c.repairMaintenanceCategories?.categories||[];return (c.modules||[]).length+tree+hubItems+rmsCategories.length+["sites","plants","areas","stations"].reduce((n,k)=>n+(s[k]||[]).length,0)+["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].reduce((n,k)=>n+(l[k]||[]).length,0);
  }
  function renderOverview(){
   $("releaseDraftVersion").textContent=String(draftVersion);$("releasePublishedVersion").textContent=String(publishedVersion);
@@ -863,7 +1011,7 @@ function defaultDepartmentSettings(){
   try{
    const result=await callConfig("central-config-validate",{config});
    const counts=result.counts||{};
-   const summary=["sites","plants","areas","stations","modules","libraryEntries"].map(key=>key.replace(/[A-Z]/g,letter=>" "+letter.toLowerCase())+": "+Number(counts[key]||0)).join(" · ");
+   const summary=["sites","plants","areas","stations","modules","yardHubDepartments","yardHubSubmenus","repairMaintenanceCategories","libraryEntries"].map(key=>key.replace(/[A-Z]/g,letter=>" "+letter.toLowerCase())+": "+Number(counts[key]||0)).join(" · ");
    const warnings=Array.isArray(result.warnings)?result.warnings:[];
    status("Validation passed · "+summary+(warnings.length?" · "+warnings.length+" warning(s): "+warnings.join("; "):" · No warnings."),warnings.length>0);
   }catch(error){status("Validation failed: "+error.message,true)}
@@ -882,10 +1030,10 @@ function defaultDepartmentSettings(){
   if(draftVersion===publishedVersion){status("There are no unpublished changes.");return}
   if(!impactReviewedToken){showSection("release");status("Run and confirm the change impact review before publishing.",true);return}
   const counts=impactReport?.summary||{};
-  const approved=window.confirm("AUTHORISE RELEASE v"+draftVersion+"?\n\n"+Number(counts.added||0)+" additions · "+Number(counts.modified||0)+" modifications · "+Number(counts.removed||0)+" removals.\n\nYou have reviewed the impact report. This changes only the isolated Central Data Bank registry; it does not deploy or integrate with the live tracker.");
+  const approved=window.confirm("AUTHORISE RELEASE v"+draftVersion+"?\n\n"+Number(counts.added||0)+" additions · "+Number(counts.modified||0)+" modifications · "+Number(counts.removed||0)+" removals.\n\nYou have reviewed the impact report. This publishes the reviewed configuration registry. The YARD HUB launcher structure will update for authenticated users; operational records and DOWNTIME module behaviour are not changed.");
   if(!approved)return;
   $("publishBtn").disabled=true;status("Publishing reviewed configuration release...");
-  try{const saved=await callConfig("central-config-publish",{draftVersion,publishedVersion,impactToken:impactReviewedToken});impactReviewedToken="";impactReport=null;await loadState();status("Reviewed configuration v"+saved.publishedVersion+" published to the isolated registry. The live tracker remains unchanged.");}
+  try{const saved=await callConfig("central-config-publish",{draftVersion,publishedVersion,impactToken:impactReviewedToken});impactReviewedToken="";impactReport=null;await loadState();status("Configuration v"+saved.publishedVersion+" published. YARD HUB menu changes are now available to authenticated users after the launcher refreshes. DOWNTIME operational records remain unchanged.");}
   catch(error){status(error.message,true);$("publishBtn").disabled=false}
  }
  async function restoreVersion(sourceVersion){
@@ -915,11 +1063,39 @@ function defaultDepartmentSettings(){
  buildDayChecks();renderForm(blankConfig());updateButtons();
  $("addSiteBtn").addEventListener("click",()=>{try{addHierarchyNode("site");}catch(error){status(error.message,true);}});$("hierarchyTree").addEventListener("click",handleHierarchyAction);
  $("addDepartmentCategoryBtn").addEventListener("click",addDepartmentCategory);
+ $("addYardHubDepartmentBtn").addEventListener("click",addYardHubDepartment);
+ $("addRmsCategoryBtn").addEventListener("click",addRmsCategory);
+ $("newRmsCategoryTitle").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();addRmsCategory();}});
+ $("newRmsCategoryDescription").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();addRmsCategory();}});
+ $("newYardHubDepartmentTitle").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();addYardHubDepartment();}});
  $("newDepartmentCategory").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();addDepartmentCategory();}});
  $("restoreDepartmentMenuBtn").addEventListener("click",()=>{if(!window.confirm("Restore the original five department entries and two default categories? Save Draft is required to persist this reset."))return;renderDepartmentMenu(defaultDepartmentMenu());updateButtons();status("Original department menu restored locally. Save Draft to persist this reset.");});
  $("workspace").addEventListener("input",event=>{if(event.target instanceof Element&&event.target.matches("input,select,textarea"))updateButtons();});
  $("workspace").addEventListener("change",event=>{if(event.target instanceof Element&&event.target.matches("input,select,textarea"))updateButtons();});
 })();
 </script>
+<style>
+.yard-hub-structure-preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.yard-hub-structure-preview-card{position:relative;isolation:isolate;display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:14px;min-width:0;min-height:112px;padding:16px 18px;text-align:left;overflow:hidden;border:1px solid #526a7e;border-radius:13px;background:linear-gradient(145deg,#10273d 0%,#0a1d30 74%,#0a1a2a 100%);box-shadow:0 12px 28px #0003}
+.yard-hub-structure-preview-mark{display:grid;place-items:center;width:62px;height:62px;border:1px solid #63768a;border-radius:11px;background:linear-gradient(145deg,#1c3448,#0b1b2b);color:#f4f7fa;font-size:22px;font-weight:950;letter-spacing:-1px}
+.yard-hub-structure-preview-copy{display:block;min-width:0;padding-left:12px;border-left:1px solid #718397}
+.yard-hub-structure-preview-copy strong{display:block;color:#f7f8fa;font-size:clamp(14px,1.8vw,20px);line-height:1.08;font-weight:950;overflow-wrap:anywhere}
+.yard-hub-structure-preview-copy small{display:block;margin-top:7px;color:#9eafbe;font-size:9px;line-height:1.4;font-weight:750;letter-spacing:.45px}
+.yard-hub-structure-preview-copy em{display:inline-block;margin-top:8px;color:#ffdf42;font-size:8px;font-style:normal;font-weight:950;letter-spacing:.8px}
+.yard-hub-structure-preview-note{margin:12px 0 0;color:#9eafbe;font-size:10px;line-height:1.5}
+@media(max-width:620px){.yard-hub-structure-preview-grid{grid-template-columns:1fr}}
+</style>
+<style>
+.rm-category-preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.rm-category-preview-card{display:grid;grid-template-columns:66px minmax(0,1fr);align-items:center;gap:13px;min-height:104px;padding:14px 16px;border:1px solid #526a7e;border-radius:12px;background:linear-gradient(145deg,#10273d,#0a1d30);box-shadow:0 10px 24px #0003}
+.rm-category-preview-mark{display:grid;place-items:center;width:58px;height:58px;border:1px solid #63768a;border-radius:10px;background:linear-gradient(145deg,#1c3448,#0b1b2b);color:#f4f7fa;font-size:21px;font-weight:950}
+.rm-category-preview-copy{display:block;min-width:0;padding-left:11px;border-left:1px solid #718397}
+.rm-category-preview-copy strong{display:block;color:#f7f8fa;font-size:clamp(13px,1.8vw,19px);font-weight:950;overflow-wrap:anywhere}
+.rm-category-preview-copy small{display:block;margin-top:6px;color:#9eafbe;font-size:9px;line-height:1.4;font-weight:750}
+.rm-category-preview-copy em{display:inline-block;margin-top:7px;color:#ffdf42;font-size:8px;font-style:normal;font-weight:950;letter-spacing:.7px}
+.rm-category-preview-copy em.muted{color:#91a1b2}
+.rm-category-preview-note{margin:12px 0 0;color:#9eafbe;font-size:10px;line-height:1.5}
+@media(max-width:620px){.rm-category-preview-grid{grid-template-columns:1fr}}
+</style>
 </body>
 </html>

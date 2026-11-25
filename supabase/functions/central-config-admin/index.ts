@@ -186,6 +186,117 @@ function normalizeDepartmentSettings(input: unknown) {
   return result;
 }
 
+const repairMaintenanceCategoryDefaults = [
+  { key: "KIVERCO_PICKING_LINE", label: "KIVERCO — PICKING LINE", sub: "CONVEYORS & SORTING SYSTEM", icon: "assets/rm-icons/kiverco.svg" },
+  { key: "TANNA_SHREDDER", label: "TANNA — SHREDDER", sub: "SHREDDING EQUIPMENT", icon: "assets/rm-icons/tanna.svg" },
+  { key: "FORKLIFT", label: "FORKLIFT", sub: "FORKLIFT FLEET", icon: "assets/rm-icons/forklift.svg" },
+  { key: "TELEHANDLER", label: "TELEHANDLER", sub: "TELEHANDLER FLEET", icon: "assets/rm-icons/telehandler.svg" },
+  { key: "EXCAVATORS_360", label: "360 EXCAVATORS", sub: "EXCAVATOR FLEET", icon: "assets/rm-icons/excavators_360.svg" },
+  { key: "OTHER_EQUIPMENT", label: "OTHER EQUIPMENT", sub: "ADDITIONAL MACHINERY", icon: "assets/rm-icons/other_equipment.svg" },
+];
+function defaultRepairMaintenanceCategories() {
+  return { categories: structuredClone(repairMaintenanceCategoryDefaults).map((item, order) => ({ ...item, enabled: true, order, kind: "native" })) };
+}
+function normalizeRepairMaintenanceCategories(input: unknown) {
+  const fallback = defaultRepairMaintenanceCategories();
+  const raw = input && typeof input === "object" && !Array.isArray(input) ? input as Record<string, unknown> : {};
+  const supplied = Array.isArray(raw.categories) ? raw.categories : fallback.categories;
+  if (supplied.length < 1 || supplied.length > 30) throw new Error("R&M must contain between 1 and 30 machinery categories");
+  const seenKeys = new Set<string>();
+  const seenLabels = new Set<string>();
+  const categories = supplied.map((item: any, index: number) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("R&M category entries must be objects");
+    const key = configString(item.key, "Machinery category key", 48).toUpperCase();
+    if (!/^[A-Z0-9]+(?:_[A-Z0-9]+)*$/.test(key) || seenKeys.has(key)) throw new Error("Machinery category keys must be unique uppercase identifiers");
+    seenKeys.add(key);
+    const base = repairMaintenanceCategoryDefaults.find(entry => entry.key === key);
+    if (!base && !key.startsWith("CUSTOM_")) throw new Error("New R&M category keys must use the CUSTOM_ prefix");
+    const label = configString(item.label ?? base?.label, "Machinery category title", 48);
+    const sub = configString(item.sub ?? base?.sub ?? "", "Machinery category description", 80);
+    if (!label) throw new Error("Machinery category titles cannot be blank");
+    const labelKey = label.toLocaleLowerCase();
+    if (seenLabels.has(labelKey)) throw new Error("Machinery category titles must be unique");
+    seenLabels.add(labelKey);
+    const order = Number.isInteger(Number(item.order)) && Number(item.order) >= 0 ? Number(item.order) : index;
+    return {
+      key, kind: base ? "native" : "custom", label, sub,
+      icon: base?.icon || "assets/rm-icons/other_equipment.svg",
+      enabled: item.enabled !== false, order,
+    };
+  }).sort((a: any, b: any) => a.order - b.order || a.key.localeCompare(b.key));
+  for (const base of repairMaintenanceCategoryDefaults) {
+    if (!seenKeys.has(base.key)) throw new Error("Native R&M category identities cannot be deleted; hide them instead");
+  }
+  const usedOrders = new Set<number>();
+  for (const item of categories) {
+    if (usedOrders.has(item.order)) throw new Error("R&M machinery category order values must be unique");
+    usedOrders.add(item.order);
+  }
+  return { categories };
+}
+
+const yardHubDepartmentDefaults = [
+  { id: "downtime", kind: "downtime", title: "DOWNTIME", description: "PLANT DOWNTIME & OPERATIONS", enabled: true, order: 0, protected: true, submenus: [] },
+  { id: "floor", kind: "floor", title: "FLOOR", description: "FLOOR & YARD OPERATIONS", enabled: true, order: 1, protected: false, submenus: [] },
+  { id: "check-sheets", kind: "check-sheets", title: "CHECK SHEETS", description: "INSPECTIONS & COMPLIANCE", enabled: true, order: 2, protected: false, submenus: [] },
+  { id: "repairs-maintenance", kind: "repairs-maintenance", title: "R&M", description: "REPAIRS & MAINTENANCE", enabled: true, order: 3, protected: false, submenus: [] },
+  { id: "hub-settings", kind: "hub-settings", title: "HUB SETTINGS", description: "YARD HUB CONFIGURATION & ACCESS CONTROL", enabled: true, order: 4, protected: true, submenus: [] },
+];
+function defaultYardHubMenu() {
+  return { departments: structuredClone(yardHubDepartmentDefaults) };
+}
+function normalizeYardHubMenu(input: unknown) {
+  const fallback = defaultYardHubMenu();
+  const raw = input && typeof input === "object" && !Array.isArray(input) ? input as Record<string, unknown> : {};
+  const supplied = Array.isArray(raw.departments) ? raw.departments : fallback.departments;
+  if (supplied.length < 1 || supplied.length > 100) throw new Error("YARD HUB must contain between 1 and 100 departments");
+  const seenIds = new Set<string>();
+  const seenTitles = new Set<string>();
+  const departments = supplied.map((item: any, index: number) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("YARD HUB department entries must be objects");
+    const id = configString(item.id, "Department ID", 40).toLowerCase();
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id) || seenIds.has(id)) throw new Error("Department IDs must be unique lowercase slugs");
+    seenIds.add(id);
+    const base = yardHubDepartmentDefaults.find(entry => entry.id === id);
+    const kind = base ? base.kind : "custom";
+    const title = base?.kind === "downtime" ? base.title : configString(item.title ?? base?.title, "Department title", 48);
+    const description = base?.kind === "downtime" ? base.description : configString(item.description ?? base?.description ?? "", "Department description", 100);
+    if (!title) throw new Error("Department titles cannot be blank");
+    const titleKey = title.toLocaleLowerCase();
+    if (seenTitles.has(titleKey)) throw new Error("Department titles must be unique");
+    seenTitles.add(titleKey);
+    const order = Number.isInteger(Number(item.order)) && Number(item.order) >= 0 ? Number(item.order) : index;
+    const enabled = base?.protected ? true : item.enabled !== false;
+    const rawSubmenus = base?.kind === "downtime" || base?.kind === "hub-settings" || base?.kind === "repairs-maintenance" ? [] : (Array.isArray(item.submenus) ? item.submenus : []);
+    if (rawSubmenus.length > 30) throw new Error("A department can contain no more than 30 sub-menu items");
+    const submenuIds = new Set<string>();
+    const submenus = rawSubmenus.map((child: any, childIndex: number) => {
+      if (!child || typeof child !== "object" || Array.isArray(child)) throw new Error("Sub-menu entries must be objects");
+      const childId = configString(child.id, "Sub-menu ID", 40).toLowerCase();
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(childId) || submenuIds.has(childId)) throw new Error("Sub-menu IDs must be unique lowercase slugs");
+      submenuIds.add(childId);
+      const label = configString(child.label, "Sub-menu title", 48);
+      if (!label) throw new Error("Sub-menu titles cannot be blank");
+      const childOrder = Number.isInteger(Number(child.order)) && Number(child.order) >= 0 ? Number(child.order) : childIndex;
+      return { id: childId, label, enabled: child.enabled !== false, order: childOrder };
+    }).sort((a: any, b: any) => a.order - b.order);
+    return {
+      id, kind, title, description, enabled, order,
+      protected: base?.protected === true,
+      submenus,
+    };
+  }).sort((a: any, b: any) => a.order - b.order || a.id.localeCompare(b.id));
+  for (const base of yardHubDepartmentDefaults.filter(entry => entry.protected)) {
+    if (!seenIds.has(base.id)) throw new Error("Protected YARD HUB departments cannot be deleted");
+  }
+  const usedOrders = new Set<number>();
+  for (const item of departments) {
+    if (usedOrders.has(item.order)) throw new Error("YARD HUB department order values must be unique");
+    usedOrders.add(item.order);
+  }
+  return { departments };
+}
+
 function normalizeMasterHierarchy(input: unknown) {
   if (input === undefined || input === null) return [];
   if (!Array.isArray(input)) throw new Error("Master hierarchy must be a list of sites");
@@ -261,6 +372,8 @@ function normalizeCentralConfig(input: any) {
     navigation,
     modules,
     departmentMenu: normalizeDepartmentMenu(input.departmentMenu),
+    yardHubMenu: normalizeYardHubMenu(input.yardHubMenu),
+    repairMaintenanceCategories: normalizeRepairMaintenanceCategories(input.repairMaintenanceCategories),
     departmentSettings: normalizeDepartmentSettings(input.departmentSettings),
     organization: { companyName, siteCode, timezone, locale },
     structure: {
@@ -312,11 +425,23 @@ Deno.serve(async (req: Request) => {
   const tier = String(user.tier || "");
   const isDevRoot = username === "DEV" && tier === "OWNER";
   const isDevacc = tier === "DEVACC";
-  if (!isDevRoot && !isDevacc) return json({ error: "Central Data Bank access is restricted to DEV and DEVACC only." }, 403);
   const actor = String(user.username || username);
   const action = body?.action;
   const { data: configState, error: configError } = await db.from("downtime_central_config_state").select("*").eq("id", 1).maybeSingle();
   if (configError || !configState) return json({ error: "Configuration control plane is not installed" }, 503);
+
+  // Authenticated users may read only the published launcher structure. Drafts and all
+  // administrative configuration actions remain restricted to DEV OWNER / DEVACC.
+  if (action === "yard-hub-menu") {
+    try {
+      const publishedYardHubMenu = normalizeYardHubMenu(configState.published_payload?.yardHubMenu);
+      const publishedRepairMaintenanceCategories = normalizeRepairMaintenanceCategories(configState.published_payload?.repairMaintenanceCategories);
+      return json({ yardHubMenu: publishedYardHubMenu, repairMaintenanceCategories: publishedRepairMaintenanceCategories, publishedVersion: Number(configState.published_version) });
+    } catch (error) {
+      return json({ error: error instanceof Error ? error.message : "Published YARD HUB menu is invalid" }, 503);
+    }
+  }
+  if (!isDevRoot && !isDevacc) return json({ error: "Central Data Bank access is restricted to DEV and DEVACC only." }, 403);
 
   if (action === "central-config-state") {
     let draft: any;
@@ -428,6 +553,9 @@ Deno.serve(async (req: Request) => {
       areas: hierarchy.reduce((n: number, site: any) => n + site.plants.reduce((p: number, plant: any) => p + plant.areas.length, 0), 0),
       stations: hierarchy.reduce((n: number, site: any) => n + site.plants.reduce((p: number, plant: any) => p + plant.areas.reduce((a: number, area: any) => a + area.stations.length, 0), 0), 0),
       modules: config.modules.length,
+      yardHubDepartments: config.yardHubMenu.departments.length,
+      yardHubSubmenus: config.yardHubMenu.departments.reduce((n: number, department: any) => n + department.submenus.length, 0),
+      repairMaintenanceCategories: config.repairMaintenanceCategories.categories.length,
       libraryEntries: Object.values(libraries).reduce((n: number, list: any) => n + list.length, 0),
     };
     const warnings: string[] = [];
