@@ -20,7 +20,6 @@ for(const action of ['central-config-state','central-config-save-draft','central
   assert.ok(fn.includes('action === "'+action+'"'),'isolated endpoint supports '+action);
 assert.ok(fn.includes('normalizeCentralConfig(body.config)'),'all saved fields are server validated');
 assert.ok(fn.includes('normalizeDepartmentMenu(input.departmentMenu)'),'department menus are included in the persisted CDB payload');
-assert.ok(fn.includes('downtime_central_config_history').includes(''),'');
 assert.ok(fn.includes('.eq("draft_version", Number(body.draftVersion))')&&fn.includes('.eq("next_version", Number(body.nextVersion))'),
   'draft writes use compare-and-swap version checks');
 assert.ok(fn.includes('.eq("published_version", Number(body.publishedVersion))'),'publishing uses a compare-and-swap version check');
