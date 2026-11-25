@@ -14,8 +14,8 @@ for (const payload of cases) {
     headers: {
       "Content-Type": "application/json",
       "Origin": origin,
-      "apikey": "sb_publishable_Ns316awmCfjz_xNQyA5qBw_tQ4YLfT1",
-      "Authorization": "Bearer sb_publishable_Ns316awmCfjz_xNQyA5qBw_tQ4YLfT1",
+      "apikey": "sb_publishable_Ns316awmCfjz_xNQyA5qBw_tQ4YLtT1",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoZm9qbHFlenVkYmpzbGZybnl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUyMTQ5MTQsImV4cCI6MjExMDc5MDkxNH0.K4stRdo1KhyuPbIR1-BxgCGcXhWaxjHQj0i76fZHVTU",
     },
     body: JSON.stringify(payload),
   });
