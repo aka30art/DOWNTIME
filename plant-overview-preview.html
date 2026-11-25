@@ -30,6 +30,7 @@ main{max-width:1500px;margin:auto;padding:24px}.top{display:flex;justify-content
 <header class="top"><div class="logo"><i>◢</i> DOWNTIME <span class="sub">PLANT OVERVIEW</span></div><div class="right"><span>SHIFT · DAILY VIEW</span><span class="pill" id="liveDataBadge">● CONNECTING DATA</span><a id="exitOverview" class="topcontrol" href="index.html" aria-label="Exit Overview and return to homepage">↩ EXIT OVERVIEW</a></div></header>
 <div class="metrics">
 <div class="panel status"><div class="label">PLANT STATUS</div><div class="plantstate"><span class="lamp" id="plantLamp"></span><span id="plantLabel">PLANT ON</span></div><button id="plantToggle" type="button" hidden aria-pressed="true">TURN PLANT OFF</button><div id="plantControlNote" class="label" style="margin-top:8px">STATUS VIEW · READ ONLY</div></div>
+<div class="panel" data-daily-operator="true"><div class="label">OPERATOR ON DUTY</div><div class="metric" id="dailyOperatorName">—</div><div class="label" id="dailyOperatorDate" style="margin-top:4px">TODAY</div></div>
 <div class="panel"><div class="label">OPERATORS</div><div class="metric" id="operatorCount">—</div></div>
 <div class="panel"><div class="label">TOTAL DOWNTIME</div><div class="metric" id="totalDowntime">—</div></div>
 <div class="panel"><div class="label">DOWNTIME ENTRIES TODAY</div><div class="metric" id="incidentCount">—</div></div>
@@ -197,7 +198,7 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
  function renderLiveStats(payload,now=new Date()){
    const badge=document.getElementById('liveDataBadge'),reasonBox=document.getElementById('reasonStats'),source=document.getElementById('dataSourceNote');
    const appData=payload?.appData||payload||{};
-   const today=new Date(now),weekKey=getCurrentWeekKey(today),weekData=appData?.weeks?.[weekKey],dayIndex=(today.getDay()+6)%7;
+   const today=new Date(now),weekKey=getCurrentWeekKey(today),weekData=appData?.weeks?.[weekKey],dayIndex=(today.getDay()+6)%7,dateKey=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-'),dutyRecord=(payload?.dailyOperators||[]).find(record=>record?.duty_date===dateKey);document.getElementById('dailyOperatorName').textContent=dutyRecord?.operator_name||'NOT ASSIGNED';document.getElementById('dailyOperatorDate').textContent=dutyRecord?.is_locked?'LOCKED · '+dateKey:dateKey;
    const profiles=payload?.staff?.profiles||appData?.operatorProfiles||payload?.operatorProfiles||{},stations=stationConfigFor(payload),operators=Object.values(profiles).filter(profile=>profile&&profile.onSite!==false&&!!resolveProfileStation(profile,stations));
    document.getElementById('operatorCount').textContent=String(operators.length);
    if(!weekData?.days||!Array.isArray(weekData.days)){
@@ -266,7 +267,7 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
    if(staffSection)staffSection.style.display=canViewStaff?'':'none';
    if(stationSection)stationSection.style.display=canViewAssignments?'':'none';
    const metricCards=document.querySelectorAll('.metrics>.panel');
-   metricCards.forEach((card,index)=>{if(index>0)card.style.display=canViewDashboards?'':'none'});
+   metricCards.forEach((card,index)=>{if(index>0)card.style.display=card.dataset.dailyOperator==='true'?'':(canViewDashboards?'':'none')});
    const bottom=document.querySelector('.bottom');if(bottom)bottom.style.display=canViewDashboards?'':'none';
    if(!canViewStaff)applyOperatorProfiles({staff:{profiles:{}}});
  }
@@ -277,7 +278,7 @@ function ensurePhotoLightbox(){let box=document.getElementById('staffPhotoLightb
    plantOn=next;plantConnected=true;
    applyCentralVisibility(plantPayload,result.user||{tier:viewerTier});
    if(canViewStaff)applyOperatorProfiles(plantPayload);
-   if(canViewDashboards)renderLiveStats(plantPayload);
+   renderLiveStats(plantPayload);
    render();
    if(notify&&previous!==next)showOverviewPlantAlert(next,result.updatedAt);
  }
