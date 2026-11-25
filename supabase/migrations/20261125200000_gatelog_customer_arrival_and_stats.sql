@@ -4,7 +4,8 @@ create or replace function public.gatelog_create_customer_arrival(
   p_customer_name text, p_registration text, p_waste_types text[], p_actor text
 ) returns table(customer_id uuid, customer_name text, visit_id uuid)
 language plpgsql security invoker set search_path = public, pg_temp
-as $$
+as $
+#variable_conflict use_column
 declare
   v_name text := trim(p_customer_name);
   v_registration text := upper(trim(p_registration));
