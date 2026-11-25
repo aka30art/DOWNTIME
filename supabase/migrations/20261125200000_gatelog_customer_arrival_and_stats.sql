@@ -37,3 +37,28 @@ end;
 $$;
 revoke all on function public.gatelog_create_customer_arrival(text,text,text[],text) from public,anon,authenticated;
 grant execute on function public.gatelog_create_customer_arrival(text,text,text[],text) to service_role;
+
+-- Aggregate over the complete visit history in PostgreSQL, avoiding client row limits.
+create or replace function public.gatelog_overall_statistics()
+returns table(total_visits bigint, most_common_waste_type text, average_minutes numeric, completed_visits bigint)
+language sql security invoker set search_path = public, pg_temp
+as $stats$
+  with totals as (
+    select count(*)::bigint as total_visits,
+           count(*) filter (where status='DEPARTED' and time_out is not null)::bigint as completed_visits,
+           round(avg(extract(epoch from (time_out-time_in))/60)
+             filter (where status='DEPARTED' and time_out is not null and time_out>=time_in)) as average_minutes
+      from public.gatelog_visits
+  ), common_waste as (
+    select wt.label
+      from public.gatelog_visit_waste_types vw
+      join public.gatelog_waste_types wt on wt.id=vw.waste_type_id
+     group by wt.label
+     order by count(*) desc, wt.label asc
+     limit 1
+  )
+  select totals.total_visits, coalesce(common_waste.label,'—'), totals.average_minutes, totals.completed_visits
+    from totals left join common_waste on true;
+$stats$;
+revoke all on function public.gatelog_overall_statistics() from public,anon,authenticated;
+grant execute on function public.gatelog_overall_statistics() to service_role;
