@@ -74,7 +74,17 @@ try{
  await page.locator('#username').fill('DEV');
  await page.locator('#pin').fill('1234');
  await page.locator('#loginBtn').click();
- await page.locator('#view-overview').waitFor({state:'visible'});
+ await page.locator('#view-departments').waitFor({state:'visible'});
+ assert.equal(await page.locator('.cdb-dept-card').count(),5,'department launcher presents all five YARD HUB application areas');
+ await page.locator('[data-section="dept-downtime"]').click();
+ assert.ok(await page.getByText('DOWNTIME OPERATIONAL INTEGRITY').count(),'DOWNTIME control page states the operational protection boundary');
+ await page.locator('[data-section="departments"]').last().click();
+ await page.locator('[data-section="dept-floor"]').click();
+ assert.ok(await page.getByText('RESERVED MODULE').count(),'FLOOR remains a reserved module');
+ await page.locator('[data-section="departments"]').last().click();
+ await page.locator('[data-section="dept-checksheets"]').click();
+ assert.ok(await page.getByText('CHECK SHEETS is not currently released').count(),'CHECK SHEETS remains unreleased');
+ await page.locator('[data-section="departments"]').last().click();
  assert.equal(await page.locator('#publishedKpi').textContent(),'v1');
  assert.equal(await page.locator('#draftKpi').textContent(),'v1');
  assert.ok(await page.locator('text=Access & Rights stays separate').count(),'separate responsibilities are explained');
@@ -97,7 +107,7 @@ try{
  await page.locator('#username').fill('DEV');
  await page.locator('#pin').fill('1234');
  await page.locator('#loginBtn').click();
- await page.locator('#view-overview').waitFor({state:'visible'});
+ await page.locator('#view-departments').waitFor({state:'visible'});
  assert.equal((await page.locator('[data-section="structure"] .navtext').textContent()).trim(),'Facility Map','saved DEV menu title persists after a fresh page load and authenticated state fetch');
  assert.equal(await page.locator('#moduleRegistry').inputValue(),'Central Data Bank\nYARD HUB\nRepair & Maintenance\nDEV Diagnostics','module registry persists after reload');
  assert.equal((await page.locator('[data-section="modules"] .navtext').textContent()).trim(),'Component Catalogue','module menu label persists after reload');
@@ -121,7 +131,7 @@ try{
  assert.equal(await page.locator('#publishedKpi').textContent(),'v2','restore does not change the published version');
 
  await page.setViewportSize({width:390,height:844});
- assert.equal(await page.locator('[data-section="overview"]').isVisible(),true,'mobile navigation remains available');
+ assert.equal(await page.locator('[data-section="departments"]').isVisible(),true,'mobile department navigation remains available');
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth);
  assert.equal(overflow,false,'mobile control room has no horizontal page overflow');
 
@@ -136,7 +146,7 @@ try{
  await page.locator('#username').fill('DEVACC');
  await page.locator('#pin').fill('1234');
  await page.locator('#loginBtn').click();
- await page.locator('#view-overview').waitFor({state:'visible'});
+ await page.locator('#view-departments').waitFor({state:'visible'});
  assert.equal(await page.locator('#workspace').isVisible(),true,'DEVACC is admitted to the Central Data Bank');
  assert.ok((await page.locator('#identity').textContent()).includes('DEVACC'),'DEVACC identity is shown in the control room');
  await page.locator('[data-section="organisation"]').click();
