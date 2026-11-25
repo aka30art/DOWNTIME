@@ -78,9 +78,15 @@
       if(entry.enabled===false)button.hidden=true;
       else if(kind!=='hub-settings')button.hidden=false;
       button.setAttribute('aria-label','Open '+entry.title+' department');
-      const status=(entry.submenus||[]).some(item=>item.enabled!==false)?'OPEN SUB-MENUS':undefined;
+      const hasSubmenus=(entry.submenus||[]).some(item=>item.enabled!==false);
+      const status=hasSubmenus?'OPEN SUB-MENUS':undefined;
       tileCopy(button,entry.title,entry.description,status);
       if(kind==='custom')button.disabled=false;
+      if(kind==='floor'||kind==='check-sheets'){
+        button.disabled=!hasSubmenus;
+        button.classList.toggle('yard-tile-active',hasSubmenus);
+        button.classList.toggle('yard-tile-locked',!hasSubmenus);
+      }
       ordered.push(button);
     });
     // Retain built-in buttons for application modules not present in an older config,
