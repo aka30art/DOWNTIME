@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.central-config-admin]
 verify_jwt = false
+
+[functions.gatelog-api]
+verify_jwt = false
