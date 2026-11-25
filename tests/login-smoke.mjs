@@ -109,7 +109,7 @@ async function clickOverview(page){
 async function openFor(tier,pin='2468',username='DEV',initialBank=null,initialVersion=1){
  const context=await browser.newContext();
  const page=await context.newPage();
- page.on('pageerror',e=>errors.push(e.message));
+ page.on('pageerror',e=>errors.push(e.stack||e.message));
  await page.addInitScript(()=>{
   const realtime={handler:null};
   window.__downtimeRealtimeMock=realtime;
