@@ -131,7 +131,7 @@ try{
  assert.equal(await page.locator('#publishedKpi').textContent(),'v2','restore does not change the published version');
 
  await page.setViewportSize({width:390,height:844});
- assert.equal(await page.locator('[data-section="departments"]').isVisible(),true,'mobile department navigation remains available');
+ assert.equal(await page.locator('button.nav[data-section="departments"]').isVisible(),true,'mobile department navigation remains available');
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth);
  assert.equal(overflow,false,'mobile control room has no horizontal page overflow');
 
