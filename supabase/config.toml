@@ -9,3 +9,6 @@ verify_jwt = false
 
 [functions.yard-hub-settings-api]
 verify_jwt = false
+
+[functions.photo-evidence]
+verify_jwt = false
