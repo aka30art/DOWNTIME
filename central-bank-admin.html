@@ -690,7 +690,7 @@ function defaultDepartmentSettings(){
    const actions=menuNode("div","cdb-menu-actions");
    const up=menuNode("button","quiet","MOVE UP"),down=menuNode("button","quiet","MOVE DOWN"),add=menuNode("button","quiet","ADD SUB-MENU");
    up.type=down.type=add.type="button";up.disabled=index===0;down.disabled=index===departments.length-1;
-   up.addEventListener("click",()=>moveYardHubDepartment(entry.id,-1));down.addEventListener("click",()=>moveYardHubDepartment(entry.id,1));add.disabled=entry.kind==="downtime"||entry.kind==="hub-settings";add.title=add.disabled?"This core application does not support configurable sub-menus.":"";add.addEventListener("click",()=>addYardHubSubmenu(entry.id));
+   up.addEventListener("click",()=>moveYardHubDepartment(entry.id,-1));down.addEventListener("click",()=>moveYardHubDepartment(entry.id,1));add.disabled=entry.kind==="downtime"||entry.kind==="repairs-maintenance"||entry.kind==="hub-settings";add.title=add.disabled?"This core application does not support configurable sub-menus.":"";add.addEventListener("click",()=>addYardHubSubmenu(entry.id));
    actions.append(up,down,add);
    const remove=menuNode("button",entry.protected?"quiet":"danger",entry.protected?"CORE DEPARTMENT":entry.kind==="custom"?"REMOVE":"HIDE FROM MENU");
    remove.type="button";remove.disabled=entry.protected===true;
@@ -1084,6 +1084,18 @@ function defaultDepartmentSettings(){
 .yard-hub-structure-preview-copy em{display:inline-block;margin-top:8px;color:#ffdf42;font-size:8px;font-style:normal;font-weight:950;letter-spacing:.8px}
 .yard-hub-structure-preview-note{margin:12px 0 0;color:#9eafbe;font-size:10px;line-height:1.5}
 @media(max-width:620px){.yard-hub-structure-preview-grid{grid-template-columns:1fr}}
+</style>
+<style>
+.rm-category-preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.rm-category-preview-card{display:grid;grid-template-columns:66px minmax(0,1fr);align-items:center;gap:13px;min-height:104px;padding:14px 16px;border:1px solid #526a7e;border-radius:12px;background:linear-gradient(145deg,#10273d,#0a1d30);box-shadow:0 10px 24px #0003}
+.rm-category-preview-mark{display:grid;place-items:center;width:58px;height:58px;border:1px solid #63768a;border-radius:10px;background:linear-gradient(145deg,#1c3448,#0b1b2b);color:#f4f7fa;font-size:21px;font-weight:950}
+.rm-category-preview-copy{display:block;min-width:0;padding-left:11px;border-left:1px solid #718397}
+.rm-category-preview-copy strong{display:block;color:#f7f8fa;font-size:clamp(13px,1.8vw,19px);font-weight:950;overflow-wrap:anywhere}
+.rm-category-preview-copy small{display:block;margin-top:6px;color:#9eafbe;font-size:9px;line-height:1.4;font-weight:750}
+.rm-category-preview-copy em{display:inline-block;margin-top:7px;color:#ffdf42;font-size:8px;font-style:normal;font-weight:950;letter-spacing:.7px}
+.rm-category-preview-copy em.muted{color:#91a1b2}
+.rm-category-preview-note{margin:12px 0 0;color:#9eafbe;font-size:10px;line-height:1.5}
+@media(max-width:620px){.rm-category-preview-grid{grid-template-columns:1fr}}
 </style>
 </body>
 </html>
