@@ -58,8 +58,11 @@ try{
    versions.unshift({version:draftVersion,parent_version:draftVersion-1,action:'draft-save',actor:'DEV',note:body.note,created_at:new Date().toISOString(),published_at:null,status:'CURRENT DRAFT'});
    await route.fulfill({json:{ok:true,draftVersion,nextVersion}});return;
   }
+  if(body.action==='central-config-impact'){
+   await route.fulfill({json:{draftVersion,publishedVersion,summary:{added:1,modified:0,removed:0,highImpact:0,total:1},classifications:{structural:0,destructive:0,configuration:1},changes:[{type:'added',path:'organization.companyName',classification:'configuration',before:null,after:'Test'}],truncated:false,impactToken:'test-impact-token'}});return;
+  }
   if(body.action==='central-config-publish'){
-   if(body.draftVersion!==draftVersion||body.publishedVersion!==publishedVersion||draftVersion===publishedVersion){await route.fulfill({status:409,json:{error:'Publish conflict.'}});return;}
+   if(body.draftVersion!==draftVersion||body.publishedVersion!==publishedVersion||draftVersion===publishedVersion||body.impactToken!=='test-impact-token'){await route.fulfill({status:409,json:{error:'Publish conflict or impact review missing.'}});return;}
    publishedVersion=draftVersion;
    versions=versions.map(v=>v.version===publishedVersion?{...v,published_at:new Date().toISOString(),status:'PUBLISHED'}:v);
    await route.fulfill({json:{ok:true,publishedVersion,publishedAt:new Date().toISOString()}});return;
@@ -90,8 +93,11 @@ try{
    versions.unshift({version:draftVersion,parent_version:draftVersion-1,action:'draft-save',actor:activeTestUser,note:body.note,created_at:new Date().toISOString(),published_at:null,status:'CURRENT DRAFT'});
    await route.fulfill({json:{ok:true,draftVersion,nextVersion}});return;
   }
+  if(body.action==='central-config-impact'){
+   await route.fulfill({json:{draftVersion,publishedVersion,summary:{added:1,modified:0,removed:0,highImpact:0,total:1},classifications:{structural:0,destructive:0,configuration:1},changes:[{type:'added',path:'organization.companyName',classification:'configuration',before:null,after:'Test'}],truncated:false,impactToken:'test-impact-token'}});return;
+  }
   if(body.action==='central-config-publish'){
-   if(body.draftVersion!==draftVersion||body.publishedVersion!==publishedVersion||draftVersion===publishedVersion){await route.fulfill({status:409,json:{error:'Publish conflict.'}});return;}
+   if(body.draftVersion!==draftVersion||body.publishedVersion!==publishedVersion||draftVersion===publishedVersion||body.impactToken!=='test-impact-token'){await route.fulfill({status:409,json:{error:'Publish conflict or impact review missing.'}});return;}
    publishedVersion=draftVersion;versions=versions.map(v=>v.version===publishedVersion?{...v,published_at:new Date().toISOString(),status:'PUBLISHED'}:v);
    await route.fulfill({json:{ok:true,publishedVersion,publishedAt:new Date().toISOString()}});return;
   }
@@ -204,7 +210,11 @@ try{
  assert.ok(await page.getByText('Server-side access is restricted').count(),'system controls document the server-side access boundary');
  await page.locator('[data-section="information"]').click();
  assert.ok(await page.getByText('Not connected by design').count(),'system information confirms no live runtime integration');
- assert.equal(await page.locator('#publishBtn').isEnabled(),true,'saved draft can be explicitly published');
+ await page.locator('[data-section="release"]').click();
+ await page.locator('#runImpactBtn').click();
+ await page.getByText('Impact analysis complete. Inspect the change register before confirming review.').waitFor();
+ await page.locator('#approveImpactBtn').click();
+ assert.equal(await page.locator('#publishBtn').isEnabled(),true,'saved draft can be published only after impact review');
 
  await page.locator('#publishBtn').click();
  await page.getByText('Configuration version v2 published',{exact:false}).waitFor();
