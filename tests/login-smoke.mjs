@@ -345,7 +345,8 @@ window.supabase={createClient:()=>({
    {key:'FORKLIFT',kind:'native',label:'FORKLIFT',sub:'FORKLIFT FLEET',icon:'assets/rm-icons/forklift.svg',enabled:true,order:2},
    {key:'TELEHANDLER',kind:'native',label:'TELEHANDLER — STRUCTURE TEST',sub:'TELEHANDLER FLEET',icon:'assets/rm-icons/telehandler.svg',enabled:true,order:3},
    {key:'EXCAVATORS_360',kind:'native',label:'360 EXCAVATORS — STRUCTURE TEST',sub:'EXCAVATOR FLEET',icon:'assets/rm-icons/excavators_360.svg',enabled:true,order:4},
-   {key:'OTHER_EQUIPMENT',kind:'native',label:'OTHER EQUIPMENT',sub:'ADDITIONAL MACHINERY',icon:'assets/rm-icons/other_equipment.svg',enabled:true,order:5}
+   {key:'OTHER_EQUIPMENT',kind:'native',label:'OTHER EQUIPMENT',sub:'ADDITIONAL MACHINERY',icon:'assets/rm-icons/other_equipment.svg',enabled:true,order:5},
+   {key:'CUSTOM_DUMPERS',kind:'custom',label:'DUMPERS',sub:'DUMPER FLEET',icon:'assets/rm-icons/other_equipment.svg',enabled:true,order:6}
   ]}})});
   return route.fulfill({status:400,contentType:'application/json',headers:cors,body:JSON.stringify({error:'Unknown central config action'})});
  });
@@ -424,6 +425,11 @@ async function signIn(page,pin='2468',username='DEV'){
    await page.locator('#selectorView').waitFor({state:'visible',timeout:5000});
    await page.waitForFunction(()=>document.querySelector('#selectorView [data-machine="TELEHANDLER"] strong')?.textContent==='TELEHANDLER — STRUCTURE TEST',{timeout:5000});
    assert.equal(await page.locator('#selectorView [data-machine="EXCAVATORS_360"] strong').textContent(),'360 EXCAVATORS — STRUCTURE TEST','R&M category titles must be read from the published application structure without changing machine keys');
+   await page.locator('#selectorView [data-machine="CUSTOM_DUMPERS"]').click();
+   assert.equal(await page.locator('#customCategoryView').isVisible(),true,'custom R&M categories open a generated placeholder workspace');
+   assert.equal(await page.locator('#customCategoryTitle').textContent(),'DUMPERS','custom R&M category workspace uses the configured title');
+   await page.locator('#backFromCustomCategory').click();
+   assert.equal(await page.locator('#selectorView').isVisible(),true,'custom category back control returns to the R&M selector');
    assert.equal(await page.locator('#loadingView').isVisible(),false,'R&M must leave session verification after a successful access response');
    assert.equal((await page.locator('#sessionUser').textContent()).trim(),'DEV','R&M must render the user authenticated by the shared YARD HUB session');
    assert.equal(await page.locator('#accessDenied').evaluate(el=>el.classList.contains('show')),false,'R&M must not show its access-denied state for an authorised session');
