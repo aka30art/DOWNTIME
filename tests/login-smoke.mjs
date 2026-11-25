@@ -412,13 +412,23 @@ async function signIn(page,pin='2468',username='DEV'){
  assert.equal(await page.evaluate(()=>window.__downtimeRealtimePrivate),true,'central state topic is private');
 }
 
-async function openStaffSettings(page){
+async function ensureMainMenu(page){
+ const sectionPageOpen=await page.evaluate(()=>document.body.classList.contains('section-page-open'));
+ if(!sectionPageOpen)return;
  const back=page.locator('#returnMainMenu');
- if(await back.isVisible())await back.click();
+ await back.waitFor({state:'visible',timeout:5000});
+ await back.click();
+ await page.waitForFunction(()=>!document.body.classList.contains('section-page-open'),{timeout:5000});
+ await page.locator('.nav[data-view]').first().waitFor({state:'visible',timeout:5000});
+}
+
+async function openStaffSettings(page){
+ await ensureMainMenu(page);
  await dismissPlantTransitionAlerts(page);
  const menu=page.locator('.nav-menu');
  if(!await menu.evaluate(node=>node.open))await menu.locator(':scope > summary').click();
  await dismissPlantTransitionAlerts(page);
+ await ensureMainMenu(page);
  await page.locator('.nav[data-view="settings"]').click();
  await dismissPlantTransitionAlerts(page);
  await page.locator('[data-settings-open="staff"]').click();
@@ -430,6 +440,7 @@ async function openSettingsHub(page){
  if(await back.isVisible())await back.click();
  const menu=page.locator('.nav-menu');
  if(!await menu.evaluate(node=>node.open))await menu.locator(':scope > summary').click();
+ await ensureMainMenu(page);
  await page.locator('.nav[data-view="settings"]').click();
  await page.locator('#settingsHub').waitFor({state:'visible'});
 }
@@ -546,6 +557,7 @@ try{
 
  await owner.page.locator('.nav-menu > summary').click();
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').textContent().then(value=>value.includes('WEEKLY Reports')),true,'navigation label is renamed to WEEKLY Reports');
+ await ensureMainMenu(owner.page);
  await owner.page.locator('.nav[data-view="reports"]').click();
  await owner.page.locator('[data-report-display="weekly-report-qa"]').waitFor({state:'visible',timeout:5000});
  assert.equal(await owner.page.locator('#reports h2').textContent(),'WEEKLY REPORTS','reports section uses the new heading');
@@ -566,6 +578,7 @@ try{
  await owner.page.waitForFunction(()=>!document.querySelector('#reportPreviewModal')?.classList.contains('show'),{timeout:3000});
  assert.equal(await owner.page.locator('#reportPreviewFrame').getAttribute('src'),null,'closing the preview releases its PDF object URL');
  await owner.page.locator('#returnMainMenu').click();
+ await ensureMainMenu(owner.page);
  await owner.page.locator('.nav[data-view="weekly"]').click();
  await owner.page.locator('#returnMainMenu').waitFor({state:'visible',timeout:5000});
  await owner.page.locator('#returnMainMenu').click();
@@ -746,6 +759,7 @@ try{
  assert.equal(await manager.page.locator('#settingsPanelAreas').isVisible(),true,'MANAGER keeps the open Area Presets panel visible after edit permission is revoked');
  assert.equal(await manager.page.locator('#newAreaPreset').isDisabled(),true,'live central permission change revokes Settings edit controls without a new login');
  assert.equal(await manager.page.locator('#authGate').isVisible(),false,'live permission changes do not force a logout');
+ await ensureMainMenu(manager.page);
  await manager.page.locator('.nav[data-view="weekly"]').click();
  assert.equal(await manager.page.locator('#addEntry').isEnabled(),true,'MANAGER has the same tracker-edit control state as ADMIN');
  await manager.page.locator('#addEntry').click();
@@ -773,6 +787,7 @@ try{
  await owner.page.waitForFunction(()=>!document.querySelector('#areaPresetAdminList [data-area-preset="QA Test Bay"]'),{timeout:3000});
  for(let attempt=0;attempt<40&&owner.getBank().appData.areas.includes('QA Test Bay');attempt++)await owner.page.waitForTimeout(50);
  assert.equal(owner.getBank().appData.areas.includes('QA Test Bay'),false,'removed AREA PRESET is saved through the central settings route');
+ await ensureMainMenu(owner.page);
  await owner.page.locator('.nav[data-view="weekly"]').click();
  await owner.page.locator('#addEntry').click();
  assert.deepEqual(await owner.page.locator('#areaButtons [data-preset]').evaluateAll(nodes=>nodes.map(node=>node.dataset.preset)),configuredAreas,
@@ -828,6 +843,7 @@ try{
  if(await transitionAck.count())await transitionAck.click();
  await owner.page.locator('#manualRefreshBtn').click();
  await owner.page.waitForFunction(()=>document.querySelector('#cloudStatus').textContent.includes('MANUAL REFRESH COMPLETE'),{timeout:5000});
+ await ensureMainMenu(owner.page);
  await owner.page.locator('.nav[data-view="settings"]').click();
  await owner.page.locator('[data-settings-open="areas"]').click();
  await owner.page.locator('#newAreaPreset').fill('Central Sync Test');
@@ -851,6 +867,7 @@ try{
  assert.ok(owner.actions.filter(x=>x.action==='save-settings'&&Array.isArray(x.body.appData.dailyTaskPresets)).length>=2,'daily task presets use the settings-specific write action');
  const ownerMenu=owner.page.locator('.nav-menu');
  if(!await ownerMenu.evaluate(node=>node.open))await ownerMenu.locator(':scope > summary').click();
+ await ensureMainMenu(owner.page);
  await owner.page.locator('.nav[data-view="weekly"]').click();
  const daySetup=owner.page.locator('.day-setup');
  if(!await daySetup.evaluate(node=>node.open))await daySetup.locator(':scope > summary').click();
@@ -951,6 +968,7 @@ try{
  // Crew Switchboard exposes only locked, assigned STAFF and saves ON/OFF PLANT to the Central Data Bank.
 const crewMenu=owner.page.locator('.nav-menu');
  if(!await crewMenu.evaluate(node=>node.open))await crewMenu.locator(':scope > summary').click();
+ await ensureMainMenu(owner.page);
  await owner.page.locator('.nav[data-view="weekly"]').click();
  await owner.page.waitForFunction(()=>document.querySelector('#weekly')?.classList.contains('active'),{timeout:3000});
  await owner.page.locator('#crewSwitchboardBtn').waitFor({state:'visible',timeout:3000});
@@ -1066,6 +1084,7 @@ const crewMenu=owner.page.locator('.nav-menu');
  assert.equal(await user.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'USER cannot see the Central Data Bank menu entry');
 
  await user.page.locator('.nav-menu > summary').click();
+ await ensureMainMenu(user.page);
  await user.page.locator('.nav[data-view="reports"]').click();
  await user.page.locator('[data-report-display="weekly-report-qa"]').waitFor({state:'visible',timeout:5000});
  assert.equal(await user.page.locator('[data-report-display="weekly-report-qa"]').isVisible(),true,'USER can display weekly reports with view permission');
