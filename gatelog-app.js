@@ -16,14 +16,26 @@ function open(){const hub=$('yardHub');if(!hub||hub.hidden)return;ensureWorkspac
 async function load(){const data=await call('bootstrap');state.customers=data.customers||[];state.vehicles=data.vehicles||[];state.active=data.activeVisits||[];state.register=data.register||[];state.wasteTypes=data.wasteTypes||[];state.arrivalsToday=Number(data.arrivalsToday)||0;state.customerStats=data.customerStats||{};state.statistics=data.statistics||{};render()}
 function render(){const host=ensureWorkspace();if(!host)return;host.innerHTML=`
 <div class="gatelog-screen">
- <header class="gatelog-head"><button id="gatelogBack" class="gatelog-back">‹ BACK TO YARD HUB</button><div><div class="gatelog-eyebrow">YARD OPERATIONS CORE</div><h1>GATELOG</h1><div class="gatelog-muted">CUSTOMER & SITE ENTRY MANAGEMENT</div></div></header>
+ <header class="gatelog-hero">
+ <div class="gatelog-hero-grid" aria-hidden="true"></div>
+ <div class="gatelog-hero-stripe" aria-hidden="true"></div>
+ <div class="gatelog-hero-top">
+  <div class="gatelog-brand"><div class="gatelog-brand-name">DOWNTIME<sup>®</sup></div><div class="gatelog-brand-rule"></div></div>
+  <div class="gatelog-hero-actions">
+   <div class="gatelog-session-label">HUB AUTHENTICATED AS<strong id="gatelogSessionUser">—</strong></div>
+   <button class="gatelog-hero-icon" id="gatelogOpenCustomers" type="button" aria-label="Open Customer Catalogue" title="Customer Catalogue"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14M5 8.5h14M5 12.5h14M5 16.5h14M5 20.5h14"/></svg></button>
+   <button class="gatelog-hero-icon" id="gatelogBack" type="button" aria-label="Return to YARD HUB" title="Return to YARD HUB"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 10 8.5-7 8.5 7v10.5h-6v-7h-5v7h-6z"/></svg></button>
+  </div>
+ </div>
+ <div class="gatelog-hero-title"><h1><span class="gatelog-title-slash">/</span><span class="gatelog-title-main">GATE</span><span class="gatelog-title-light">LOG</span></h1><p>CUSTOMER AND SITE ENTRY MANAGEMENT</p></div>
+</header>
  <div id="gatelogMessage" class="gatelog-message" hidden></div>
- <div class="gatelog-toolbar"><div class="gatelog-kpis"><div class="gatelog-kpi"><strong>${state.active.length}</strong><span>CURRENTLY ON SITE</span></div><div class="gatelog-kpi"><strong>${state.arrivalsToday}</strong><span>TODAY'S VISITS</span></div></div><div class="gatelog-toolbar-spacer" aria-hidden="true"></div><div class="gatelog-toolbar-actions"><button id="gatelogNewVisit" class="gatelog-action gatelog-action-primary">＋ NEW VISIT</button><button id="gatelogOpenCustomers" class="gatelog-action">CUSTOMERS</button></div></div>
+ <div class="gatelog-toolbar"><div class="gatelog-kpis"><div class="gatelog-kpi"><strong>${state.active.length}</strong><span>CURRENTLY ON SITE</span></div><div class="gatelog-kpi"><strong>${state.arrivalsToday}</strong><span>TODAY'S VISITS</span></div></div><div class="gatelog-toolbar-spacer" aria-hidden="true"></div><div class="gatelog-toolbar-actions"><button id="gatelogNewVisit" class="gatelog-action gatelog-action-primary">＋ NEW VISIT</button></div></div>
  <section class="gatelog-register"><div class="gatelog-register-heading"><h2>VISIT REGISTER</h2><span class="gatelog-muted">LATEST 100 VISITS · LIVE STATUS</span></div><div class="gatelog-table-wrap" id="gatelogRegister">${registerMarkup()}</div></section>
  <section class="gatelog-statistics"><div class="gatelog-statistics-heading"><h2>ALL-TIME STATISTICS</h2><span class="gatelog-muted">ALL HISTORICAL VISITS</span></div><div class="gatelog-statistics-grid"><article class="gatelog-stat"><span>MOST COMMON WASTE TYPE</span><strong>${esc(state.statistics.mostCommonWasteType||'—')}</strong></article><article class="gatelog-stat"><span>OVERALL VISITS</span><strong>${Number(state.statistics.overallVisits)||0}</strong></article><article class="gatelog-stat"><span>AVERAGE TIME ON SITE</span><strong>${duration(state.statistics.averageMinutes)}</strong><small>Completed visits only · ${Number(state.statistics.completedVisits)||0} measured</small></article></div></section>
 </div>
 <div class="gatelog-modal" id="gatelogModal" hidden role="dialog" aria-modal="true" aria-labelledby="gatelogModalTitle"><div class="gatelog-modal-backdrop" data-modal-close></div><section class="gatelog-modal-window"><header class="gatelog-modal-head"><div><div class="gatelog-eyebrow">YARD OPERATIONS CORE</div><h2 id="gatelogModalTitle">NEW VISIT</h2></div><button class="gatelog-modal-close" data-modal-close aria-label="Close">×</button></header><div id="gatelogModalBody"></div></section></div>`;
- $('gatelogBack').onclick=showHome;$('gatelogNewVisit').onclick=()=>showModal('choice');$('gatelogOpenCustomers').onclick=()=>showModal('catalogue');
+ $('gatelogBack').onclick=showHome;$('gatelogNewVisit').onclick=()=>showModal('choice');$('gatelogOpenCustomers').onclick=()=>showModal('catalogue');const current=session();$('gatelogSessionUser').textContent=String(current?.username||current?.name||current?.operator_name||'—').toUpperCase();
  $('gatelogModal').addEventListener('click',e=>{if(e.target.closest('[data-modal-close]'))closeModal()});
 }
 function registerMarkup(){return state.register.length?`<table class="gatelog-table"><thead><tr><th>TIME IN</th><th>NAME / COMPANY</th><th>REG</th><th>WASTE TYPE</th><th>TIME OUT</th></tr></thead><tbody>${state.register.map(v=>`<tr><td class="gatelog-time">${stamp(v.time_in)}</td><td class="gatelog-company">${esc(v.customer_name)}</td><td class="gatelog-reg">${esc(v.vehicle_registration_snapshot)}</td><td class="gatelog-waste-cell">${esc((v.waste_types||[]).join(', '))}</td><td>${v.status==='ON_SITE'?'<span class="gatelog-status">ON SITE</span> <button class="gatelog-depart" data-depart="'+esc(v.id)+'">DEPART</button>':stamp(v.time_out)}</td></tr>`).join('')}</tbody></table>`:'<div class="gatelog-empty">No visits recorded yet.</div>'}
