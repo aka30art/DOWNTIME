@@ -31,7 +31,7 @@ try{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const address=server.address();
  const page=await browser.newPage({viewport:{width:1440,height:1050}});
- await page.route('https://phfojlqezudbjslfrnyw.supabase.co/functions/v1/central-bank',async route=>{
+ await page.route('**/functions/v1/central-bank',async route=>{
   const request=route.request();
   if(request.method()==='OPTIONS'){
    await route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'POST, OPTIONS','access-control-allow-headers':'content-type, apikey, x-downtime-session'}});return;
