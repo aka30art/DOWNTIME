@@ -160,6 +160,15 @@ No step above is authorised by this preparation runbook. Each production mutatio
 
 **NOT READY FOR LIVE CUTOVER.**
 
-Staging schema/function alignment is complete for the identified R&M settings gap. Remaining blockers are authenticated end-to-end acceptance, multi-device/concurrency verification, backup/restore rehearsal, production Central Bank source reconciliation, and the Master Configuration production endpoint decision.
+Latest verified PR checks:
+
+- DOWNTIME CI run `45519354195`: full smoke suite, all four Edge Function type-checks, staging photo unauthenticated-action test and photo metadata privilege contract passed.
+- Pages workflow run `45519354366`: browser smoke and artifact build passed; the deploy job was skipped for the pull request.
+
+Staging has the current R&M and YARD HUB API sources, the corrected photo-evidence v1 function, R&M settings migrations, photo metadata privilege hardening, and the private central-state Realtime policy/trigger. The staging Central Bank is at version 34 with zero users after cleanup. The Realtime trigger was exercised by a guarded staging-only version increment; end-to-end event receipt by two real clients has not yet been verified. Authenticated positive photo upload/view and role-matrix tests also remain outstanding.
+
+The production/source diff inventory is complete: Central Bank production v13 requires the Master Configuration navigation/module normalisation block from current repository source; production R&M v13 and YARD HUB Settings API v7 match repository source; production photo-evidence v1 still lacks the new DOWNTIME session and tier checks. These function updates are release-time work and have not been applied.
+
+Remaining blockers are authenticated photo-evidence acceptance, actual two-device Realtime propagation and conflict testing, complete workflow acceptance on staging, a verified database/storage/function backup and restore rehearsal, and the production Master Configuration endpoint decision.
 
 Production Pages, production database and production Edge Functions were not modified during this preparation work.
