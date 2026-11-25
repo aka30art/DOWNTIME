@@ -24,7 +24,9 @@ try{
  assert.equal(await page.locator('#gatelogOpenCustomers').isVisible(),true);
  assert.equal(await page.locator('#gatelogBack').isVisible(),true);
  assert.equal(await page.locator('.gatelog-hero').count(),1);
- assert.ok((await page.locator('.gatelog-hero-title').innerText()).replace(/\\s+/g,'').includes('GATELOGCUSTOMERANDSITEENTRYMANAGEMENT'));
+ assert.equal(await page.locator('.gatelog-title-main').innerText(),'GATE');
+ assert.equal(await page.locator('.gatelog-title-light').innerText(),'LOG');
+ assert.equal(await page.locator('.gatelog-hero-title p').innerText(),'CUSTOMER AND SITE ENTRY MANAGEMENT');
  const mobileHeader=await page.locator('.gatelog-hero').boundingBox();
  const listIcon=await page.locator('#gatelogOpenCustomers').boundingBox();
  const homeIcon=await page.locator('#gatelogBack').boundingBox();
