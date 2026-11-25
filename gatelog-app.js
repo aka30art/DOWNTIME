@@ -42,6 +42,8 @@ function render(){const host=ensureWorkspace();if(!host)return;host.innerHTML=`
  </div>
 </div>`;
  $('gatelogBack').onclick=showHome;
+ $('gatelogNewVisit').onclick=()=>$('gatelogArrivalPanel').scrollIntoView({behavior:'smooth',block:'start'});
+ $('gatelogOpenCustomers').onclick=()=>$('gatelogCustomersPanel').scrollIntoView({behavior:'smooth',block:'start'});
  $('gatelogCustomer').onchange=()=>{const id=$('gatelogCustomer').value;const vehicles=state.vehicles.filter(v=>v.customer_id===id);$('gatelogVehicleList').innerHTML=vehicles.map(v=>`<option value="${esc(v.registration)}"></option>`).join('')};
  $('gatelogSaveCustomer').onclick=saveCustomer;
  $('gatelogArrival').onclick=arrival;
