@@ -162,7 +162,7 @@ assert.match(html,/<div class="machine-nav-actions">[\s\S]*?id="backToMachinery"
 const heroMarkup = html.match(/<header class="hero">[\s\S]*?<\/header>/)?.[0] || '';
 assert.ok(heroMarkup,'R&M hero header exists');
 assert.doesNotMatch(heroMarkup,/openRmsSettingsShortcut/,'ambiguous gear shortcut is no longer in hero navigation');
-assert.match(app,/function renderSettingsSelector\(\)\{if\(access\?\.canManageRepairMaintenancePresets!==true\)/,'Configuration workspace entry remains permission-gated');
+assert.match(app,/function renderSettingsSelector\(\)\{if\(!canOpenMachineryConfiguration\(\)\)/,'Configuration workspace entry requires a dedicated machinery INPUT/EDIT or R&M Settings permission');
 assert.match(html,/class="dialog configuration-dialog"[\s\S]*?CONFIGURATION MODE[\s\S]*?NOT THE FAULT REGISTER/,'every machinery configuration modal has an explicit mode warning');
 assert.match(html,/\.configuration-mode \.machine-card\{[^}]*#332b1d/,'configuration cards use a separate amber administrative visual language');
 assert.ok(html.includes('shared-ui-system.css?v=20261124-2'),'R&M shared stylesheet cache is refreshed');
