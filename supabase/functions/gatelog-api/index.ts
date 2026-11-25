@@ -46,6 +46,7 @@ Deno.serve(async (req: Request) => {
       db.from("gatelog_waste_types").select("id,label").order("label"),
       db.from("gatelog_visits").select("id,status").eq("visit_date",today),
       db.rpc("gatelog_customer_visit_stats"),
+      db.rpc("gatelog_overall_statistics"),
       db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,time_out,status,gatelog_customers(customer_name),gatelog_visit_waste_types(gatelog_waste_types(label))").order("time_in",{ascending:false}).limit(100)
     ]);
     const error=[customers,vehicles,active,waste,todayVisits,customerStats,overallStats,registerRows].find(x=>x.error)?.error;if(error)return json({error:"GATELOG data could not be loaded."},503);
