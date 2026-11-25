@@ -158,7 +158,22 @@ No step above is authorised by this preparation runbook. Each production mutatio
 - Verify storage bucket objects and access policies separately; a database restore does not prove storage recovery.
 - Record the incident, affected version, chosen rollback boundary and post-restore validation.
 
-## 9. Current release disposition
+## 9. Pre-existing open pull requests
+
+The repository had several open pull requests during this preflight. They are not part of this release branch and were not modified:
+
+| PR | Scope | Current relationship to main | Disposition |
+|---|---|---|---|
+| #47 | Earlier cross-device central-sync/Auth architecture | 156 commits ahead, 232 behind; not mergeable | Superseded by the current Central Bank architecture. Do not merge the old central-sync/username-auth functions or migration chain. |
+| #54 | Portrait weekly PDF redesign | 1 commit ahead, 141 behind; not mergeable; draft | Rebase/review separately if the report redesign is still required. |
+| #63 | Isolated UI Preview Lab | 1 commit ahead, 133 behind; mergeable; draft | Keep isolated and mock-only. It is not a production module or deployment candidate. |
+| #40 | JAN-only USERS / spectator changes | 3 commits ahead, 238 behind; not mergeable | Requires product/permission reconciliation before any port or merge. |
+| #14 | Overview exit/fullscreen controls | 3 commits ahead, 293 behind; not mergeable | Port selectively only if still required. |
+| #11 | Pages live-preview verification | 1 commit ahead, 295 behind; not mergeable | Superseded by current Pages workflow checks; do not merge as-is. |
+
+Do not merge these PRs as a batch. Any still-required feature must be reviewed against the current `main`, ported to a fresh branch and tested independently.
+
+## 10. Current release disposition
 
 **NOT READY FOR LIVE CUTOVER.**
 
