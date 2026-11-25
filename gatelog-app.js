@@ -1,7 +1,7 @@
 (()=> {
 'use strict';
 const $=id=>document.getElementById(id);
-const state={customers:[],vehicles:[],active:[],wasteTypes:[],arrivalsToday:0,departuresToday:0,screen:null};
+const state={customers:[],vehicles:[],active:[],wasteTypes:[],arrivalsToday:0,departuresToday:0,customerStats:{},screen:null};
 function ensureWorkspace(){let host=$('gatelogWorkspace');if(host)return host;const parent=document.querySelector('.yard-hub-inner');if(!parent)return null;host=document.createElement('section');host.id='gatelogWorkspace';host.hidden=true;parent.insertBefore(host,parent.querySelector('.yard-hub-footer'));return host;}
 const endpoint=()=>window.GATELOG_API||'';
 const session=()=>window.DowntimeCentral?.session||null;
@@ -18,7 +18,7 @@ function stamp(value){return value?new Date(value).toLocaleString('en-GB',{dateS
 function message(text,error=false){const node=$('gatelogMessage');if(node){node.textContent=text;node.className='gatelog-message'+(error?' error':'');node.hidden=!text}}
 function showHome(){ $('gatelogWorkspace').hidden=true;document.querySelectorAll('.yard-hub-inner>.yard-hero,.yard-hub-inner>.yard-modules-heading,.yard-hub-inner>.yard-grid,.yard-hub-inner>.yard-hub-footer').forEach(x=>x.hidden=false);window.dispatchEvent(new Event('yard-hub:shown'));window.scrollTo({top:0,behavior:'instant'})}
 function open(){const hub=$('yardHub');if(!hub||hub.hidden)return;ensureWorkspace();document.querySelectorAll('.yard-hub-inner>.yard-hero,.yard-hub-inner>.yard-modules-heading,.yard-hub-inner>.yard-grid,.yard-hub-inner>.yard-hub-footer').forEach(x=>x.hidden=true);$('gatelogWorkspace').hidden=false;window.scrollTo({top:0,behavior:'instant'});load().catch(e=>message(e.message,true))}
-async function load(){const data=await call('bootstrap');state.customers=data.customers||[];state.vehicles=data.vehicles||[];state.active=data.activeVisits||[];state.wasteTypes=data.wasteTypes||[];state.arrivalsToday=Number(data.arrivalsToday)||0;state.departuresToday=Number(data.departuresToday)||0;render()}
+async function load(){const data=await call('bootstrap');state.customers=data.customers||[];state.vehicles=data.vehicles||[];state.active=data.activeVisits||[];state.wasteTypes=data.wasteTypes||[];state.arrivalsToday=Number(data.arrivalsToday)||0;state.departuresToday=Number(data.departuresToday)||0;state.customerStats=data.customerStats||{};render()}
 function render(){const host=ensureWorkspace();if(!host)return;host.innerHTML=`
 <div class="gatelog-screen">
  <header class="gatelog-head"><button id="gatelogBack" class="gatelog-back">‹ BACK TO YARD HUB</button><div><div class="gatelog-eyebrow">YARD OPERATIONS CORE</div><h1>GATELOG</h1><div class="gatelog-muted">CUSTOMER & SITE ENTRY MANAGEMENT</div></div></header>
@@ -34,7 +34,7 @@ function render(){const host=ensureWorkspace();if(!host)return;host.innerHTML=`
   </section>
   <section class="gatelog-panel"><h2>CURRENTLY ON SITE</h2><div id="gatelogActive" class="gatelog-list">${activeMarkup()}</div></section>
   <section class="gatelog-panel"><h2>ENTRY HISTORY</h2><input id="gatelogSearch" class="gatelog-search" placeholder="Search company, registration or waste type"><div class="gatelog-actions"><input id="gatelogDate" type="date" aria-label="Filter by visit date"><button id="gatelogSearchBtn">SEARCH HISTORY</button></div><div id="gatelogHistory" class="gatelog-list"></div></section>
-  <section class="gatelog-panel"><h2>CUSTOMER DIRECTORY</h2><div id="gatelogCustomers" class="gatelog-list">${state.customers.map(c=>`<div class="gatelog-row"><div><strong>${esc(c.customer_name)}</strong><small>${state.vehicles.filter(v=>v.customer_id===c.id).map(v=>esc(v.registration)).join(' · ')||'No vehicles saved'}</small></div><button data-customer-history="${c.id}">VIEW HISTORY</button></div>`).join('')||'<div class="gatelog-empty">No saved customers yet.</div>'}</div></section>
+  <section class="gatelog-panel"><h2>CUSTOMER DIRECTORY</h2><div id="gatelogCustomers" class="gatelog-list">${state.customers.map(c=>`<div class="gatelog-row"><div><strong>${esc(c.customer_name)}</strong><small>${state.vehicles.filter(v=>v.customer_id===c.id).map(v=>esc(v.registration)).join(' · ')||'No vehicles saved'}</small><small>${state.customerStats[c.id]?.totalVisits||0} TOTAL VISITS · ${state.customerStats[c.id]?.todayVisits||0} TODAY</small></div><button data-customer-history="${c.id}">VIEW HISTORY</button></div>`).join('')||'<div class="gatelog-empty">No saved customers yet.</div>'}</div></section>
  </div>
 </div>`;
  $('gatelogBack').onclick=showHome;
