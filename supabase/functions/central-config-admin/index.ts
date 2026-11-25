@@ -160,7 +160,7 @@ function normalizeMasterHierarchy(input: unknown) {
       if (seenNames.has(key)) throw new Error(parentPath + " contains a duplicate name: " + name);
       seenNames.add(key);
       const result: any = { id, name };
-      if (childKey) result[childKey] = cleanLevel(item[childKey] ?? [], ({ plants: "plant", areas: "area", stations: "station" } as Record<string,string>)[childKey], childKey === "plants" ? 300 : childKey === "areas" ? 1000 : 3000, childKey === "plants" ? "areas" : childKey === "areas" ? "stations" : null, level + " " + name + " " + childKey);
+      if (childKey) result[childKey] = cleanLevel(item[childKey] ?? [], ({ plants: "plant", areas: "area", stations: "station" } as Record<string,string>)[childKey]!, childKey === "plants" ? 300 : childKey === "areas" ? 1000 : 3000, childKey === "plants" ? "areas" : childKey === "areas" ? "stations" : null, level + " " + name + " " + childKey);
       else if (item.stations !== undefined) throw new Error("Stations cannot contain child records");
       return result;
     });
