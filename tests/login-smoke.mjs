@@ -436,8 +436,7 @@ async function openStaffSettings(page){
 }
 
 async function openSettingsHub(page){
- const back=page.locator('#returnMainMenu');
- if(await back.isVisible())await back.click();
+ await ensureMainMenu(page);
  const menu=page.locator('.nav-menu');
  if(!await menu.evaluate(node=>node.open))await menu.locator(':scope > summary').click();
  await ensureMainMenu(page);
@@ -516,6 +515,7 @@ try{
  // Jan remains a normal operational USER rather than a root/admin identity.
  const janOperational=await openFor('USER','1357','Jan');
  await signIn(janOperational.page,'1357','Jan');
+ await ensureMainMenu(janOperational.page);
  await janOperational.page.locator('.nav-menu > summary').click();
  assert.equal(await janOperational.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'Jan USER does not see the Central Data Bank admin entry');
  await janOperational.page.waitForFunction(()=>window.DowntimeCentral?.session?.token,{timeout:5000});
@@ -555,6 +555,7 @@ try{
  await lockGuard.context.close();
 
 
+ await ensureMainMenu(owner.page);
  await owner.page.locator('.nav-menu > summary').click();
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').textContent().then(value=>value.includes('WEEKLY Reports')),true,'navigation label is renamed to WEEKLY Reports');
  await ensureMainMenu(owner.page);
@@ -865,6 +866,7 @@ try{
  for(let attempt=0;attempt<40&&owner.getBank().appData.dailyTaskPresets?.length!==2;attempt++)await owner.page.waitForTimeout(100);
  assert.deepEqual(owner.getBank().appData.dailyTaskPresets,['Check guards and safety covers','Inspect emergency stops'],'daily task presets sync to the central bank');
  assert.ok(owner.actions.filter(x=>x.action==='save-settings'&&Array.isArray(x.body.appData.dailyTaskPresets)).length>=2,'daily task presets use the settings-specific write action');
+ await ensureMainMenu(owner.page);
  const ownerMenu=owner.page.locator('.nav-menu');
  if(!await ownerMenu.evaluate(node=>node.open))await ownerMenu.locator(':scope > summary').click();
  await ensureMainMenu(owner.page);
@@ -957,8 +959,10 @@ try{
   assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.[0]?.bucket),'downtime-staff-photos','original photo is uploaded to the private staff photo bucket');
  assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+6,'daily tasks, completions, lock and one staff save advance central version');
  // STAFF profile administration lives in Settings; return to Home Page before exercising its Day to Day control.
+ await ensureMainMenu(owner.page);
  const homePageNav=owner.page.locator('.nav[data-view="weekly"]');
  if(!await homePageNav.isVisible()){
+  await ensureMainMenu(owner.page);
   await owner.page.locator('.nav-menu > summary').click();
   await homePageNav.waitFor({state:'visible',timeout:3000});
  }
@@ -966,6 +970,7 @@ try{
  await homePageNav.click();
  await owner.page.locator('#weekly.view.active').waitFor({state:'visible',timeout:3000});
  // Crew Switchboard exposes only locked, assigned STAFF and saves ON/OFF PLANT to the Central Data Bank.
+await ensureMainMenu(owner.page);
 const crewMenu=owner.page.locator('.nav-menu');
  if(!await crewMenu.evaluate(node=>node.open))await crewMenu.locator(':scope > summary').click();
  await ensureMainMenu(owner.page);
@@ -1083,6 +1088,7 @@ const crewMenu=owner.page.locator('.nav-menu');
  await signIn(user.page);
  assert.equal(await user.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'USER cannot see the Central Data Bank menu entry');
 
+ await ensureMainMenu(user.page);
  await user.page.locator('.nav-menu > summary').click();
  await ensureMainMenu(user.page);
  await user.page.locator('.nav[data-view="reports"]').click();
@@ -1114,6 +1120,7 @@ const crewMenu=owner.page.locator('.nav-menu');
   const supervisor=await openFor('SUPERVISOR','2468');
   await signIn(supervisor.page);
   assert.equal(await supervisor.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'SUPERVISOR staff-management permission does not grant Central Data Bank access');
+  await ensureMainMenu(supervisor.page);
   await supervisor.page.locator('.nav-menu > summary').click();
   assert.equal(await supervisor.page.locator('#addEntry').isDisabled(),false,'SUPERVISOR can edit tracker');
   assert.equal(await supervisor.page.locator('#newStaffName').count(),0,'legacy inline add field is removed');
@@ -1206,6 +1213,7 @@ const crewMenu=owner.page.locator('.nav-menu');
  await spectator.page.waitForFunction(()=>document.querySelector('#plantOperatorToggle')?.textContent==='PLANT OFF · RED',{timeout:5000});
  assert.equal(spectator.getBank().appData.plantOn,false,'SPECTATOR can operate Plant Power independently of dashboard and tracker-edit permissions');
  await dismissPlantTransitionAlerts(spectator.page);
+ await ensureMainMenu(spectator.page);
  await spectator.page.locator('.nav-menu > summary').click();
  assert.equal(await spectator.page.locator('.nav[data-view="staff"]').count(),0,'STAFF is not a standalone navigation item');
  assert.equal(await spectator.page.locator('.nav[data-view="settings"]').isVisible(),false,'SPECTATOR cannot open Settings');
