@@ -18,14 +18,14 @@ const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[
 const cryptoHex=(bytes:Uint8Array)=>Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 const digest=async(value:string)=>cryptoHex(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value))));
 
-const tierDefaults:Record<string,{canEditTracker:boolean;canViewDashboards:boolean}>={
-  OWNER:{canEditTracker:true,canViewDashboards:true},
-  DEVACC:{canEditTracker:true,canViewDashboards:true},
-  ADMIN:{canEditTracker:true,canViewDashboards:true},
-  MANAGER:{canEditTracker:true,canViewDashboards:true},
-  SUPERVISOR:{canEditTracker:true,canViewDashboards:true},
-  USER:{canEditTracker:false,canViewDashboards:true},
-  SPECTATOR:{canEditTracker:false,canViewDashboards:false},
+const tierDefaults:Record<string,{canEditTracker:boolean;canViewDashboards:boolean;canDeleteRecords:boolean}>={
+  OWNER:{canEditTracker:true,canViewDashboards:true,canDeleteRecords:true},
+  DEVACC:{canEditTracker:true,canViewDashboards:true,canDeleteRecords:true},
+  ADMIN:{canEditTracker:true,canViewDashboards:true,canDeleteRecords:false},
+  MANAGER:{canEditTracker:true,canViewDashboards:true,canDeleteRecords:false},
+  SUPERVISOR:{canEditTracker:true,canViewDashboards:true,canDeleteRecords:false},
+  USER:{canEditTracker:false,canViewDashboards:true,canDeleteRecords:false},
+  SPECTATOR:{canEditTracker:false,canViewDashboards:false,canDeleteRecords:false},
 };
 
 async function resolveAccess(req:Request,admin:any){
@@ -65,6 +65,7 @@ async function resolveAccess(req:Request,admin:any){
     tier,
     canEditTracker:root?true:(typeof saved.canEditTracker==="boolean"?saved.canEditTracker:defaults.canEditTracker),
     canViewDashboards:root?true:(typeof saved.canViewDashboards==="boolean"?saved.canViewDashboards:defaults.canViewDashboards),
+    canDeleteRecords:root?true:(typeof saved.canDeleteRecords==="boolean"?saved.canDeleteRecords:defaults.canDeleteRecords),
   };
 }
 
@@ -135,7 +136,7 @@ Deno.serve(async(req)=>{
   }
 
   if(action==="delete"){
-    if(!access.canEditTracker)return json({error:"Tracker edit permission is required to delete photo evidence."},403);
+    if(!access.canDeleteRecords)return json({error:"Record deletion permission is required to delete photo evidence."},403);
     const id=body?.attachmentId;
     if(!uuidPattern.test(id||""))return json({error:"Invalid attachment id"},400);
     const {data:row,error}=await admin.from("downtime_attachments").select("id,storage_path").eq("id",id).maybeSingle();
