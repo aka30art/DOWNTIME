@@ -119,6 +119,47 @@
  .machine-nav-actions .machine-back{grid-column:auto;justify-self:auto;margin:0;padding:7px 9px}
  .workspace-config-button{align-self:flex-start}
 }
+
+/* FAULT / DEFECT CARDS — full-width readable hierarchy on mobile and desktop */
+.fault-table-head{display:none!important}
+.faultrow{
+  display:block!important;
+  width:100%;
+  min-width:0;
+  margin:9px 0;
+  padding:12px 14px;
+  border:1px solid #2d4658;
+  border-radius:12px;
+  background:linear-gradient(145deg,#172c3b,#0d1c28);
+  color:var(--white);
+  text-align:left;
+  box-shadow:0 3px 10px #0002;
+}
+.faultrow:nth-child(even){background:linear-gradient(145deg,#172c3b,#0d1c28)}
+.faultrow:hover,.faultrow:focus-visible{border-color:#648398;background:linear-gradient(145deg,#1b3547,#0e202e);outline:2px solid #648398;outline-offset:1px}
+.fault-card-top{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:10px;min-width:0;padding-bottom:9px;border-bottom:1px solid #2d4658}
+.fault-card-top .rownum{font-size:18px;line-height:1;color:var(--yellow);font-weight:1000}
+.fault-card-top .equipment-name{min-width:0;color:#dce5ec;font-size:13px;font-weight:850;letter-spacing:.45px;line-height:1.3;overflow-wrap:anywhere}
+.fault-card-top .priority-pill{min-width:96px;padding:5px 9px;font-size:11px}
+.fault-card-body{display:grid;gap:4px;min-width:0;padding:10px 0 1px 48px}
+.fault-card-body .faultname{font-size:16px;line-height:1.3;font-weight:950;overflow-wrap:anywhere}
+.fault-card-body .description{font-size:14px;line-height:1.45;color:#c2cfda;overflow-wrap:anywhere}
+@media(max-width:620px){
+ .faultrow{margin:8px 0;padding:11px 10px;border-radius:11px}
+ .fault-card-top{grid-template-columns:30px minmax(0,1fr) auto;gap:7px;padding-bottom:8px}
+ .fault-card-top .rownum{font-size:16px}
+ .fault-card-top .equipment-name{font-size:11px;letter-spacing:.25px}
+ .fault-card-top .priority-pill{min-width:78px;padding:5px 6px;font-size:9px}
+ .fault-card-body{gap:4px;padding:9px 0 0 37px}
+ .fault-card-body .faultname{font-size:15px;line-height:1.3}
+ .fault-card-body .description{font-size:12px;line-height:1.45}
+}
+@media(max-width:360px){
+ .fault-card-top{grid-template-columns:26px minmax(0,1fr) auto;gap:5px}
+ .fault-card-top .equipment-name{font-size:10px}
+ .fault-card-top .priority-pill{min-width:70px;font-size:8px}
+ .fault-card-body{padding-left:31px}
+}
 </style>
 <link rel="stylesheet" href="shared-ui-system.css?v=20261124-2">
 </head>
