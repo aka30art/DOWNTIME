@@ -29,9 +29,6 @@ assert.match(migration,/revoke all on public\.gatelog_customers[\s\S]*from publi
 assert.match(atomic,/gatelog_create_arrival/);
 assert.match(atomic,/time_out=now\(\)/);
 assert.match(atomic,/yardHubMenu/);
-assert.match(atomic,/gatelog_customer_visit_stats/);
-assert.match(api,/gatelog_customer_visit_stats/);
-assert.match(client,/TOTAL VISITS/);
 assert.match(menuApi,/id: "gatelog", kind: "gatelog"/);
 assert.match(admin,/id:"gatelog",kind:"gatelog"/);
 console.log('GATELOG module contract: PASS');

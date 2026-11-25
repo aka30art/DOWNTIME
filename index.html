@@ -687,6 +687,11 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
         <span class="yard-tile-divider" aria-hidden="true"></span>
         <span class="yard-tile-copy"><strong>CHECK SHEETS</strong><small>INSPECTIONS &amp; COMPLIANCE</small><span class="yard-tile-status" id="yardCheckSheetsStatus">COMING LATER</span></span>
       </button>
+      <button class="yard-tile yard-tile-active" id="launchGatelogBtn" data-app="gatelog" type="button" aria-label="Open GATELOG customer and site entry management">
+        <span class="yard-tile-icon" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M22 15h42l14 14v56H22z"/><path d="M64 15v16h14M34 46h32M34 59h32M34 72h21"/><circle class="accent" cx="72" cy="72" r="17"/><path class="accent" d="M72 63v10l7 4"/></svg></span>
+        <span class="yard-tile-divider" aria-hidden="true"></span>
+        <span class="yard-tile-copy"><strong>GATELOG</strong><small>CUSTOMER &amp; SITE ENTRY MANAGEMENT</small><span class="yard-tile-status">LIVE APPLICATION</span></span>
+      </button>
       <button class="yard-tile yard-tile-active" id="launchRepairMaintenanceBtn" data-app="repair-maintenance" type="button" aria-describedby="yardRepairStatus">
         <span class="yard-tile-icon" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M18 22a25 25 0 0 0 29 32l31 31a9 9 0 0 0 13-13L60 41a25 25 0 0 0-32-29l15 15-14 14Z"/><path class="accent" d="m28 60-13 13a9 9 0 0 0 13 13l13-13"/></svg></span>
         <span class="yard-tile-divider" aria-hidden="true"></span>
@@ -1066,7 +1071,7 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
     <iframe id="reportPreviewFrame" class="report-preview-frame" title="Selected weekly PDF report" hidden></iframe>
   </div>
 </div>
-<script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';window.YARD_HUB_SETTINGS_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/yard-hub-settings-api';window.CENTRAL_CONFIG_ADMIN_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-config-admin';</script>
+<script>window.DOWNTIME_CENTRAL_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank';window.DOWNTIME_CENTRAL_API_KEY='sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx';window.YARD_HUB_SETTINGS_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/yard-hub-settings-api';window.CENTRAL_CONFIG_ADMIN_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-config-admin';window.GATELOG_API='https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/gatelog-api';</script>
 <script src="central-bank-client.js?v=20261125-operator-duty-compat1"></script>
 <script src="assets/staff/staff-image-library.js"></script>
 <script>
@@ -2147,6 +2152,8 @@ if(window.DowntimeCentral?.session?.token)resumeCentralSession();
 })();
 </script><link rel="stylesheet" href="yard-hub-structure.css?v=phase09-1">
 <script src="yard-hub-structure.js?v=phase09-1"></script>
+<link rel="stylesheet" href="gatelog-app.css?v=20261125-1">
+<script src="gatelog-app.js?v=20261125-1"></script>
 </body></html>
 <style>
 
