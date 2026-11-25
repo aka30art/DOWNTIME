@@ -662,7 +662,87 @@ function defaultDepartmentSettings(){
   host.querySelectorAll("button[data-section]").forEach(button=>button.addEventListener("click",()=>showSection(button.dataset.section)));
  }
 
- function blankConfig(){return {schemaVersion:1,departmentMenu:defaultDepartmentMenu(),navigation:{overview:"Overview",organisation:"Organisation",structure:"Plant & Areas",libraries:"Operational Libraries",defaults:"System Defaults",history:"Version History",navigation:"Menu & Labels",modules:"Module Registry",controls:"System Controls",information:"System Information"},modules:[],organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[],hierarchy:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
+ function defaultYardHubMenu(){return {departments:[
+  {id:"downtime",kind:"downtime",title:"DOWNTIME",description:"PLANT DOWNTIME & OPERATIONS",enabled:true,order:0,protected:true,submenus:[]},
+  {id:"floor",kind:"floor",title:"FLOOR",description:"FLOOR & YARD OPERATIONS",enabled:true,order:1,protected:false,submenus:[]},
+  {id:"check-sheets",kind:"check-sheets",title:"CHECK SHEETS",description:"INSPECTIONS & COMPLIANCE",enabled:true,order:2,protected:false,submenus:[]},
+  {id:"repairs-maintenance",kind:"repairs-maintenance",title:"R&M",description:"REPAIRS & MAINTENANCE",enabled:true,order:3,protected:true,submenus:[]},
+  {id:"hub-settings",kind:"hub-settings",title:"HUB SETTINGS",description:"YARD HUB CONFIGURATION & ACCESS CONTROL",enabled:true,order:4,protected:true,submenus:[]}
+ ]};}
+ function structureSlug(value){return String(value||"").toLocaleLowerCase().normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,32)||"department";}
+ function renderYardHubStructure(config){
+  const source=config&&Array.isArray(config.departments)?config:defaultYardHubMenu(),host=$("yardHubStructureDepartments"),preview=$("yardHubStructurePreview");
+  if(!host)return;host.replaceChildren();if(preview)preview.replaceChildren();
+  const departments=source.departments.slice().sort((a,b)=>Number(a.order)-Number(b.order));
+  const grid=menuNode("div","cdb-dept-grid");
+  departments.forEach((entry,index)=>{
+   const card=menuNode("div","cdb-menu-entry");card.dataset.yardDepartment="true";card.dataset.yardDepartmentId=entry.id;card.dataset.yardDepartmentKind=entry.kind||"custom";card.dataset.yardDepartmentProtected=entry.protected?"true":"false";
+   const head=menuNode("div","cdb-menu-entry-head"),heading=menuNode("strong","",entry.title+" · "+entry.id.toUpperCase()),state=menuNode("span","pill",entry.enabled===false?"HIDDEN FROM YARD HUB":"VISIBLE IN YARD HUB");head.append(heading,state);card.append(head);
+   const fields=menuNode("div","cdb-menu-fields");
+   menuInput("Department title",entry.title,48,"yardDepartmentTitle",fields);
+   menuInput("Description",entry.description,100,"yardDepartmentDescription",fields);
+   const enabledField=menuNode("div","field"),enabledLabel=menuNode("label",""),enabledInput=menuNode("input");enabledInput.type="checkbox";enabledInput.checked=entry.enabled!==false;enabledInput.dataset.yardDepartmentEnabled="true";enabledLabel.append(enabledInput,document.createTextNode("Show department in YARD HUB"));enabledField.append(enabledLabel);fields.append(enabledField);card.append(fields);
+   const actions=menuNode("div","cdb-menu-actions");
+   const up=menuNode("button","quiet","MOVE UP"),down=menuNode("button","quiet","MOVE DOWN"),add=menuNode("button","quiet","ADD SUB-MENU");
+   up.type=down.type=add.type="button";up.disabled=index===0;down.disabled=index===departments.length-1;
+   up.addEventListener("click",()=>moveYardHubDepartment(entry.id,-1));down.addEventListener("click",()=>moveYardHubDepartment(entry.id,1));add.addEventListener("click",()=>addYardHubSubmenu(entry.id));
+   actions.append(up,down,add);
+   const remove=menuNode("button",entry.protected?"quiet":"danger",entry.protected?"CORE DEPARTMENT":"REMOVE");
+   remove.type="button";remove.disabled=entry.protected===true;
+   remove.addEventListener("click",()=>removeYardHubDepartment(entry.id));
+   actions.append(remove);card.append(actions);
+   const submenuHost=menuNode("div","cdb-menu-submenus");submenuHost.append(menuNode("strong","","SUB-MENU ITEMS"));
+   (entry.submenus||[]).slice().sort((a,b)=>Number(a.order)-Number(b.order)).forEach((child,childIndex)=>{
+    const row=menuNode("div","cdb-menu-submenu");row.dataset.yardSubmenu="true";row.dataset.yardSubmenuId=child.id;
+    const label=menuNode("input");label.value=child.label||"";label.maxLength=48;label.placeholder="Sub-menu title";label.dataset.yardSubmenuLabel="true";
+    const toggleWrap=menuNode("div"),toggleLabel=menuNode("label","cdb-menu-toggle"),toggle=menuNode("input");toggle.type="checkbox";toggle.checked=child.enabled!==false;toggle.dataset.yardSubmenuEnabled="true";toggleLabel.append(toggle,document.createTextNode("VISIBLE"));toggleWrap.append(toggleLabel);
+    const childOrder=menuNode("small","muted","ORDER "+(childIndex+1));
+    const removeChild=menuNode("button","danger","REMOVE");removeChild.type="button";removeChild.addEventListener("click",()=>removeYardHubSubmenu(entry.id,child.id));
+    row.append(label,toggleWrap,childOrder,removeChild);submenuHost.append(row);
+   });
+   if(!(entry.submenus||[]).length)submenuHost.append(menuNode("small","muted","No sub-menu items. Add one for equipment types, sub-departments or dedicated workspace links."));
+   card.append(submenuHost);host.append(card);
+   const previewCard=menuNode("div","cdb-dept-card"),mark=menuNode("span","cdb-dept-mark",entry.title.split(/\\s+/).map(word=>word[0]).join("").slice(0,2).toUpperCase()),copy=menuNode("span","cdb-dept-copy");
+   copy.append(menuNode("strong","",entry.title),menuNode("small","",entry.description),menuNode("em",entry.enabled===false?"planned":"live",entry.enabled===false?"HIDDEN":"YARD HUB TILE"));
+   previewCard.append(mark,copy);grid.append(previewCard);
+   (entry.submenus||[]).filter(item=>item.enabled!==false).forEach(child=>grid.append(menuNode("small","muted",entry.title+" → "+child.label)));
+  });
+  if(preview){preview.append(grid);preview.append(menuNode("p","cdb-menu-note","Preview reflects the department and sub-menu order in this draft. Changes reach the live YARD HUB launcher only after publish."));}
+  host.querySelectorAll("input").forEach(input=>{input.addEventListener("input",()=>{renderYardHubStructurePreview(collectYardHubStructure());updateButtons();});input.addEventListener("change",()=>{renderYardHubStructurePreview(collectYardHubStructure());updateButtons();});});
+ }
+ function renderYardHubStructurePreview(config){
+  const preview=$("yardHubStructurePreview");if(!preview)return;preview.replaceChildren();const grid=menuNode("div","cdb-dept-grid");
+  (config.departments||[]).forEach(entry=>{if(entry.enabled===false)return;const card=menuNode("div","cdb-dept-card"),mark=menuNode("span","cdb-dept-mark",entry.title.split(/\\s+/).map(word=>word[0]).join("").slice(0,2).toUpperCase()),copy=menuNode("span","cdb-dept-copy");copy.append(menuNode("strong","",entry.title),menuNode("small","",entry.description),menuNode("em","live",(entry.submenus||[]).filter(item=>item.enabled!==false).length+" SUB-MENU ITEMS"));card.append(mark,copy);grid.append(card);});preview.append(grid);
+ }
+ function collectYardHubStructure(){
+  const departments=Array.from(document.querySelectorAll("[data-yard-department]")).map((card,index)=>{
+   const id=card.dataset.yardDepartmentId,base=defaultYardHubMenu().departments.find(item=>item.id===id),submenus=Array.from(card.querySelectorAll("[data-yard-submenu]")).map((row,childIndex)=>({id:row.dataset.yardSubmenuId,label:row.querySelector("[data-yard-submenu-label]")?.value.trim()||"",enabled:row.querySelector("[data-yard-submenu-enabled]")?.checked!==false,order:childIndex}));
+   return {id,kind:base?.kind||"custom",title:card.querySelector("[data-yard-department-title]")?.value.trim()||"",description:card.querySelector("[data-yard-department-description]")?.value.trim()||"",enabled:card.querySelector("[data-yard-department-enabled]")?.checked!==false,order:index,protected:base?.protected===true,submenus};
+  });
+  return {departments};
+ }
+ function addYardHubDepartment(){
+  const title=$("newYardHubDepartmentTitle").value.trim();if(!title){status("Enter a department title first.",true);return;}
+  const menu=collectYardHubStructure();let id=structureSlug(title),serial=2;while(menu.departments.some(item=>item.id===id))id=structureSlug(title)+"-"+serial++;
+  if(menu.departments.some(item=>item.title.toLocaleLowerCase()===title.toLocaleLowerCase())){status("A department with that title already exists.",true);return;}
+  menu.departments.push({id,kind:"custom",title,description:"",enabled:true,order:menu.departments.length,protected:false,submenus:[]});
+  $("newYardHubDepartmentTitle").value="";renderYardHubStructure(menu);updateButtons();status("Department added to the draft. Save, validate and publish to make it appear in YARD HUB.");
+ }
+ function addYardHubSubmenu(id){
+  const menu=collectYardHubStructure(),entry=menu.departments.find(item=>item.id===id);if(!entry)return;
+  if(entry.submenus.length>=30){status("A department can contain no more than 30 sub-menu items.",true);return;}
+  let label="New sub-menu",base=structureSlug(label),childId=base,n=2;while(entry.submenus.some(item=>item.id===childId))childId=base+"-"+n++;
+  entry.submenus.push({id:childId,label,enabled:true,order:entry.submenus.length});renderYardHubStructure(menu);updateButtons();
+ }
+ function removeYardHubSubmenu(departmentId,submenuId){const menu=collectYardHubStructure(),entry=menu.departments.find(item=>item.id===departmentId);if(!entry)return;entry.submenus=entry.submenus.filter(item=>item.id!==submenuId);renderYardHubStructure(menu);updateButtons();}
+ function removeYardHubDepartment(id){
+  const menu=collectYardHubStructure(),entry=menu.departments.find(item=>item.id===id);if(!entry||entry.protected)return;
+  if(entry.kind!=="custom"){entry.enabled=false;status(entry.title+" has been hidden from YARD HUB. Its application identity remains reserved.");}
+  else {if(!window.confirm("Remove "+entry.title+" from the YARD HUB menu draft? This does not delete any application data."))return;menu.departments=menu.departments.filter(item=>item.id!==id);status(entry.title+" removed from the draft menu.");}
+  renderYardHubStructure(menu);updateButtons();
+ }
+ function moveYardHubDepartment(id,delta){const menu=collectYardHubStructure(),index=menu.departments.findIndex(item=>item.id===id),target=index+delta;if(index<0||target<0||target>=menu.departments.length)return;[menu.departments[index],menu.departments[target]]=[menu.departments[target],menu.departments[index]];menu.departments.forEach((item,index)=>item.order=index);renderYardHubStructure(menu);updateButtons();}
+ function blankConfig(){return {schemaVersion:1,departmentMenu:defaultDepartmentMenu(),yardHubMenu:defaultYardHubMenu(),navigation:{overview:"Overview",organisation:"Organisation",structure:"Plant & Areas",libraries:"Operational Libraries",defaults:"System Defaults",history:"Version History",navigation:"Menu & Labels",modules:"Module Registry",controls:"System Controls",information:"System Information"},modules:[],organization:{companyName:"",siteCode:"",timezone:"Europe/London",locale:"en-GB"},structure:{sites:[],plants:[],areas:[],stations:[],hierarchy:[]},libraries:{areaPresets:[],downtimeReasons:[],dailyTaskPresets:[],equipmentCategories:[],eventCategories:[],statusCategories:["Running","Stopped","Maintenance","Unavailable"]},defaults:{shiftSchedule:{},shiftPresets:[],weekStartsOn:"MONDAY",operatingDays:DAYS.slice(0,6),breakDeductionMinutes:75}}}
  const lines=value=>Array.isArray(value)?value.join("\n"):"";
  function list(id){return $(id).value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean)}
  function setValue(id,value){$(id).value=value??""}
@@ -674,7 +754,7 @@ function defaultDepartmentSettings(){
   });
  }
  function renderForm(config){
-  const c=config||blankConfig(),org=c.organization||{},structure=c.structure||{},libraries=c.libraries||{},defaults=c.defaults||{},navigation=c.navigation||blankConfig().navigation;setValue("moduleRegistry",lines(c.modules));renderDepartmentMenu(c.departmentMenu||defaultDepartmentMenu());renderDepartmentConfiguration(c.departmentSettings||defaultDepartmentSettings());
+  const c=config||blankConfig(),org=c.organization||{},structure=c.structure||{},libraries=c.libraries||{},defaults=c.defaults||{},navigation=c.navigation||blankConfig().navigation;setValue("moduleRegistry",lines(c.modules));renderDepartmentMenu(c.departmentMenu||defaultDepartmentMenu());renderYardHubStructure(c.yardHubMenu||defaultYardHubMenu());renderDepartmentConfiguration(c.departmentSettings||defaultDepartmentSettings());
   Object.keys(navigation).forEach(key=>setValue("navLabel"+key.charAt(0).toUpperCase()+key.slice(1),navigation[key]));renderNavigation(navigation);
   setValue("companyName",org.companyName);setValue("siteCode",org.siteCode);setValue("timezone",org.timezone||"Europe/London");setValue("locale",org.locale||"en-GB");
   ["sites","plants","areas","stations"].forEach(key=>setValue(key,lines(structure[key])));hierarchyDraft=cloneHierarchy(structure.hierarchy||[]);renderHierarchy(hierarchyDraft);
@@ -732,6 +812,7 @@ function defaultDepartmentSettings(){
    schemaVersion:1,
    modules:list("moduleRegistry"),
    departmentMenu:collectDepartmentMenu(),
+   yardHubMenu:collectYardHubStructure(),
    departmentSettings:collectDepartmentConfiguration(),
    navigation:{overview:$("navLabelOverview").value.trim()||"Overview",organisation:$("navLabelOrganisation").value.trim()||"Organisation",structure:$("navLabelStructure").value.trim()||"Plant & Areas",libraries:$("navLabelLibraries").value.trim()||"Operational Libraries",defaults:$("navLabelDefaults").value.trim()||"System Defaults",history:$("navLabelHistory").value.trim()||"Version History",navigation:$("navLabelNavigation").value.trim()||"Menu & Labels",modules:$("navLabelModules").value.trim()||"Module Registry",controls:$("navLabelControls").value.trim()||"System Controls",information:$("navLabelInformation").value.trim()||"System Information"},
    organization:{companyName:$("companyName").value.trim(),siteCode:$("siteCode").value.trim(),timezone:$("timezone").value.trim(),locale:$("locale").value.trim()},
@@ -751,7 +832,7 @@ function defaultDepartmentSettings(){
  }
  function countItems(c){
   const s=c.structure||{},l=c.libraries||{};
-  const tree=(s.hierarchy||[]).reduce((n,site)=>n+1+(site.plants||[]).reduce((p,plant)=>p+1+(plant.areas||[]).reduce((a,area)=>a+1+(area.stations||[]).length,0),0),0);return (c.modules||[]).length+tree+["sites","plants","areas","stations"].reduce((n,k)=>n+(s[k]||[]).length,0)+["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].reduce((n,k)=>n+(l[k]||[]).length,0);
+  const tree=(s.hierarchy||[]).reduce((n,site)=>n+1+(site.plants||[]).reduce((p,plant)=>p+1+(plant.areas||[]).reduce((a,area)=>a+1+(area.stations||[]).length,0),0),0);const hubMenu=c.yardHubMenu?.departments||[];const hubItems=hubMenu.length+hubMenu.reduce((n,item)=>n+(item.submenus||[]).length,0);return (c.modules||[]).length+tree+hubItems+["sites","plants","areas","stations"].reduce((n,k)=>n+(s[k]||[]).length,0)+["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].reduce((n,k)=>n+(l[k]||[]).length,0);
  }
  function renderOverview(){
   $("releaseDraftVersion").textContent=String(draftVersion);$("releasePublishedVersion").textContent=String(publishedVersion);
@@ -926,6 +1007,8 @@ function defaultDepartmentSettings(){
  buildDayChecks();renderForm(blankConfig());updateButtons();
  $("addSiteBtn").addEventListener("click",()=>{try{addHierarchyNode("site");}catch(error){status(error.message,true);}});$("hierarchyTree").addEventListener("click",handleHierarchyAction);
  $("addDepartmentCategoryBtn").addEventListener("click",addDepartmentCategory);
+ $("addYardHubDepartmentBtn").addEventListener("click",addYardHubDepartment);
+ $("newYardHubDepartmentTitle").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();addYardHubDepartment();}});
  $("newDepartmentCategory").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();addDepartmentCategory();}});
  $("restoreDepartmentMenuBtn").addEventListener("click",()=>{if(!window.confirm("Restore the original five department entries and two default categories? Save Draft is required to persist this reset."))return;renderDepartmentMenu(defaultDepartmentMenu());updateButtons();status("Original department menu restored locally. Save Draft to persist this reset.");});
  $("workspace").addEventListener("input",event=>{if(event.target instanceof Element&&event.target.matches("input,select,textarea"))updateButtons();});
