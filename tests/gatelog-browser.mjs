@@ -3,11 +3,14 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 const client=await readFile('gatelog-app.js','utf8');
 const css=await readFile('gatelog-app.css','utf8');
+const sharedCss=await readFile('shared-ui-system.css','utf8');
+const visualCss=await readFile('yard-hub-visual-system.css','utf8');
 const browser=await chromium.launch({headless:true});
 try{
  const page=await browser.newPage({viewport:{width:390,height:844}});
- await page.setContent(`<!doctype html><html><head><style>${css}</style></head><body>
- <main id="yardHub"><div class="yard-hub-inner"><header class="yard-hero">YARD HUB</header><div class="yard-modules-heading">APPLICATIONS</div><div class="yard-grid"><button id="launchGatelogBtn">GATELOG</button></div><footer class="yard-hub-footer">FOOTER</footer></div></main>
+ await page.setContent(`<!doctype html><html><head><style>*{box-sizing:border-box}</style><style>${sharedCss}</style><style>${css}</style><style>${visualCss}</style></head><body>
+ <main id="yardHub" class="yard-hub"><div class="yard-hub-inner"><header class="yard-hero">YARD HUB</header><div class="yard-modules-heading">APPLICATIONS</div><div class="yard-grid"><button id="launchGatelogBtn">GATELOG</button></div><footer class="yard-hub-footer">FOOTER</footer></div></main>
+ <div class="rm-module-root" style="position:absolute;left:-9999px;width:390px;visibility:hidden"><header class="hero"><div class="hero-top"><div><div class="downtime-mark">DOWNTIME®</div><div class="mark-rule"></div></div><div class="hero-actions"><div class="session-label">HUB AUTHENTICATED AS<strong>USER</strong></div><button class="icon-button">▤</button><a class="icon-button" href="#">⌂</a></div></div><div class="hero-word">/R&amp;M</div><p class="hero-tag">REPAIRS &amp; MAINTENANCE</p></header></div>
  <script>
  window.DowntimeCentral={session:{token:'test-session'}};window.DOWNTIME_CENTRAL_API_KEY='test-key';window.GATELOG_API='/gatelog-api';window.__calls=[];window.__active=[];
  window.fetch=async(_url,options)=>{const b=JSON.parse(options.body);window.__calls.push(b.action);
@@ -27,6 +30,12 @@ try{
  assert.equal(await page.locator('.gatelog-title-main').innerText(),'GATE');
  assert.equal(await page.locator('.gatelog-title-light').innerText(),'LOG');
  assert.equal(await page.locator('.gatelog-hero-title p').innerText(),'CUSTOMER AND SITE ENTRY MANAGEMENT');
+ const mobileHeaderComparison=await page.evaluate(()=>{
+  const g=document.querySelector('.gatelog-hero'),r=document.querySelector('.rm-module-root .hero');
+  const ga=document.querySelector('.gatelog-hero-icon'),ra=document.querySelector('.rm-module-root .icon-button');
+  return {g:{height:getComputedStyle(g).minHeight,padding:getComputedStyle(g).padding,radius:getComputedStyle(g).borderRadius,border:getComputedStyle(g).borderTopWidth,stripe:getComputedStyle(document.querySelector('.gatelog-hero-stripe')).width,action:getComputedStyle(ga).width},r:{height:getComputedStyle(r).minHeight,padding:getComputedStyle(r).padding,radius:getComputedStyle(r).borderRadius,border:getComputedStyle(r).borderTopWidth,stripe:getComputedStyle(r,'::after').width,action:getComputedStyle(ra).width}};
+ });
+ assert.deepEqual(mobileHeaderComparison.g,mobileHeaderComparison.r,'GATELOG and R&M mobile headers must share identical geometry and icon sizing');
  const mobileHeader=await page.locator('.gatelog-hero').boundingBox();
  const listIcon=await page.locator('#gatelogOpenCustomers').boundingBox();
  const homeIcon=await page.locator('#gatelogBack').boundingBox();
@@ -35,6 +44,10 @@ try{
  assert.ok(homeIcon.x>=mobileHeader.x && homeIcon.x+homeIcon.width<=mobileHeader.x+mobileHeader.width,'Home icon must remain inside the header');
  assert.ok(listIcon.x+listIcon.width<=homeIcon.x,'Header action buttons must not overlap');
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'GATELOG must not create horizontal page overflow on mobile');
+ await page.setViewportSize({width:320,height:780});
+ const narrowHeader=await page.locator('.gatelog-hero').boundingBox();
+ assert.ok(narrowHeader&&narrowHeader.width<=320,'GATELOG header must fit a 320px viewport');
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'GATELOG must not overflow at 320px');
  assert.equal(await page.locator('.gatelog-toolbar-spacer').evaluate(el=>getComputedStyle(el).display),'none');
  assert.match(await page.locator('#gatelogRegister').innerText(),/TIME IN|No visits/);
  assert.match(await page.locator('.gatelog-statistics').innerText(),/MOST COMMON WASTE TYPE[\s\S]*OVERALL VISITS[\s\S]*AVERAGE TIME ON SITE/);
@@ -53,6 +66,12 @@ try{
  assert.equal(await page.locator('#gatelogFormName').inputValue(),'Example Ltd');
  assert.equal(await page.locator('#gatelogFormReg').inputValue(),'AB12 CDE');
  await page.setViewportSize({width:1280,height:900});
+ const desktopHeaderComparison=await page.evaluate(()=>{
+  const g=document.querySelector('.gatelog-hero'),r=document.querySelector('.rm-module-root .hero');
+  const ga=document.querySelector('.gatelog-hero-icon'),ra=document.querySelector('.rm-module-root .icon-button');
+  return {g:{height:getComputedStyle(g).minHeight,padding:getComputedStyle(g).padding,radius:getComputedStyle(g).borderRadius,border:getComputedStyle(g).borderTopWidth,stripe:getComputedStyle(document.querySelector('.gatelog-hero-stripe')).width,action:getComputedStyle(ga).width},r:{height:getComputedStyle(r).minHeight,padding:getComputedStyle(r).padding,radius:getComputedStyle(r).borderRadius,border:getComputedStyle(r).borderTopWidth,stripe:getComputedStyle(r,'::after').width,action:getComputedStyle(ra).width}};
+ });
+ assert.deepEqual(desktopHeaderComparison.g,desktopHeaderComparison.r,'GATELOG and R&M desktop headers must share identical geometry and icon sizing');
  const stats=await page.locator('.gatelog-kpis').boundingBox(),actions=await page.locator('.gatelog-toolbar-actions').boundingBox();
  assert.ok(stats.x+stats.width<actions.x);
  await page.getByRole('button',{name:'Close'}).click();
