@@ -645,7 +645,14 @@ body.overview-overlay-open{overflow:hidden}
 }
 @media(prefers-reduced-motion:reduce){.side .nav-menu>summary,.side .nav-items>.nav{transition:none!important}}
 </style>
-</head>
+<style id="section-page-navigation">
+body.section-page-open .shell>.side{display:none!important}
+body.section-page-open .shell{grid-template-columns:minmax(0,1fr)!important}
+#returnMainMenu{display:none;min-height:46px;margin:0 0 16px;padding:11px 15px;text-align:left;background:#172d3c;border:1px solid #536d7e;color:#f5f7f8;font-weight:900}
+body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;gap:9px}
+@media(max-width:600px){body.section-page-open main{padding-top:12px}body.section-page-open #returnMainMenu{width:100%;justify-content:flex-start}}
+@media(prefers-reduced-motion:reduce){body.section-page-open *{scroll-behavior:auto!important;transition:none!important}}
+</style></head>
 <body><div id="authGate"><div class="authbox authbox-central"><div class="auth-brand" aria-label="YARD HUB — Yard Operations Core"><div class="auth-brand-wordmark"><span>YARD</span><strong>HUB<sup>®</sup></strong></div><p>YARD OPERATIONS CORE</p></div><div class="auth-divider" aria-hidden="true"><span></span><i></i><span></span></div><h2>DOWNTIME · CENTRAL LOGIN</h2><p class="muted">Select your central USER account and enter your PIN.</p><label for="centralUsername">SELECT USER ACCOUNT</label><select id="centralUsername" class="input" aria-label="Central username"><option value="">Loading central USERS…</option></select><label for="teamPin" class="auth-field-label">4–8 DIGIT PIN</label><input id="teamPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="4–8 digit PIN" aria-label="Central account PIN"><div class="pinpad" data-pinpad="teamPin"><div class="pinpad-grid"><button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="clear">CLEAR</button><button type="button" data-key="0">0</button><button type="button" data-key="back">⌫</button></div></div><button id="unlockBtn" class="primary">SIGN IN</button><button type="button" id="refreshAppBtn" class="quiet" style="width:100%;margin-top:8px">REFRESH USER LIST</button><div id="authMsg" role="status" aria-live="polite"></div></div></div>
 <div id="operatorGate" style="display:none"></div>
 <div id="spectatorView" style="display:none"></div>
@@ -790,6 +797,7 @@ body.overview-overlay-open{overflow:hidden}
 <div class="sidefoot">75-minute daily break excluded from calculations.</div>
 </aside>
 <main>
+<button id="returnMainMenu" type="button" aria-label="Return to main menu">← &nbsp; BACK TO MAIN MENU</button>
 <section id="weekly" class="view active">
 <section class="daily-stats" aria-labelledby="dailyStatsHeading">
 <h2 id="dailyStatsHeading" class="daily-stats-heading">DAILY STATS</h2>
@@ -2120,7 +2128,24 @@ if(window.DowntimeCentral?.session?.token)resumeCentralSession();
 </script>
 <script src="repair-maintenance-launch.js"></script>
 <script src="yard-hub-settings.js?v=20261124-5"></script>
-</body></html>
+<script id="section-page-navigation-script">
+(function(){
+ const back=document.getElementById('returnMainMenu');
+ if(!back)return;
+ document.addEventListener('click',function(event){
+  const item=event.target.closest('.shell .nav[data-view]');
+  if(!item)return;
+  window.setTimeout(function(){if(document.querySelector('.view.active'))document.body.classList.add('section-page-open')},0);
+ },true);
+ back.addEventListener('click',function(){
+  document.body.classList.remove('section-page-open');
+  const menu=document.querySelector('.nav-menu');if(menu)menu.open=true;
+  window.scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+ });
+ const launch=window.launchDowntime;
+ if(typeof launch==='function')window.launchDowntime=function(){document.body.classList.remove('section-page-open');return launch.apply(this,arguments)};
+})();
+</script></body></html>
 <style>
 
 /* UI migration · Stage 1: Preview Lab operating-screen structure, production IDs retained */
