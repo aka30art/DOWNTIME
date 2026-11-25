@@ -10,7 +10,7 @@ assert.match(html,/function unlockOperatorDuty\(\)/,'authorised users can explic
 assert.match(html,/operatorDutyCanManage\(\).*permission\('canManageAssignments'\)/,'assignment management uses the dedicated assignment permission');
 assert.match(html,/function blankDay\(d\)[\s\S]*operatorLocked:false/,'new day records initialise an unlocked operator slot');
 assert.match(api,/fields=\["operator","operatorLocked"[\s\S]*if\(!priv\.canManageAssignments\)/,'server preserves operator assignments for users without assignment permission');
-assert.match(api,/existing\.operatorLocked===true&&proposed!==previous&&newDay\.operatorLocked!==false/,'server blocks changing a locked operator without unlocking first');
+assert.ok(api.includes('existing.operatorLocked===true&&(proposed!==previous||String(newDay.date||"")!==String(existing.date||""))&&newDay.operatorLocked!==false'),"server blocks changing the operator or date of a locked assignment without unlocking first");
 assert.match(api,/roster\.some\(\(n:any\)=>String\(n\)\.trim\(\)\.toLowerCase\(\)===proposed\.toLowerCase\(\)\)/,'server validates assignments against the staff roster');
 assert.match(api,/action:"operator-duty-assignment"/,'assignment and lock changes are audited');
 assert.match(pdf,/d\.operator\|\|'Not assigned'/,'weekly PDF uses the date-specific operator record');
