@@ -674,7 +674,7 @@ function defaultDepartmentSettings(){
   const source=config&&Array.isArray(config.departments)?config:defaultYardHubMenu(),host=$("yardHubStructureDepartments"),preview=$("yardHubStructurePreview");
   if(!host)return;host.replaceChildren();if(preview)preview.replaceChildren();
   const departments=source.departments.slice().sort((a,b)=>Number(a.order)-Number(b.order));
-  const grid=menuNode("div","cdb-dept-grid");
+  const grid=menuNode("div","yard-hub-structure-preview-grid");
   departments.forEach((entry,index)=>{
    const card=menuNode("div","cdb-menu-entry");card.dataset.yardDepartment="true";card.dataset.yardDepartmentId=entry.id;card.dataset.yardDepartmentKind=entry.kind||"custom";card.dataset.yardDepartmentProtected=entry.protected?"true":"false";
    const head=menuNode("div","cdb-menu-entry-head"),heading=menuNode("strong","",entry.title+" · "+entry.id.toUpperCase()),state=menuNode("span","pill",entry.enabled===false?"HIDDEN FROM YARD HUB":"VISIBLE IN YARD HUB");head.append(heading,state);card.append(head);
@@ -702,17 +702,17 @@ function defaultDepartmentSettings(){
    });
    if(!(entry.submenus||[]).length)submenuHost.append(menuNode("small","muted","No sub-menu items. Add one for equipment types, sub-departments or dedicated workspace links."));
    card.append(submenuHost);host.append(card);
-   const previewCard=menuNode("div","cdb-dept-card"),mark=menuNode("span","cdb-dept-mark",entry.title.split(/\\s+/).map(word=>word[0]).join("").slice(0,2).toUpperCase()),copy=menuNode("span","cdb-dept-copy");
+   const previewCard=menuNode("div","yard-hub-structure-preview-card"),mark=menuNode("span","yard-hub-structure-preview-mark",entry.title.split(/\\s+/).map(word=>word[0]).join("").slice(0,2).toUpperCase()),copy=menuNode("span","yard-hub-structure-preview-copy");
    copy.append(menuNode("strong","",entry.title),menuNode("small","",entry.description),menuNode("em",entry.enabled===false?"planned":"live",entry.enabled===false?"HIDDEN":"YARD HUB TILE"));
    previewCard.append(mark,copy);grid.append(previewCard);
    (entry.submenus||[]).filter(item=>item.enabled!==false).forEach(child=>grid.append(menuNode("small","muted",entry.title+" → "+child.label)));
   });
-  if(preview){preview.append(grid);preview.append(menuNode("p","cdb-menu-note","Preview reflects the department and sub-menu order in this draft. Changes reach the live YARD HUB launcher only after publish."));}
+  if(preview){preview.append(grid);preview.append(menuNode("p","yard-hub-structure-preview-note","Preview reflects the department and sub-menu order in this draft. Changes reach the live YARD HUB launcher only after publish."));}
   host.querySelectorAll("input").forEach(input=>{input.addEventListener("input",()=>{renderYardHubStructurePreview(collectYardHubStructure());updateButtons();});input.addEventListener("change",()=>{renderYardHubStructurePreview(collectYardHubStructure());updateButtons();});});
  }
  function renderYardHubStructurePreview(config){
-  const preview=$("yardHubStructurePreview");if(!preview)return;preview.replaceChildren();const grid=menuNode("div","cdb-dept-grid");
-  (config.departments||[]).forEach(entry=>{if(entry.enabled===false)return;const card=menuNode("div","cdb-dept-card"),mark=menuNode("span","cdb-dept-mark",entry.title.split(/\\s+/).map(word=>word[0]).join("").slice(0,2).toUpperCase()),copy=menuNode("span","cdb-dept-copy");copy.append(menuNode("strong","",entry.title),menuNode("small","",entry.description),menuNode("em","live",(entry.submenus||[]).filter(item=>item.enabled!==false).length+" SUB-MENU ITEMS"));card.append(mark,copy);grid.append(card);});preview.append(grid);
+  const preview=$("yardHubStructurePreview");if(!preview)return;preview.replaceChildren();const grid=menuNode("div","yard-hub-structure-preview-grid");
+  (config.departments||[]).forEach(entry=>{if(entry.enabled===false)return;const card=menuNode("div","yard-hub-structure-preview-card"),mark=menuNode("span","yard-hub-structure-preview-mark",entry.title.split(/\\s+/).map(word=>word[0]).join("").slice(0,2).toUpperCase()),copy=menuNode("span","yard-hub-structure-preview-copy");copy.append(menuNode("strong","",entry.title),menuNode("small","",entry.description),menuNode("em","live",(entry.submenus||[]).filter(item=>item.enabled!==false).length+" SUB-MENU ITEMS"));card.append(mark,copy);grid.append(card);});preview.append(grid);
  }
  function collectYardHubStructure(){
   const departments=Array.from(document.querySelectorAll("[data-yard-department]")).map((card,index)=>{
