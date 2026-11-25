@@ -14,9 +14,9 @@ assert.ok(page.includes('callConfig("central-config-state")')&&page.includes('ca
   'state, draft, publish and restore actions use the isolated endpoint');
 assert.ok(page.includes('departmentMenu: collectDepartmentMenu()'),'department menu is part of the versioned configuration payload');
 assert.ok(page.includes('defaultDepartmentMenu()')&&page.includes('restoreDepartmentMenuBtn'),'original menu settings can be restored');
-assert.ok(page.includes('departmentMenu.entries.filter(entry=>entry.enabled)'),'disabled department entries are hidden from the launcher');
-assert.ok(page.includes('submenu.filter(item=>item.enabled)'),'disabled submenu entries are hidden');
-assert.ok(page.includes('showSection(item.target)'),'submenu destinations use the existing internal CDB section router');
+assert.ok(page.includes('entry.enabled!==false')&&page.includes('entry.categoryId===category.id'),'disabled department entries are hidden from the launcher');
+assert.ok(page.includes('item.enabled!==false'),'disabled submenu entries are hidden');
+assert.ok(page.includes('link.dataset.section=item.target'),'submenu destinations use the existing internal CDB section router');
 assert.ok(page.includes('SUPPORTED_MENU_TARGETS'),'frontend uses the same allow-list concept as the API');
 assert.ok(fn.includes('supportedTargets.has(target)'),'server validates every submenu destination');
 assert.ok(page.includes('Department menu settings are isolated from the YARD HUB launcher and every operational application'),
