@@ -221,6 +221,7 @@ small,.muted{color:var(--muted)}
    <button class="nav" data-section="defaults" data-default-label="System Defaults"><span class="ico">⚙</span><span class="navtext">System Defaults</span></button>
    <div class="navlabel">GOVERNANCE</div>
    <button class="nav" data-section="history" data-default-label="Version History"><span class="ico">◷</span><span class="navtext">Version History</span></button>
+   <button class="nav" data-section="release" data-default-label="Change Impact & Release"><span class="ico">⇧</span><span class="navtext">Change Impact & Release</span></button>
    <button class="nav" data-section="audit" data-default-label="Audit Log"><span class="ico">▤</span><span class="navtext">Audit Log</span></button><div class="navlabel">MASTER CONTROLS</div><button class="nav" data-section="navigation" data-default-label="Menu & Labels"><span class="ico">✎</span><span class="navtext">Menu & Labels</span></button>
    <button class="nav" data-section="department-menu-settings" data-default-label="Department Menu"><span class="ico">☷</span><span class="navtext">Department Menu</span></button>
    <button class="nav" data-section="department-configuration" data-default-label="Department Configuration"><span class="ico">⚙</span><span class="navtext">Department Configuration</span></button>
@@ -394,6 +395,19 @@ small,.muted{color:var(--muted)}
     <div class="panel"><div class="sectionhead"><div><h2>Configuration snapshots</h2><p id="historySummary">Latest versions appear first.</p></div><button id="historyRefreshBtn" class="quiet">REFRESH HISTORY</button></div><div id="historyList" class="history-list"></div></div>
    </section>
 
+   <section class="view" id="view-release">
+    <div class="pagehead"><div><div class="eyebrow">GOVERNANCE / PHASE 07</div><h1>Change Impact & Release</h1><p>Compare the current draft with the published registry. Review every classified change before authorising publication.</p></div><span class="pill">RELEASE GATE · CDB ONLY</span></div>
+    <div class="callout"><strong>CONTROLLED RELEASE BOUNDARY</strong><p>This release updates only the Central Data Bank configuration registry. It does not deploy code, alter DOWNTIME operational records, change user permissions or integrate configuration into the live tracker.</p></div>
+    <div class="panel">
+     <div class="sectionhead"><div><div class="eyebrow">RELEASE CANDIDATE</div><h2>Draft v<span id="releaseDraftVersion">—</span> → Published v<span id="releasePublishedVersion">—</span></h2><p id="releaseState">Run an impact analysis to prepare the release report.</p></div><button id="runImpactBtn" class="primary">RUN IMPACT ANALYSIS</button></div>
+     <div class="kpis" id="impactKpis"><div class="kpi"><small>Additions</small><strong id="impactAdded">—</strong><em>New registry entries</em></div><div class="kpi"><small>Modifications</small><strong id="impactModified">—</strong><em>Changed values</em></div><div class="kpi"><small>Removals</small><strong id="impactRemoved">—</strong><em>Entries removed</em></div><div class="kpi"><small>High impact</small><strong id="impactHigh">—</strong><em>Structural or destructive</em></div></div>
+     <div id="impactClassification" class="cardlist"><div class="empty full">No impact report generated yet.</div></div>
+     <div class="sectionhead" style="margin-top:18px"><div><h2>Detailed change register</h2><p id="impactDetailSummary">The report will list each changed configuration path.</p></div><span id="impactReviewPill" class="pill">NOT REVIEWED</span></div>
+     <div id="impactChangeList" class="history-list"><div class="empty">Run impact analysis to inspect the release candidate.</div></div>
+     <div class="actions"><button id="approveImpactBtn" class="primary" disabled>CONFIRM REVIEW & AUTHORISE PUBLISH</button><span class="muted" id="impactApprovalNote">Review the complete report before authorising publication.</span></div>
+    </div>
+   </section>
+
    <section class="view" id="view-audit">
     <div class="pagehead"><div><div class="eyebrow">GOVERNANCE / PHASE 05</div><h1>Audit Log</h1><p>Read-only record of Central Data Bank configuration actions, actors and timestamps. This log does not expose operational activity records.</p></div><span class="pill">READ ONLY · CDB</span></div>
     <div class="panel"><div class="sectionhead"><div><h2>Configuration activity</h2><p id="auditSummary">Latest 200 events · newest first</p></div><button id="auditRefreshBtn" class="quiet">REFRESH AUDIT LOG</button></div>
@@ -425,7 +439,7 @@ small,.muted{color:var(--muted)}
   try{localStorage.setItem(rememberedConnectionKey,JSON.stringify({projectUrl:$("projectUrl").value.trim(),pubKey:$("pubKey").value.trim()}));}catch{}
  }
  restoreRememberedConnection();
- let token=null,me=null,model=null,draftVersion=0,publishedVersion=0,nextVersion=0,versions=[],baseline="",auditEvents=[],auditLoaded=false;
+ let token=null,me=null,model=null,draftVersion=0,publishedVersion=0,nextVersion=0,versions=[],baseline="",auditEvents=[],auditLoaded=false,impactReport=null,impactReviewedToken="";
  const DAYS=["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"];
  const endpoint=()=> $("projectUrl").value.trim().replace(/\/$/,"")+"/functions/v1/central-bank";
  function status(message,error=false){$("status").textContent=message;$("status").style.color=error?"#ff9a8e":"#ffd45d"}
@@ -684,7 +698,7 @@ function defaultDepartmentSettings(){
  function updateButtons(){
   const dirty=isDirty(),pending=draftVersion!==publishedVersion;
   $("saveDraftBtn").disabled=!dirty;
-  $("publishBtn").disabled=dirty||!pending;
+  $("publishBtn").disabled=dirty||!pending||!impactReviewedToken;
   $("draftStatus").textContent=dirty?"Unsaved local edits":pending?"Unpublished draft ready":"Synchronized with published";
   $("draftStatus").style.color=dirty||pending?"#ffdf75":"#83d9aa";
  }
@@ -693,6 +707,7 @@ function defaultDepartmentSettings(){
   const tree=(s.hierarchy||[]).reduce((n,site)=>n+1+(site.plants||[]).reduce((p,plant)=>p+1+(plant.areas||[]).reduce((a,area)=>a+1+(area.stations||[]).length,0),0),0);return (c.modules||[]).length+tree+["sites","plants","areas","stations"].reduce((n,k)=>n+(s[k]||[]).length,0)+["areaPresets","downtimeReasons","dailyTaskPresets","equipmentCategories","eventCategories","statusCategories"].reduce((n,k)=>n+(l[k]||[]).length,0);
  }
  function renderOverview(){
+  $("releaseDraftVersion").textContent=String(draftVersion);$("releasePublishedVersion").textContent=String(publishedVersion);
   $("publishedKpi").textContent="v"+publishedVersion;$("draftKpi").textContent="v"+draftVersion;
   $("publishedBy").textContent="Published by "+(model.publishedBy||"SYSTEM");
   $("itemsKpi").textContent=countItems(model.draft||blankConfig());
@@ -753,6 +768,7 @@ function defaultDepartmentSettings(){
   finally{$("auditRefreshBtn").disabled=false;}
  }
  async function loadState(){
+  impactReport=null;impactReviewedToken="";$("approveImpactBtn").disabled=true;$("impactReviewPill").textContent="NOT REVIEWED";$("impactReviewPill").className="pill";
   const data=await callConfig("central-config-state");
   model=data;draftVersion=Number(data.draftVersion);publishedVersion=Number(data.publishedVersion);nextVersion=Number(data.nextVersion);versions=data.versions||[];
   renderForm(model.draft);baseline=stable(collectConfig());$("avatar").textContent=(data.user?.displayName||data.user?.username||"A").slice(0,1).toUpperCase();
@@ -762,6 +778,7 @@ function defaultDepartmentSettings(){
  }
  function renderNavigation(navigation){document.querySelectorAll("[data-section]").forEach(button=>{const key=button.dataset.section,target=button.querySelector(".navtext");if(target)target.textContent=navigation[key]||button.dataset.defaultLabel||key;});}
  function showSection(section){
+  if(section==="release"){$("releaseDraftVersion").textContent=String(draftVersion);$("releasePublishedVersion").textContent=String(publishedVersion);}
   document.querySelectorAll(".view").forEach(view=>view.classList.toggle("active",view.id==="view-"+section));
   document.querySelectorAll("[data-section]").forEach(button=>button.classList.toggle("active",button.dataset.section===section));
  }
@@ -774,6 +791,30 @@ function defaultDepartmentSettings(){
    if(token){try{await call("logout")}catch{}}
    token=null;me=null;model=null;$("workspace").style.display="none";$("login").style.display="block";$("authStatus").textContent=error.message;
   }finally{$("loginBtn").disabled=false}
+ }
+ async function runImpactAnalysis(){
+  $("runImpactBtn").disabled=true;impactReviewedToken="";impactReport=null;updateButtons();status("Comparing draft and published registry...");
+  $("impactReviewPill").textContent="ANALYSIS RUNNING";$("impactReviewPill").className="pill";
+  try{
+   const report=await callConfig("central-config-impact",{draftVersion,publishedVersion});
+   impactReport=report;$("impactAdded").textContent=String(report.summary?.added||0);$("impactModified").textContent=String(report.summary?.modified||0);$("impactRemoved").textContent=String(report.summary?.removed||0);$("impactHigh").textContent=String(report.summary?.highImpact||0);
+   $("releaseState").textContent="Impact analysis complete · "+(report.changes?.length||0)+" detailed changes · "+(report.truncated?"display capped":"complete register");
+   $("impactDetailSummary").textContent="Compared draft v"+draftVersion+" against published v"+publishedVersion+".";
+   const groups=report.classifications||{};const host=$("impactClassification");host.replaceChildren();
+   [["STRUCTURAL","structural"],["DESTRUCTIVE","destructive"],["CONFIGURATION","configuration"]].forEach(([label,key])=>{const card=document.createElement("div");card.className="feature";const title=document.createElement("strong");title.textContent=label;const detail=document.createElement("small");detail.textContent=String(groups[key]||0)+" classified change(s)";card.append(title,detail);host.append(card);});
+   const list=$("impactChangeList");list.replaceChildren();
+   (report.changes||[]).forEach(change=>{const row=document.createElement("div");row.className="history-item";const type=document.createElement("div");type.className="versionno";type.textContent=String(change.type||"CHANGE").toUpperCase();const details=document.createElement("div");const path=document.createElement("strong");path.textContent=change.path;const meta=document.createElement("small");meta.textContent=String(change.classification||"configuration").toUpperCase()+" · BEFORE: "+JSON.stringify(change.before??null)+" · AFTER: "+JSON.stringify(change.after??null);details.append(path,meta);row.append(type,details);list.append(row);});
+   if(!(report.changes||[]).length){const empty=document.createElement("div");empty.className="empty";empty.textContent="No configuration differences. There is nothing to release.";list.append(empty);}
+   $("impactReviewPill").textContent="REPORT READY · REVIEW REQUIRED";$("impactReviewPill").className="pill draft";
+   $("approveImpactBtn").disabled=!(report.impactToken&&report.summary&&report.summary.total>0);$("impactApprovalNote").textContent=report.summary?.total?"Confirm review to enable the publish action.":"No changes detected; publication is not available.";
+   status("Impact analysis complete. Inspect the change register before confirming review.");
+  }catch(error){$("releaseState").textContent="Impact analysis failed";$("impactReviewPill").textContent="ANALYSIS FAILED";status("Impact analysis failed: "+error.message,true);}
+  finally{$("runImpactBtn").disabled=false;}
+ }
+ function confirmImpactReview(){
+  if(!impactReport?.impactToken||!impactReport.summary?.total){status("A complete impact report with changes is required.",true);return}
+  impactReviewedToken=impactReport.impactToken;$("impactReviewPill").textContent="REVIEW CONFIRMED";$("impactReviewPill").className="pill live";$("impactApprovalNote").textContent="Review confirmed for draft v"+draftVersion+". Publish is now enabled.";
+  updateButtons();status("Impact review confirmed. The publish action is enabled.");
  }
  async function validateDraft(){
   let config;try{config=collectConfig()}catch(error){status(error.message,true);return}
@@ -798,10 +839,12 @@ function defaultDepartmentSettings(){
  async function publish(){
   if(isDirty()){status("Save the current edits as a draft before publishing.",true);return}
   if(draftVersion===publishedVersion){status("There are no unpublished changes.");return}
-  const approved=window.confirm("Publish configuration version v"+draftVersion+" to the Central Data Bank registry? This will not change the running tracker. Tracker integration requires a separate tested release.");
+  if(!impactReviewedToken){showSection("release");status("Run and confirm the change impact review before publishing.",true);return}
+  const counts=impactReport?.summary||{};
+  const approved=window.confirm("AUTHORISE RELEASE v"+draftVersion+"?\n\n"+Number(counts.added||0)+" additions · "+Number(counts.modified||0)+" modifications · "+Number(counts.removed||0)+" removals.\n\nYou have reviewed the impact report. This changes only the isolated Central Data Bank registry; it does not deploy or integrate with the live tracker.");
   if(!approved)return;
-  $("publishBtn").disabled=true;status("Publishing approved configuration version...");
-  try{const saved=await callConfig("central-config-publish",{draftVersion,publishedVersion});await loadState();status("Configuration version v"+saved.publishedVersion+" published to the isolated registry. The live tracker remains unchanged.");}
+  $("publishBtn").disabled=true;status("Publishing reviewed configuration release...");
+  try{const saved=await callConfig("central-config-publish",{draftVersion,publishedVersion,impactToken:impactReviewedToken});impactReviewedToken="";impactReport=null;await loadState();status("Reviewed configuration v"+saved.publishedVersion+" published to the isolated registry. The live tracker remains unchanged.");}
   catch(error){status(error.message,true);$("publishBtn").disabled=false}
  }
  async function restoreVersion(sourceVersion){
@@ -821,6 +864,7 @@ function defaultDepartmentSettings(){
   try{const result=await call("bootstrap",{bootstrapCode:$("setupCode").value,username:"DEV",pin:$("setupPin").value},false);$("authStatus").textContent=result.message||"Root owner initialised. Sign in as DEV."}
   catch(error){$("authStatus").textContent=error.message}
  });
+ $("runImpactBtn").addEventListener("click",runImpactAnalysis);$("approveImpactBtn").addEventListener("click",confirmImpactReview);
  $("validateDraftBtn").addEventListener("click",validateDraft);$("saveDraftBtn").addEventListener("click",saveDraft);$("publishBtn").addEventListener("click",publish);$("refreshBtn").addEventListener("click",refresh);$("historyRefreshBtn").addEventListener("click",refresh);$("auditRefreshBtn").addEventListener("click",loadAuditLog);$("auditSearch").addEventListener("input",renderAuditLog);$("auditActionFilter").addEventListener("change",renderAuditLog);
  $("logoutBtn").addEventListener("click",async()=>{try{await call("logout")}catch{}finally{token=null;me=null;model=null;auditEvents=[];auditLoaded=false;$("workspace").style.display="none";$("login").style.display="block";$("pin").value="";$("authStatus").textContent="Administrator session closed."}});
  document.querySelectorAll("[data-section]").forEach(button=>button.addEventListener("click",()=>{const section=button.dataset.section;showSection(section);if(section==="audit"&&!auditLoaded)loadAuditLog();}));

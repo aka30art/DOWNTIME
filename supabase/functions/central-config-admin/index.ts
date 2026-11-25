@@ -350,6 +350,71 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  if (action === "central-config-impact") {
+    if (Number(body.draftVersion) !== Number(configState.draft_version) || Number(body.publishedVersion) !== Number(configState.published_version)) {
+      return json({ error: "Configuration changed in another session. Refresh before reviewing impact." }, 409);
+    }
+    let draft: any;
+    let published: any;
+    try {
+      draft = normalizeCentralConfig(configState.draft_payload);
+      published = normalizeCentralConfig(configState.published_payload);
+    } catch (error) {
+      return json({ error: error instanceof Error ? error.message : "Configuration state is invalid" }, 500);
+    }
+    const changes: Array<{ path: string; type: string; classification: string; before?: unknown; after?: unknown }> = [];
+    const counts = { added: 0, modified: 0, removed: 0 };
+    const classifications = { structural: 0, destructive: 0, configuration: 0 };
+    const visit = (before: any, after: any, path: string) => {
+      if (before === after) return;
+      const beforeObject = before !== null && typeof before === "object";
+      const afterObject = after !== null && typeof after === "object";
+      if (beforeObject && afterObject && Array.isArray(before) === Array.isArray(after)) {
+        const keys = Array.isArray(after)
+          ? Array.from({ length: Math.max(before.length, after.length) }, (_, index) => String(index))
+          : Array.from(new Set([...Object.keys(before), ...Object.keys(after)])).sort();
+        for (const key of keys) {
+          const hasBefore = Array.isArray(before) ? Number(key) < before.length : Object.prototype.hasOwnProperty.call(before, key);
+          const hasAfter = Array.isArray(after) ? Number(key) < after.length : Object.prototype.hasOwnProperty.call(after, key);
+          const nextPath = path ? path + (Array.isArray(after) ? "[" + key + "]" : "." + key) : key;
+          if (!hasBefore) record(nextPath, "added", undefined, after[key]);
+          else if (!hasAfter) record(nextPath, "removed", before[key], undefined);
+          else visit(before[key], after[key], nextPath);
+        }
+        return;
+      }
+      record(path || "configuration", before === undefined ? "added" : after === undefined ? "removed" : "modified", before, after);
+    };
+    const record = (path: string, type: string, before: unknown, after: unknown) => {
+      counts[type as keyof typeof counts]++;
+      const classification = type === "removed" ? "destructive" :
+        /^(organization|structure)(\.|\[|$)/.test(path) ? "structural" : "configuration";
+      classifications[classification as keyof typeof classifications]++;
+      if (changes.length < 300) changes.push({ path, type, classification, before, after });
+    };
+    visit(published, draft, "");
+    const summary = {
+      ...counts,
+      total: counts.added + counts.modified + counts.removed,
+      highImpact: classifications.structural + classifications.destructive,
+    };
+    const impactToken = await digest(JSON.stringify({
+      draftVersion: Number(configState.draft_version),
+      publishedVersion: Number(configState.published_version),
+      draft,
+      published,
+    }));
+    return json({
+      draftVersion: Number(configState.draft_version),
+      publishedVersion: Number(configState.published_version),
+      summary,
+      classifications,
+      changes,
+      truncated: summary.total > changes.length,
+      impactToken,
+    });
+  }
+
   if (action === "central-config-validate") {
     let config: any;
     try { config = normalizeCentralConfig(body.config); }
@@ -417,6 +482,15 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Configuration changed in another session. Refresh before publishing." }, 409);
     }
     if (Number(configState.draft_version) === Number(configState.published_version)) return json({ error: "There are no unpublished changes to activate." }, 409);
+    const expectedImpactToken = await digest(JSON.stringify({
+      draftVersion: Number(configState.draft_version),
+      publishedVersion: Number(configState.published_version),
+      draft: normalizeCentralConfig(configState.draft_payload),
+      published: normalizeCentralConfig(configState.published_payload),
+    }));
+    if (typeof body.impactToken !== "string" || body.impactToken !== expectedImpactToken) {
+      return json({ error: "A current change impact report must be reviewed before publishing. Run impact analysis again." }, 409);
+    }
     let config: any;
     try { config = normalizeCentralConfig(configState.draft_payload); }
     catch (error) { return json({ error: error instanceof Error ? error.message : "Draft validation failed" }, 400); }
@@ -427,7 +501,7 @@ Deno.serve(async (req: Request) => {
     }).eq("id", 1).eq("draft_version", Number(body.draftVersion)).eq("published_version", Number(body.publishedVersion)).select("id").maybeSingle();
     if (error || !write) return json({ error: "Configuration changed in another session. Refresh before publishing." }, 409);
     await db.from("downtime_central_config_history").update({ published_at: now }).eq("version", Number(configState.draft_version));
-    await db.from("downtime_central_audit").insert({ username: actor, action: "central-config-publish", details: { version: Number(configState.draft_version), scope: "central-data-bank" } });
+    await db.from("downtime_central_audit").insert({ username: actor, action: "central-config-publish", details: { version: Number(configState.draft_version), scope: "central-data-bank", impactReviewed: true, impactDigest: expectedImpactToken } });
     return json({ ok: true, publishedVersion: Number(configState.draft_version), publishedAt: now });
   }
 
