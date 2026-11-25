@@ -53,3 +53,50 @@
 .gatelog-message.error{background:#351c20;color:#ffb7ad}
 @media(max-width:760px){.gatelog-toolbar{flex-wrap:wrap}.gatelog-kpis{flex:1 1 100%}.gatelog-toolbar-spacer{display:none}.gatelog-toolbar-actions{width:100%}.gatelog-action{flex:1}.gatelog-lower-grid{grid-template-columns:1fr}}
 @media(max-width:520px){.gatelog-screen{padding:10px}.gatelog-kpi{padding:11px}.gatelog-kpi strong{font-size:23px}.gatelog-kpi span{font-size:9px}.gatelog-toolbar-actions{gap:7px}.gatelog-action{min-width:0;padding:12px 8px;font-size:10px}.gatelog-register-heading{padding:12px}.gatelog-table{min-width:640px}.gatelog-table th,.gatelog-table td{padding:10px 9px}.gatelog-panel{padding:12px}}
+
+.gatelog-statistics{margin-top:14px;padding:15px;border:1px solid #344d60;border-radius:13px;background:linear-gradient(145deg,#142735,#0d1b26);box-shadow:0 8px 22px #0002}
+.gatelog-statistics-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.gatelog-statistics-heading h2{font-size:13px;margin:0;font-weight:950;letter-spacing:1px}
+.gatelog-statistics-heading h2:before{content:"";display:inline-block;width:6px;height:16px;background:#ffd21a;transform:skew(-25deg);margin-right:10px;vertical-align:-3px}
+.gatelog-statistics-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.gatelog-stat{min-width:0;padding:14px;border:1px solid #344d60;border-radius:10px;background:#0a1b28}
+.gatelog-stat span{display:block;color:#9eafbe;font-size:10px;font-weight:850;letter-spacing:.55px}
+.gatelog-stat strong{display:block;margin-top:8px;color:#ffd21a;font-size:clamp(18px,2.3vw,25px);font-weight:950;overflow-wrap:anywhere}
+.gatelog-stat small{display:block;margin-top:5px;color:#91a4b5;font-size:10px}
+.gatelog-modal[hidden]{display:none}
+.gatelog-modal{position:fixed;inset:0;z-index:10050;display:grid;place-items:center;padding:18px}
+.gatelog-modal-backdrop{position:absolute;inset:0;background:#020a10d9;backdrop-filter:blur(5px)}
+.gatelog-modal-window{position:relative;z-index:1;width:min(720px,100%);max-height:min(88vh,900px);overflow:auto;border:1px solid #496176;border-radius:16px;background:linear-gradient(145deg,#142b3b,#091722);box-shadow:0 24px 90px #0009;padding:clamp(16px,3vw,24px)}
+.gatelog-modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:15px;border-bottom:1px solid #344d60;margin-bottom:16px}
+.gatelog-modal-head h2{font-size:20px;margin:3px 0 0;font-weight:950;letter-spacing:.5px}
+.gatelog-modal-close{width:38px;height:38px;border:1px solid #526a7c;border-radius:9px;background:#0a1b28;color:#fff;font-size:25px;line-height:1}
+.gatelog-modal-intro{color:#b8c6d0;font-size:13px;margin:0 0 14px}
+.gatelog-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.gatelog-choice{display:grid;gap:10px;text-align:left;min-height:132px;padding:18px;border:1px solid #526a7c;border-radius:12px;background:#0a1b28;color:#f4f7fa}
+.gatelog-choice:hover{border-color:#ffd21a}
+.gatelog-choice strong{font-size:13px;color:#ffd21a;letter-spacing:.5px}
+.gatelog-choice span{font-size:12px;line-height:1.5;color:#aebdca}
+.gatelog-modal-toolbar{display:flex;gap:8px;margin-bottom:12px}
+.gatelog-modal-toolbar .gatelog-search{flex:1;min-width:0}
+.gatelog-secondary{padding:10px 14px;border:1px solid #526a7c;border-radius:8px;background:#102638;color:#e8edf1;font-size:11px;font-weight:850}
+.gatelog-catalogue-list{display:grid;gap:8px}
+.gatelog-customer-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px;border:1px solid #344d60;border-radius:10px;background:#0a1b28}
+.gatelog-customer-card-main{min-width:0}
+.gatelog-customer-card strong,.gatelog-customer-card span,.gatelog-customer-card small{display:block;overflow-wrap:anywhere}
+.gatelog-customer-card strong{font-size:13px;color:#f4f7fa}
+.gatelog-customer-card span{margin-top:4px;font-size:11px;color:#c1cdd6}
+.gatelog-customer-card small{margin-top:5px;font-size:10px;color:#91a4b5}
+.gatelog-customer-card button{white-space:nowrap}
+.gatelog-visit-form{display:grid;gap:12px}
+.gatelog-visit-form .gatelog-field{margin:0}
+.gatelog-visit-form input[readonly]{opacity:.78}
+.gatelog-waste-fieldset{border:1px solid #344d60;border-radius:10px;padding:12px;min-width:0}
+.gatelog-waste-fieldset legend{padding:0 5px;color:#9eafbe;font-size:10px;font-weight:850;letter-spacing:.45px}
+.gatelog-custom-waste{margin:12px 0 0}
+.gatelog-custom-waste span{font-size:10px;color:#9eafbe;font-weight:850}
+.gatelog-form-actions{display:flex;justify-content:space-between;gap:9px;flex-wrap:wrap}
+.gatelog-form-note{margin:0;color:#91a4b5;font-size:10px}
+.gatelog-form-error{padding:9px 11px;border-radius:8px;background:#351c20;color:#ffb7ad;font-size:12px}
+body.gatelog-modal-open{overflow:hidden}
+@media(max-width:760px){.gatelog-statistics-grid{grid-template-columns:1fr}.gatelog-stat{padding:11px}.gatelog-stat strong{margin-top:4px}.gatelog-choice-grid{grid-template-columns:1fr}.gatelog-choice{min-height:95px}}
+@media(max-width:520px){.gatelog-statistics{padding:12px}.gatelog-statistics-heading{align-items:flex-start;flex-direction:column}.gatelog-modal{padding:8px}.gatelog-modal-window{max-height:94vh;border-radius:12px;padding:14px}.gatelog-customer-card{grid-template-columns:1fr}.gatelog-customer-card button{width:100%}.gatelog-modal-toolbar{flex-wrap:wrap}.gatelog-modal-toolbar .gatelog-search{flex-basis:100%}}
