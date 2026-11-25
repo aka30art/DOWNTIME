@@ -259,6 +259,7 @@ small,.muted{color:var(--muted)}
    <button class="nav" data-section="release" data-default-label="Change Impact & Release"><span class="ico">⇧</span><span class="navtext">Change Impact & Release</span></button>
    <button class="nav" data-section="audit" data-default-label="Audit Log"><span class="ico">▤</span><span class="navtext">Audit Log</span></button><div class="navlabel">ADVANCED SETTINGS</div><button class="nav" data-section="navigation" data-default-label="Menu & Labels"><span class="ico">✎</span><span class="navtext">Menu & Labels</span></button>
    <button class="nav" data-section="department-menu-settings" data-default-label="Department Menu"><span class="ico">☷</span><span class="navtext">Department Menu</span></button>
+   <button class="nav" data-section="application-structure" data-default-label="Application Structure"><span class="ico">⌘</span><span class="navtext">Application Structure</span></button>
    <button class="nav" data-section="department-configuration" data-default-label="Department Configuration"><span class="ico">⚙</span><span class="navtext">Department Configuration</span></button>
    <button class="nav" data-section="modules" data-default-label="Module Registry"><span class="ico">▣</span><span class="navtext">Module Registry</span></button>
    <button class="nav" data-section="controls" data-default-label="System Controls"><span class="ico">⚑</span><span class="navtext">System Controls</span></button>
@@ -339,6 +340,16 @@ small,.muted{color:var(--muted)}
     </div>
    </section>
 
+   <section class="view" id="view-application-structure">
+    <div class="pagehead"><div><div class="eyebrow">APPLICATION ADMINISTRATION / STRUCTURE</div><h1>YARD HUB application structure</h1><p>Manage the live YARD HUB launcher hierarchy. Rename departments, add or remove custom departments, and maintain sub-menu titles. Every new entry uses the same generated menu component.</p></div><span class="pill">VERSIONED CONFIGURATION</span></div>
+    <div class="callout"><strong>SAFE STRUCTURE MANAGEMENT</strong><p>Changes remain drafts until validated, impact-reviewed and published. Department IDs and existing application routes stay stable. Core DOWNTIME, R&amp;M and HUB SETTINGS entries cannot be deleted; they can be renamed. Custom departments can be removed without deleting application records. New entries open a generated workspace until a dedicated module is assigned.</p></div>
+    <div class="panel">
+     <div class="cdb-menu-toolbar"><div><h2>Departments</h2><p>Each department becomes a standard YARD HUB menu tile. Drag-free ordering is controlled with MOVE UP / MOVE DOWN.</p></div><div class="cdb-menu-actions"><input id="newYardHubDepartmentTitle" maxlength="48" placeholder="New department title" style="width:210px"><button id="addYardHubDepartmentBtn" type="button" class="primary">ADD DEPARTMENT</button></div></div>
+     <div id="yardHubStructureDepartments" class="cdb-menu-entries" style="margin-top:14px"></div>
+    </div>
+    <div class="panel" style="margin-top:14px"><div class="sectionhead"><div><div class="eyebrow">LIVE STRUCTURE PREVIEW</div><h2>YARD HUB launcher</h2></div><span class="pill">CURRENT DRAFT</span></div><div id="yardHubStructurePreview"></div></div>
+   </section>
+
    <section class="view" id="view-modules"><div class="pagehead"><div><div class="eyebrow">MASTER CONTROLS / MODULES</div><h1>Module registry</h1><p>Maintain a DEV-only catalogue of modules and planned components. This registry is descriptive metadata only; it does not enable, disable, install or change any live DOWNTIME module.</p></div><span class="pill">ISOLATED METADATA</span></div><div class="callout"><strong>NO RUNTIME EFFECT</strong><p>Entries are stored in the isolated configuration registry. They do not change application routes, permissions, feature availability, data or deployed code.</p></div><div class="panel"><label for="moduleRegistry">Registered modules</label><textarea id="moduleRegistry" placeholder="One module name per line"></textarea><div class="hint">Use one canonical module name per line. This list is an administrative inventory, not a feature switch.</div></div></section>
 
    <section class="view" id="view-controls"><div class="pagehead"><div><div class="eyebrow">GOVERNANCE / CONTROL PLANE</div><h1>System controls</h1><p>Review the safeguards governing this isolated configuration workspace.</p></div><span class="pill">READ ONLY</span></div><div class="editor-grid"><div class="editor"><strong>Authentication boundary</strong><div class="hint">Server-side access is restricted to DEV with OWNER tier and DEVACC. Other tiers are denied regardless of client visibility.</div></div><div class="editor"><strong>Draft and publish separation</strong><div class="hint">Draft saves create versioned snapshots. Publishing requires an explicit action and a matching version check.</div></div><div class="editor"><strong>Recovery controls</strong><div class="hint">Historical snapshots can be restored as a new draft. Restore does not publish automatically.</div></div><div class="editor"><strong>Operational isolation</strong><div class="hint">This control plane does not write to tracker operational records, user accounts, active shifts, reports or live application settings.</div></div></div></section>
@@ -349,8 +360,8 @@ small,.muted{color:var(--muted)}
 
 
    <section class="view" id="view-department-menu-settings">
-    <div class="pagehead"><div><div class="eyebrow">MASTER CONTROLS / DEPARTMENT NAVIGATION</div><h1>Department Menu Controls</h1><p>Configure the CDB department launcher, supported menu categories, visibility, ordering and internal department submenus.</p></div><span class="pill">CDB CONFIGURATION ONLY</span></div>
-    <div class="callout"><strong>ISOLATED ADMINISTRATIVE CONFIGURATION</strong><p>Department Menu settings are isolated from the YARD HUB launcher and every operational application. Changes are versioned as CDB drafts; publishing this registry does not change live application navigation, routes, access rights or operational data.</p></div>
+    <div class="pagehead"><div><div class="eyebrow">MASTER CONTROLS / DEPARTMENT NAVIGATION</div><h1>Department Menu Controls</h1><p>Configure the Central Data Bank's own department launcher, supported menu categories, visibility, ordering and internal department submenus.</p></div><span class="pill">CENTRAL DATA BANK ONLY</span></div>
+    <div class="callout"><strong>ISOLATED ADMINISTRATIVE CONFIGURATION</strong><p>These controls affect the Central Data Bank launcher only. YARD HUB's live application menu is managed separately under Application Structure.</p></div>
     <div class="cdb-menu-layout">
      <div class="panel">
       <div class="cdb-menu-toolbar"><div><h2>Menu categories</h2><p>Create, rename or remove unused categories. A category in use cannot be removed until its departments are reassigned.</p></div><div class="cdb-menu-actions"><input id="newDepartmentCategory" maxlength="40" placeholder="New category name" style="width:190px"><button id="addDepartmentCategoryBtn" type="button">ADD CATEGORY</button></div></div>
@@ -359,7 +370,7 @@ small,.muted{color:var(--muted)}
      <div class="panel">
       <div class="cdb-menu-toolbar"><div><h2>Department entries</h2><p>Rename titles, edit descriptions, assign categories, control visibility and change the order within each category.</p></div><button id="restoreDepartmentMenuBtn" type="button" class="danger">RESTORE ORIGINAL SETTINGS</button></div>
       <div id="departmentEntries" class="cdb-menu-entries" style="margin-top:12px"></div>
-      <div class="cdb-menu-note" style="margin-top:12px">Department identities, route IDs, icons and operational status indicators are system-defined. This editor changes the CDB launcher presentation only.</div>
+      <div class="cdb-menu-note" style="margin-top:12px">Department identities and route IDs remain system-defined. This editor changes only the Central Data Bank launcher presentation.</div>
      </div>
      <div class="panel"><div class="sectionhead"><div><div class="eyebrow">LIVE PREVIEW</div><h2>Department launcher preview</h2></div><span class="pill">UNPUBLISHED DRAFT</span></div><div id="departmentMenuPreview"></div></div>
     </div>
@@ -882,10 +893,10 @@ function defaultDepartmentSettings(){
   if(draftVersion===publishedVersion){status("There are no unpublished changes.");return}
   if(!impactReviewedToken){showSection("release");status("Run and confirm the change impact review before publishing.",true);return}
   const counts=impactReport?.summary||{};
-  const approved=window.confirm("AUTHORISE RELEASE v"+draftVersion+"?\n\n"+Number(counts.added||0)+" additions · "+Number(counts.modified||0)+" modifications · "+Number(counts.removed||0)+" removals.\n\nYou have reviewed the impact report. This changes only the isolated Central Data Bank registry; it does not deploy or integrate with the live tracker.");
+  const approved=window.confirm("AUTHORISE RELEASE v"+draftVersion+"?\n\n"+Number(counts.added||0)+" additions · "+Number(counts.modified||0)+" modifications · "+Number(counts.removed||0)+" removals.\n\nYou have reviewed the impact report. This publishes the reviewed configuration registry. The YARD HUB launcher structure will update for authenticated users; operational records and DOWNTIME module behaviour are not changed.");
   if(!approved)return;
   $("publishBtn").disabled=true;status("Publishing reviewed configuration release...");
-  try{const saved=await callConfig("central-config-publish",{draftVersion,publishedVersion,impactToken:impactReviewedToken});impactReviewedToken="";impactReport=null;await loadState();status("Reviewed configuration v"+saved.publishedVersion+" published to the isolated registry. The live tracker remains unchanged.");}
+  try{const saved=await callConfig("central-config-publish",{draftVersion,publishedVersion,impactToken:impactReviewedToken});impactReviewedToken="";impactReport=null;await loadState();status("Configuration v"+saved.publishedVersion+" published. YARD HUB menu changes are now available to authenticated users after the launcher refreshes. DOWNTIME operational records remain unchanged.");}
   catch(error){status(error.message,true);$("publishBtn").disabled=false}
  }
  async function restoreVersion(sourceVersion){
