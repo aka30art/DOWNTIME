@@ -78,6 +78,8 @@ Post-application SQL verification confirmed the two R&M settings tables and all 
 
 The staging privilege audit now confirms that anonymous/authenticated roles have no SELECT or INSERT privileges on `downtime_attachments`, RLS is enabled, and `service_role` retains the required access. The Realtime policy, trigger and trigger function are now present in staging and match the intended migration contract. A real authenticated two-browser/device event-propagation test is still outstanding.
 
+**Migration-ledger caveat:** the staging connector recorded applied migrations with generated apply-time versions (for example, `20261125002131` and `20261125003404`) rather than the repository filename versions. Staging schema is aligned for the identified changes, but this existing project is not yet a canonical `supabase db push` baseline. Do not run the full repository migration directory against this staging project until the version ledger has been reconciled or a fresh migration-clean staging clone has been created. The private Realtime migration is now idempotent (drops and recreates only its named policy/trigger, and replaces its trigger function) to permit safe schema revalidation.
+
 Staging is a test environment, not a production data replica. Its machinery/fault rows differ from production counts. Do not copy staging operational records into production.
 
 ## 4. Authentication, authorisation and synchronisation
