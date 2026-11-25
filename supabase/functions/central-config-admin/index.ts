@@ -139,6 +139,53 @@ function normalizeDepartmentMenu(input: unknown) {
     entries: entries.sort((a, b) => a.order - b.order || a.id.localeCompare(b.id)),
   };
 }
+const departmentFeatureOptions: Record<string, string[]> = {
+  downtime: ["weekly-tracker", "weekly-reports", "daily-tasks", "operator-on-duty", "plant-overview", "crew-switchboard", "plant-power", "settings"],
+  floor: [],
+  "check-sheets": [],
+  "repairs-maintenance": ["faults-defects", "machinery-register", "service-records", "equipment-catalogue", "report-export"],
+  "hub-settings": ["user-management", "staff-management", "access-rights", "department-menu", "central-data-bank"],
+};
+const departmentLandingTargets: Record<string, string> = {
+  downtime: "dept-downtime", floor: "dept-floor", "check-sheets": "dept-checksheets",
+  "repairs-maintenance": "dept-rm", "hub-settings": "dept-yardhub",
+};
+function defaultDepartmentSettings() {
+  return Object.fromEntries(Object.entries(departmentLandingTargets).map(([id, target]) => [id, {
+    moduleAvailable: !["floor", "check-sheets"].includes(id),
+    defaultLandingPage: target,
+    availableFeatures: departmentFeatureOptions[id],
+    displayPreferences: { density: "comfortable", showDescriptions: true, showStatusBadges: true, showQuickLinks: true },
+  }]));
+}
+function normalizeDepartmentSettings(input: unknown) {
+  const defaults = defaultDepartmentSettings();
+  const raw = input && typeof input === "object" && !Array.isArray(input) ? input as Record<string, any> : {};
+  const result: Record<string, any> = {};
+  for (const [id, target] of Object.entries(departmentLandingTargets)) {
+    const item = raw[id] && typeof raw[id] === "object" && !Array.isArray(raw[id]) ? raw[id] : {};
+    const landing = configString(item.defaultLandingPage ?? target, "Department landing page", 40);
+    if (landing !== target && landing !== "overview") throw new Error("Unsupported default landing page for " + id);
+    const features = configStringList(item.availableFeatures ?? departmentFeatureOptions[id], "Department features", 20, 60);
+    if (features.some(feature => !departmentFeatureOptions[id].includes(feature))) throw new Error("Unsupported feature configured for " + id);
+    const prefs = item.displayPreferences && typeof item.displayPreferences === "object" && !Array.isArray(item.displayPreferences) ? item.displayPreferences : {};
+    const density = configString(prefs.density ?? "comfortable", "Department display density", 20);
+    if (!["comfortable", "compact"].includes(density)) throw new Error("Department display density must be comfortable or compact");
+    result[id] = {
+      moduleAvailable: item.moduleAvailable !== undefined ? item.moduleAvailable === true : defaults[id].moduleAvailable,
+      defaultLandingPage: landing,
+      availableFeatures: features,
+      displayPreferences: {
+        density,
+        showDescriptions: prefs.showDescriptions !== false,
+        showStatusBadges: prefs.showStatusBadges !== false,
+        showQuickLinks: prefs.showQuickLinks !== false,
+      },
+    };
+  }
+  return result;
+}
+
 function normalizeMasterHierarchy(input: unknown) {
   if (input === undefined || input === null) return [];
   if (!Array.isArray(input)) throw new Error("Master hierarchy must be a list of sites");
@@ -214,6 +261,7 @@ function normalizeCentralConfig(input: any) {
     navigation,
     modules,
     departmentMenu: normalizeDepartmentMenu(input.departmentMenu),
+    departmentSettings: normalizeDepartmentSettings(input.departmentSettings),
     organization: { companyName, siteCode, timezone, locale },
     structure: {
       sites: configStringList(structure.sites || [], "Sites"),
