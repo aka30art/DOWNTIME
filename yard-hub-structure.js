@@ -6,7 +6,8 @@
     floor:'floor',
     'check-sheets':'check-sheets',
     'repairs-maintenance':'launchRepairMaintenanceBtn',
-    'hub-settings':'yardHubSettingsBtn'
+    'hub-settings':'yardHubSettingsBtn',
+    gatelog:'launchGatelogBtn'
   };
   let menu=null,loading=null,workspace=null,workspaceHome=null;
 
@@ -18,6 +19,7 @@
     if(kind==='downtime')return document.getElementById(nativeTargets.downtime);
     if(kind==='repairs-maintenance')return document.getElementById(nativeTargets['repairs-maintenance']);
     if(kind==='hub-settings')return document.getElementById(nativeTargets['hub-settings']);
+    if(kind==='gatelog')return document.getElementById(nativeTargets.gatelog);
     return document.querySelector('.yard-grid [data-app="'+kind+'"]');
   }
   async function loadPublishedMenu(){
@@ -154,6 +156,10 @@
     const entry=menu.departments.find(item=>item.id===button.dataset.structureId);
     if(!entry)return;
     const submenus=(entry.submenus||[]).filter(item=>item.enabled!==false);
+    if((entry.kind||'custom')==='gatelog'){
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+      window.GATELOG?.open();return;
+    }
     if((entry.kind||'custom')==='custom'||submenus.length){
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
       openWorkspace(entry.title,entry.description,submenus,entry.title);
