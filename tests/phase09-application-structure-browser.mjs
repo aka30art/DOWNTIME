@@ -21,7 +21,7 @@ await page.route("https://example.test/functions/v1/central-config-admin",async 
  if(route.request().method()==="OPTIONS")return route.fulfill({status:204,headers});
  return route.fulfill({status:200,contentType:"application/json",headers,body:JSON.stringify({publishedVersion:9,yardHubMenu:menu})});
 });
-await page.setContent(`<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>
+const testHtml=`<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>
  <main id="yardHub"><div class="yard-hub-inner">
   <header class="yard-hero">YARD HUB</header><div class="yard-modules-heading">MODULES</div>
   <section class="yard-grid">
@@ -29,7 +29,9 @@ await page.setContent(`<!doctype html><html><head><meta name="viewport" content=
    <button id="launchRepairMaintenanceBtn" class="yard-tile yard-tile-active" data-app="repair-maintenance"><span class="yard-tile-icon"></span><span class="yard-tile-divider"></span><span class="yard-tile-copy"><strong>R&M</strong><small>OLD</small><span class="yard-tile-status">LIVE</span></span></button>
    <button id="yardHubSettingsBtn" class="yard-tile yard-tile-active" data-app="settings" hidden><span class="yard-tile-icon"></span><span class="yard-tile-divider"></span><span class="yard-tile-copy"><strong>HUB SETTINGS</strong><small>ADMIN</small><span class="yard-tile-status">ADMIN</span></span></button>
   </section><footer class="yard-hub-footer">FOOTER</footer>
- </div></main></body></html>`);
+ </div></main></body></html>`;
+await page.route("http://localhost/",route=>route.fulfill({status:200,contentType:"text/html",body:testHtml}));
+await page.goto("http://localhost/");
 await page.evaluate(()=>{
  window.CENTRAL_CONFIG_ADMIN_API="https://example.test/functions/v1/central-config-admin";
  window.DOWNTIME_CENTRAL_API_KEY="test-key";
