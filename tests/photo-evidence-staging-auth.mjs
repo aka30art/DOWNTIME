@@ -11,7 +11,12 @@ const cases = [
 for (const payload of cases) {
   const response = await fetch(endpoint, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Origin": origin },
+    headers: {
+      "Content-Type": "application/json",
+      "Origin": origin,
+      "apikey": "sb_publishable_Ns316awmCfjz_xNQyA5qBw_tQ4YLfT1",
+      "Authorization": "Bearer sb_publishable_Ns316awmCfjz_xNQyA5qBw_tQ4YLfT1",
+    },
     body: JSON.stringify(payload),
   });
   const data = await response.json();
