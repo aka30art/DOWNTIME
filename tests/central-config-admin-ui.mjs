@@ -20,6 +20,7 @@ const initialDraft=structuredClone(draft);
 let draftVersion=1,publishedVersion=1,nextVersion=2,activeTestUser='DEV';
 let versions=[{version:1,parent_version:null,action:'initial',actor:'SYSTEM',note:'Initial baseline',created_at:new Date().toISOString(),published_at:new Date().toISOString(),status:'PUBLISHED'}];
 const calls=[];
+const promptValues=[];
 function state(user={username:'DEV',displayName:'DEV',tier:'OWNER'}){
  return {draft,published:draftVersion===publishedVersion?draft:publishedVersion===1?draft:{...draft,organization:{...draft.organization,companyName:'published'}},draftVersion,publishedVersion,nextVersion,updatedBy:'DEV',updatedAt:new Date().toISOString(),publishedBy:'DEV',publishedAt:new Date().toISOString(),versions,user};
 }
@@ -103,7 +104,7 @@ try{
   }
   await route.fulfill({status:400,json:{error:'Unexpected config action '+body.action}});
  });
- page.on('dialog',dialog=>dialog.accept());
+ page.on('dialog',dialog=>dialog.accept(dialog.type==='prompt'?(promptValues.shift()||''):''));
  await page.goto('http://127.0.0.1:'+address.port+'/central-bank-admin.html');
  assert.equal(await page.locator('#workspace').isVisible(),false,'workspace starts inaccessible before authentication');
  await page.locator('#username').fill('DEV');
@@ -123,6 +124,21 @@ try{
  assert.equal(await page.locator('#publishedKpi').textContent(),'v1');
  assert.equal(await page.locator('#draftKpi').textContent(),'v1');
  assert.ok(await page.locator('text=Access & Rights stays separate').count(),'separate responsibilities are explained');
+
+ // Phase 03: create and persist a fully parented site → plant → area → station hierarchy.
+ await page.locator('[data-section="structure"]').click();
+ promptValues.push('North Yard');await page.locator('#addSiteBtn').click();
+ const site=page.locator('#hierarchyTree [data-node-level="site"]').filter({hasText:'North Yard'});
+ assert.equal(await site.count(),1,'new site is created in the hierarchy');
+ promptValues.push('Sorting Plant');await site.locator('[data-hierarchy-action="add-plant"]').click();
+ const plant=page.locator('#hierarchyTree [data-node-level="plant"]').filter({hasText:'Sorting Plant'});
+ assert.equal(await plant.count(),1,'plant is created under its selected site');
+ promptValues.push('Picking Line');await plant.locator('[data-hierarchy-action="add-area"]').click();
+ const area=page.locator('#hierarchyTree [data-node-level="area"]').filter({hasText:'Picking Line'});
+ assert.equal(await area.count(),1,'area is created under its selected plant');
+ promptValues.push('Line 1');await area.locator('[data-hierarchy-action="add-station"]').click();
+ assert.equal(await page.locator('#hierarchyTree [data-node-level="station"]').filter({hasText:'Line 1'}).count(),1,'station is created under its selected area');
+ assert.equal(await page.locator('#saveDraftBtn').isEnabled(),true,'hierarchy edits mark the configuration draft dirty');
 
  // Phase 02: department label, category, visibility, ordering and submenu controls.
  await page.locator('[data-section="department-menu-settings"]').click();
@@ -164,6 +180,10 @@ try{
  await page.locator('#view-departments').waitFor({state:'visible'});
  assert.equal((await page.locator('[data-section="structure"] .navtext').textContent()).trim(),'Facility Map','saved DEV menu title persists after a fresh page load and authenticated state fetch');
  assert.equal(await page.locator('#moduleRegistry').inputValue(),'Central Data Bank\nYARD HUB\nRepair & Maintenance\nDEV Diagnostics','module registry persists after reload');
+ assert.equal(await page.locator('#hierarchyTree [data-node-level="site"] strong').filter({hasText:'North Yard'}).count(),1,'site hierarchy persists after reload');
+ assert.equal(await page.locator('#hierarchyTree [data-node-level="plant"] strong').filter({hasText:'Sorting Plant'}).count(),1,'plant parent relationship persists after reload');
+ assert.equal(await page.locator('#hierarchyTree [data-node-level="area"] strong').filter({hasText:'Picking Line'}).count(),1,'area parent relationship persists after reload');
+ assert.equal(await page.locator('#hierarchyTree [data-node-level="station"] strong').filter({hasText:'Line 1'}).count(),1,'station parent relationship persists after reload');
  assert.equal((await page.locator('[data-section="modules"] .navtext').textContent()).trim(),'Component Catalogue','module menu label persists after reload');
  assert.equal((await page.locator('[data-section="controls"] .navtext').textContent()).trim(),'Safety Controls','system controls menu label persists after reload');
  assert.equal((await page.locator('[data-section="information"] .navtext').textContent()).trim(),'Diagnostics','system information menu label persists after reload');
