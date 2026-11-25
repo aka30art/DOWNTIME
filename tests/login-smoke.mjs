@@ -15,6 +15,7 @@ const yardHubSettingsScript=await readFile(resolve('yard-hub-settings.js'),'utf8
 const yardHubSettingsCss=await readFile(resolve('yard-hub-settings.css'),'utf8');
 const yardHubStructureScript=await readFile(resolve('yard-hub-structure.js'),'utf8');
 const yardHubStructureCss=await readFile(resolve('yard-hub-structure.css'),'utf8');
+const repairMaintenanceStructureScript=await readFile(resolve('repair-maintenance-structure.js'),'utf8');
 
 /* Central login presentation contract: styling changes must preserve auth wiring. */
 assert.match(indexHtml, /class="authbox authbox-central"/, 'central login uses the refreshed visual container');
@@ -34,7 +35,7 @@ for (const requiredAuthHook of ['id="centralUsername"', 'id="teamPin"', 'data-pi
 }
 const server=createServer((req,res)=>{
   const pathname=String(req.url||'').split('?')[0];
-  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js'||pathname==='/yard-hub-settings.js'||pathname==='/yard-hub-structure.js';
+  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js'||pathname==='/yard-hub-settings.js'||pathname==='/yard-hub-structure.js'||pathname==='/repair-maintenance-structure.js';
   const isCss=pathname==='/yard-hub-settings.css'||pathname==='/yard-hub-structure.css';
   res.writeHead(200,{'content-type':isJavaScript?'application/javascript; charset=utf-8':isCss?'text/css; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store'});
   if(pathname==='/central-bank-client.js')return res.end(adapter);
@@ -46,6 +47,7 @@ const server=createServer((req,res)=>{
   if(pathname==='/yard-hub-settings.css')return res.end(yardHubSettingsCss);
   if(pathname==='/yard-hub-structure.js')return res.end(yardHubStructureScript);
   if(pathname==='/yard-hub-structure.css')return res.end(yardHubStructureCss);
+  if(pathname==='/repair-maintenance-structure.js')return res.end(repairMaintenanceStructureScript);
   res.end(pathname==='/plant-overview-preview.html'?overviewHtml:indexHtml);
 });
 await new Promise((ok,fail)=>{server.once('error',fail);server.listen(4173,'127.0.0.1',ok)});
