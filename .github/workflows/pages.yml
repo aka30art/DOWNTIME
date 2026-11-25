@@ -163,7 +163,7 @@ jobs:
           grep -q 'id="settingsPanelSchedule"' /tmp/live-site.html
           curl --fail --silent --show-error --location "$LIVE_URL/central-bank-admin.html" -o /tmp/live-central-bank-admin.html
           grep -q 'CENTRAL DATA BANK ADMIN' /tmp/live-central-bank-admin.html
-          grep -q 'https://phfojlqezudbjslfrnyw.supabase.co' /tmp/live-central-bank-admin.html
-          ! grep -q 'https://ygwfipksbbprqynvbklk.supabase.co' /tmp/live-central-bank-admin.html
-          ! grep -q 'sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx' /tmp/live-central-bank-admin.html
+          grep -q 'https://ygwfipksbbprqynvbklk.supabase.co' /tmp/live-central-bank-admin.html
+          ! grep -q 'https://phfojlqezudbjslfrnyw.supabase.co' /tmp/live-central-bank-admin.html
+          grep -q 'sb_publishable_PDLmXilBlFT-aC3G14XcbA_GsZlgJGx' /tmp/live-central-bank-admin.html
           echo "Live Pages smoke checks passed: main application, DEV Master Configuration page and staging-only endpoint isolation."
