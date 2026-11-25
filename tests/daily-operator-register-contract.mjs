@@ -25,6 +25,9 @@ assert.match(api,/publicBank\.dailyOperators=dailyOperators\|\|\[\]/,'live share
 assert.match(client,/dailyOperators\(fromDate,toDate\)/);
 assert.match(client,/assignDailyOperator\(dutyDate,operatorName,reason=""/);
 assert.match(client,/unlockDailyOperator\(dutyDate,reason\)/);
+assert.match(client,/\["assign-DailyOperator"\]=window\.DowntimeCentral\.assignDailyOperator/,"cached UI builds retain an assignment-method compatibility alias");
+assert.match(client,/assign_daily_operator=window\.DowntimeCentral\.assignDailyOperator/,"legacy underscore alias points to the canonical assignment method");
+assert.match(html,/central-bank-client\.js\?v=20261125-operator-duty-compat1/,"the browser must fetch the corrected client adapter instead of a stale cached copy");
 
 assert.match(html,/id="dailyOperatorStatus"/);
 assert.match(html,/id="openDailyOperator"/);
