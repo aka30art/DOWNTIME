@@ -433,6 +433,12 @@ export function buildPendingUserStaffProvisioning(bank, input) {
   if (!actor) throw new Error("Authenticated provisioning actor is required.");
 
   const source = isObject(bank) ? bank : {};
+  if (source.staff != null && !isObject(source.staff)) throw new Error("Canonical STAFF collection is malformed.");
+  if (source.staff?.profiles != null && !isObject(source.staff.profiles)) throw new Error("Canonical STAFF profiles are malformed.");
+  if (source.staff?.roster != null && !Array.isArray(source.staff.roster)) throw new Error("Canonical STAFF roster is malformed.");
+  if (source.appData != null && !isObject(source.appData)) throw new Error("STAFF compatibility collection is malformed.");
+  if (source.appData?.operatorProfiles != null && !isObject(source.appData.operatorProfiles)) throw new Error("STAFF compatibility profiles are malformed.");
+  if (source.appData?.staffRoster != null && !Array.isArray(source.appData.staffRoster)) throw new Error("STAFF compatibility roster is malformed.");
   const receipts = isObject(source.identityProvisioningReceipts) ? source.identityProvisioningReceipts : {};
   const prior = receipts[input.idempotencyKey];
   if (prior) {
@@ -454,7 +460,9 @@ export function buildPendingUserStaffProvisioning(bank, input) {
   const staff = validateStaffOperationalProfile(input.staffFields, source.appData?.stationConfig);
   const profiles = isObject(source.staff?.profiles) ? source.staff.profiles : {};
   const roster = Array.isArray(source.staff?.roster) ? source.staff.roster : [];
-  const duplicateStaffName = [...Object.keys(profiles), ...roster]
+  const compatibilityProfiles = isObject(source.appData?.operatorProfiles) ? Object.keys(source.appData.operatorProfiles) : [];
+  const compatibilityRoster = Array.isArray(source.appData?.staffRoster) ? source.appData.staffRoster : [];
+  const duplicateStaffName = [...Object.keys(profiles), ...roster, ...compatibilityProfiles, ...compatibilityRoster]
     .some((name) => normaliseUsername(name) === normaliseUsername(displayName));
   if (duplicateStaffName) throw new Error("STAFF display name already exists; use a unique display name.");
 
@@ -548,9 +556,23 @@ export function activatePendingUserStaffProvisioning(bank, roleAssignment, actor
 
   if (!user.provisioning) {
     if (user.status === "ACTIVE" && user.enabled === true && user.yardRoleId === roleAssignment.yardRoleId) {
+      const activeProfiles = Object.entries(isObject(next.staff?.profiles) ? next.staff.profiles : {})
+        .filter(([, profile]) => profile?.staffId?.toLowerCase() === user.staffId?.toLowerCase());
+      if (activeProfiles.length !== 1 ||
+          activeProfiles[0][1].linkedUserId?.toLowerCase() !== user.userId.toLowerCase() ||
+          activeProfiles[0][1].status !== "ACTIVE") {
+        throw new Error("Active USER is missing its reciprocal active STAFF profile.");
+      }
+      const activeName = activeProfiles[0][0];
+      if (!(Array.isArray(next.staff?.roster) && next.staff.roster.some((name) => normaliseUsername(name) === normaliseUsername(activeName)))) {
+        throw new Error("Active STAFF profile is missing from the canonical roster.");
+      }
       return { payload: bank, replayed: true, user };
     }
     throw new Error("USER is not awaiting provisioning activation.");
+  }
+  if (user.status !== "PROVISIONING" || user.enabled !== false) {
+    throw new Error("USER must remain disabled and in PROVISIONING state until canonical YARD ROLE assignment is verified.");
   }
   if (user.provisioning.stage !== "YARD_ROLE_PENDING") throw new Error("Unsupported USER provisioning stage.");
   if (user.provisioning.requestedYardRoleId !== roleAssignment.yardRoleId) {
