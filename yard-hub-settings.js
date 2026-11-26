@@ -267,9 +267,6 @@
     const pin=String($('yardHubUserPin').value||'');
     const enabled=$('yardHubUserEnabled').checked;
     const existing=editingUsername?state.users.find(user=>String(user.username).toLowerCase()===editingUsername.toLowerCase()):null;
-    if(!existing){
-      setStatus('New USER creation is paused until the canonical YARD ROLE catalogue and assignment store are implemented. Legacy YARD HUB tiers cannot be used as a substitute. No USER or STAFF record was created.','error');return;
-    }
     const downtimeTier=existing?.legacyTier||'USER';
     const pendingProvisioning=existing?.provisioningState==='YARD_ROLE_PENDING';
     const isNew=!existing;
@@ -308,7 +305,7 @@
         onSite:$('yardHubStaffOnSite').checked
       };
     }
-    setBusy(true);setStatus(centralChanges?'SAVING CENTRAL USER…':'SAVING YARD HUB TIER…');
+    setBusy(true);setStatus(centralChanges?'SAVING USER + STAFF…':(isNew||pendingProvisioning)?'SAVING CANONICAL YARD ROLE…':'SAVING LEGACY USER SETTINGS…');
     let centralSaved=false;
     try{
       if(centralChanges){
@@ -338,7 +335,7 @@
         :(isNew||pendingProvisioning)?'USER, STAFF AND CANONICAL YARD ROLE PROVISIONED.':'LEGACY USER AND YARD HUB SETTINGS SAVED.','ok');
     }catch(error){
       const detail=centralSaved||error?.centralUserSaved
-        ?'Central account saved, but the YARD HUB tier was not saved or could not be verified. Refresh the user list before retrying. '
+        ?'Central USER + STAFF stage saved, but canonical YARD ROLE assignment or activation was not completed. Refresh the user list before retrying. '
         :'';
       setStatus(detail+(error.message||'Unable to save the user account.'),'error');
       try{await loadState()}catch{}
