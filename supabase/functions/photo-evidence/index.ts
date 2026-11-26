@@ -22,7 +22,7 @@ async function authorize(req:Request,admin:any,url:string,serviceKey:string){
     response=await fetch(url.replace(/\/$/,"")+"/functions/v1/central-bank",{
       method:"POST",
       headers:{"Content-Type":"application/json","apikey":serviceKey,"x-downtime-session":token},
-      body:JSON.stringify({action:"get-state"}),
+      body:JSON.stringify({action:"photo-evidence-context"}),
     });
   }catch{return {error:"Central authorization service unavailable",status:503};}
   if(!response.ok){
@@ -33,13 +33,10 @@ async function authorize(req:Request,admin:any,url:string,serviceKey:string){
   try{result=await response.json()}catch{return {error:"Invalid Central authorization response",status:503};}
   const username=String(result?.user?.username||"");
   if(!username)return {error:"Session invalid or expired",status:401};
-  const {data:centralRow,error}=await admin.from("downtime_central_bank").select("payload").eq("id",1).maybeSingle();
-  if(error||!centralRow?.payload)return {error:"Central identity state unavailable",status:503};
-  const user=(Array.isArray(centralRow.payload.users)?centralRow.payload.users:[]).find((candidate:any)=>candidate?.username===username&&candidate?.enabled!==false);
-  if(!user)return {error:"Account disabled or unavailable",status:401};
-  const permissions=result?.payload?.tiers?.[user.tier];
-  if(!permissions||user.tier!==result?.user?.tier)return {error:"Current permission profile unavailable",status:403};
-  return {user:{username:user.username,displayName:String(user.displayName||user.username),tier:user.tier},permissions,bank:centralRow.payload};
+  const user=result?.user;
+  const permissions=result?.permissions;
+  if(!user?.username||!permissions)return {error:"Current permission profile unavailable",status:403};
+  return {user,permissions};
 }
 
 function findOperationalRecord(bank:any,recordId:string|null,attachmentId:string|null){
@@ -135,7 +132,9 @@ Deno.serve(async(req)=>{
     if(error)return json({error:"Photo evidence metadata unavailable"},503);
     if(!row||row.status!=="available"||new Date(row.expires_at)<=new Date())return json({error:"Photo expired or unavailable"},410);
     if(row.department!==department)return json({error:"Photo belongs to an unavailable department"},403);
-    const associated=findOperationalRecord(context.bank,row.record_id||null,id);
+    const {data:bankRow,error:bankError}=await admin.from("downtime_central_bank").select("payload").eq("id",1).maybeSingle();
+    if(bankError||!bankRow?.payload)return json({error:"Operational record state unavailable"},503);
+    const associated=findOperationalRecord(bankRow.payload,row.record_id||null,id);
     if(!associated)return json({error:"Photo is not attached to an active operational record"},404);
     const {data,error:signError}=await admin.storage.from(bucket).createSignedUrl(row.storage_path,60);
     if(signError)return json({error:signError.message},500);
@@ -150,7 +149,9 @@ Deno.serve(async(req)=>{
     if(error)return json({error:"Photo evidence metadata unavailable"},503);
     if(!row||row.status==="deleted")return json({ok:true});
     if(row.department!==department)return json({error:"Photo belongs to an unavailable department"},403);
-    const associated=findOperationalRecord(context.bank,row.record_id||null,id);
+    const {data:bankRow,error:bankError}=await admin.from("downtime_central_bank").select("payload").eq("id",1).maybeSingle();
+    if(bankError||!bankRow?.payload)return json({error:"Operational record state unavailable"},503);
+    const associated=findOperationalRecord(bankRow.payload,row.record_id||null,id);
     if(!associated)return json({error:"Photo is not attached to an active operational record"},404);
     const {error:removeError}=await admin.storage.from(bucket).remove([row.storage_path]);
     if(removeError)return json({error:removeError.message},500);
