@@ -329,7 +329,7 @@ prematurelyEnabled.users.find((item) => item.userId === uid1).enabled = true;
 assert.throws(() => activatePendingUserStaffProvisioning(prematurelyEnabled, validRoleAssignment, { userId: uid2, username: "DEV", displayName: "DEV" }), /must remain disabled/);
 assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
   ...validRoleAssignment, staffId: sid2,
-}, "DEV"), /does not match the USER\/STAFF identity pair/);
+}, { userId: uid2, username: "DEV", displayName: "DEV" }), /does not match the USER\/STAFF identity pair/);
 const activated = activatePendingUserStaffProvisioning(pending.payload, validRoleAssignment, { userId: uid2, username: "DEV", displayName: "DEV" }, "2026-11-26T23:02:00.000Z");
 const activeUser = activated.payload.users.find((item) => item.userId === uid1);
 const activeStaff = activated.payload.staff.profiles["New Operator"];
