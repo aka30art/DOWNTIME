@@ -193,3 +193,33 @@ body.gatelog-modal-open{overflow:hidden}
 .gatelog-field select{width:100%;min-height:44px;background:#091721;color:var(--text);border:1px solid #334b5c;border-radius:8px;padding:9px 10px}
 @media(max-width:700px){.gatelog-day-picker{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.gatelog-day-card{min-height:82px}.gatelog-day-management{align-items:center}.gatelog-gateman-summary strong{font-size:14px}.gatelog-icon-action{width:46px;height:44px}}
 @media(max-width:390px){.gatelog-day-picker{gap:5px}.gatelog-day-card{padding:8px 2px}.gatelog-day-card strong{font-size:11px}.gatelog-day-card span{font-size:9px}.gatelog-day-card small{font-size:8px}.gatelog-statistics-grid{grid-template-columns:1fr}.gatelog-new-visit-row #gatelogReports{width:100%}}
+
+
+/* GATELOG individual visit register: action-first layout without horizontal scrolling */
+.gatelog-table-wrap{overflow:visible}
+.gatelog-table{min-width:0}
+.gatelog-register-heading{align-items:flex-start;flex-wrap:wrap}
+.gatelog-register-heading h2{min-width:0;overflow-wrap:anywhere}
+.gatelog-register-heading .gatelog-muted{white-space:normal;overflow-wrap:anywhere;text-align:left}
+.gatelog-visit-list{display:grid;gap:10px;padding:12px}
+.gatelog-visit-card{min-width:0;display:grid;gap:11px;padding:13px;border:1px solid #354f63;border-radius:11px;background:linear-gradient(145deg,#192f40,#0b1c29)}
+.gatelog-visit-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
+.gatelog-visit-customer{display:grid;gap:5px;min-width:0}
+.gatelog-visit-customer strong{font-size:14px;font-weight:950;color:#f5f7fa;overflow-wrap:anywhere}
+.gatelog-visit-customer span{font-size:11px;font-weight:900;letter-spacing:.7px;color:#ffd21a;overflow-wrap:anywhere}
+.gatelog-visit-status{flex:0 0 auto;padding:5px 8px;border:1px solid #536b7d;border-radius:6px;color:#c5d0d9;font-size:9px;font-weight:950;letter-spacing:.6px}
+.gatelog-visit-status.is-onsite{border-color:#ffd21a;color:#ffd21a}
+.gatelog-visit-times{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.gatelog-visit-times span{display:grid;gap:4px;min-width:0;color:#e1e8ed;font-size:11px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.gatelog-visit-times b,.gatelog-visit-waste b{color:#98aebf;font-size:9px;font-weight:950;letter-spacing:.7px}
+.gatelog-visit-waste{display:grid;gap:5px;min-width:0}
+.gatelog-visit-waste span{color:#d9e2e9;font-size:11px;line-height:1.45;overflow-wrap:anywhere}
+.gatelog-visit-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;min-width:0;padding-top:10px;border-top:1px solid #30495c}
+.gatelog-visit-actions button{display:flex;align-items:center;justify-content:center;min-width:0;min-height:42px;padding:8px 5px;border:1px solid #4a657a;border-radius:8px;background:#122b3c;color:#f2f6f8;font-size:10px;font-weight:950;letter-spacing:.3px;cursor:pointer;touch-action:manipulation}
+.gatelog-visit-actions .gatelog-depart{background:#ffd21a;border-color:#ffd21a;color:#122033}
+.gatelog-visit-actions .gatelog-visit-edit{color:#ffd21a}
+.gatelog-visit-actions .gatelog-visit-delete{border-color:#754c51;color:#ffb4b4}
+.gatelog-visit-actions button:disabled{opacity:.45;cursor:wait}
+.gatelog-visit-action-spacer{min-width:0}
+.gatelog-visit-form .gatelog-field input[type="datetime-local"]{width:100%;min-height:44px;background:#091721;color:var(--text);border:1px solid #334b5c;border-radius:8px;padding:9px 10px}
+@media(max-width:390px){.gatelog-visit-list{padding:9px;gap:8px}.gatelog-visit-card{padding:11px;gap:9px}.gatelog-visit-customer strong{font-size:13px}.gatelog-visit-actions{gap:5px}.gatelog-visit-actions button{font-size:9px;padding:7px 3px}.gatelog-visit-times{gap:6px}}

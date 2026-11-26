@@ -9,17 +9,20 @@ const visualCss=await readFile('yard-hub-visual-system.css','utf8');
 const browser=await chromium.launch({headless:true});
 try{
  const page=await browser.newPage({viewport:{width:390,height:844}});
+ page.on('dialog',dialog=>dialog.accept());
  await page.setContent(`<!doctype html><html><head><style>*{box-sizing:border-box}html,body{margin:0}</style><style>${sharedCss}</style><style>${css}</style><style>${visualCss}</style></head><body>
  <main id="yardHub" class="yard-hub"><div class="yard-hub-inner"><header class="yard-hero">YARD HUB</header><div class="yard-modules-heading">APPLICATIONS</div><div class="yard-grid"><button id="launchGatelogBtn">GATELOG</button></div><footer class="yard-hub-footer">FOOTER</footer></div></main>
  <div class="rm-module-root" style="position:absolute;left:-9999px;width:390px;visibility:hidden"><header class="hero"><div class="hero-top"><div><div class="downtime-mark">DOWNTIME®</div><div class="mark-rule"></div></div><div class="hero-actions"><div class="session-label">HUB AUTHENTICATED AS<strong>USER</strong></div><button class="icon-button">▤</button><a class="icon-button" href="#">⌂</a></div></div><div class="hero-word">/R&amp;M</div><p class="hero-tag">REPAIRS &amp; MAINTENANCE</p></header></div>
  <script>
- window.DowntimeCentral={session:{token:'test-session'}};window.DOWNTIME_CENTRAL_API_KEY='test-key';window.GATELOG_API='/gatelog-api';window.__calls=[];window.__active=[];window.__period='daily';
+ window.DowntimeCentral={session:{token:'test-session'}};window.DOWNTIME_CENTRAL_API_KEY='test-key';window.GATELOG_API='/gatelog-api';window.__calls=[];window.__active=[];window.__period='daily';window.__dayVisits=[{id:'day-2026-11-25',customer_id:'c1',visit_date:'2026-11-25',time_in:'2026-11-25T08:00:00Z',time_out:null,customer_name:'Example Ltd',vehicle_registration_snapshot:'AB12 CDE',waste_types:['General Waste'],status:'ON_SITE'}];
  window.fetch=async(_url,options)=>{const b=JSON.parse(options.body);window.__calls.push(b.action);
  if(b.action==='bootstrap')return {ok:true,json:async()=>({customers:[{id:'c1',customer_name:'Example Ltd'}],vehicles:[{id:'v1',customer_id:'c1',registration:'AB12 CDE'}],activeVisits:window.__active,register:window.__active.map(v=>({...v,customer_name:'Example Ltd',waste_types:['General Waste']})),wasteTypes:[{id:'w1',label:'General Waste'}],arrivalsToday:window.__active.length,customerStats:{c1:{totalVisits:4,todayVisits:1}},statistics:{overallVisits:12,mostCommonWasteType:'General Waste'},periodStatistics:{daily:{totalVisits:2,mostCommonWasteType:'General Waste'},weekly:{totalVisits:8,mostCommonWasteType:'General Waste'},monthly:{totalVisits:21,mostCommonWasteType:'Mixed'}},dailyGatemen:[{duty_date:'2026-11-23',gateman_username:null,gateman_name:'Not assigned',is_locked:false},{duty_date:'2026-11-24',gateman_username:null,gateman_name:'Not assigned',is_locked:false},{duty_date:'2026-11-25',gateman_username:null,gateman_name:'Not assigned',is_locked:false},{duty_date:'2026-11-26',gateman_username:null,gateman_name:'Not assigned',is_locked:false},{duty_date:'2026-11-27',gateman_username:null,gateman_name:'Not assigned',is_locked:false},{duty_date:'2026-11-28',gateman_username:null,gateman_name:'Not assigned',is_locked:false}],dayVisitCounts:{'2026-11-23':1,'2026-11-24':2,'2026-11-25':3},gatemen:[{username:'Jan',displayName:'Jan',tier:'SUPERVISOR'},{username:'Mick',displayName:'Mick',tier:'USER'}],canManageGateman:true,canExportReports:true})};
  if(b.action==='customer-arrival'){window.__active=[{id:'visit-new',customer_id:'c2',customer_name:b.customerName,vehicle_registration_snapshot:b.registration,time_in:'2026-11-25T17:00:00Z',visit_date:'2026-11-25',waste_types:b.wasteTypes,status:'ON_SITE'}];return {ok:true,json:async()=>({customer:{id:'c2',customer_name:b.customerName},visit:{id:'visit-new'}})}}
  if(b.action==='arrival'){window.__active=[{id:'visit-1',customer_id:'c1',customer_name:'Example Ltd',vehicle_registration_snapshot:b.registration,time_in:'2026-11-25T17:00:00Z',visit_date:'2026-11-25',waste_types:b.wasteTypes,status:'ON_SITE'}];return {ok:true,json:async()=>({visit:{id:'visit-1'}})}}
  if(b.action==='departure'){window.__active=[];return {ok:true,json:async()=>({visit:{id:'visit-1',status:'DEPARTED'}})}}
- if(b.action==='day-register')return {ok:true,json:async()=>({visits:[{id:'day-'+b.dutyDate,visit_date:b.dutyDate,time_in:'2026-11-25T08:00:00Z',time_out:null,customer_name:'Example Ltd',vehicle_registration_snapshot:'AB12 CDE',waste_types:['General Waste'],status:'ON_SITE'}],assignment:{gateman_username:null,gateman_name:'Not assigned',is_locked:false}})};
+ if(b.action==='day-register')return {ok:true,json:async()=>({visits:window.__dayVisits,assignment:{gateman_username:null,gateman_name:'Not assigned',is_locked:false}})};
+ if(b.action==='visit-update'){window.__dayVisits=window.__dayVisits.map(v=>v.id===b.visitId?{...v,customer_id:b.customerId,visit_date:b.visitDate,time_in:b.timeIn,time_out:b.timeOut,status:b.timeOut?'DEPARTED':'ON_SITE',vehicle_registration_snapshot:b.registration,waste_types:b.wasteTypes}:v);return {ok:true,json:async()=>({visitId:b.visitId})}};
+ if(b.action==='visit-delete'){window.__dayVisits=window.__dayVisits.filter(v=>v.id!==b.visitId);return {ok:true,json:async()=>({visitId:b.visitId,deleted:true})}};
  if(b.action==='gateman-save')return {ok:true,json:async()=>({assignment:{duty_date:b.dutyDate,gateman_username:b.username,gateman_name:b.username,is_locked:false}})};
  if(b.action==='gateman-lock')return {ok:true,json:async()=>({assignment:{duty_date:b.dutyDate,gateman_username:'Jan',gateman_name:'Jan',is_locked:true}})};
  if(b.action==='report')return {ok:true,json:async()=>({period:b.period,from:b.anchorDate,to:b.anchorDate,visits:[],assignments:[]})};
@@ -68,6 +71,25 @@ try{
  assert.match(await page.locator('#gatelogPeriodStatistics').innerText(),/VISITS[\s\S]*8/);
  await page.locator('[data-gatelog-day="2026-11-25"]').click();
  assert.match(await page.locator('#gatelogRegister').innerText(),/AB12 CDE/);
+ await page.setViewportSize({width:320,height:844});
+ const dayVisit=page.locator('[data-visit-card="day-2026-11-25"]');
+ assert.equal(await dayVisit.isVisible(),true,'Selected-date visits must render as individual cards');
+ const visitActions=await dayVisit.locator('.gatelog-visit-actions').boundingBox();
+ assert.ok(visitActions&&visitActions.x>=0&&visitActions.x+visitActions.width<=320,'Visit actions must remain fully visible at 320px');
+ assert.ok(await page.locator('[data-depart="day-2026-11-25"]').isVisible(),'DEPART must be visible without horizontal scrolling');
+ assert.ok(await page.locator('[data-visit-edit="day-2026-11-25"]').isVisible(),'EDIT must be visible on the visit card');
+ assert.ok(await page.locator('[data-visit-delete="day-2026-11-25"]').isVisible(),'DELETE must be visible on the visit card');
+ await page.locator('[data-visit-edit="day-2026-11-25"]').click();
+ assert.equal(await page.locator('#gatelogEditVisitForm').isVisible(),true,'EDIT must open the individual visit editor');
+ await page.locator('#gatelogEditRegistration').fill('CD34 EFG');
+ await page.locator('#gatelogEditVisitForm [type="submit"]').click();
+ await page.locator('[data-visit-edit="day-2026-11-25"]').waitFor();
+ assert.ok((await page.evaluate(()=>window.__calls)).includes('visit-update'),'Saving edits must call the visit update action');
+ assert.match(await page.locator('#gatelogRegister').innerText(),/CD34 EFG/,'Updated visit details must appear in the selected-date register');
+ await page.locator('[data-visit-delete="day-2026-11-25"]').click();
+ await page.locator('#gatelogRegister .gatelog-empty').waitFor();
+ assert.ok((await page.evaluate(()=>window.__calls)).includes('visit-delete'),'Deleting a visit must call the visit delete action');
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'Visit cards and controls must not create horizontal overflow at 320px');
  await page.locator('#gatelogAssignGateman').click();
  await page.locator('#gatelogGatemanSelect').selectOption('Jan');
  await page.locator('#gatelogGatemanForm [type=submit]').click();

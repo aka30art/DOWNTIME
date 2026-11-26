@@ -44,6 +44,8 @@ assert.doesNotMatch(ui, /AVERAGE TIME ON SITE/);
 assert.match(styles, /\.gatelog-day-picker/);
 assert.match(styles, /\.gatelog-day-card\.is-selected/);
 assert.match(styles, /\.gatelog-icon-action/);
+assert.match(styles, /\.gatelog-visit-card/);
+assert.match(styles, /\.gatelog-visit-actions/);
 assert.match(index, /gatelog-day-management\.js/);
 
 console.log('GATELOG day management contract passed.');

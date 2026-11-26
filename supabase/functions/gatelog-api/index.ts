@@ -157,6 +157,26 @@ Deno.serve(async (req: Request) => {
     if(!visit)return json({error:"Visit is no longer on site. Refresh the list."},409);
     return json({visit});
   }
+  if(action==="visit-update"){
+    const visitId=clean(body.visitId,60),customerId=clean(body.customerId,60),registration=clean(body.registration,20).toUpperCase(),visitDate=clean(body.visitDate,10);
+    const timeInRaw=String(body.timeIn||""),timeOutRaw=String(body.timeOut||"");
+    const timeIn=new Date(timeInRaw),timeOut=timeOutRaw?new Date(timeOutRaw):null;
+    const wasteTypes=Array.isArray(body.wasteTypes)?[...new Set(body.wasteTypes.map((x:any)=>clean(x,80)).filter(Boolean))].slice(0,12):[];
+    if(!visitId||!customerId||!registration||!/^\\d{4}-\\d{2}-\\d{2}$/.test(visitDate)||!timeInRaw||!Number.isFinite(timeIn.getTime())||(timeOutRaw&&!Number.isFinite(timeOut?.getTime()))||!wasteTypes.length)return json({error:"Enter a customer, registration, valid visit date and time, and at least one waste type."},400);
+    if(timeOut&&timeOut.getTime()<timeIn.getTime())return json({error:"Time Out cannot be earlier than Time In."},400);
+    const {data,error}=await db.rpc("gatelog_update_visit",{p_visit_id:visitId,p_customer_id:customerId,p_registration:registration,p_visit_date:visitDate,p_time_in:timeIn.toISOString(),p_time_out:timeOut?timeOut.toISOString():null,p_waste_types:wasteTypes,p_actor:actor});
+    if(error)return fail(error);
+    if(!data)return json({error:"Visit could not be updated. Refresh the register."},409);
+    return json({visitId:data});
+  }
+  if(action==="visit-delete"){
+    const visitId=clean(body.visitId,60);
+    if(!visitId)return json({error:"Visit ID is required."},400);
+    const {data,error}=await db.rpc("gatelog_delete_visit",{p_visit_id:visitId,p_actor:actor});
+    if(error)return fail(error);
+    if(!data)return json({error:"Visit was not found or has already been removed."},409);
+    return json({visitId:data,deleted:true});
+  }
   if(action==="history"){
     const term=clean(body.search,100);
     let query=db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,time_out,status,created_by,departed_by,gatelog_customers(customer_name),gatelog_visit_waste_types(gatelog_waste_types(label))").order("time_in",{ascending:false}).limit(250);
