@@ -90,6 +90,12 @@ begin
   if not found then
     raise exception 'Canonical YARD ROLE is missing or inactive';
   end if;
+  if not exists (
+    select 1 from public.yard_role_department_permissions
+     where yard_role_id = p_yard_role_id
+  ) then
+    raise exception 'Canonical YARD ROLE has no department permission matrix';
+  end if;
 
   insert into public.yard_role_assignments
     (user_id, staff_id, yard_role_id, status, version, verified_at, assigned_by)
