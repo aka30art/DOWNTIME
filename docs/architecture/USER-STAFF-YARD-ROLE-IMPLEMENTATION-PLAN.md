@@ -324,3 +324,149 @@ These decisions are intentionally not guessed:
 7. Whether a USER may ever be linked to a replacement STAFF record after a departure/re-hire, or whether a new USER identity is required.
 
 No code implementation should begin until Phase 1 is completed and the owner approves the contract. No production migration or deployment should occur without the separate rollout approval described above.
+
+
+## 9. Phase 1 — verified implementation inventory
+
+This section records what the current `main` source actually implements. It is a compatibility inventory, not an approval to change any of it.
+
+### 9.1 Identity and authorization are split across two permission planes
+
+| Plane | Current source of identity/access | Persistence | Important boundary |
+|---|---|---|---|
+| Central DOWNTIME identity | Central USER username, PIN hash, enabled state and legacy `tier` | `downtime_central_bank.payload.users[]`; session records in `downtime_central_sessions` | Central Bank Edge Function authenticates and enforces DOWNTIME permissions |
+| YARD HUB access | Central USER identity/session plus separately assigned `hubTier` and section access | `yard_hub_tier_config` and related YARD HUB access configuration tables | YARD HUB settings API reads Central Bank identity but its tier updates do not write the Central Bank USER bank or revoke Central sessions |
+| Repair & Maintenance access | YARD HUB user assignment and section-level access mode | YARD HUB access configuration | R&M resolves its access from the separate YARD HUB permission store |
+| Operational STAFF | STAFF roster/profile and operational fields | Central Bank payload, with compatibility copies in `appData` | STAFF is not currently the login identity |
+
+The current YARD HUB user editor deliberately displays the legacy DOWNTIME tier separately from the YARD HUB tier. The YARD HUB tier save path is isolated from Central Bank USER data. This separation is explicitly asserted by `tests/yard-hub-settings-contract.mjs`.
+
+**Design consequence:** “YARD ROLE” must be defined against these existing permission planes before implementation. Replacing Central DOWNTIME tiers, YARD HUB tiers, operational STAFF role labels, or all three are materially different changes. No plane may be merged or removed by inference.
+
+### 9.2 Current central authentication contract
+
+- Bootstrap creates the fixed username `DEV` with legacy tier `OWNER`.
+- Login validates the username/PIN against the Central Bank USER payload and stores an opaque session hash with username and tier.
+- The session is 12-hour and the API reloads the current USER record before resolving the current tier and permission profile.
+- The current safe USER response includes username, display name, enabled state and legacy tier; it excludes PIN salt/hash.
+- The browser uses `central-bank-client.js` and the opaque session header.
+- Central Bank writes use the singleton payload version compare-and-swap check.
+- USER update/delete operations revoke sessions.
+- The Edge Function is configured for its own opaque-session validation rather than the Supabase JWT gate.
+
+### 9.3 Current Central Bank action inventory
+
+The current Edge Function exposes these relevant actions:
+- Identity/session: `bootstrap`, `list-users`, `login`, `logout`.
+- State and operational writes: `get-state`, `save-state`, `save-settings`.
+- USER/STAFF: `users`, `user-save`, `user-delete`, `staff-save`.
+- STAFF media: `staff-original-upload`, `staff-photo-url`, `staff-photo-read`, `staff-photo-remove`.
+- Permission configuration: `tiers-save`.
+- Other central operational actions: `daily-operator-list`, `daily-operator-assign`, `daily-operator-unlock`, `set-plant-status`.
+- Separate central configuration control-plane actions: `central-config-state`, `central-config-save-draft`, `central-config-publish`, `central-config-restore-draft`.
+
+Any target contract must account for every action that reads or writes USER/STAFF data or resolves privilege. Updating only `user-save` and `staff-save` would be insufficient.
+
+### 9.4 Current Central Bank and STAFF persistence
+
+- Central USER records live in `bank.users[]`; they currently contain username, display name, legacy tier, enabled state and PIN salt/hash.
+- Legacy tier permission profiles live in `bank.tiers{}`.
+- STAFF profiles live in `bank.staff.profiles{}`, keyed by display name; `bank.staff.roster[]` stores names.
+- `appData.operatorProfiles` and `appData.staffRoster` are compatibility copies used by tracker clients.
+- `save-state`, `save-settings` and `staff-save` all contain STAFF-related preservation/validation logic. A stable-ID migration must cover all three write paths and the state hydration/compatibility code, not only the dedicated STAFF modal.
+- Current station-lock and assignment protections must remain intact through any ID migration.
+- STAFF photo operations use a private storage bucket and a separate original-photo library path; media records must remain associated with the correct STAFF identity after migration.
+
+### 9.5 Current USER creation/edit surfaces
+
+There are two coordinated but distinct current flows:
+1. The YARD HUB account editor collects username, display name, PIN, enabled status and a YARD HUB tier. It also preserves/displays the existing DOWNTIME legacy tier separately.
+2. The Central USER mutation bridge writes the DOWNTIME USER through the Central Bank API. YARD HUB tier changes are saved through the separate YARD HUB Settings API.
+
+The current YARD HUB user editor does not collect the full STAFF operational profile. The STAFF modal separately collects name, department, operational role, station, station lock, on-plant status and photographs.
+
+The target “create USER and automatically create STAFF” workflow therefore needs a defined cross-plane save contract. The Central USER + STAFF pair can be one Central Bank version-checked commit. If the same form also changes YARD HUB access configuration, that is a second persistence boundary today. A two-service operation cannot be described as atomic without a deliberate coordination design (for example, staged pending state plus finalization/compensation). Do not claim all three writes are atomic merely because USER and STAFF share one Central Bank payload.
+
+### 9.6 Current role vocabularies that must not be conflated
+
+| Current vocabulary | Current purpose | Future treatment |
+|---|---|---|
+| Central tiers: OWNER, DEVACC, ADMIN, MANAGER, SUPERVISOR, USER, SPECTATOR | DOWNTIME access and rights | User says existing TIERS are to become YARD ROLES; exact scope and permission migration require approval |
+| YARD HUB tiers: OWNER, DEVACC, ADMIN, MANAGER, SUPERVISOR, MECHANIC, USER, SPECTATOR plus custom tiers | YARD HUB module/section access | Separate current permission plane; confirm whether it is included in the same YARD ROLE conversion |
+| STAFF operational roles: Manager, Mechanic, Picking Line Crew, Floor Crew, Gateman, Main Operator | Operational job/department label | Remain operational STAFF data unless explicitly redefined |
+| ROOTS classifications: DEV1, ADMIN | Protected root authority assigned to STAFF | Separate hidden system assignment; never an ordinary YARD ROLE |
+
+Note: the string `ADMIN` currently exists both as a legacy tier and as the proposed protected ROOTS classification. The target schema must use unambiguous typed fields/enums and must not infer a root assignment from a legacy `tier === "ADMIN"` value.
+
+### 9.7 Current migration baseline and additive persistence
+
+- The Central Bank is a singleton JSON payload with optimistic versioning.
+- Central USER sessions and audit history are separate tables.
+- YARD HUB tier/access configuration and its audit records are in separate tables.
+- The YARD HUB migration and contract explicitly require that its permission store does not write to or mutate the Central Bank bank, sessions, DOWNTIME tracker state or R&M records.
+- The target design must decide whether that separation remains. Any proposal to move YARD HUB access into Central Bank or to coordinate writes across both stores requires a separate data-integrity design and explicit approval.
+- No production data counts, duplicate report or user/STAFF matching report has yet been generated. Such diagnostics require a read-only production inventory under a separately approved access step; this document does not claim those records have been inspected.
+
+## 10. Phase 1 contract decisions — blocking before code
+
+The following decisions are the minimum needed to freeze the contract. They are not silently decided by the implementation plan.
+
+### Decision A — scope of “existing TIERS become YARD ROLES”
+
+Choose the target scope:
+- Central DOWNTIME legacy tiers only.
+- YARD HUB tiers only.
+- Both permission planes become one unified YARD ROLE system.
+- Both planes remain separate, but each receives its own role vocabulary and explicit mapping.
+
+Until this is decided, the implementation must not remove or rename either permission plane.
+
+### Decision B — relationship between ordinary YARD ROLE and operational STAFF role
+
+Confirm that ordinary YARD ROLE means application access/permissions, while the STAFF operational role (Manager, Mechanic, Picking Line Crew, Floor Crew, Gateman, Main Operator) remains a separate job/department label. The proposed contract assumes they are separate.
+
+### Decision C — atomicity boundary for USER + STAFF creation
+
+The current architecture can atomically write USER + STAFF in the Central Bank payload. YARD HUB tier configuration is persisted separately. Confirm whether:
+- the creation transaction must atomically include only USER + STAFF, with YARD HUB access assigned as a separate subsequent step; or
+- account creation must include Central USER + STAFF + YARD HUB access as one logical transaction, requiring a designed cross-service transaction/finalization mechanism.
+
+No multi-store atomicity is assumed without this decision.
+
+### Decision D — DEV1 and ADMIN root identity lifecycle
+
+Confirm whether root classifications are assigned to an existing linked USER/STAFF pair only, or whether a ROOTS assignment is permitted to create a linked USER as part of the assignment. The architecture currently assumes ROOTS assigns to an existing STAFF member whose linked USER already exists, because ROOTS is a STAFF assignment category.
+
+### Decision E — legacy ADMIN naming collision
+
+Confirm the migration policy for existing accounts whose current Central tier or YARD HUB tier is `ADMIN`. They must not become protected ROOTS ADMIN automatically. They remain legacy records pending explicit review until a new ordinary YARD ROLE mapping is approved.
+
+### Decision F — existing USER records without STAFF matches
+
+Confirm whether the migration may create a linked STAFF record with approved placeholder/incomplete operational fields for every existing USER, or whether accounts with missing department/role/station details must be held in a review queue before linking. No guessed operational details should be written.
+
+### Decision G — STAFF photo identity
+
+Confirm whether the existing name-based STAFF photo library paths should remain as compatibility aliases during migration, with stable STAFF IDs becoming the authoritative metadata key, or whether a separately approved photo migration is required. The existing storage objects must not be moved or deleted as a side effect of identity conversion.
+
+## 11. Phase 1 completion status
+
+Completed from source review:
+- Current Central USER and session contract documented.
+- Central Bank API action inventory documented.
+- Current USER, STAFF and compatibility persistence paths documented.
+- Current YARD HUB separate permission plane and its isolation requirements documented.
+- Current STAFF operational role vocabulary distinguished from account permissions.
+- Current test and migration boundaries identified.
+- Cross-store atomicity risk identified.
+- ROOTS/legacy ADMIN naming collision identified.
+
+Not completed without owner decisions or approved read-only data access:
+- Final role-plane scope.
+- Final cross-store transaction boundary.
+- Final root assignment lifecycle.
+- Final legacy USER/STAFF match policy.
+- Production duplicate/orphan inventory and before/after counts.
+- Exact final field-level schema and migration mapping.
+
+**Phase 1 remains at the decision gate. No implementation, migration, merge or production deployment is authorised by this review.**
