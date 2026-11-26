@@ -162,3 +162,34 @@ body.gatelog-modal-open{overflow:hidden}
 .gatelog-period-tab.is-active{border-color:#ffd21a;background:#ffd21a;color:#102033}
 .gatelog-statistics-panel{margin-top:14px}
 @media(max-width:520px){.gatelog-collapsible>summary{min-height:54px;padding:12px}.gatelog-collapsible-body{padding:0 11px 12px}.gatelog-period-tabs{gap:5px}.gatelog-period-tab{font-size:8px;letter-spacing:.2px}.gatelog-new-visit-row .gatelog-action{width:100%}.gatelog-day-row{font-size:11px}}
+
+/* GATELOG Day-to-Day: date-specific visit register, Gateman assignment and PDF export */
+.gatelog-day-picker{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:2px 0 14px}
+.gatelog-day-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:94px;padding:10px 5px;border:1px solid #3b566a;border-radius:12px;background:linear-gradient(145deg,#172c3b,#0b1b27);color:#eaf0f5;text-align:center;cursor:pointer;touch-action:manipulation}
+.gatelog-day-card strong{font-size:13px;font-weight:950;letter-spacing:.8px}
+.gatelog-day-card span{font-size:10px;color:#b8c6d1;font-variant-numeric:tabular-nums}
+.gatelog-day-card small{font-size:9px;color:#aabac7;font-weight:850;letter-spacing:.35px}
+.gatelog-day-card.is-selected{background:linear-gradient(145deg,#ffdb24,#ffbd00);border-color:#ffe45a;color:#111d28;box-shadow:0 0 0 1px #ffd21a55,0 7px 18px #ffbf0026}
+.gatelog-day-card.is-selected span,.gatelog-day-card.is-selected small{color:#25313a}
+.gatelog-day-card:focus-visible,.gatelog-icon-action:focus-visible{outline:3px solid #58a9ff;outline-offset:3px}
+.gatelog-day-management{display:flex;align-items:center;gap:12px;padding:12px 0 2px;border-top:1px solid #2a4354}
+.gatelog-gateman-summary{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.gatelog-gateman-summary span{font-size:10px;font-weight:900;letter-spacing:1px;color:#9eafbe}
+.gatelog-gateman-summary strong{font-size:16px;font-weight:950;color:#f5f7fa;overflow-wrap:anywhere}
+.gatelog-gateman-summary em{font-style:normal;font-size:9px;font-weight:900;letter-spacing:.8px;color:#ffd21a}
+.gatelog-day-tools{display:flex;gap:8px;flex:0 0 auto}
+.gatelog-icon-action{display:grid;place-items:center;width:52px;height:48px;border:1px solid #4b667a;border-radius:12px;background:linear-gradient(145deg,#1a3345,#0b1d2a);color:#ffd21a;cursor:pointer}
+.gatelog-icon-action svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.gatelog-icon-action:disabled{opacity:.35;cursor:not-allowed}
+.gatelog-new-visit-row{justify-content:flex-end;flex-wrap:wrap}
+.gatelog-new-visit-row #gatelogReports{min-width:180px}
+.gatelog-period-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.gatelog-period-tab{padding:9px 16px;border:1px solid #405b70;border-radius:8px;background:#102434;color:#d8e2e9;font-size:10px;font-weight:950;letter-spacing:.7px}
+.gatelog-period-tab.is-active{background:#ffd21a;border-color:#ffd21a;color:#102033}
+.gatelog-statistics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.gatelog-statistics-grid .gatelog-stat{min-width:0;padding:15px;border:1px solid #354f63;border-radius:11px;background:linear-gradient(145deg,#192e3e,#0c1c28)}
+.gatelog-statistics-grid .gatelog-stat span{display:block;color:#a8b8c6;font-size:10px;font-weight:900;letter-spacing:.6px}
+.gatelog-statistics-grid .gatelog-stat strong{display:block;margin-top:8px;color:#f6f8fa;font-size:clamp(20px,3vw,27px);font-weight:950;overflow-wrap:anywhere}
+.gatelog-field select{width:100%;min-height:44px;background:#091721;color:var(--text);border:1px solid #334b5c;border-radius:8px;padding:9px 10px}
+@media(max-width:700px){.gatelog-day-picker{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.gatelog-day-card{min-height:82px}.gatelog-day-management{align-items:center}.gatelog-gateman-summary strong{font-size:14px}.gatelog-icon-action{width:46px;height:44px}}
+@media(max-width:390px){.gatelog-day-picker{gap:5px}.gatelog-day-card{padding:8px 2px}.gatelog-day-card strong{font-size:11px}.gatelog-day-card span{font-size:9px}.gatelog-day-card small{font-size:8px}.gatelog-statistics-grid{grid-template-columns:1fr}.gatelog-new-visit-row #gatelogReports{width:100%}}
