@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 const client=await readFile('gatelog-app.js','utf8');
+const dayManagement=await readFile('gatelog-day-management.js','utf8');
 const css=await readFile('gatelog-app.css','utf8');
 const sharedCss=await readFile('shared-ui-system.css','utf8');
 const visualCss=await readFile('yard-hub-visual-system.css','utf8');
@@ -14,12 +15,16 @@ try{
  <script>
  window.DowntimeCentral={session:{token:'test-session'}};window.DOWNTIME_CENTRAL_API_KEY='test-key';window.GATELOG_API='/gatelog-api';window.__calls=[];window.__active=[];window.__period='daily';
  window.fetch=async(_url,options)=>{const b=JSON.parse(options.body);window.__calls.push(b.action);
- if(b.action==='bootstrap')return {ok:true,json:async()=>({customers:[{id:'c1',customer_name:'Example Ltd'}],vehicles:[{id:'v1',customer_id:'c1',registration:'AB12 CDE'}],activeVisits:window.__active,register:window.__active.map(v=>({...v,customer_name:'Example Ltd',waste_types:['General Waste']})),wasteTypes:[{id:'w1',label:'General Waste'}],arrivalsToday:window.__active.length,customerStats:{c1:{totalVisits:4,todayVisits:1}},statistics:{overallVisits:12,mostCommonWasteType:'General Waste',averageMinutes:42,completedVisits:9},periodStatistics:{daily:{totalVisits:2,mostCommonWasteType:'General Waste',averageMinutes:30,completedVisits:1},weekly:{totalVisits:8,mostCommonWasteType:'General Waste',averageMinutes:35,completedVisits:6},monthly:{totalVisits:21,mostCommonWasteType:'Mixed',averageMinutes:38,completedVisits:17},all_time:{totalVisits:12,mostCommonWasteType:'General Waste',averageMinutes:42,completedVisits:9}},dailyOperators:[{duty_date:'2026-11-23',operator_name:'Jan'},{duty_date:'2026-11-24',operator_name:'Mick'},{duty_date:'2026-11-25',operator_name:'Gigi'}]})};
+ if(b.action==='bootstrap')return {ok:true,json:async()=>({customers:[{id:'c1',customer_name:'Example Ltd'}],vehicles:[{id:'v1',customer_id:'c1',registration:'AB12 CDE'}],activeVisits:window.__active,register:window.__active.map(v=>({...v,customer_name:'Example Ltd',waste_types:['General Waste']})),wasteTypes:[{id:'w1',label:'General Waste'}],arrivalsToday:window.__active.length,customerStats:{c1:{totalVisits:4,todayVisits:1}},statistics:{overallVisits:12,mostCommonWasteType:'General Waste'},periodStatistics:{daily:{totalVisits:2,mostCommonWasteType:'General Waste'},weekly:{totalVisits:8,mostCommonWasteType:'General Waste'},monthly:{totalVisits:21,mostCommonWasteType:'Mixed'}},dailyGatemen:[{duty_date:'2026-11-23',gateman_username:null,gateman_name:'Not assigned',is_locked:false},{duty_date:'2026-11-24',gateman_username:null,gateman_name:'Not assigned',is_locked:false},{duty_date:'2026-11-25',gateman_username:null,gateman_name:'Not assigned',is_locked:false},{duty_date:'2026-11-26',gateman_username:null,gateman_name:'Not assigned',is_locked:false},{duty_date:'2026-11-27',gateman_username:null,gateman_name:'Not assigned',is_locked:false},{duty_date:'2026-11-28',gateman_username:null,gateman_name:'Not assigned',is_locked:false}],dayVisitCounts:{'2026-11-23':1,'2026-11-24':2,'2026-11-25':3},gatemen:[{username:'Jan',displayName:'Jan',tier:'SUPERVISOR'},{username:'Mick',displayName:'Mick',tier:'USER'}],canManageGateman:true,canExportReports:true})};
  if(b.action==='customer-arrival'){window.__active=[{id:'visit-new',customer_id:'c2',customer_name:b.customerName,vehicle_registration_snapshot:b.registration,time_in:'2026-11-25T17:00:00Z',visit_date:'2026-11-25',waste_types:b.wasteTypes,status:'ON_SITE'}];return {ok:true,json:async()=>({customer:{id:'c2',customer_name:b.customerName},visit:{id:'visit-new'}})}}
  if(b.action==='arrival'){window.__active=[{id:'visit-1',customer_id:'c1',customer_name:'Example Ltd',vehicle_registration_snapshot:b.registration,time_in:'2026-11-25T17:00:00Z',visit_date:'2026-11-25',waste_types:b.wasteTypes,status:'ON_SITE'}];return {ok:true,json:async()=>({visit:{id:'visit-1'}})}}
  if(b.action==='departure'){window.__active=[];return {ok:true,json:async()=>({visit:{id:'visit-1',status:'DEPARTED'}})}}
+ if(b.action==='day-register')return {ok:true,json:async()=>({visits:[{id:'day-'+b.dutyDate,visit_date:b.dutyDate,time_in:'2026-11-25T08:00:00Z',time_out:null,customer_name:'Example Ltd',vehicle_registration_snapshot:'AB12 CDE',waste_types:['General Waste'],status:'ON_SITE'}],assignment:{gateman_username:null,gateman_name:'Not assigned',is_locked:false}})};
+ if(b.action==='gateman-save')return {ok:true,json:async()=>({assignment:{duty_date:b.dutyDate,gateman_username:b.username,gateman_name:b.username,is_locked:false}})};
+ if(b.action==='gateman-lock')return {ok:true,json:async()=>({assignment:{duty_date:b.dutyDate,gateman_username:'Jan',gateman_name:'Jan',is_locked:true}})};
+ if(b.action==='report')return {ok:true,json:async()=>({period:b.period,from:b.anchorDate,to:b.anchorDate,visits:[],assignments:[]})};
  return {ok:false,json:async()=>({error:'Unexpected action'})};};
- </script><script>${client}</script></body></html>`);
+ </script><script>${client}</script><script>${dayManagement}</script></body></html>`);
  await page.locator('#launchGatelogBtn').click();
  await page.locator('.gatelog-toolbar').waitFor();
  assert.equal(await page.locator('.gatelog-kpi').count(),2);
@@ -55,11 +60,20 @@ try{
  assert.equal(await page.locator('.gatelog-day-panel').evaluate(el=>el.open),false,'Day-to-Day panel must start collapsed');
  assert.equal(await page.locator('.gatelog-statistics-panel').evaluate(el=>el.open),false,'Visit Statistics panel must start collapsed');
  await page.locator('.gatelog-day-panel summary').click();
- assert.match(await page.locator('.gatelog-day-panel').innerText(),/Monday[\s\S]*Jan[\s\S]*Tuesday[\s\S]*Mick[\s\S]*Wednesday[\s\S]*Gigi/);
+ assert.match(await page.locator('.gatelog-day-panel').innerText(),/MON[\s\S]*TUE[\s\S]*WED[\s\S]*THU[\s\S]*FRI[\s\S]*SAT[\s\S]*GATEMAN[\s\S]*NOT ASSIGNED/i);
  await page.locator('.gatelog-statistics-panel summary').click();
- assert.match(await page.locator('#gatelogPeriodStatistics').innerText(),/DAILY[\s\S]*WEEKLY[\s\S]*MONTHLY[\s\S]*ALL TIME/);
- await page.locator('[data-period="weekly"]').click();
+ assert.match(await page.locator('#gatelogPeriodStatistics').innerText(),/DAILY[\s\S]*WEEKLY[\s\S]*MONTHLY[\s\S]*VISITS[\s\S]*MOST COMMON WASTE TYPE/);
+ assert.doesNotMatch(await page.locator('#gatelogPeriodStatistics').innerText(),/ALL TIME|AVERAGE TIME ON SITE/);
+ await page.locator('[data-gatelog-period="weekly"]').click();
  assert.match(await page.locator('#gatelogPeriodStatistics').innerText(),/VISITS[\s\S]*8/);
+ await page.locator('[data-gatelog-day="2026-11-25"]').click();
+ assert.match(await page.locator('#gatelogRegister').innerText(),/AB12 CDE/);
+ await page.locator('#gatelogAssignGateman').click();
+ await page.locator('#gatelogGatemanSelect').selectOption('Jan');
+ await page.locator('#gatelogGatemanForm [type=submit]').click();
+ await page.locator('#gatelogLockGateman').click();
+ assert.ok((await page.evaluate(()=>window.__calls)).includes('gateman-save'));
+ assert.ok((await page.evaluate(()=>window.__calls)).includes('gateman-lock'));
  await page.locator('#gatelogNewVisit').click();
  assert.equal(await page.locator('#gatelogModal').isVisible(),true);
  await page.getByRole('button',{name:/NEW CUSTOMER/}).click();
