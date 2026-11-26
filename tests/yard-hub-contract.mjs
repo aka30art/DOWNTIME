@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises';
 const html = await readFile('index.html', 'utf8');
 const packageJson = JSON.parse(await readFile('package.json', 'utf8'));
 const loginSmoke = await readFile('tests/login-smoke.mjs', 'utf8');
+const visualSystem = await readFile('yard-hub-visual-system.css', 'utf8');
+const rmHtml = await readFile('repair-maintenance.html', 'utf8');
 
 assert.match(html, /<section id="yardHub" class="yard-hub" hidden/, 'YARD HUB exists as a separate initially hidden authenticated surface');
 assert.match(html, /YARD OPERATIONS CORE/, 'YARD HUB carries the approved platform identity');
@@ -16,6 +18,15 @@ assert.match(html, /id="launchRepairMaintenanceBtn" data-app="repair-maintenance
 assert.doesNotMatch(html, /id="launchRepairMaintenanceBtn"[^>]*disabled/, 'R&M is not hard-disabled in the HUB markup');
 assert.match(html, /repair-maintenance-launch\.js/, 'R&M launcher loads its authenticated module gate');
 assert.ok(html.includes('shared-ui-system.css?v=20261124-1'), 'YARD HUB loads the shared visual design system');
+assert.ok(html.includes('yard-hub-visual-system.css?v=20261125-1'), 'YARD HUB loads the scoped unified design system');
+assert.ok(rmHtml.includes('yard-hub-visual-system.css?v=20261125-1'), 'R&M loads the same unified design system');
+assert.ok(rmHtml.includes('class="app rm-module-root"'), 'R&M has an explicit presentation scope');
+assert.ok(visualSystem.includes('#yardHub .yard-tile'), 'All live and coming-later modules share the same tile system');
+assert.ok(visualSystem.includes('.gatelog-screen .gatelog-hero'), 'GATELOG adopts the canonical department header');
+assert.ok(visualSystem.includes('.rm-module-root .hero'), 'R&M is the canonical department header reference');
+assert.match(visualSystem, /width:10px[\s\S]*?height:140%/, 'Department accent is a narrow diagonal stripe');
+assert.doesNotMatch(visualSystem, /(^|[}\s])(?:html|body|:root|main|button)\s*\{/i, 'Visual system contains no global element selectors');
+assert.doesNotMatch(visualSystem, /#authGate|\.shell|\.weeklyKpis|\.downtime-entry-panel/, 'Tracking App is excluded from the visual-system scope');
 assert.match(html, /function showCentralApp\(\)\{[^}]*yardHub/, 'successful central authentication routes to YARD HUB');
 assert.match(html, /function launchDowntime\(\)\{[^}]*yardHub/, 'DOWNTIME launch swaps the hub for the existing application');
 assert.match(html, /function returnToYardHub\(\)/, 'DOWNTIME provides a route back to YARD HUB');
