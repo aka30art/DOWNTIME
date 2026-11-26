@@ -184,12 +184,13 @@ Deno.serve(async (req: Request) => {
 
   if (action === "assign-user-role") {
     if (!isRootDev(user, legacyTier)) return json({ error: "Only immutable DEV may assign a YARD ROLE during new USER provisioning." }, 403);
-    const targetUsername = String(body.username || "").trim();
+    const targetUserId = String(body.userId || "");
     const yardRoleId = String(body.yardRoleId || "");
-    if (!targetUsername || targetUsername.length > 32 || !/^[A-Za-z0-9_.-]{2,32}$/.test(targetUsername)) return json({ error: "Valid username required." }, 400);
+    if (!/^[0-9a-f-]{36}$/i.test(targetUserId)) return json({ error: "Immutable USER ID required." }, 400);
     if (!/^[0-9a-f-]{36}$/i.test(yardRoleId)) return json({ error: "A canonical YARD ROLE ID is required." }, 400);
+    if (!/^[0-9a-f-]{36}$/i.test(String(user.userId || ""))) return json({ error: "Authenticated actor has no immutable USER ID." }, 409);
     const target = (Array.isArray(bank.users) ? bank.users : []).find((account: any) =>
-      String(account.username || "").toLowerCase() === targetUsername.toLowerCase()
+      String(account.userId || "").toLowerCase() === targetUserId.toLowerCase()
     );
     if (!target) return json({ error: "Central USER account not found." }, 404);
     if (target.provisioning?.stage !== "YARD_ROLE_PENDING") return json({ error: "USER is not awaiting canonical YARD ROLE assignment." }, 409);
@@ -203,7 +204,9 @@ Deno.serve(async (req: Request) => {
       p_user_id: target.userId,
       p_staff_id: target.staffId,
       p_yard_role_id: yardRoleId,
-      p_actor: String(user.username),
+      p_actor_user_id: user.userId,
+      p_actor_username: String(user.username),
+      p_actor_display_name: String(user.displayName || user.username),
     });
     if (assignmentError || !assignment) return json({ error: assignmentError?.message || "Canonical YARD ROLE assignment failed." }, 409);
     return json({ ok: true, assignment });
