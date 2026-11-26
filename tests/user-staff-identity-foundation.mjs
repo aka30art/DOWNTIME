@@ -20,8 +20,8 @@ const legacy = {
   staff: {
     roster: ["Jan", "Legacy Operator"],
     profiles: {
-      Jan: { department: "Operations", station: "Line 1" },
-      "Legacy Operator": { department: "Operations", status: "ARCHIVED" },
+      Jan: { department: "Operations", station: "Line 1", stationLocked: true, onSite: true, photoPath: "jan/photo.png" },
+      "Legacy Operator": { department: "Operations", status: "ARCHIVED", photo: "legacy-photo.png" },
     },
   },
 };
@@ -30,6 +30,9 @@ const legacySnapshot = structuredClone(legacy);
 const normalised = normaliseIdentityDirectory(legacy);
 assert.equal(normalised.users.length, 2);
 assert.equal(normalised.staffProfiles.length, 2);
+assert.equal(normalised.staffProfiles[0].stationLocked, true, "operational station locks are preserved");
+assert.equal(normalised.staffProfiles[0].photoPath, "jan/photo.png", "photo references are preserved");
+assert.equal(normalised.staffProfiles[1].photo, "legacy-photo.png", "legacy photo fields are preserved");
 assert.deepEqual(legacy, legacySnapshot, "normalisation must not mutate the legacy payload");
 assert.equal(normalised.users[0].userId, undefined, "normalisation must not invent a USER ID");
 assert.equal(normalised.users[1].staffId, undefined, "normalisation must not invent a USER/STAFF link");
@@ -46,7 +49,10 @@ assert.equal(preview.staff.compatibilityRosterEntryCount, 0);
 assert.equal(preview.staff.compatibilityProfileCount, 0);
 assert.equal(preview.users.devRootCount, 1);
 assert.equal(preview.readyForIdentityCutover, false, "legacy missing IDs must keep the cutover readiness gate closed");
-assert.ok(preview.diagnostics.warnings >= 5);
+assert.ok(preview.diagnostics.warnings >= 6);
+assert.equal(preview.users.validRecordCount, 2);
+assert.equal(preview.staff.validProfileCount, 2);
+assert.ok(preview.findings.some((item) => item.code === "legacy-name-match-unverified"), "possible name matches are reported but never linked");
 
 const validUser = { userId: uid1, staffId: sid1, username: "New.User", displayName: "New User" };
 const validStaff = { staffId: sid1, linkedUserId: uid1, displayName: "New User", department: "Operations" };
@@ -66,6 +72,12 @@ assert.throws(() => validateNewUserStaffPair(
 assert.throws(() => validateNewUserStaffPair(
   { ...validUser, username: "dev" }, validStaff,
 ), /DEV is the immutable root/);
+assert.throws(() => validateNewUserStaffPair(
+  { ...validUser, rootsClass: "ADMIN" }, validStaff,
+), /Protected ROOTS classification cannot be supplied/);
+assert.throws(() => validateNewUserStaffPair(
+  { ...validUser, tier: "ADMIN" }, validStaff,
+), /Legacy tier claims cannot be supplied/);
 assert.throws(() => validateNewUserStaffPair(
   validUser, validStaff, [{ username: "NEW.USER" }], [],
 ), /username already exists/);
@@ -139,6 +151,14 @@ const rosterMismatch = {
   staff: { roster: ["Roster Only"], profiles: { "Different Profile": {} } },
   appData: { staffRoster: ["Legacy Copy"], operatorProfiles: { "Legacy Copy": {} } },
 };
+const ambiguousNames = {
+  users: [{ username: "Sam", displayName: "Sam", userId: uid1 }],
+  staff: { roster: ["First", "Second"], profiles: {
+    First: { displayName: "Sam" },
+    Second: { displayName: "Sam" },
+  } },
+};
+assert.ok(diagnoseIdentityDirectory(ambiguousNames).some((item) => item.code === "ambiguous-legacy-name-match"), "ambiguous name matches block guessing");
 const mismatchCodes = diagnoseIdentityDirectory(rosterMismatch).map((item) => item.code);
 assert.ok(mismatchCodes.includes("staff-roster-profile-missing"));
 assert.ok(mismatchCodes.includes("staff-roster-compatibility-mismatch"));
