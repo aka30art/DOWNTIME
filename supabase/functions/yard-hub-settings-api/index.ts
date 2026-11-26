@@ -117,7 +117,8 @@ Deno.serve(async (req: Request) => {
   const hubTier = assignedHubTier(configRow.payload, user.username);
   const isAdmin = isHubSettingsAdmin(user, hubTier, legacyTier);
   const legacyPermissions = bank.tiers?.[legacyTier] || {};
-  const canAccessYardHub = legacyPermissions.canAccessYardHub !== false || isRootDev(user, legacyTier);
+  const hasCanonicalYardRole = Boolean(user.yardRoleId);
+  const canAccessYardHub = !hasCanonicalYardRole && (legacyPermissions.canAccessYardHub !== false || isRootDev(user, legacyTier));
   const canManageCentralUsers = legacyPermissions.canManageUsers === true ||
     legacyTier === "OWNER" || legacyTier === "DEVACC";
 
