@@ -176,6 +176,15 @@ Deno.serve(async(req)=>{
    const result=await db.from("downtime_roots_assignments").select("user_id");
    return {ids:new Set((result.data||[]).map((assignment:any)=>String(assignment.user_id).toLowerCase())),error:result.error};
  };
+ const lookupProtectedStaff=async(profile:any)=>{
+   if(!profile?.staffId)return {protected:false,error:null};
+   const result=await db.from("downtime_roots_assignments").select("staff_id").eq("staff_id",profile.staffId).maybeSingle();
+   return {protected:!!result.data,error:result.error};
+ };
+ const findStaffProfileBySlug=(slug:string)=>{
+   const profiles=bank.staff?.profiles&&typeof bank.staff.profiles==="object"?bank.staff.profiles:bank.appData?.operatorProfiles||{};
+   return Object.entries(profiles).find(([name])=>String(name).toLowerCase().replace(/[^a-z0-9_-]/g,"-")===slug)?.[1] as any;
+ };
  if(action==="user-staff-provision"){
    if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);
    const username=String(body.username||"").trim(),displayName=String(body.displayName||"").trim(),pin=String(body.pin||"");
@@ -481,6 +490,13 @@ if(action==="roots-state"){
        if("stationLocked" in existing)merged.stationLocked=existing.stationLocked===true;else delete merged.stationLocked;
        savedProfiles[name]=merged;
      }
+     if(!isDevRoot){
+       for(const [name,profile] of Object.entries(currentProfiles) as [string,any][]){
+         const protectedStaff=await lookupProtectedStaff(profile);
+         if(protectedStaff.error)return json({error:"Protected identity registry is unavailable."},503);
+         if(protectedStaff.protected)savedProfiles[name]=structuredClone(profile);
+       }
+     }
      nextAppData.operatorProfiles=savedProfiles;
      if(priv.canManageStaff){
        bank.staff.profiles=savedProfiles;
@@ -632,6 +648,13 @@ if(action==="roots-state"){
      const rosterMap=new Map<string,string>();
      [...retainedRoster,...incomingRoster].forEach((name:string)=>{const key=name.toLocaleLowerCase();if(!rosterMap.has(key))rosterMap.set(key,name)});
      if(rosterMap.size>250)return json({error:"The combined staff roster cannot exceed 250 entries. No entries were saved."},409);
+     if(!isDevRoot){
+       for(const [name,profile] of Object.entries(currentProfiles) as [string,any][]){
+         const protectedStaff=await lookupProtectedStaff(profile);
+         if(protectedStaff.error)return json({error:"Protected identity registry is unavailable."},503);
+         if(protectedStaff.protected)newProfiles[name]=structuredClone(profile);
+       }
+     }
      nextAppData.operatorProfiles=newProfiles;
      nextAppData.staffRoster=[...rosterMap.values()];
      nextAppData.staffRoles=nextStaffRoles;
@@ -789,7 +812,12 @@ if(action==="roots-state"){
  if(action==="staff-original-upload"){
    if(!priv.canManageStaff)return json({error:"Permission denied"},403);
    const slug=String(body.staffKey||"").trim().toLowerCase();
-   if(!/^[a-z0-9]{1,30}$/.test(slug))return json({error:"Invalid STAFF destination"},400);
+   if(!/^[a-z0-9_-]{1,80}$/.test(slug))return json({error:"Invalid STAFF destination"},400);
+   const originalProfile=findStaffProfileBySlug(slug);
+   if(!originalProfile)return json({error:"STAFF destination not found"},404);
+   const protectedOriginal=await lookupProtectedStaff(originalProfile);
+   if(protectedOriginal.error)return json({error:"Protected identity registry is unavailable."},503);
+   if(protectedOriginal.protected&&!isDevRoot)return json({error:"Only immutable DEV may access protected ROOTS STAFF originals."},403);
    if(body.mimeType!=="image/png")return json({error:"Only PNG originals are accepted"},415);
    const encoded=String(body.base64||"");
    if(!encoded||encoded.length>7_000_000||!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded))return json({error:"PNG upload is missing or exceeds the 5 MB limit"},413);
@@ -810,6 +838,11 @@ if(action==="roots-state"){
  if(action==="staff-photo-url"){
    if(!priv.canManageStaff)return json({error:"Permission denied"},403);
    const name=String(body.name||"").trim();if(!name)return json({error:"Staff name required"},400);
+   const profile=bank.staff?.profiles?.[name]||bank.appData?.operatorProfiles?.[name];
+   if(!profile)return json({error:"STAFF profile not found"},404);
+   const protectedStaff=await lookupProtectedStaff(profile);
+   if(protectedStaff.error)return json({error:"Protected identity registry is unavailable."},503);
+   if(protectedStaff.protected&&!isDevRoot)return json({error:"Only immutable DEV may change protected ROOTS STAFF photos."},403);
    const path=name.toLowerCase().replace(/[^a-z0-9_-]/g,"-")+"/"+crypto.randomUUID();
    const {data,error}=await db.storage.from("downtime-staff-photos").createSignedUploadUrl(path);
    if(error)return json({error:error.message},500);
@@ -818,6 +851,13 @@ if(action==="roots-state"){
  if(action==="staff-photo-read"){
    const path=String(body.path||"");if(!path||path.length>300)return json({error:"Invalid path"},400);
    if(!priv.canViewStaff&&!priv.canManageStaff)return json({error:"Permission denied"},403);
+   const pathParts=path.split("/");
+   if(pathParts.length!==2||!/^[a-z0-9_-]{1,80}$/i.test(pathParts[0])||!/^[0-9a-f-]{36}$/i.test(pathParts[1]))return json({error:"Invalid path"},400);
+   const profile=findStaffProfileBySlug(pathParts[0]);
+   if(!profile)return json({error:"STAFF profile not found"},404);
+   const protectedStaff=await lookupProtectedStaff(profile);
+   if(protectedStaff.error)return json({error:"Protected identity registry is unavailable."},503);
+   if(protectedStaff.protected&&!isDevRoot)return json({error:"Only immutable DEV may view protected ROOTS STAFF photos."},403);
    const {data,error}=await db.storage.from("downtime-staff-photos").createSignedUrl(path,120);
    if(error)return json({error:error.message},404);
    return json({url:data.signedUrl});
@@ -826,6 +866,11 @@ if(action==="roots-state"){
    if(!priv.canManageStaff)return json({error:"Permission denied"},403);
    const path=String(body.path||"").trim(),parts=path.split("/");
    if(parts.length!==2||!/^[a-z0-9_-]{1,80}$/i.test(parts[0])||!/^[0-9a-f-]{36}$/i.test(parts[1]))return json({error:"Invalid staff photo path"},400);
+   const profile=findStaffProfileBySlug(parts[0]);
+   if(!profile)return json({error:"STAFF profile not found"},404);
+   const protectedStaff=await lookupProtectedStaff(profile);
+   if(protectedStaff.error)return json({error:"Protected identity registry is unavailable."},503);
+   if(protectedStaff.protected&&!isDevRoot)return json({error:"Only immutable DEV may remove protected ROOTS STAFF photos."},403);
    const {error}=await db.storage.from("downtime-staff-photos").remove([path]);
    if(error)return json({error:error.message},500);
    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"staff-photo-remove",details:{path}});
