@@ -62,6 +62,8 @@ YARD HUB already uses the Central Data Bank payload and the `downtime_central_ba
 
 The existing staff directory is therefore extended in that central foundation rather than introducing a separate `staff_management` Supabase project/schema/API, a second login, or account-link tables. The current JSON payload remains a compatibility layer while a future normalised shared staff table is evaluated; no live records are moved by this feature branch.
 
+GATELOG's daily Gateman selector now reads active on-site STAFF records from the Central Data Bank roster/profile collection. It does not select from or create USER accounts. The current GATELOG assignment table still has a legacy `gateman_username` column and its existing RPC argument retains that name for compatibility; the value written by the updated API is a STAFF name key, never an account username. A later non-destructive schema migration should replace this legacy field with a stable staff identifier after the shared STAFF storage contract is finalised. Existing assignment name snapshots remain historical records.
+
 ## Security and data integrity requirements
 
 1. Never expose the Supabase service-role key to browser clients.
