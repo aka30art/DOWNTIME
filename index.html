@@ -761,15 +761,6 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
           </div>
           <label>YARD HUB TIER<select id="yardHubUserHubTier" required></select></label>
           <label>PIN<input id="yardHubUserPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label>
-          <div id="yardHubStaffFields" class="yard-hub-staff-fields">
-            <div class="yard-hub-staff-fields-title">LINKED STAFF PROFILE</div>
-            <p>Every new USER receives one operational STAFF profile. This profile does not grant application permissions.</p>
-            <label>STAFF DEPARTMENT<select id="yardHubStaffDepartment" required><option value="SCPL">SCPL · Site Crew Picking Line</option><option value="R&amp;M">R&amp;M</option><option value="Management">Management</option><option value="SCFL">SCFL · Site Crew Floor</option><option value="Traffic">Traffic</option></select></label>
-            <label>OPERATIONAL ROLE<select id="yardHubStaffRole" required><option value="Main Operator">Main Operator</option><option value="Picking Line Crew">Picking Line Crew</option></select></label>
-            <label>ASSIGNED STATION<input id="yardHubStaffStation" maxlength="100" placeholder="Optional · e.g. Station 1 · WOOD"></label>
-            <label class="yard-hub-enabled-option"><input id="yardHubStaffStationLocked" type="checkbox"> LOCK STATION</label>
-            <label class="yard-hub-enabled-option"><input id="yardHubStaffOnSite" type="checkbox" checked> ON PLANT</label>
-          </div>
           <label class="yard-hub-enabled-option"><input id="yardHubUserEnabled" type="checkbox" checked> ACCOUNT ACTIVE</label>
           <p id="yardHubUserModalHint" class="yard-hub-note"></p>
           <div class="yard-hub-user-modal-actions">
@@ -2095,9 +2086,7 @@ window.saveDowntimeCentralUserFromYardHub=function(userData){
    if(cloudSyncFailed)throw new Error('A DOWNTIME change is still unsynced. Resolve the DOWNTIME sync warning before changing central users.');
    const freshVersion=await window.refreshDowntimeCentralDirectory();
    if(!freshVersion)throw new Error('Unable to refresh the Central User directory.');
-   const saved=userData.staff
-    ?await window.DowntimeCentral.provisionUserStaff({username:userData.username,displayName:userData.displayName,pin:userData.pin,staff:userData.staff},centralVersion,userData.idempotencyKey)
-    :await window.DowntimeCentral.saveUser(userData,centralVersion);
+   const saved=await window.DowntimeCentral.saveUser(userData,centralVersion);
    let verifiedVersion;
    try{verifiedVersion=await window.refreshDowntimeCentralDirectory()}
    catch(error){error.centralUserSaved=true;throw error}
@@ -2105,29 +2094,6 @@ window.saveDowntimeCentralUserFromYardHub=function(userData){
     const error=new Error('Central User save could not be verified after refresh.');
     error.centralUserSaved=true;
     throw error;
-   }
-   notifyOverviewFrame(centralVersion,saved.updatedAt||null);
-   cloudStatus('CENTRAL · synced');
-   return {...saved,version:Number(verifiedVersion)};
-  }finally{
-   cloudBusy=false;centralPendingWrites=Math.max(0,centralPendingWrites-1);flushCentralRealtimeRefresh();
-  }
- });
- cloudWrite=task.then(()=>undefined,()=>undefined);
- return task;
-};
-window.activateDowntimeCentralUserFromYardHub=function(username){
- const task=cloudWrite.then(async()=>{
-  centralPendingWrites++;cloudBusy=true;
-  try{
-   if(!centralReady||!window.DowntimeCentral?.session?.token)throw new Error('DOWNTIME Central session is not ready.');
-   if(cloudSyncFailed)throw new Error('A DOWNTIME change is still unsynced. Resolve the DOWNTIME sync warning before activating the account.');
-   const freshVersion=await window.refreshDowntimeCentralDirectory();
-   if(!freshVersion)throw new Error('Unable to refresh the Central USER directory.');
-   const saved=await window.DowntimeCentral.activateProvisionedUser(username,centralVersion);
-   const verifiedVersion=await window.refreshDowntimeCentralDirectory();
-   if(!verifiedVersion||Number(verifiedVersion)<Number(saved.version||0)){
-    const error=new Error('USER activation could not be verified after refresh.');error.centralUserSaved=true;throw error;
    }
    notifyOverviewFrame(centralVersion,saved.updatedAt||null);
    cloudStatus('CENTRAL · synced');
