@@ -42,7 +42,7 @@ assert.equal(preview.users.total, 2);
 assert.equal(preview.staff.profileCount, 2);
 assert.equal(preview.staff.rosterEntryCount, 2);
 assert.equal(preview.users.devRootCount, 1);
-assert.equal(preview.readyForIdentityCutover, true, "legacy missing IDs are warnings, not fabricated errors");
+assert.equal(preview.readyForIdentityCutover, false, "legacy missing IDs must keep the cutover readiness gate closed");
 assert.ok(preview.diagnostics.warnings >= 5);
 
 const validUser = { userId: uid1, staffId: sid1, username: "New.User", displayName: "New User" };
