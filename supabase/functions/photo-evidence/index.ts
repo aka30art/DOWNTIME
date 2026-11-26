@@ -51,7 +51,7 @@ function findOperationalRecord(bank:any,recordId:string|null,attachmentId:string
       for(let entryIndex=0;entryIndex<entries.length;entryIndex++){
         const entry=entries[entryIndex]||{};
         const currentId=typeof entry.recordId==="string"&&entry.recordId?entry.recordId:`legacy-${weekKey}-${dayIndex}-${entryIndex}`;
-        if((recordId&&currentId===recordId)||(attachmentId&&entry.attachmentId===attachmentId))return {recordId:currentId,entry};
+        if((recordId&&currentId===recordId&&(!attachmentId||entry.attachmentId===attachmentId))||(!recordId&&attachmentId&&entry.attachmentId===attachmentId))return {recordId:currentId,entry};
       }
     }
   }
@@ -90,7 +90,7 @@ Deno.serve(async(req)=>{
   const user=context.user,permissions=context.permissions;
 
   if(action==="create-upload"){
-    if(permissions.canEditTracker!==true)return json({error:"Tracker input permission required"},403);
+    if(permissions.canEditTracker!==true||permissions.canViewDashboards!==true)return json({error:"DOWNTIME input permission required"},403);
     const entryKey=body?.entryKey,recordId=body?.recordId,mime=body?.mimeType,size=Number(body?.size);
     if(!uuidPattern.test(entryKey||""))return json({error:"Invalid photo entry key"},400);
     if(!uuidPattern.test(recordId||""))return json({error:"A valid operational record ID is required"},400);
@@ -143,7 +143,7 @@ Deno.serve(async(req)=>{
   }
 
   if(action==="delete"){
-    if(permissions.canDeleteRecords!==true)return json({error:"Manage permission required to remove photo evidence"},403);
+    if(permissions.canDeleteRecords!==true||permissions.canViewDashboards!==true)return json({error:"Manage permission required to remove photo evidence"},403);
     const id=body?.attachmentId;
     if(!uuidPattern.test(id||""))return json({error:"Invalid attachment id"},400);
     const {data:row,error}=await admin.from("downtime_attachments").select("id,storage_path,record_id,department,status").eq("id",id).maybeSingle();
