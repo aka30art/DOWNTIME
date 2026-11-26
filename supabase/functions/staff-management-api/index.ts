@@ -62,9 +62,22 @@ Deno.serve(async (req: Request) => {
   const legacyTier = String(user.tier || "USER").toUpperCase();
   const root = String(user.username || "").trim().toUpperCase() === "DEV" && legacyTier === "OWNER";
   const tierPermissions = bank.tiers?.[legacyTier] || {};
+  // Match Central Bank tierDefault behaviour: stored tier flags override role defaults.
+  const defaultStaffPermissions: Record<string, { canViewStaff: boolean; canManageStaff: boolean }> = {
+    OWNER: { canViewStaff: true, canManageStaff: true },
+    DEVACC: { canViewStaff: true, canManageStaff: true },
+    ADMIN: { canViewStaff: true, canManageStaff: true },
+    MANAGER: { canViewStaff: true, canManageStaff: false },
+    SUPERVISOR: { canViewStaff: true, canManageStaff: true },
+    USER: { canViewStaff: true, canManageStaff: false },
+    SPECTATOR: { canViewStaff: false, canManageStaff: false },
+  };
+  const roleDefaults = defaultStaffPermissions[legacyTier] || { canViewStaff: false, canManageStaff: false };
   const canAccessYardHub = tierPermissions.canAccessYardHub !== false || root;
-  const canManageStaff = tierPermissions.canManageStaff === true || root;
-  const canViewStaff = tierPermissions.canViewStaff === true || canManageStaff;
+  const canManageStaff = root || (typeof tierPermissions.canManageStaff === "boolean"
+    ? tierPermissions.canManageStaff : roleDefaults.canManageStaff);
+  const canViewStaff = root || (typeof tierPermissions.canViewStaff === "boolean"
+    ? tierPermissions.canViewStaff : roleDefaults.canViewStaff) || canManageStaff;
   if (!canAccessYardHub) return fail("YARD HUB access is disabled for this account.", 403);
   if (!canViewStaff) return fail("STAFF DIRECTORY access is not enabled for this account.", 403);
 
