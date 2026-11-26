@@ -167,3 +167,18 @@ Implementation must retain the existing Central Bank single-payload storage and 
 - Legacy tier permissions are not silently reused as YARD ROLE permissions.
 - Automated tests cover authorization bypasses, duplicate creation, concurrency conflicts, migration idempotency and compatibility.
 - CI, browser tests and production-equivalent verification pass before any production rollout.
+
+
+## Owner decision — YARDHUB administration consolidation (2026-11-26)
+
+The owner approved the proposed destination for account, personnel and permission administration:
+
+- USER account management is to be located in YARDHUB.
+- STAFF operational directory and personnel management is to be located in YARDHUB.
+- The new **Access and Rights** function is to be located in YARDHUB.
+- The three corresponding cards (**USERS**, **STAFF**, and **ACCESS AND RIGHTS**) are to be removed from DOWNTIME Settings only after their replacement YARDHUB workflows are implemented, tested and verified. Do not remove the existing DOWNTIME controls prematurely and leave administration inaccessible.
+- YARDHUB Access and Rights is visible only to protected DEV, DEV1 and ADMIN identities, subject to server-side authorization. ROOTS remains hidden: DEV can administer DEV1/ADMIN assignments; DEV1 has only the separately scoped ability to assign ADMIN; ADMIN cannot browse or administer ROOTS.
+- Ordinary YARD ROLE permissions are configured per department using four mutually exclusive levels: **Off**, **Read Only**, **Input**, and **Manage**. Read Only permits viewing only; Input permits viewing and adding entries; Manage permits viewing, adding, editing and removing entries.
+- Operational STAFF job roles remain distinct from application access permissions.
+
+This decision confirms the administration destination and UI direction. It does not yet resolve the separate Phase 1 questions about which existing permission planes are converted into YARD ROLES, cross-store transaction semantics, legacy account mapping, or exact migration details. No accounts are to be deleted or reclassified in production based solely on this decision. Preserve historical records and audit attribution; any retirement/reclassification must be an explicit, reviewed migration with rollback.
