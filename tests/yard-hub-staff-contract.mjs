@@ -11,7 +11,7 @@ const packageJson = JSON.parse(await readFile('package.json', 'utf8'));
 
 assert.match(html, /data-app="floor" type="button" aria-describedby="yardFloorStatus"/, 'STAFF MANAGEMENT has an enabled launcher using the existing floor module identity');
 assert.match(html, /<strong>STAFF MANAGEMENT<\/strong>/, 'The launcher uses the approved STAFF MANAGEMENT title');
-assert.match(html, /id="yardHubStaffScreen"/, 'The staff workspace is available as a separate YARD HUB screen');
+assert.ok(staff.includes("screen.id='yardHubStaffScreen'"), 'The staff workspace is available as a separate YARD HUB screen');
 assert.match(html, /window\.YARD_HUB_STAFF_API='https:\/\/ygwfipksbbprqynvbklk\.supabase\.co\/functions\/v1\/yard-hub-staff-api'/, 'The browser is configured to use the isolated Staff API');
 assert.match(html, /yard-hub-staff\.css\?v=20261126-1/, 'The isolated Staff stylesheet is loaded');
 assert.match(html, /yard-hub-staff\.js\?v=20261126-1/, 'The isolated Staff client is loaded');
