@@ -17,11 +17,14 @@ assert.match(admin, /yardHubMenu:collectYardHubStructure\(\)/, "YARD HUB structu
 assert.match(admin, /YARD HUB launcher structure will update for authenticated users/, "Publish confirmation describes the live YARD HUB effect");
 assert.match(admin, /CORE DEPARTMENT/, "Protected core departments cannot be removed");
 assert.match(admin, /titleInput.disabled=true;descriptionInput.disabled=true/, "DOWNTIME launcher identity and label remain locked");
-assert.match(admin, /add.disabled=entry.kind==="downtime"\|\|entry.kind==="gatelog"\|\|entry.kind==="repairs-maintenance"\|\|entry.kind==="hub-settings"/, "DOWNTIME, GATELOG, R&M and HUB SETTINGS cannot be redirected through configurable sub-menus");
-assert.match(edge, /base\?\.kind === "downtime" \? base\.title/, "Server enforces the immutable DOWNTIME launcher title");
+assert.match(admin, /add.disabled=entry.kind==="downtime"\|\|entry.kind==="gatelog"\|\|entry.kind==="repairs-maintenance"\|\|entry.kind==="hub-settings"\|\|entry.kind==="floor"/, "DOWNTIME, GATELOG, R&M, HUB SETTINGS and STAFF MANAGEMENT cannot be redirected through configurable sub-menus");
+assert.match(edge, /base\?\.kind === "downtime" \|\| base\?\.kind === "floor" \|\| base\?\.kind === "check-sheets" \? base\.title/, "Server enforces immutable DOWNTIME, STAFF MANAGEMENT and DAILY launcher titles");
 assert.match(edge, /base\?\.kind === "downtime" \|\| base\?\.kind === "gatelog" \|\| base\?\.kind === "hub-settings"/, "Server prevents configurable sub-menus from intercepting protected core routes");
 
 assert.match(edge, /function normalizeYardHubMenu\(/, "Server validates YARD HUB structure");
+assert.match(edge, /Protected core departments are additive defaults/, "Missing protected core launchers are restored by the YARD HUB menu normalizer");
+assert.match(edge, /title: "STAFF MANAGEMENT", description: "STAFF & YARD OPERATIONS", enabled: true, order: 1, protected: true/, "STAFF MANAGEMENT is a protected YARD HUB core department");
+assert.match(runtime, /kind==='floor'[\s\S]*?window\.YardHubStaff\?\.open\(\)/, "STAFF MANAGEMENT launches its dedicated workforce directory");
 assert.match(edge, /between 1 and 100 departments/, "Server enforces department count limits");
 assert.match(edge, /no more than 30 sub-menu items/, "Server enforces sub-menu count limits");
 assert.match(edge, /yardHubMenu: normalizeYardHubMenu\(input\.yardHubMenu\)/, "Server normalizes the new config domain");

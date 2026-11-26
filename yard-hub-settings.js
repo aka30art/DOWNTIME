@@ -368,6 +368,12 @@
       if(error.status===409){try{await loadState()}catch{}}
     }finally{setBusy(false);updateTierSaveState()}
   }
+  window.YARD_HUB_SETTINGS={
+    async openUsers(){
+      await openSettings();
+      if(!$('yardHubSettingsScreen')?.hidden)openSettingsView('users');
+    }
+  };
   function bind(){
     const button=$('yardHubSettingsBtn');
     if(button){button.hidden=true;button.addEventListener('click',openSettings)}

@@ -13,6 +13,8 @@ const repairMaintenanceHtml=await readFile(resolve('repair-maintenance.html'),'u
 const repairMaintenanceApp=await readFile(resolve('repair-maintenance-app.js'),'utf8');
 const yardHubSettingsScript=await readFile(resolve('yard-hub-settings.js'),'utf8');
 const yardHubSettingsCss=await readFile(resolve('yard-hub-settings.css'),'utf8');
+const yardHubStaffScript=await readFile(resolve('yard-hub-staff.js'),'utf8');
+const yardHubStaffCss=await readFile(resolve('yard-hub-staff.css'),'utf8');
 const yardHubStructureScript=await readFile(resolve('yard-hub-structure.js'),'utf8');
 const yardHubStructureCss=await readFile(resolve('yard-hub-structure.css'),'utf8');
 const gatelogApp=await readFile(resolve('gatelog-app.js'),'utf8');
@@ -39,8 +41,8 @@ for (const requiredAuthHook of ['id="centralUsername"', 'id="teamPin"', 'data-pi
 }
 const server=createServer((req,res)=>{
   const pathname=String(req.url||'').split('?')[0];
-  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js'||pathname==='/yard-hub-settings.js'||pathname==='/yard-hub-structure.js'||pathname==='/repair-maintenance-structure.js'||pathname==='/gatelog-app.js'||pathname==='/gatelog-day-management.js'||pathname==='/gatelog-settings.js';
-  const isCss=pathname==='/yard-hub-settings.css'||pathname==='/yard-hub-structure.css'||pathname==='/gatelog-app.css';
+  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js'||pathname==='/yard-hub-settings.js'||pathname==='/yard-hub-staff.js'||pathname==='/yard-hub-structure.js'||pathname==='/repair-maintenance-structure.js'||pathname==='/gatelog-app.js'||pathname==='/gatelog-day-management.js'||pathname==='/gatelog-settings.js';
+  const isCss=pathname==='/yard-hub-settings.css'||pathname==='/yard-hub-staff.css'||pathname==='/yard-hub-structure.css'||pathname==='/gatelog-app.css';
   res.writeHead(200,{'content-type':isJavaScript?'application/javascript; charset=utf-8':isCss?'text/css; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store'});
   if(pathname==='/central-bank-client.js')return res.end(adapter);
   if(pathname==='/assets/staff/staff-image-library.js')return res.end(staffImageLibrary);
@@ -49,6 +51,8 @@ const server=createServer((req,res)=>{
   if(pathname==='/repair-maintenance.html')return res.end(repairMaintenanceHtml);
   if(pathname==='/yard-hub-settings.js')return res.end(yardHubSettingsScript);
   if(pathname==='/yard-hub-settings.css')return res.end(yardHubSettingsCss);
+  if(pathname==='/yard-hub-staff.js')return res.end(yardHubStaffScript);
+  if(pathname==='/yard-hub-staff.css')return res.end(yardHubStaffCss);
   if(pathname==='/yard-hub-structure.js')return res.end(yardHubStructureScript);
   if(pathname==='/yard-hub-structure.css')return res.end(yardHubStructureCss);
   if(pathname==='/gatelog-app.js')return res.end(gatelogApp);
@@ -343,8 +347,8 @@ window.supabase={createClient:()=>({
   const req=route.request().postDataJSON();
   if(req.action==='yard-hub-menu')return route.fulfill({status:200,contentType:'application/json',headers:cors,body:JSON.stringify({publishedVersion:1,yardHubMenu:{departments:[
    {id:'downtime',kind:'downtime',title:'DOWNTIME',description:'PLANT DOWNTIME & OPERATIONS',enabled:true,order:0,protected:true,submenus:[]},
-   {id:'floor',kind:'floor',title:'FLOOR',description:'FLOOR & YARD OPERATIONS',enabled:true,order:1,protected:false,submenus:[]},
-   {id:'check-sheets',kind:'check-sheets',title:'CHECK SHEETS',description:'INSPECTIONS & COMPLIANCE',enabled:true,order:2,protected:false,submenus:[]},
+   {id:'floor',kind:'floor',title:'STAFF MANAGEMENT',description:'STAFF & YARD OPERATIONS',enabled:true,order:1,protected:true,submenus:[]},
+   {id:'check-sheets',kind:'check-sheets',title:'DAILY',description:'INSPECTIONS & COMPLIANCE',enabled:true,order:2,protected:false,submenus:[]},
    {id:'repairs-maintenance',kind:'repairs-maintenance',title:'R&M',description:'REPAIRS & MAINTENANCE',enabled:true,order:3,protected:false,submenus:[]},
    {id:'hub-settings',kind:'hub-settings',title:'HUB SETTINGS',description:'YARD HUB CONFIGURATION & ACCESS CONTROL',enabled:true,order:4,protected:true,submenus:[]}
   ]},repairMaintenanceCategories:{categories:[
@@ -421,7 +425,7 @@ async function signIn(page,pin='2468',username='DEV'){
  await page.waitForFunction(()=>document.querySelector('#yardHubSettingsBtn')?.dataset.accessChecked==='true',{timeout:5000});
  if(username.toUpperCase()==='JAN')assert.equal(await page.locator('#yardHubSettingsBtn').isVisible(),false,'ordinary USER cannot see HUB SETTINGS after access verification');
  assert.equal(await page.locator('#launchDowntimeBtn').isEnabled(),true,'DOWNTIME is the available application');
- assert.equal(await page.locator('.yard-tile[data-app="floor"]').isDisabled(),true,'FLOOR stays unavailable until released');
+ assert.equal(await page.locator('.yard-tile[data-app="floor"]').isEnabled(),true,'STAFF MANAGEMENT is available from the YARD HUB launcher');
  assert.equal(await page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until released');
  await page.waitForFunction(()=>{const tile=document.querySelector('.yard-tile[data-app="repair-maintenance"]');return tile&&!tile.disabled},{timeout:5000});
  assert.equal(await page.locator('.yard-tile[data-app="repair-maintenance"]').isEnabled(),true,'R&M unlocks after the existing DOWNTIME session passes its module permission check');
@@ -550,7 +554,7 @@ try{
  await owner.page.locator('#yardHubSettingsBack').click();
  await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:3000});
  assert.equal(await owner.page.locator('#launchDowntimeBtn').isEnabled(),true,'DOWNTIME remains available after Hub Settings changes');
- assert.equal(await owner.page.locator('.yard-tile[data-app="floor"]').isDisabled(),true,'FLOOR stays unavailable until the application is released');
+ assert.equal(await owner.page.locator('.yard-tile[data-app="floor"]').isEnabled(),true,'STAFF MANAGEMENT stays available as a protected YARD HUB core module');
  assert.equal(await owner.page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until the application is released');
  assert.equal(await owner.page.locator('#yardHubSettingsBtn').isVisible(),true,'DEV root retains YARD HUB Settings access');
  await owner.page.locator('#launchDowntimeBtn').click();
