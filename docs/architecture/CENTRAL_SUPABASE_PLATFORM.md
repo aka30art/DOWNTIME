@@ -92,7 +92,7 @@ The production inventory confirmed this RPC was not installed. The branch's migr
 
 **Production migration checkpoint — 26 November 2026:** the migration was applied to DOWNTIME as `20261126114151_central_bank_atomic_state_audit`. The resulting function was verified with signature `downtime_commit_central_bank(bigint,jsonb,text,jsonb,jsonb)`, SECURITY DEFINER enabled, an empty search_path, and EXECUTE granted only to `service_role`. `anon` and `authenticated` cannot execute it. The Central Bank version and row count, audit count, session count, and GATELOG customer, vehicle, visit, assignment and audit counts were identical before and after the migration.
 
-The dependent Edge Functions are not yet deployed at this checkpoint. Do not deploy a function that calls this RPC until its production signature and grants have been verified.
+On 26 November 2026, after the RPC signature and grants were verified, the dependent Edge Functions were deployed to the same DOWNTIME project: `central-bank` v16 and `gatelog-api` v7. Their deployed source was fetched back from production and matched the feature-branch source used for deployment. The GATELOG API's temporary `username` compatibility field is populated from STAFF records only; Gateman selection is never resolved against USER accounts.
 
 ## 8. Security and data integrity
 
