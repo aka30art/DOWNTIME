@@ -463,6 +463,7 @@ Deno.serve(async(req)=>{
        if(!cleanName||cleanName.length>80||!incomingProfile||typeof incomingProfile!=="object"||Array.isArray(incomingProfile))return json({error:"Invalid staff profile entry"},400);
        const existing={...((newProfiles as any)[cleanName]||{})};
        const profile={...existing,...incomingProfile};
+       for(const field of ["staffId","linkedUserId"]){if(Object.prototype.hasOwnProperty.call(existing,field))profile[field]=existing[field];else delete profile[field]}
        const department=String(profile.department||"");
        if(department){
          const departmentRoles:Record<string,string[]>={"SCPL":["Main Operator","Picking Line Crew"],"R&M":["Mechanic"],"Management":["Manager"],"SCFL":["Floor Crew"],"Traffic":["Gateman"]};
@@ -597,6 +598,7 @@ Deno.serve(async(req)=>{
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
    const existing=idx>=0?bank.users[idx]:null;
    if(!existing)return json({error:"New accounts must use the atomic USER + STAFF provisioning workflow."},409);
+   if(existing.provisioning&&body.enabled!==false)return json({error:"A pending USER must be activated only after its YARDHUB tier assignment is persisted."},409);
    const isRootName=username.toUpperCase()==="DEV";
    if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEV and DEVACC can create accounts or assign user tiers."},403);
    if(isRootName){
