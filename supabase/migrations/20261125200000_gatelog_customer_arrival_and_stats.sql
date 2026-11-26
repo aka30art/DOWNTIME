@@ -4,7 +4,7 @@ create or replace function public.gatelog_create_customer_arrival(
   p_customer_name text, p_registration text, p_waste_types text[], p_actor text
 ) returns table(customer_id uuid, customer_name text, visit_id uuid)
 language plpgsql security invoker set search_path = public, pg_temp
-as $
+as $function$
 #variable_conflict use_column
 declare
   v_name text := trim(p_customer_name);
@@ -35,7 +35,7 @@ begin
     jsonb_build_object('registration',v_registration,'customerName',v_name,'wasteTypes',to_jsonb(p_waste_types),'customerCreated',true));
   return query select v_customer_id,v_name,v_visit_id;
 end;
-$$;
+$function$;
 revoke all on function public.gatelog_create_customer_arrival(text,text,text[],text) from public,anon,authenticated;
 grant execute on function public.gatelog_create_customer_arrival(text,text,text[],text) to service_role;
 
