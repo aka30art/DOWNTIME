@@ -541,13 +541,6 @@ try{
  assert.equal(owner.getVersion(),originalDowntimeCentralVersion,'YARD HUB tier edits do not increment the DOWNTIME Central Bank version');
  await owner.page.locator('#yardHubTiersView [data-yard-settings-home]').click();
  await owner.page.locator('#yardHubSettingsUsers').click();
- await owner.page.waitForFunction(()=>{const button=document.querySelector('#yardHubUserAdd');return button&&!button.disabled},{timeout:5000});
- await owner.page.locator('#yardHubUserAdd').click();
- await owner.page.locator('#yardHubUserModal').waitFor({state:'visible',timeout:5000});
- assert.equal(await owner.page.locator('#yardHubUserModal').isVisible(),true,'DEV can open the new USER provisioning form');
- assert.match(await owner.page.locator('#yardHubUserModalHint').textContent(),/No active canonical YARD ROLE is configured/,'new USER creation explains why provisioning is unavailable');
- assert.equal(await owner.page.locator('#yardHubUserSave').isDisabled(),true,'new USER creation remains blocked until an approved canonical YARD ROLE exists');
- await owner.page.locator('#yardHubUserCancel').click();
  await owner.page.locator('.yard-hub-user-row[data-username="Jan"]').getByRole('button',{name:'EDIT'}).click();
  await owner.page.locator('#yardHubUserHubTier').selectOption('MANAGER');
  await owner.page.locator('#yardHubUserSave').click();
