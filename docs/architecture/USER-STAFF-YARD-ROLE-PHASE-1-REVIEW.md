@@ -245,6 +245,41 @@ Proposed versioned API contract for implementation:
 - Legacy `user-save`, `user-delete`, `tiers-save` and `save-user-tier` writes become reject-only after cutover. The legacy STAFF-only path may remain only for explicitly unlinked operational STAFF and must never create a USER.
 - Stale clients receive an explicit contract-version error, clear their cached session and refresh; there is no silent legacy permission fallback.
 
+## 6.5 Action-level permission-consumer matrix
+
+The following maps the inspected action groups to the target four-level model. ROOTS is evaluated first and separately. For ordinary YARD ROLEs, any action not explicitly mapped must fail closed until assigned a level.
+
+| Domain / action group | Current action or capability | Target level / rule |
+|---|---|---|
+| DOWNTIME tracker | `get-state`, dashboard/week/report visibility | OFF denies; Read Only permits permitted reads; Input/Manage permit reads |
+| DOWNTIME tracker | `save-state`, add/edit tracker entries | Input or Manage |
+| DOWNTIME tracker | Delete/remove/archive operational records | Manage |
+| DOWNTIME Settings | Area, reason, shift schedule, daily-task and station configuration reads | Read Only or higher |
+| DOWNTIME Settings | Add/edit area, reason, schedule, task or station configuration | Input or Manage; keep domain validation and station constraints |
+| DOWNTIME STAFF | Read STAFF directory/profile | Read Only or higher, subject to field-level privacy |
+| DOWNTIME STAFF | Create/update/archive/restore STAFF operational profiles | Input for add/edit; Manage for removal/destructive lifecycle actions |
+| DOWNTIME assignments | Read assignment data and station configuration | Read Only or higher |
+| DOWNTIME assignments | Assign/reassign operators and stations | Input or Manage |
+| DOWNTIME daily operator | `daily-operator-list` | Read Only or higher |
+| DOWNTIME daily operator | `daily-operator-assign` | Input or Manage |
+| DOWNTIME daily operator | `daily-operator-unlock` | Manage; retain reason and audit requirement |
+| Plant power | `set-plant-status` / current `canControlPlantPower` | Explicit protected operational capability. Do not infer from generic Input; default deny until its approved department/action mapping is recorded |
+| USER and Access and Rights | `users`, `user-save`, `user-delete`, `tiers-save`, YARDHUB `save-user-tier`, `remove-user-tier`, `save-tier-settings` | Move to YARDHUB administration. Protected ROOTS operations use dedicated actions; ordinary department levels do not grant account or role administration |
+| R&M | `list`, `get`, `asset-list`, `preset-list`, `model-list`, `settings-get` | Read Only or higher |
+| R&M | Fault create/update, notes, evidence upload, asset add/update/archive, preset add, settings update, model add | Input or Manage |
+| R&M | Fault delete, asset delete, preset delete, model delete, export deletion | Manage |
+| R&M reports | Export create, export list/open/download | Classify as explicit report capabilities during implementation; Read Only does not automatically grant export. Default deny if no explicit grant |
+| GATELOG | `bootstrap`, `day-register`, `history` | Read Only or higher |
+| GATELOG | Arrival, departure, customer/vehicle save, visit correction | Input or Manage |
+| GATELOG | Visit deletion, customer archive, waste-type catalogue management | Manage |
+| GATELOG | Gateman assignment and lock | Input or Manage, with a separately enforced lock/unlock rule |
+| GATELOG reports | Report generation, export, save and archive | Explicit report capabilities; do not infer export/archive from view access |
+| Photo evidence | View, create-upload, delete | Read Only, Input and Manage respectively, but only after F1 ownership/session enforcement is implemented |
+| Central configuration control plane | Draft, publish, restore and configuration audit | Separate protected control-plane policy; not granted by ordinary YARD ROLE department levels |
+| Spectator | Read-only shared-state snapshot | Existing separate spectator access-code/JWT boundary; not an ordinary USER role |
+
+Implementation must turn this matrix into a route-by-route test table. The table intentionally marks plant power, exports, report archive and lock operations as explicit capabilities rather than guessing that CRUD levels imply them. Every endpoint must enforce its classification server-side; hiding a button or tile is insufficient.
+
 ## 7. Identity-reset dependency manifest
 
 The production reset is a separate migration and must be generated from live production data immediately before its separately approved execution. This review defines the manifest structure; it does not guess production counts or enumerate private objects.
