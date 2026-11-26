@@ -10,6 +10,7 @@ assert.match(tracker,/window\.DOWNTIME_CENTRAL_API=.*functions\/v1\/central-bank
 assert.match(tracker,/src="central-bank-client\.js\?v=20261125-operator-duty-compat1"/,'tracker loads the cache-busted central browser adapter');
 assert.ok(tracker.indexOf('DOWNTIME_CENTRAL_API_KEY') < tracker.indexOf('src="central-bank-client.js?v=20261125-operator-duty-compat1"'),'publishable API key is configured before the adapter loads');
 assert.match(tracker,/id="centralUsername" class="input" type="text" autocomplete="username"/,'login uses a manually entered username and does not enumerate accounts');
+assert.doesNotMatch(tracker,/DowntimeCentral\.loginOptions\(\)/,'pre-authentication login does not request an account directory');
 assert.match(tracker,/DowntimeCentral\.listUsers\(\)/,'authenticated user-directory refresh uses the protected endpoint');
 assert.match(tracker,/DowntimeCentral\.login\(username,pin\)/,'user PINs are verified centrally');
 assert.match(tracker,/DowntimeCentral\.state\(\)/,'tracker state is loaded from central bank');
