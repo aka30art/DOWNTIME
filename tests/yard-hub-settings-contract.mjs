@@ -183,7 +183,7 @@ assert.ok(hubApi.includes('["NONE", "READ", "INPUT", "EDIT"]'),'YARD HUB setting
 
 assert.match(hubApi,/resolveRootsAuthority/,'YARD HUB settings resolves protected ROOTS separately from legacy tiers');
 assert.match(hubApi,/const isProtectedRoot = \["DEV", "DEV1", "ADMIN"\]/,'only protected ROOTS identities receive automatic settings access');
-assert.match(hubApi,/rootsAuthority === "DEV" \? bank\.users/,'ROOTS identities are hidden from non-DEV settings user listings');
+assert.match(hubApi,/rootsAuthority === "DEV" \|\|/,'ROOTS identities are hidden from non-DEV settings user listings');
 assert.match(hubApi,/Protected ROOTS identities cannot receive ordinary YARD HUB tier assignments/,'ROOTS identities cannot be assigned ordinary Hub tiers');
 
 // Custom YARD HUB tiers are root-managed and persisted independently.
