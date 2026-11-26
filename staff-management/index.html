@@ -116,7 +116,7 @@
     <form id="loginForm" method="dialog">
       <div class="sm-dialog-heading"><div><p class="sm-eyebrow">EXISTING YARD HUB AUTHENTICATION</p><h2>Staging sign in</h2></div><button class="sm-icon-button" type="button" data-close="loginDialog" aria-label="Close">×</button></div>
       <label class="sm-field"><span>Username</span><input id="loginUsername" autocomplete="username" required maxlength="32"></label>
-      <label class="sm-field"><span>PIN</span><input id="loginPin" type="password" inputmode="numeric" autocomplete="current-password" required maxlength="32"></label>
+      <label class="sm-field"><span>PIN</span><input id="loginPin" type="password" inputmode="numeric" autocomplete="current-password" required minlength="4" maxlength="8" pattern="[0-9]{4,8}"></label>
       <p class="sm-muted">This signs in against the staging Central Bank only. Your production session remains separate.</p>
       <div class="sm-dialog-actions"><button class="sm-button sm-button-secondary" type="button" data-close="loginDialog">Cancel</button><button id="loginSubmit" class="sm-button sm-button-primary" type="submit">Sign in</button></div>
       <p id="loginError" class="sm-error" role="alert"></p>
