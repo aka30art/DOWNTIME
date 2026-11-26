@@ -747,3 +747,14 @@ The owner confirms that protected ROOTS identities **DEV1** and **ADMIN** automa
 - Root isolation and all department actions remain subject to server-side enforcement; UI visibility is not a security boundary.
 
 This decision resolves whether DEV1 and ADMIN need per-department matrix configuration: **no**. Their Manage access is automatic by ROOTS classification, subject to the stated higher-root isolation rules. It does not authorize production changes or deployment.
+
+
+## Phase 1 execution update — controlling specification and source map (2026-11-26)
+
+The controlling specification has been consolidated at the beginning of the architecture record. Older chronological decision notes are retained only as history and are superseded wherever they conflict with that specification.
+
+A source dependency inventory has been added at `docs/architecture/USER-STAFF-YARD-ROLE-SOURCE-DEPENDENCY-MAP.md`. It records confirmed current Central Bank identity/session/tier dependencies, STAFF compatibility copies, YARDHUB tier persistence and API dependencies, UI integration points, and test contracts.
+
+The source map is explicitly preliminary: repository-wide enumeration of every permission consumer, session consumer, STAFF reference, database function/policy and identity-owned dependency remains outstanding. Phase 1 is not complete and implementation must not start until that census, the canonical schema/API contract and the Phase 1 exit review are complete.
+
+No application code, database schema/data, Supabase configuration or deployment has been changed. The work to date consists only of architecture documentation on this feature branch.
