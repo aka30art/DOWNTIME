@@ -39,7 +39,8 @@ Deno.serve(async (req: Request) => {
   // Gateman duty is assigned to operational STAFF, never to a USER account.
   const staffRoster=Array.isArray(bank.payload.staff?.roster)?bank.payload.staff.roster:(Array.isArray(bank.payload.appData?.staffRoster)?bank.payload.appData.staffRoster:[]);
   const staffProfiles=bank.payload.staff?.profiles||bank.payload.appData?.operatorProfiles||{};
-  // Compatibility fields username/tier keep the previous GATELOG client rendering, but their values are derived only from STAFF records.\n  const gatemen=staffRoster.filter((name:any)=>typeof name==="string"&&name.trim()).map((name:string)=>({staffName:clean(name,80),username:clean(name,80),displayName:clean(name,120),onSiteRole:clean(staffProfiles[name]?.onSiteRole||"ROLE NOT SET",60),tier:clean(staffProfiles[name]?.onSiteRole||"ROLE NOT SET",60),status:clean(staffProfiles[name]?.status||"ACTIVE",20),onSite:staffProfiles[name]?.onSite!==false})).filter((item:any)=>item.status!=="ARCHIVED"&&item.onSite).sort((a:any,b:any)=>a.displayName.localeCompare(b.displayName));
+  // Compatibility fields username/tier keep the previous GATELOG client rendering, but their values are derived only from STAFF records.
+  const gatemen=staffRoster.filter((name:any)=>typeof name==="string"&&name.trim()).map((name:string)=>({staffName:clean(name,80),username:clean(name,80),displayName:clean(name,120),onSiteRole:clean(staffProfiles[name]?.onSiteRole||"ROLE NOT SET",60),tier:clean(staffProfiles[name]?.onSiteRole||"ROLE NOT SET",60),status:clean(staffProfiles[name]?.status||"ACTIVE",20),onSite:staffProfiles[name]?.onSite!==false})).filter((item:any)=>item.status!=="ARCHIVED"&&item.onSite).sort((a:any,b:any)=>a.displayName.localeCompare(b.displayName));
   const fail=(error:any)=>json({error:error?.message||"GATELOG request failed."},400);
 
   if(action==="bootstrap"){
