@@ -6,6 +6,7 @@ const fn=await readFile('supabase/functions/photo-evidence/index.ts','utf8');
 const migration=await readFile('supabase/migrations/20261120010000_photo_evidence.sql','utf8');
 const scopeMigration=await readFile('supabase/migrations/20261126190000_photo_evidence_record_scope.sql','utf8');
 const workflow=await readFile('.github/workflows/photo-evidence-cleanup.yml','utf8');
+const config=await readFile('supabase/config.toml','utf8');
 
 assert.match(html,/let SB_URL='https:\/\/ygwfipksbbprqynvbklk\.supabase\.co'/,'Supabase constants are initialized before photo endpoint use');
 assert.doesNotMatch(html,/const SB_URL=/,'No duplicate Supabase constants declaration remains');
@@ -27,6 +28,7 @@ assert.match(fn,/5\*1024\*1024/,'Server enforces 5MB size cap');
 assert.match(fn,/action==="cleanup"/,'Cleanup endpoint is implemented');
 assert.match(fn,/x-cleanup-secret/,'Cleanup is protected by a secret');
 assert.match(fn,/x-downtime-session/,'User-facing photo actions require a Central Bank session header');
+assert.match(config,/\[functions\.photo-evidence\][\s\S]*?verify_jwt\s*=\s*false/,'Photo endpoint delegates authentication to its own Central Bank session and cleanup-secret checks');
 assert.match(fn,/functions\/v1\/central-bank/,'Photo authorization delegates session validation to the Central Bank');
 assert.match(fn,/permissions\.canViewDashboards!==true/,'Photo viewing requires server-side DOWNTIME read permission');
 assert.match(fn,/permissions\.canEditTracker!==true/,'Photo upload requires server-side DOWNTIME input permission');
