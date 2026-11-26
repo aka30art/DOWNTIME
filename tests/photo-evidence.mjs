@@ -30,6 +30,7 @@ assert.match(fn,/x-cleanup-secret/,'Cleanup is protected by a secret');
 assert.match(fn,/x-downtime-session/,'User-facing photo actions require a Central Bank session header');
 assert.match(config,/\[functions\.photo-evidence\][\s\S]*?verify_jwt\s*=\s*false/,'Photo endpoint delegates authentication to its own Central Bank session and cleanup-secret checks');
 assert.match(fn,/functions\/v1\/central-bank/,'Photo authorization delegates session validation to the Central Bank');
+assert.match(fn,/photo-evidence-context/,'Photo authorization requests only a minimal Central Bank permission context');
 assert.match(fn,/permissions\.canViewDashboards!==true/,'Photo viewing requires server-side DOWNTIME read permission');
 assert.match(fn,/permissions\.canEditTracker!==true/,'Photo upload requires server-side DOWNTIME input permission');
 assert.match(fn,/permissions\.canDeleteRecords!==true/,'Photo deletion requires server-side DOWNTIME Manage permission');
