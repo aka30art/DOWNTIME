@@ -599,11 +599,15 @@ Deno.serve(async(req)=>{
  }
  if(action==="user-save"){
    if(!priv.canManageUsers)return json({error:"Permission denied"},403);
-   const username=String(body.username||"").trim(),displayName=String(body.displayName||username).trim(),newTier=String(body.tier||"USER"),pin=String(body.pin||"");
-   if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username)||!tiers.includes(newTier))return json({error:"Invalid user/tier"},400);
+   const username=String(body.username||"").trim(),displayName=String(body.displayName||username).trim(),pin=String(body.pin||"");
+   if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username))return json({error:"Invalid username"},400);
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
    const existing=idx>=0?bank.users[idx]:null;
    if(!existing)return json({error:"New accounts must use the canonical USER + STAFF + YARD ROLE provisioning workflow."},409);
+   const canonicalIdentity=!!existing.userId&&!!existing.staffId;
+   if(canonicalIdentity&&body.tier!=null)return json({error:"Canonical YARD ROLE identities cannot receive legacy tier claims."},400);
+   const newTier=canonicalIdentity?undefined:String(body.tier||existing.tier||"USER");
+   if(!canonicalIdentity&&!tiers.includes(newTier))return json({error:"Invalid user/tier"},400);
    if(existing.provisioning&&body.enabled!==false)return json({error:"A pending USER must be activated only after its canonical YARD ROLE assignment is persisted."},409);
    const isRootName=username.toUpperCase()==="DEV";
    if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEV and DEVACC can create accounts or assign user tiers."},403);
@@ -617,7 +621,7 @@ Deno.serve(async(req)=>{
      if(existing?.tier==="OWNER")return json({error:"The root OWNER account is protected."},403);
    }
    let user=existing||{username};
-   user.username=username;user.displayName=displayName;user.tier=newTier;user.enabled=body.enabled!==false;
+   user.username=username;user.displayName=displayName;if(canonicalIdentity)delete user.tier;else user.tier=newTier;user.enabled=body.enabled!==false;
    if(pin){if(!/^[0-9]{4,8}$/.test(pin))return json({error:"PIN must be 4-8 digits"},400);user.pinSalt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));user.pinHash=await hashPin(pin,user.pinSalt)}
    if(idx>=0)bank.users[idx]=user;else{if(!pin)return json({error:"PIN required for new user"},400);bank.users.push(user)}
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
