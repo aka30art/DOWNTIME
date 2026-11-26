@@ -403,10 +403,34 @@ Deno.serve(async(req)=>{
        if(!cleanName||cleanName.length>80||!incomingProfile||typeof incomingProfile!=="object"||Array.isArray(incomingProfile))return json({error:"Invalid staff profile entry"},400);
        const existing={...((newProfiles as any)[cleanName]||{})};
        const profile={...existing,...incomingProfile};
+       const department=String(profile.department||"");
+       if(department){
+         const departmentRoles:Record<string,string[]>={"SCPL":["Main Operator","Picking Line Crew"],"R&M":["Mechanic"],"Management":["Manager"],"SCFL":["Floor Crew"],"Traffic":["Gateman"]};
+         if(!Object.prototype.hasOwnProperty.call(departmentRoles,department))return json({error:"Invalid staff department"},400);
+         if(!departmentRoles[department].includes(String(profile.onSiteRole||"")))return json({error:"YARD ROLE does not match the selected department"},400);
+         if(department==="SCPL"&&canManageAssignments){
+           const requestedStation=String(profile.station??profile.assignedStation??"").trim();
+           if(requestedStation){
+             const stationConfig=Array.isArray(bank.appData?.stationConfig)?bank.appData.stationConfig:[];
+             const selected=stationConfig.find((station:any)=>String(station.id||"")===requestedStation||String(station.name||"").toLowerCase()===requestedStation.toLowerCase()||(String(station.name||"")+" · "+String(station.category||"GENERAL")).toLowerCase()===requestedStation.toLowerCase());
+             if(!selected||!/^station-[1-6]$/.test(String(selected.id||"")))return json({error:"SCPL staff may only be assigned to Stations 1-6"},400);
+           }
+         }else if(department!=="SCPL"&&canManageAssignments){
+           profile.station="";
+           profile.stationLocked=false;
+           delete profile.assignedStation;
+         }
+       }
        if(!canManageAssignments){
-         if("station" in existing)profile.station=existing.station;else delete profile.station;
-         if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
-         if("stationLocked" in existing)profile.stationLocked=existing.stationLocked;else delete profile.stationLocked;
+         if(department&&department!=="SCPL"){
+           profile.station="";
+           profile.stationLocked=false;
+           delete profile.assignedStation;
+         }else{
+           if("station" in existing)profile.station=existing.station;else delete profile.station;
+           if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
+           if("stationLocked" in existing)profile.stationLocked=existing.stationLocked;else delete profile.stationLocked;
+         }
        }else{
          const wasLocked=existing.stationLocked===true;
          const explicitlyUnlocked=profile.stationLocked===false;
