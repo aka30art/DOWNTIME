@@ -42,6 +42,8 @@ assert.match(scopeMigration,/add column if not exists department text not null d
 assert.match(html,/function photoAuthHeaders\(\)/,'Browser photo calls attach the authenticated Central Bank session');
 assert.match(html,/recordId:photoRecordId/,'Photo uploads are linked to the stable tracker record ID');
 assert.match(html,/permission\('canDeleteRecords'\)/,'Browser photo removal is limited to Manage permission');
+assert.match(html,/async function flushPendingPhotoDeletes\(\)/,'Photo deletion is queued until the operational record save succeeds');
+assert.ok(html.indexOf('saveTracker(snapshot,centralVersion)')<html.indexOf('await flushPendingPhotoDeletes()'),'photo object deletion runs after the central record save');
 assert.match(migration,/public=false/,'Storage bucket is private');
 assert.match(migration,/enable row level security/,'Metadata table uses RLS');
 assert.match(workflow,/cron: ".*"/,'Scheduled cleanup workflow exists');
