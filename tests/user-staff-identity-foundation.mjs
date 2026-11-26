@@ -96,6 +96,7 @@ const cleanTarget = {
   staff: { roster: [], profiles: {} },
 };
 assert.equal(buildIdentityMigrationPreview(cleanTarget).readyForIdentityCutover, true, "a valid DEV-only reset target passes readiness");
+assert.equal(buildIdentityMigrationPreview(linked).readyForIdentityCutover, false, "a linked multi-user directory is not the clean cutover target");
 
 const duplicateAndOrphan = {
   users: [
