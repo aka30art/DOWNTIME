@@ -27,7 +27,17 @@ function render(){const host=ensureWorkspace();if(!host)return;host.innerHTML=`
   <div class="gatelog-brand"><div class="gatelog-brand-name">DOWNTIME<sup>®</sup></div><div class="gatelog-brand-rule"></div></div>
   <div class="gatelog-hero-actions">
    <div class="gatelog-session-label">HUB AUTHENTICATED AS<strong id="gatelogSessionUser">—</strong></div>
-   <button class="gatelog-hero-icon" id="gatelogOpenCustomers" type="button" aria-label="Open Customer Catalogue" title="Customer Catalogue"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14M5 8.5h14M5 12.5h14M5 16.5h14M5 20.5h14"/></svg></button>
+   <details class="gatelog-main-menu" id="gatelogMainMenu">
+    <summary class="gatelog-hero-icon gatelog-main-menu-trigger" aria-label="Open GATELOG main menu" title="GATELOG Main Menu">
+     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+     <span class="gatelog-menu-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <nav class="gatelog-main-menu-panel" aria-label="GATELOG Main Menu">
+     <button id="gatelogOpenCustomers" type="button">☷ &nbsp; CUSTOMER CATALOGUE</button>
+     <button id="gatelogOpenSettings" type="button" hidden>⚙ &nbsp; GATELOG SETTINGS</button>
+     <button id="gatelogOpenReports" type="button" hidden>▤ &nbsp; REPORT ARCHIVE</button>
+    </nav>
+   </details>
    <button class="gatelog-hero-icon" id="gatelogBack" type="button" aria-label="Return to YARD HUB" title="Return to YARD HUB"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 10 8.5-7 8.5 7v10.5h-6v-7h-5v7h-6z"/></svg></button>
   </div>
  </div>
@@ -41,7 +51,7 @@ function render(){const host=ensureWorkspace();if(!host)return;host.innerHTML=`
  <details class="gatelog-collapsible gatelog-statistics-panel"><summary><span class="gatelog-panel-slash"></span><span>VISIT STATISTICS</span><span class="gatelog-panel-chevron" aria-hidden="true"></span></summary><div class="gatelog-collapsible-body" id="gatelogPeriodStatistics">${periodStatsMarkup()}</div></details>
 </div>
 <div class="gatelog-modal" id="gatelogModal" hidden role="dialog" aria-modal="true" aria-labelledby="gatelogModalTitle"><div class="gatelog-modal-backdrop" data-modal-close></div><section class="gatelog-modal-window"><header class="gatelog-modal-head"><div><div class="gatelog-eyebrow">YARD OPERATIONS CORE</div><h2 id="gatelogModalTitle">NEW VISIT</h2></div><button class="gatelog-modal-close" data-modal-close aria-label="Close">×</button></header><div id="gatelogModalBody"></div></section></div>`;
- $('gatelogBack').onclick=showHome;$('gatelogNewVisit').onclick=()=>showModal('choice');$('gatelogOpenCustomers').onclick=()=>showModal('catalogue');bindPeriodTabs();const current=session();$('gatelogSessionUser').textContent=String(current?.username||current?.name||current?.operator_name||'—').toUpperCase();
+ $('gatelogBack').onclick=showHome;$('gatelogNewVisit').onclick=()=>showModal('choice');$('gatelogOpenCustomers').onclick=()=>{const menu=$('gatelogMainMenu');if(menu)menu.open=false;showModal('catalogue')};bindPeriodTabs();const current=session();$('gatelogSessionUser').textContent=String(current?.username||current?.name||current?.operator_name||'—').toUpperCase();
  $('gatelogModal').addEventListener('click',e=>{if(e.target.closest('[data-modal-close]'))closeModal()});window.dispatchEvent(new Event('gatelog:rendered'));
 }
 function registerMarkup(){return state.register.length?'<div class="gatelog-visit-list" aria-label="Individual site visits">'+state.register.map(v=>{const onSite=v.status==='ON_SITE';return '<article class="gatelog-visit-card" data-visit-card="'+esc(v.id)+'"><div class="gatelog-visit-card-heading"><div class="gatelog-visit-customer"><strong>'+esc(v.customer_name)+'</strong><span>'+esc(v.vehicle_registration_snapshot)+'</span></div><span class="gatelog-visit-status'+(onSite?' is-onsite':'')+'">'+(onSite?'ON SITE':'DEPARTED')+'</span></div><div class="gatelog-visit-times"><span><b>TIME IN</b>'+stamp(v.time_in)+'</span><span><b>TIME OUT</b>'+(v.time_out?stamp(v.time_out):'—')+'</span></div><div class="gatelog-visit-waste"><b>WASTE TYPE(S)</b><span>'+esc((v.waste_types||[]).join(', ')||'—')+'</span></div><div class="gatelog-visit-actions">'+(onSite?'<button type="button" class="gatelog-depart" data-depart="'+esc(v.id)+'">DEPART</button>':'<span class="gatelog-visit-action-spacer" aria-hidden="true"></span>')+'<button type="button" class="gatelog-visit-edit" data-visit-edit="'+esc(v.id)+'">EDIT</button><button type="button" class="gatelog-visit-delete" data-visit-delete="'+esc(v.id)+'">DELETE</button></div></article>'}).join('')+'</div>':'<div class="gatelog-empty">No visits recorded for this date.</div>'}
