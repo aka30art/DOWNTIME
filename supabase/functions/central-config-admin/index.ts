@@ -239,7 +239,7 @@ const yardHubDepartmentDefaults = [
   { id: "downtime", kind: "downtime", title: "DOWNTIME", description: "PLANT DOWNTIME & OPERATIONS", enabled: true, order: 0, protected: true, submenus: [] },
   { id: "gatelog", kind: "gatelog", title: "GATELOG", description: "CUSTOMER & SITE ENTRY MANAGEMENT", enabled: true, order: 5, protected: true, submenus: [] },
   { id: "floor", kind: "floor", title: "STAFF MANAGEMENT", description: "STAFF & YARD OPERATIONS", enabled: true, order: 1, protected: true, submenus: [] },
-  { id: "check-sheets", kind: "check-sheets", title: "CHECK SHEETS", description: "INSPECTIONS & COMPLIANCE", enabled: true, order: 2, protected: false, submenus: [] },
+  { id: "check-sheets", kind: "check-sheets", title: "DAILY", description: "INSPECTIONS & COMPLIANCE", enabled: true, order: 2, protected: false, submenus: [] },
   { id: "repairs-maintenance", kind: "repairs-maintenance", title: "R&M", description: "REPAIRS & MAINTENANCE", enabled: true, order: 3, protected: false, submenus: [] },
   { id: "hub-settings", kind: "hub-settings", title: "HUB SETTINGS", description: "YARD HUB CONFIGURATION & ACCESS CONTROL", enabled: true, order: 4, protected: true, submenus: [] },
 ];
@@ -274,7 +274,7 @@ function normalizeYardHubMenu(input: unknown) {
     seenIds.add(id);
     const base = yardHubDepartmentDefaults.find(entry => entry.id === id);
     const kind = base ? base.kind : "custom";
-    const title = base?.kind === "downtime" || base?.kind === "floor" ? base.title : configString(item.title ?? base?.title, "Department title", 48);
+    const title = base?.kind === "downtime" || base?.kind === "floor" || base?.kind === "check-sheets" ? base.title : configString(item.title ?? base?.title, "Department title", 48);
     const description = base?.kind === "downtime" || base?.kind === "floor" ? base.description : configString(item.description ?? base?.description ?? "", "Department description", 100);
     if (!title) throw new Error("Department titles cannot be blank");
     const titleKey = title.toLocaleLowerCase();
