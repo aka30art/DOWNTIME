@@ -29,9 +29,23 @@ alter table public.downtime_roots_assignments enable row level security;
 alter table public.downtime_roots_assignment_audit enable row level security;
 revoke all on public.downtime_roots_assignments from public, anon, authenticated;
 revoke all on public.downtime_roots_assignment_audit from public, anon, authenticated;
-grant all on public.downtime_roots_assignments to service_role;
-grant all on public.downtime_roots_assignment_audit to service_role;
-grant usage, select on sequence public.downtime_roots_assignment_audit_id_seq to service_role;
+grant select on public.downtime_roots_assignments to service_role;
+grant select on public.downtime_roots_assignment_audit to service_role;
+revoke insert, update, delete on public.downtime_roots_assignments from service_role;
+revoke insert, update, delete on public.downtime_roots_assignment_audit from service_role;
+
+create or replace function public.prevent_downtime_roots_assignment_mutation()
+returns trigger language plpgsql security definer set search_path = public
+as $
+begin
+  raise exception 'ROOTS assignments are immutable; use a separately reviewed lifecycle operation';
+end;
+$;
+
+drop trigger if exists downtime_roots_assignment_immutable on public.downtime_roots_assignments;
+create trigger downtime_roots_assignment_immutable
+before update or delete on public.downtime_roots_assignments
+for each row execute function public.prevent_downtime_roots_assignment_mutation();
 
 create or replace function public.prevent_downtime_roots_audit_mutation()
 returns trigger language plpgsql security definer set search_path = public
