@@ -379,6 +379,7 @@ const html = await readFile("index.html", "utf8");
 const provisioningMigration = await readFile("supabase/migrations/20261126233000_canonical_yard_role_registry.sql", "utf8");
 const resolverSource = await readFile("supabase/functions/_shared/yard-role-resolver.mjs", "utf8");
 
+assert.match(centralApi, /import \{ resolveYardRolePermissions \} from ["']\.\.\/_shared\/yard-role-resolver\.mjs["']/);
 assert.match(centralApi, /import \{ activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning, renameLinkedStaffDisplayName \} from ["']\.\.\/_shared\/user-staff-identity\.mjs["']/);
 const provisioningRoutes = centralApi.slice(
   centralApi.indexOf('if(action==="user-staff-provision")'),
@@ -389,6 +390,7 @@ assert.match(provisioningRoutes, /if\(!isDevRoot\)/, "only immutable DEV can pro
 assert.match(provisioningRoutes, /buildPendingUserStaffProvisioning\(bank/);
 assert.match(provisioningRoutes, /requestedYardRoleId/);
 assert.match(provisioningRoutes, /yard_role_assignments/, "activation reads the canonical YARD ROLE assignment store");
+assert.match(provisioningRoutes, /resolveYardRolePermissions\(role,permissions\|\|\[\]\)/, "activation revalidates the active role and complete permission matrix");
 assert.match(provisioningRoutes, /activatePendingUserStaffProvisioning\(bank,roleAssignment,\{userId:currentUser\.userId,username:currentUser\.username/);
 assert.match(provisioningRoutes, /downtime_central_commit_identity_event/, "payload commit and immutable audit are atomic");
 assert.doesNotMatch(provisioningRoutes, /yard_hub_tier_config|save-user-tier/, "legacy YARD HUB tiers cannot activate new identities");
