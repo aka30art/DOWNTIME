@@ -13,7 +13,7 @@ assert.ok(html.includes("option.textContent=stationLabel(station)"),'station pic
 assert.ok(html.includes('OFF PLANT staff stay off the tracker; their station can still be set.'),'OFF PLANT status remains distinct from the saved station assignment');
 assert.ok(html.includes('select#smStation{box-sizing:border-box;min-width:0;max-width:100%')&&html.includes('background-image:url("data:image/svg+xml,'),'station picker has a visible mobile dropdown affordance');
 assert.match(html,/manageAssign\?\{station:\$\('smStation'\)\.value,stationLocked:\$\('smLock'\)\.checked\}:\{\}/,'station and lock updates require assignment permission');
-assert.match(html,/manageStaff\?\{onSite:\$\('smOnPlant'\)\.checked\}:\{\}/,'plant status updates require staff management permission');
+assert.match(html,/manageStaff\?\{onSite:\$\('smOnPlant'\)\.checked,onSiteRole:\$\('smRole'\)\.value\}:\{\}/,'plant status and on-site role updates require staff management permission');
 assert.match(html,/signedStaffPhotoUpload\(name\)/,'existing profile photos use central signed upload');
 assert.match(html,/signedStaffPhotoUpload\(entered\)/,'new member original photos upload during profile creation');
 assert.match(html,/saveOperatorOriginalPhoto\(name,original\)/,'existing photo originals remain stored through the local-preservation flow');
@@ -23,7 +23,15 @@ assert.match(html,/deleteOperatorOriginalPhoto\(name\)/,'REMOVE PHOTO deletes th
 assert.match(html,/id="smCancel"/,'profile modal has an explicit cancel action');
 assert.match(html,/pendingOperatorPhotos\.modal/,'modal photo changes are staged before saving');
 assert.match(html,/data\.length>48000/,'profile thumbnail size is constrained');
-assert.match(html,/staffRoster\(\)\.filter\(n=>n!==name\)/,'staff removal only removes the roster/profile entry');
-assert.match(html,/Historical records remain preserved/,'staff removal explicitly preserves history');
+assert.match(html,/status:archived\?'ACTIVE':'ARCHIVED'/,'staff removal archives the profile instead of deleting it');
+assert.match(html,/function staffRoster\(\)\{state\.operatorProfiles=state\.operatorProfiles\|\|\{\};return allStaffRoster\(\)\.filter\(name=>state\.operatorProfiles\[name\]\?\.status!==['"]ARCHIVED['"]\)\}/,'archived staff are excluded from active operator choices while remaining in the directory');
+assert.match(html,/RESTORE STAFF/,'archived staff can be restored');
+assert.match(html,/id="manageStaffRolesBtn"/,'staff settings exposes on-site role management');
+assert.match(html,/function manageStaffRoles\(\)/,'on-site roles use a dedicated editor');
+assert.match(html,/draftRoleOrigins/,'role renames remain mapped to the original staff assignments when list items are removed');
+assert.doesNotMatch(html,/prompt\(['"]ON-SITE ROLE SETTINGS/,'role management does not rely on browser prompts');
+assert.match(html,/Historical records will be retained/,'archive action explicitly preserves historical records');
+assert.match(html,/const previousRoster=allStaffRoster\(\)\.slice\(\)/,'adding staff preserves archived roster entries');
+assert.match(html,/allStaffRoster\(\)\.some\(n=>n\.toLowerCase\(\)===entered\.toLowerCase\(\)\)/,'archived names cannot be recreated as duplicate staff records');
 assert.doesNotMatch(html,/id="newStaffName"/,'old inline add-name input removed');
 console.log('PASS: STAFF modal upgrade contract — cards, Add New Member, photo lifecycle, station lock, plant status and permissions');

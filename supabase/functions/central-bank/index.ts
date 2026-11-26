@@ -392,35 +392,83 @@ Deno.serve(async(req)=>{
    }
    bank.staff=bank.staff||{roster:[],profiles:{}};
    const currentProfiles=bank.staff.profiles||bank.appData?.operatorProfiles||{};
+   const previousStaffRoles=Array.isArray(bank.appData?.staffRoles)?bank.appData.staffRoles:[];
+   let staffAuditEvents:any[]=[];
    if(canManageStaff){
-     if(incoming.operatorProfiles&&typeof incoming.operatorProfiles!=="object"||Array.isArray(incoming.operatorProfiles))return json({error:"Invalid staff profiles"},400);
+     if(incoming.operatorProfiles!==undefined&&(!incoming.operatorProfiles||typeof incoming.operatorProfiles!=="object"||Array.isArray(incoming.operatorProfiles)))return json({error:"Invalid staff profiles"},400);
      if(!Array.isArray(incoming.staffRoster))return json({error:"Invalid staff roster"},400);
-     const newProfiles=structuredClone(incoming.operatorProfiles||currentProfiles);
-     for(const [name,profile] of Object.entries(newProfiles) as [string,any][]){
-       const existing=(currentProfiles as any)[name]||{};
+     const newProfiles=structuredClone(currentProfiles||{});
+     for(const [name,incomingProfile] of Object.entries((incoming.operatorProfiles||{}) as Record<string,any>)){
+       const cleanName=String(name||"").trim();
+       if(!cleanName||cleanName.length>80||!incomingProfile||typeof incomingProfile!=="object"||Array.isArray(incomingProfile))return json({error:"Invalid staff profile entry"},400);
+       const existing={...((newProfiles as any)[cleanName]||{})};
+       const profile={...existing,...incomingProfile};
        if(!canManageAssignments){
          if("station" in existing)profile.station=existing.station;else delete profile.station;
          if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
          if("stationLocked" in existing)profile.stationLocked=existing.stationLocked;else delete profile.stationLocked;
-         continue;
+       }else{
+         const wasLocked=existing.stationLocked===true;
+         const explicitlyUnlocked=profile.stationLocked===false;
+         const requestedStation=String(profile.station??profile.assignedStation??"").slice(0,100);
+         const currentStation=String(existing.station??existing.assignedStation??"");
+         if(wasLocked&&!explicitlyUnlocked&&requestedStation!==currentStation){
+           if("station" in existing)profile.station=existing.station;else delete profile.station;
+           if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
+           profile.stationLocked=true;
+         }else if(wasLocked&&!explicitlyUnlocked){
+           profile.stationLocked=true;
+         }else if("stationLocked" in profile){
+           profile.stationLocked=profile.stationLocked===true;
+         }
        }
-       const wasLocked=existing.stationLocked===true;
-       const explicitlyUnlocked=profile.stationLocked===false;
-       const requestedStation=String(profile.station??profile.assignedStation??"").slice(0,100);
-       const currentStation=String(existing.station??existing.assignedStation??"");
-       if(wasLocked&&!explicitlyUnlocked&&requestedStation!==currentStation){
-         if("station" in existing)profile.station=existing.station;else delete profile.station;
-         if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
-         profile.stationLocked=true;
-       }else if(wasLocked&&!explicitlyUnlocked){
-         profile.stationLocked=true;
-       }else if("stationLocked" in profile){
-         profile.stationLocked=profile.stationLocked===true;
+       (newProfiles as any)[cleanName]=profile;
+     }
+     let nextStaffRoles=previousStaffRoles;
+     if(incoming.staffRoles!==undefined){
+       if(!Array.isArray(incoming.staffRoles)||incoming.staffRoles.length<1||incoming.staffRoles.length>100)return json({error:"At least one and no more than 100 on-site roles must be configured"},400);
+       nextStaffRoles=incoming.staffRoles.map((role:any)=>typeof role==="string"?role.trim():"");
+       if(nextStaffRoles.some((role:string)=>!role||role.length>60)||new Set(nextStaffRoles.map((role:string)=>role.toLowerCase())).size!==nextStaffRoles.length)return json({error:"On-site roles must be unique names of 1–60 characters"},400);
+       for(const [name,profile] of Object.entries(newProfiles) as [string,any][]){
+         const oldRole=String((currentProfiles as any)?.[name]?.onSiteRole||"");
+         if(oldRole&&previousStaffRoles.some((role:string)=>role.toLowerCase()===oldRole.toLowerCase())&&!nextStaffRoles.some((role:string)=>role.toLowerCase()===oldRole.toLowerCase())&&String(profile?.onSiteRole||"").toLowerCase()===oldRole.toLowerCase())return json({error:"Reassign staff using a role before removing it"},409);
        }
      }
+     const validateStaffRoster=(value:any,label:string)=>{
+      if(!Array.isArray(value))throw new Error(label+" must be an array");
+      if(value.length>250)throw new Error(label+" cannot contain more than 250 entries");
+      const names:string[]=[],seen=new Set<string>();
+      for(const raw of value){
+       if(typeof raw!=="string")throw new Error(label+" entries must be text");
+       const name=raw.trim();
+       if(!name)continue;
+       if(name.length>80)throw new Error(label+" entries must be 80 characters or fewer");
+       const key=name.toLocaleLowerCase();
+       if(!seen.has(key)){seen.add(key);names.push(name);}
+      }
+      return names;
+     };
+     let incomingRoster:string[],retainedRoster:string[];
+     try{
+      incomingRoster=validateStaffRoster(incoming.staffRoster,"Incoming staff roster");
+      retainedRoster=validateStaffRoster(bank.staff.roster||bank.appData?.staffRoster||[],"Existing staff roster");
+     }catch(error){return json({error:error instanceof Error?error.message:"Invalid staff roster"},400);}
+     const rosterMap=new Map<string,string>();
+     [...retainedRoster,...incomingRoster].forEach((name:string)=>{const key=name.toLocaleLowerCase();if(!rosterMap.has(key))rosterMap.set(key,name)});
+     if(rosterMap.size>250)return json({error:"The combined staff roster cannot exceed 250 entries. No entries were saved."},409);
      nextAppData.operatorProfiles=newProfiles;
-     nextAppData.staffRoster=cleanList(incoming.staffRoster,250,80);
+     nextAppData.staffRoster=[...rosterMap.values()];
+     nextAppData.staffRoles=nextStaffRoles;
      bank.staff.profiles=newProfiles;bank.staff.roster=nextAppData.staffRoster.slice();
+     const staffSnapshot=(profile:any)=>profile?{onSiteRole:String(profile.onSiteRole||""),status:String(profile.status||"ACTIVE"),onSite:profile.onSite!==false,station:String(profile.station??profile.assignedStation??""),stationLocked:profile.stationLocked===true}:null;
+     const names=new Set([...Object.keys(currentProfiles||{}),...Object.keys(newProfiles||{})]);
+     for(const name of names){
+       const before=staffSnapshot((currentProfiles as any)?.[name]),after=staffSnapshot((newProfiles as any)?.[name]);
+       if(JSON.stringify(before)===JSON.stringify(after))continue;
+       const action=!before?"staff-created":after?.status==="ARCHIVED"&&before?.status!=="ARCHIVED"?"staff-archived":before?.status==="ARCHIVED"&&after?.status!=="ARCHIVED"?"staff-restored":"staff-updated";
+       staffAuditEvents.push({username:currentUser.username,action,details:{staffName:name,before,after}});
+     }
+     if(JSON.stringify(previousStaffRoles)!==JSON.stringify(nextStaffRoles))staffAuditEvents.push({username:currentUser.username,action:"staff-roles-updated",details:{before:previousStaffRoles,after:nextStaffRoles}});
    }else if(canManageAssignments){
      const newProfiles=structuredClone(currentProfiles||{});
      for(const [name,profile] of Object.entries((incoming.operatorProfiles||{}) as Record<string,any>)){
@@ -442,10 +490,17 @@ Deno.serve(async(req)=>{
      bank.staff.profiles=newProfiles;
    }
    bank.appData=nextAppData;if(canManageTasks)bank.statsSource={weeks:nextAppData.weeks||{}};
-   const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
-   if(error||!write)return json({error:"Version conflict; refresh before saving settings"},409);
-   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"save-settings",details:{areas:canManageAreas,reasons:canAddReasons,schedule:canManageSchedule,dailyTasks:canManageTasks,staff:canManageStaff,assignments:canManageAssignments,stations:canManageStations}});
-   return json({ok:true,version:(row?.version||0)+1,updatedAt:new Date().toISOString()});
+   const {data:commit,error:commitError}=await db.rpc("downtime_commit_central_bank",{
+     p_expected_version:Number(body.version),
+     p_payload:bank,
+     p_username:currentUser.username,
+     p_audit_details:{areas:canManageAreas,reasons:canAddReasons,schedule:canManageSchedule,dailyTasks:canManageTasks,staff:canManageStaff,assignments:canManageAssignments,stations:canManageStations},
+     p_staff_audit_events:staffAuditEvents.map((event:any)=>({action:event.action,details:event.details}))
+   });
+   if(commitError)return json({error:"Central settings and audit transaction failed; no changes were committed"},500);
+   const committedVersion=Number((commit as any)?.version);
+   if(!Number.isInteger(committedVersion))return json({error:"Version conflict; refresh before saving settings"},409);
+   return json({ok:true,version:committedVersion,updatedAt:(commit as any).updatedAt||null});
  }
  if(action==="users"){
    if(!priv.canViewUsers&&!priv.canManageUsers)return json({error:"Permission denied"},403);

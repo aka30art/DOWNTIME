@@ -36,7 +36,11 @@ Deno.serve(async (req: Request) => {
   if(!canAccess)return json({error:"YARD HUB access is disabled for this account."},403);
   const actor=clean(user.displayName||user.username,80), action=String(body.action||"");
   const canManageGateman=bank.payload.tiers?.[legacyTier]?.canManageAssignments===true;
-  const gatemen=(Array.isArray(bank.payload.users)?bank.payload.users:[]).filter((item:any)=>item&&item.enabled!==false&&String(item.username||"").trim()).map((item:any)=>({username:clean(item.username,80),displayName:clean(item.displayName||item.username,120),tier:clean(item.tier||"USER",30)})).sort((a:any,b:any)=>a.displayName.localeCompare(b.displayName));
+  // Gateman duty is assigned to operational STAFF, never to a USER account.
+  const staffRoster=Array.isArray(bank.payload.staff?.roster)?bank.payload.staff.roster:(Array.isArray(bank.payload.appData?.staffRoster)?bank.payload.appData.staffRoster:[]);
+  const staffProfiles=bank.payload.staff?.profiles||bank.payload.appData?.operatorProfiles||{};
+  // Compatibility fields username/tier keep the previous GATELOG client rendering, but their values are derived only from STAFF records.
+  const gatemen=staffRoster.filter((name:any)=>typeof name==="string"&&name.trim()).map((name:string)=>({staffName:clean(name,80),username:clean(name,80),displayName:clean(name,120),onSiteRole:clean(staffProfiles[name]?.onSiteRole||"ROLE NOT SET",60),tier:clean(staffProfiles[name]?.onSiteRole||"ROLE NOT SET",60),status:clean(staffProfiles[name]?.status||"ACTIVE",20),onSite:staffProfiles[name]?.onSite!==false})).filter((item:any)=>item.status!=="ARCHIVED"&&item.onSite).sort((a:any,b:any)=>a.displayName.localeCompare(b.displayName));
   const fail=(error:any)=>json({error:error?.message||"GATELOG request failed."},400);
 
   if(action==="bootstrap"){
@@ -72,11 +76,12 @@ Deno.serve(async (req: Request) => {
   }
   if(action==="gateman-save"){
     if(!canManageGateman)return json({error:"You do not have permission to manage daily Gateman assignments."},403);
-    const dutyDate=clean(body.dutyDate,10),username=clean(body.username,80);
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate)||!username)return json({error:"Select a valid date and Gateman."},400);
-    const selected=gatemen.find((item:any)=>item.username.toLowerCase()===username.toLowerCase());
-    if(!selected)return json({error:"The selected account is not active in the YARD HUB user directory."},404);
-    const {data,error}=await db.rpc("gatelog_assign_gateman",{p_duty_date:dutyDate,p_gateman_username:selected.username,p_gateman_name:selected.displayName,p_actor:actor});
+    const dutyDate=clean(body.dutyDate,10),staffName=clean(body.staffName??body.username,80); // username is accepted only as a legacy client field and is still validated exclusively against STAFF.
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate)||!staffName)return json({error:"Select a valid date and staff member."},400);
+    const selected=gatemen.find((item:any)=>item.staffName.toLowerCase()===staffName.toLowerCase());
+    if(!selected)return json({error:"The selected staff member is not active in the STAFF directory."},404);
+    // The existing RPC argument/column name is retained for backward compatibility; the value is a STAFF name, not a USER username.
+    const {data,error}=await db.rpc("gatelog_assign_gateman",{p_duty_date:dutyDate,p_gateman_username:selected.staffName,p_gateman_name:selected.displayName,p_actor:actor});
     if(error)return fail(error);
     const assignment=Array.isArray(data)?data[0]:data;
     if(!assignment)return json({error:"This day's Gateman assignment is locked. It cannot be changed."},409);

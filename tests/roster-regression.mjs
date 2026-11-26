@@ -4,11 +4,13 @@ import { readFile } from 'node:fs/promises';
 const html=await readFile('index.html','utf8');
 const client=await readFile('central-bank-client.js','utf8');
 const api=await readFile('supabase/functions/central-bank/index.ts','utf8');
+const atomicMigration=await readFile('supabase/migrations/20261126110247_central_bank_atomic_state_audit.sql','utf8');
 
 // USERS and STAFF are deliberately separate central collections.
 assert.match(html,/DowntimeCentral\.listUsers\(\)/,'login choices come from central USERS');
 assert.match(html,/DowntimeCentral\.login\(username,pin\)/,'username/PIN authentication is central');
-assert.match(html,/function staffRoster\(\)\{const names=Array\.isArray\(state\?\.staffRoster\)/,'STAFF roster is loaded from central app data');
+assert.match(html,/function allStaffRoster\(\)\{const names=Array\.isArray\(state\?\.staffRoster\)/,'complete STAFF directory is loaded from central app data');
+assert.match(html,/function staffRoster\(\)\{state\.operatorProfiles=state\.operatorProfiles\|\|\{\};return allStaffRoster\(\)\.filter\(name=>state\.operatorProfiles\[name\]\?\.status!==['"]ARCHIVED['"]\)\}/,'active operator choices exclude archived staff');
 assert.match(html,/Central USER accounts, PINs and privileges are managed in the single central database/,'local user administration is retired');
 assert.match(html,/id="centralAdminNav" class="nav central-admin-nav" href="central-bank-admin.html"/,'main tracker exposes the ADMIN/JAN-only Central Data Bank navigation entry');
 assert.doesNotMatch(html,/OPEN CENTRAL USERS & PRIVILEGES|centralUsersAdminLink/,'former duplicate Central Data Bank link is removed from USERS settings');
@@ -27,4 +29,22 @@ assert.match(client,/sessionStorage/,'opaque sessions are held in tab-scoped sto
 assert.match(api,/action==="save-state"/,'central API supports tracker saves');
 assert.match(api,/eq\("version",Number\(body\.version\)\)\.select\("id"\)\.maybeSingle\(\)/,'tracker writes use compare-and-swap and confirm a returned row');
 assert.match(api,/if\(!priv\.canManageStaff\)/,'tracker saves preserve STAFF data for non-managers');
+assert.match(api,/nextAppData\.staffRoles=nextStaffRoles/,'on-site role definitions persist in the existing Central Data Bank payload');
+assert.match(api,/Reassign staff using a role before removing it/,'server rejects removal of roles still assigned to staff');
+assert.match(api,/const newProfiles=structuredClone\(currentProfiles\|\|\{\}\)/,'staff profile updates retain existing records rather than replacing the directory');
+assert.match(api,/\[\.\.\.retainedRoster,\.\.\.incomingRoster\]/,'staff roster updates retain archived and historical roster entries');
+assert.match(api,/validateStaffRoster=\(value:any,label:string\)/,'staff roster input is validated without filtering malformed entries silently');
+assert.match(api,/value\.length>250/,'incoming and retained rosters above the supported limit are rejected');
+assert.match(api,/rosterMap\.size>250/,'combined retained and incoming staff roster above the limit is rejected');
+assert.match(api,/nextAppData\.staffRoster=\[\.\.\.rosterMap\.values\(\)\]/,'validated roster is persisted without truncating slices');
+assert.match(api,/staff-archived|staff-restored|staff-created|staff-updated/,'staff lifecycle changes generate structured audit events');
+assert.match(api,/staff-roles-updated/,'on-site role changes generate an audit event');
+const settingsSave=api.slice(api.indexOf('if(action==="save-settings")'),api.indexOf('if(action==="users")'));
+assert.match(settingsSave,/db\.rpc\("downtime_commit_central_bank"/,'settings and staff audit writes use the atomic database transaction');
+assert.doesNotMatch(settingsSave,/from\("downtime_central_bank"\)\.update/,'settings no longer commit central state separately from audit');
+assert.doesNotMatch(settingsSave,/from\("downtime_central_audit"\)\.insert/,'settings no longer insert audit events after the state commit');
+assert.match(atomicMigration,/security definer\s+set search_path = ''/,'atomic transaction pins the security-definer search path');
+assert.match(atomicMigration,/revoke all on function public\.downtime_commit_central_bank[\s\S]*from public/,'atomic RPC is not executable by PUBLIC');
+assert.match(atomicMigration,/grant execute on function public\.downtime_commit_central_bank[\s\S]*to service_role/,'atomic RPC is restricted to the service role');
+assert.doesNotMatch(api,/staff_account_links|link-account|unlink-account/,'the central staff directory has no account-linking feature');
 console.log('PASS: central USERS/STAFF separation, retired local PIN auth and central versioned sync contracts.');

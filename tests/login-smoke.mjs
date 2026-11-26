@@ -76,7 +76,7 @@ for(const permissions of Object.values(tiers))permissions.canAccessYardHub=true;
 function makeBank(){
  const profiles=Object.fromEntries(['Jan','Mick','Gigi','Daz','Shayne'].map((name,i)=>[name,{station:'Station '+(i+1)+' · WOOD',onSite:true,photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}]));
  const roster=Object.keys(profiles);
- return {appData:{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360','Other'],reasons:['Blockage'],archive:[],plantOn:true,dailyTaskPresets:[],staffRoster:roster.slice(),operatorProfiles:JSON.parse(JSON.stringify(profiles))},users:[],tiers,staff:{roster,profiles},statsSource:{weeks:{}}};
+ return {appData:{weeks:{},areas:['Feeder','Incline conveyor','Shaker','Magnet 1','Middle size conveyor','Oversize conveyor','Picking line','Magnet 2','Blowers','Cage','E-Stop','Mick/360','Other'],reasons:['Blockage'],archive:[],plantOn:true,dailyTaskPresets:[],staffRoles:['Machine Operator','Yard Operative','Forklift Driver','Telehandler Operator','Weighbridge Operator','Picking Line Operative','Shredder Operator','Maintenance Operative','Supervisor','Manager'],staffRoster:roster.slice(),operatorProfiles:JSON.parse(JSON.stringify(profiles))},users:[],tiers,staff:{roster,profiles},statsSource:{weeks:{}}};
 }
 async function dismissPlantTransitionAlerts(page){
  const host=page.locator('#plantTransitionAlertHost');
@@ -242,7 +242,7 @@ window.supabase={createClient:()=>({
    else if(canAddReasons){const existing=next.reasons||[];next.reasons=[...existing,...(req.appData.reasons||[]).filter(value=>!existing.includes(value))]}
    if(canManageSchedule){next.shiftSchedule=req.appData.shiftSchedule;next.shiftPresets=req.appData.shiftPresets}
    if(canManageTasks)next.dailyTaskPresets=req.appData.dailyTaskPresets;
-   if(canManageStaff){const currentProfiles=bank.staff.profiles||next.operatorProfiles||{},newProfiles=JSON.parse(JSON.stringify(req.appData.operatorProfiles||currentProfiles));for(const [name,profile] of Object.entries(newProfiles)){const old=currentProfiles[name]||{};if(!canManageAssignments){if('station' in old)profile.station=old.station;else delete profile.station;if('assignedStation' in old)profile.assignedStation=old.assignedStation;else delete profile.assignedStation;if('stationLocked' in old)profile.stationLocked=old.stationLocked;else delete profile.stationLocked;continue}const wasLocked=old.stationLocked===true,explicitlyUnlocked=profile.stationLocked===false,requested=profile.station??profile.assignedStation??'',current=old.station??old.assignedStation??'';if(wasLocked&&!explicitlyUnlocked&&requested!==current){if('station' in old)profile.station=old.station;else delete profile.station;if('assignedStation' in old)profile.assignedStation=old.assignedStation;else delete profile.assignedStation;profile.stationLocked=true}else if(wasLocked&&!explicitlyUnlocked)profile.stationLocked=true;else if('stationLocked' in profile)profile.stationLocked=profile.stationLocked===true}next.operatorProfiles=newProfiles;next.staffRoster=req.appData.staffRoster;bank.staff.profiles=newProfiles;bank.staff.roster=req.appData.staffRoster}
+   if(canManageStaff){const currentProfiles=bank.staff.profiles||next.operatorProfiles||{},newProfiles=JSON.parse(JSON.stringify(req.appData.operatorProfiles||currentProfiles));for(const [name,profile] of Object.entries(newProfiles)){const old=currentProfiles[name]||{};if(!canManageAssignments){if('station' in old)profile.station=old.station;else delete profile.station;if('assignedStation' in old)profile.assignedStation=old.assignedStation;else delete profile.assignedStation;if('stationLocked' in old)profile.stationLocked=old.stationLocked;else delete profile.stationLocked;continue}const wasLocked=old.stationLocked===true,explicitlyUnlocked=profile.stationLocked===false,requested=profile.station??profile.assignedStation??'',current=old.station??old.assignedStation??'';if(wasLocked&&!explicitlyUnlocked&&requested!==current){if('station' in old)profile.station=old.station;else delete profile.station;if('assignedStation' in old)profile.assignedStation=old.assignedStation;else delete profile.assignedStation;profile.stationLocked=true}else if(wasLocked&&!explicitlyUnlocked)profile.stationLocked=true;else if('stationLocked' in profile)profile.stationLocked=profile.stationLocked===true}next.operatorProfiles=newProfiles;next.staffRoster=req.appData.staffRoster;next.staffRoles=Array.isArray(req.appData.staffRoles)?req.appData.staffRoles:next.staffRoles;bank.staff.profiles=newProfiles;bank.staff.roster=req.appData.staffRoster}
    else if(canManageAssignments){const profiles=JSON.parse(JSON.stringify(bank.staff.profiles||next.operatorProfiles||{}));for(const [name,profile] of Object.entries(req.appData.operatorProfiles||{})){if(!profiles[name])continue;const old=profiles[name],requested=profile.station??profile.assignedStation??'',current=old.station??old.assignedStation??'',hasLockValue=Object.prototype.hasOwnProperty.call(profile,'stationLocked'),explicitlyUnlocked=profile.stationLocked===false;if(old.stationLocked!==true||explicitlyUnlocked||requested===current){if('station' in profile)old.station=requested;else if('assignedStation' in profile)old.assignedStation=requested}if(hasLockValue)old.stationLocked=profile.stationLocked===true;else if(old.stationLocked===true)old.stationLocked=true;profiles[name]=old}next.operatorProfiles=profiles;bank.staff.profiles=profiles;}
    bank.appData=next;version++;
    return ok({version,updatedAt:new Date().toISOString()});
@@ -1177,19 +1177,47 @@ await ensureNavigationMenuOpen(owner.page);
   await supervisor.page.locator('#smName').fill('Supervisor QA');
   await supervisor.page.locator('#smStation').selectOption('Station 4 · SCRAP');
   await supervisor.page.locator('#smLock').check();
+  await supervisor.page.locator('#smRole').selectOption('Machine Operator');
   await supervisor.page.locator('#smSave').click();
   await supervisor.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
   assert.ok(supervisor.getBank().staff.roster.includes('Supervisor QA'),'SUPERVISOR changes sync to central roster');
   assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].station,'Station 4 · SCRAP','SUPERVISOR can assign station in profile modal');
   assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].stationLocked,true,'SUPERVISOR can lock station in Staff Settings');
-  const userCountBeforeStaffRemoval=supervisor.getBank().users.length;
+  await supervisor.page.locator('#manageStaffRolesBtn').click();
+  assert.equal(await supervisor.page.locator('#staffRolesModalBackdrop').isVisible(),true,'authorised staff manager can open on-site role editor');
+  assert.equal(await supervisor.page.locator('#staffRolesRows > div').first().locator('button').isDisabled(),true,'role assigned to a staff member cannot be removed');
+  await supervisor.page.locator('#staffRolesRows > div').last().locator('button').click();
+  assert.equal(await supervisor.page.locator('#staffRolesRows > div').count(),9,'an unassigned role can be removed');
+  await supervisor.page.locator('#staffRolesRows > div').first().locator('input').fill('Plant Operator');
+  await supervisor.page.locator('#staffRoleNewName').fill('Gate Operative');
+  await supervisor.page.locator('#staffRoleAdd').click();
+  await supervisor.page.locator('#staffRolesSave').click();
+  await supervisor.page.waitForFunction(()=>document.querySelector('#staffRolesModalBackdrop')?.hidden===true,{timeout:5000});
+  assert.ok(supervisor.getBank().appData.staffRoles.includes('Plant Operator'),'role rename persists in Central Data Bank');
+  assert.ok(supervisor.getBank().appData.staffRoles.includes('Gate Operative'),'new role persists in Central Data Bank');
+  assert.equal(supervisor.getBank().appData.staffRoles.includes('Machine Operator'),false,'renamed role replaces its previous definition');
+  assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].onSiteRole,'Plant Operator','role rename updates assigned staff profiles');
+  const userCountBeforeStaffArchive=supervisor.getBank().users.length;
   await supervisor.page.locator('.staff-settings-icon[aria-label="Staff settings for Supervisor QA"]').click();
   supervisor.page.once('dialog',dialog=>dialog.accept());
   await supervisor.page.locator('#smRemove').click();
   await supervisor.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
-  assert.equal(supervisor.getBank().staff.roster.includes('Supervisor QA'),false,'REMOVE STAFF removes the member from the central roster');
-  assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'],undefined,'REMOVE STAFF removes the central staff profile');
-  assert.equal(supervisor.getBank().users.length,userCountBeforeStaffRemoval,'REMOVE STAFF does not delete or alter USER accounts');
+  assert.equal(supervisor.getBank().staff.roster.includes('Supervisor QA'),true,'ARCHIVE STAFF retains the member in the central roster');
+  assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].status,'ARCHIVED','ARCHIVE STAFF retains the central profile with archived status');
+  await supervisor.page.locator('#addStaffBtn').click();
+  await supervisor.page.locator('#smName').fill('Supervisor QA');
+  await supervisor.page.locator('#smSave').click();
+  assert.match(await supervisor.page.locator('#smMsg').textContent(),/That name already exists/,'archived staff names cannot be re-created as duplicate records');
+  await supervisor.page.locator('#smCancel').click();
+  assert.equal(supervisor.getBank().users.length,userCountBeforeStaffArchive,'ARCHIVE STAFF does not delete or alter USER accounts');
+  await supervisor.page.locator('.staff-settings-icon[aria-label="Staff settings for Supervisor QA"]').click();
+  assert.equal(await supervisor.page.locator('#smRemove').textContent(),'RESTORE STAFF','archived profile exposes a restore action');
+  supervisor.page.once('dialog',dialog=>dialog.accept());
+  await supervisor.page.locator('#smRemove').click();
+  await supervisor.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
+  assert.equal(supervisor.getBank().staff.roster.includes('Supervisor QA'),true,'RESTORE STAFF retains the same central roster record');
+  assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].status,'ACTIVE','RESTORE STAFF returns the profile to active');
+  assert.equal(supervisor.getBank().users.length,userCountBeforeStaffArchive,'STAFF archive/restore never changes USER accounts');
   await supervisor.context.close();
  // Separate permission tiers: STAFF-only manages identity/presence/photos, not station/lock.
  const staffOnly=await openFor('STAFF_ONLY','2468','MICK');
