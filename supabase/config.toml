@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.gatelog-api]
 verify_jwt = false
+
+[functions.staff-management-api]
+verify_jwt = false
