@@ -44,6 +44,7 @@ assert.match(scopeMigration,/add column if not exists department text not null d
 assert.match(html,/function photoAuthHeaders\(\)/,'Browser photo calls attach the authenticated Central Bank session');
 assert.match(html,/recordId:photoRecordId/,'Photo uploads are linked to the stable tracker record ID');
 assert.match(html,/if\(error\)\{photoEntryKey=photoId\(\);throw error\}/,'Failed signed uploads receive a fresh key for safe retry');
+assert.match(html,/oldAttachment\|\|\(photoDraft&&!photoExisting\)/,'Repeated replacement attempts allocate a fresh upload key');
 assert.match(html,/permission\('canDeleteRecords'\)/,'Browser photo removal is limited to Manage permission');
 assert.match(html,/async function flushPendingPhotoDeletes\(\)/,'Photo deletion is queued until the operational record save succeeds');
 assert.match(html,/response\.status===403/,'Input users defer physical object removal to the expiry cleanup rather than bypassing Manage');
