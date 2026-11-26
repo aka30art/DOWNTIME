@@ -170,7 +170,7 @@ export function buildIdentityMigrationPreview(bank) {
       linkedToUser: staffProfiles.filter((profile) => Boolean(profile.linkedUserId)).length,
     },
     diagnostics: { total: diagnostics.length, errors, warnings },
-    readyForIdentityCutover: errors === 0 && users.length > 0,
+    readyForIdentityCutover: errors === 0 && warnings === 0 && users.length > 0,
     findings: diagnostics,
   };
 }
