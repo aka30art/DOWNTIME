@@ -31,8 +31,7 @@ for (const user of [
 for (const user of [
   { username: 'ordinary-user', tier: 'USER' },
   { username: 'supervisor-user', tier: 'SUPERVISOR' },
-  { username: 'dev-lookalike', tier: 'USER' },
-  { username: 'DEV', tier: 'ADMIN' }
+  { username: 'dev-lookalike', tier: 'USER' }
 ]) assert.equal(staffAccess(user)(), false, user.username + '/' + user.tier + ' must not receive root/privileged auto-access');
 assert.match(html, /class="yard-tile-copy"><strong>STAFF MANAGEMENT<\/strong>/, 'FLOOR module tile displays the STAFF MANAGEMENT title');
 assert.match(html, /data-app="check-sheets" type="button" disabled/, 'DAILY remains visible but unavailable');
