@@ -438,4 +438,13 @@ assert.match(provisioningMigration, /enable row level security/);
 assert.doesNotMatch(provisioningMigration, /insert into public\.yard_roles/i, "no unapproved YARD ROLE catalogue entries are seeded");
 
 assert.match(resolverSource, /OFF.*READ_ONLY.*INPUT.*MANAGE/);
+assert.match(centralApi, /DOWNTIME_IDENTITY_FINGERPRINT_SECRET/, "provisioning fingerprints require a server-only secret");
+assert.match(centralApi, /hmacDigest\(fingerprintSecret,JSON\.stringify\(\{username,displayName,pin,staff:staffFields,requestedYardRoleId\}\)\)/, "low-entropy PIN is protected by HMAC in the idempotency fingerprint");
+assert.match(centralApi, /const userId=String\(body\.userId\|\|""\)/, "activation targets immutable USER ID");
+assert.match(centralApi, /actorUserId:currentUser\.userId,actorUsername:currentUser\.username,actorDisplayName/, "provisioning audit captures immutable actor identity and display-name snapshot");
+assert.match(yardHubApi, /p_actor_user_id: user\.userId/, "YARD ROLE assignment audit captures immutable actor ID");
+assert.doesNotMatch(yardHubApi, /const targetUsername = String\(body\.username/, "YARD ROLE assignment never targets a mutable username");
+assert.match(provisioningMigration, /actor_user_id uuid not null/, "YARD ROLE assignment audit stores immutable actor ID");
+assert.match(provisioningMigration, /p_actor_user_id uuid/, "YARD ROLE assignment RPC requires immutable actor ID");
+assert.match(resolverSource, /SCPL.*R&M.*Management.*SCFL.*Traffic/, "resolver enforces the owner-approved five-department catalogue");
 console.log("PASS: additive USER/STAFF identity contract, DEV-only read-only diagnostics and reciprocal-link validation.");
