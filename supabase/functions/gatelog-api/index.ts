@@ -76,21 +76,21 @@ Deno.serve(async (req: Request) => {
     if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate)||!username)return json({error:"Select a valid date and Gateman."},400);
     const selected=gatemen.find((item:any)=>item.username.toLowerCase()===username.toLowerCase());
     if(!selected)return json({error:"The selected account is not active in the YARD HUB user directory."},404);
-    const existing=await db.from("gatelog_daily_gateman_assignments").select("is_locked").eq("duty_date",dutyDate).maybeSingle();
-    if(existing.error)return fail(existing.error);
-    if(existing.data?.is_locked)return json({error:"This day's Gateman assignment is locked."},409);
-    const {data,error}=await db.from("gatelog_daily_gateman_assignments").upsert({duty_date:dutyDate,gateman_username:selected.username,gateman_name:selected.displayName,assigned_by:actor,updated_by:actor,is_locked:false,locked_by:null,locked_at:null},{onConflict:"duty_date"}).select("*").single();
+    const {data,error}=await db.rpc("gatelog_assign_gateman",{p_duty_date:dutyDate,p_gateman_username:selected.username,p_gateman_name:selected.displayName,p_actor:actor});
     if(error)return fail(error);
-    return json({assignment:data});
+    const assignment=Array.isArray(data)?data[0]:data;
+    if(!assignment)return json({error:"This day's Gateman assignment is locked. It cannot be changed."},409);
+    return json({assignment});
   }
   if(action==="gateman-lock"){
     if(!canManageGateman)return json({error:"You do not have permission to lock daily Gateman assignments."},403);
     const dutyDate=clean(body.dutyDate,10);
     if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate))return json({error:"Select a valid date."},400);
-    const {data,error}=await db.from("gatelog_daily_gateman_assignments").update({is_locked:true,locked_by:actor,locked_at:new Date().toISOString(),updated_by:actor,updated_at:new Date().toISOString()}).eq("duty_date",dutyDate).eq("is_locked",false).not("gateman_username","is",null).select("*").maybeSingle();
+    const {data,error}=await db.rpc("gatelog_lock_gateman",{p_duty_date:dutyDate,p_actor:actor});
     if(error)return fail(error);
-    if(!data)return json({error:"Assign a Gateman first, or refresh because this assignment is already locked."},409);
-    return json({assignment:data});
+    const assignment=Array.isArray(data)?data[0]:data;
+    if(!assignment)return json({error:"Assign a Gateman first, or refresh because this assignment is already locked."},409);
+    return json({assignment});
   }
   if(action==="day-register"){
     const dutyDate=clean(body.dutyDate,10);
