@@ -7,6 +7,7 @@ import {
   buildPendingUserStaffProvisioning,
   diagnoseIdentityDirectory,
   normaliseIdentityDirectory,
+  renameLinkedStaffDisplayName,
   validateNewUserStaffPair,
   validateStaffOperationalProfile,
 } from "../supabase/functions/_shared/user-staff-identity.mjs";
@@ -343,6 +344,20 @@ assert.equal(activated.auditEvent.action, "USER_STAFF_PROVISIONING_ACTIVATED");
 assert.equal(activated.auditEvent.actor, "DEV");
 assert.equal(activated.payload.identityProvisioningEvents, undefined);
 assert.equal(activatePendingUserStaffProvisioning(activated.payload, validRoleAssignment, "DEV").replayed, true, "activation retries are idempotent");
+
+const renameSource = structuredClone(activated.payload);
+const renamedStaff = renameLinkedStaffDisplayName(renameSource, uid1, sid1, "Renamed Operator");
+assert.equal(renamedStaff.changed, true);
+assert.equal(renamedStaff.payload.users.find((item) => item.userId === uid1).staffId, sid1);
+assert.equal(renamedStaff.payload.staff.profiles["Renamed Operator"].staffId, sid1);
+assert.equal(renamedStaff.payload.staff.profiles["Renamed Operator"].linkedUserId, uid1);
+assert.deepEqual(renamedStaff.payload.staff.roster, ["Renamed Operator"]);
+assert.deepEqual(renamedStaff.payload.appData.staffRoster, ["Renamed Operator"]);
+assert.equal(renamedStaff.payload.appData.operatorProfiles["Renamed Operator"].staffId, sid1);
+assert.deepEqual(renameSource, activated.payload, "linked STAFF rename must not mutate the original payload");
+const collisionPayload = structuredClone(activated.payload);
+collisionPayload.staff.profiles["Other Staff"] = { staffId: sid2, linkedUserId: uid2 };
+assert.throws(() => renameLinkedStaffDisplayName(collisionPayload, uid1, sid1, "Other Staff"), /display name already exists/);
 const missingActiveStaff = structuredClone(activated.payload);
 delete missingActiveStaff.staff.profiles["New Operator"];
 assert.throws(() => activatePendingUserStaffProvisioning(missingActiveStaff, validRoleAssignment, "DEV"), /missing its reciprocal active STAFF profile/);
