@@ -40,11 +40,11 @@
 > - Preserve unrelated DOWNTIME modules and existing data boundaries. Do not make unrelated changes as part of this restructure.
 >
 > ### Authorization to execute
-> - This is an architecture and implementation-planning decision only. It does not authorize production data changes, account deletion, database migrations, PR merge or deployment.
+> - The owner approved the reconciled programme for non-production implementation with the instruction “Proceed” on 2026-11-26. This authorises isolated branch implementation, automated tests and non-production rehearsals only. It does not authorize production data changes, production migrations, account deletion, merging to `main` or deployment. Production rollout and the identity reset require separate explicit approval.
 
 
 
-Status: Planning gate — no implementation authorised by this document alone
+Status: Non-production implementation programme approved by owner on 2026-11-26; production changes remain separately gated
 
 The controlling specification at the beginning of the architecture record governs this plan. Any older decision text retained below is historical and superseded where inconsistent.  
 Architecture record: `docs/architecture/USER-STAFF-YARD-ROLE-RESTRUCTURE.md`  
@@ -758,3 +758,23 @@ A source dependency inventory has been added at `docs/architecture/USER-STAFF-YA
 The source map is explicitly preliminary: repository-wide enumeration of every permission consumer, session consumer, STAFF reference, database function/policy and identity-owned dependency remains outstanding. Phase 1 is not complete and implementation must not start until that census, the canonical schema/API contract and the Phase 1 exit review are complete.
 
 No application code, database schema/data, Supabase configuration or deployment has been changed. The work to date consists only of architecture documentation on this feature branch.
+
+
+## Owner approval — non-production implementation start (2026-11-26)
+
+Following the read-only architecture and production reconciliation, the owner approved the complete USER / STAFF / ROOTS / YARD ROLE programme with the instruction “Proceed”.
+
+This authorises isolated feature-branch implementation, automated tests, read-only diagnostics, migration previews and non-production rehearsals. It does not authorise production database/storage changes, production migrations, account deletion, production Edge Function deployment, merging to `main` or production rollout. The identity reset remains a separate destructive release gate requiring explicit final approval.
+
+## Phase 2 execution record — identity and staged provisioning contracts
+
+The isolated implementation branch adds:
+- Non-mutating identity normalization and a read-only migration preview.
+- Immutable UUID and reciprocal USER/STAFF link validation.
+- Diagnostics for duplicate usernames/IDs, orphan links, multiple STAFF links, malformed records, unverified/ambiguous name matches, roster inconsistencies and compatibility-copy mismatches.
+- DEV-only diagnostics through the Central Bank API.
+- Server-generated USER/STAFF identity-pair construction. New ordinary USER records start in `PROVISIONING`, disabled, with no client-supplied tier, credential, activation or ROOTS fields.
+- Pure staged-provisioning helpers with idempotency receipts. Pending STAFF remains out of active roster copies; activation requires a trusted verified canonical YARD ROLE assignment matching immutable USER and STAFF IDs.
+- Regression tests for the identity and staged-provisioning contracts.
+
+The staged-provisioning helpers are not wired to an active API or UI yet. New USER creation through the legacy account-save path is blocked until the canonical YARD ROLE catalogue, assignment store and coordinated provisioning API are implemented. Legacy YARDHUB tiers must not be used as a substitute. No migration, persistent write, account change or production deployment is part of this increment.
