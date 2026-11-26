@@ -637,3 +637,38 @@ No identity has been reclassified. No account, STAFF profile, session, audit rec
 - Produce a row-level deletion manifest with exact usernames, STAFF keys, object paths and dependent record counts only after the Jan/DEV1 and Dowie/ADMIN identity mapping is resolved.
 
 This inventory is read-only and does not authorise or execute any purge.
+
+## Owner decision — remove existing JAN identity at rollout (2026-11-26)
+
+Owner confirms: remove the existing production account **Jan** completely as part of the restructure deployment. After deployment, DEV will create a new ordinary USER with username **JAN**. This is a new identity, not a rename, conversion or restoration. The new JAN must receive a newly generated stable user ID, linked STAFF ID, credentials and permissions through the approved USER creation flow. It must not inherit DEVACC/DEV1 authority, prior sessions, or the old account's permission assignments.
+
+### Confirmed current removal scope from read-only production inspection
+- Central USER record: username Jan, legacy tier DEVACC.
+- YARDHUB user-tier assignment: username key jan → DEVACC.
+- Central STAFF profile: STAFF key Jan; fields present: department, onSite, onSiteRole, photo, photoOriginalStored, photoPath, station, stationLocked.
+- Central STAFF roster: one entry Jan.
+- Central sessions: 42 rows for username Jan.
+- STAFF photo bucket: two Jan-prefixed objects:
+  - jan/40d9f4f9-4303-4951-afcc-5a7a5738535f
+  - jan/f3b9d9c2-fa8b-451d-84ab-1fac2eb6f2c8
+- The current Jan profile's photoPath points to the second object above.
+- Historical daily operator assignments: 10 date rows (2026-11-16 through 2026-11-26, excluding 2026-11-22) contain Jan as operator_name, assigned_by and locked_by.
+- Daily operator audit: 10 ASSIGNED records reference Jan as operator and actor.
+- Central audit: actions include login/login-failed, save-settings, set-plant-status, staff photo/profile changes, tiers-save, user-save, user-delete and daily-operator assignment. Preserve audit history.
+- YARDHUB access audit: 20 tier-permissions-save records by Jan. Preserve audit history.
+- Central config-history query by actor Jan returned no rows.
+
+### Purge versus historical record policy
+At the deployment migration, remove the live identity-owned records: Central USER, linked STAFF profile and roster entry, YARDHUB user-tier assignment, all Jan sessions, and both Jan-owned STAFF photo objects. Remove or rewrite any compatibility copies of the live STAFF profile in the same atomic Central Bank update. Revoke any remaining session tokens as part of the operation.
+
+Do **not** delete historical audit records or historical daily operator assignments/audit entries merely because they contain the display name Jan. Those are operational/audit history, not live identity ownership. Preserve their original attribution and dates unless a separately approved retention/legal policy requires otherwise. The new JAN account must not retroactively inherit or alter these historical records.
+
+### Sequencing and safeguards
+- Do not perform this purge now; it is a deployment-time operation after the new code and migration have passed acceptance and production rollout is explicitly approved.
+- The migration must use exact username matching with case-insensitive safeguards, explicit row counts, idempotency, optimistic version checking and an auditable before/after result.
+- Confirm the two exact storage object paths before deletion; delete only those two objects, never the entire photo bucket or another person's files.
+- Verify Central Bank payload version increments once for the atomic USER/STAFF removal, YARDHUB config version increments for the separate assignment removal, Jan sessions are zero, both exact storage paths are absent, and historical audit/daily-operator rows remain unchanged.
+- Confirm DEV still has root access and cannot be altered; do not change any other user or STAFF record.
+- The new JAN account is created only after deployment, through the normal USER creation path, which creates the linked STAFF profile. It receives ordinary USER access only unless DEV later changes it through the approved controls.
+
+This is an owner-approved future removal instruction, not permission to execute production changes before the deployment gate.
