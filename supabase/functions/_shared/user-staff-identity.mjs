@@ -50,6 +50,27 @@ export function normaliseIdentityDirectory(bank) {
 export function diagnoseIdentityDirectory(bank) {
   const { users, staffProfiles } = normaliseIdentityDirectory(bank);
   const diagnostics = [];
+  const source = isObject(bank) ? bank : {};
+  if (source.users != null && !Array.isArray(source.users)) {
+    addDiagnostic(diagnostics, "error", "user-collection-invalid", "users", "USER collection must be an array.");
+  }
+  if (Array.isArray(source.users)) {
+    source.users.forEach((user, index) => {
+      if (!isObject(user)) addDiagnostic(diagnostics, "error", "user-record-invalid", `users[${index}]`, "USER record must be an object.");
+    });
+  }
+  if (source.staff != null && !isObject(source.staff)) {
+    addDiagnostic(diagnostics, "error", "staff-collection-invalid", "staff", "STAFF collection must be an object.");
+  }
+  const rawProfiles = isObject(source.staff) ? source.staff.profiles : undefined;
+  if (rawProfiles != null && !isObject(rawProfiles)) {
+    addDiagnostic(diagnostics, "error", "staff-profiles-invalid", "staff.profiles", "STAFF profiles must be an object keyed by the legacy profile key.");
+  }
+  if (isObject(rawProfiles)) {
+    for (const [key, profile] of Object.entries(rawProfiles)) {
+      if (!isObject(profile)) addDiagnostic(diagnostics, "error", "staff-profile-invalid", `staff.profiles[${JSON.stringify(key)}]`, "STAFF profile must be an object.");
+    }
+  }
   const userIds = new Map();
   const staffIds = new Map();
   const linkedUsers = new Map();
@@ -153,6 +174,15 @@ export function buildIdentityMigrationPreview(bank) {
   const diagnostics = diagnoseIdentityDirectory(bank);
   const errors = diagnostics.filter((item) => item.severity === "error").length;
   const warnings = diagnostics.filter((item) => item.severity === "warning").length;
+  const onlyDevRemains = users.length === 1 && normaliseUsername(users[0]?.username) === "dev";
+  const noStaffRemains = staffProfiles.length === 0 && staffRoster.length === 0;
+  const devIdentityIsStable = onlyDevRemains && isUuid(users[0]?.userId) && !users[0]?.staffId;
+  const cutoverTargetChecks = {
+    onlyDevRemains,
+    noStaffRemains,
+    devIdentityIsStable,
+    noDiagnostics: diagnostics.length === 0,
+  };
 
   return {
     mode: "read-only",
@@ -170,7 +200,8 @@ export function buildIdentityMigrationPreview(bank) {
       linkedToUser: staffProfiles.filter((profile) => Boolean(profile.linkedUserId)).length,
     },
     diagnostics: { total: diagnostics.length, errors, warnings },
-    readyForIdentityCutover: errors === 0 && warnings === 0 && users.length > 0,
+    cutoverTargetChecks,
+    readyForIdentityCutover: errors === 0 && warnings === 0 && onlyDevRemains && noStaffRemains && devIdentityIsStable,
     findings: diagnostics,
   };
 }
