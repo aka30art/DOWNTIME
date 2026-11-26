@@ -672,3 +672,21 @@ Do **not** delete historical audit records or historical daily operator assignme
 - The new JAN account is created only after deployment, through the normal USER creation path, which creates the linked STAFF profile. It receives ordinary USER access only unless DEV later changes it through the approved controls.
 
 This is an owner-approved future removal instruction, not permission to execute production changes before the deployment gate.
+
+
+## Superseding owner decision — clean USER/STAFF reset and department permission levels (2026-11-26)
+
+This decision supersedes earlier conflicting retention/mapping assumptions in this plan. The target starting state is the existing immutable **DEV** root USER only. All other existing USER accounts and all existing STAFF profiles are removed by a future, explicitly approved deployment migration. DEV then creates all new USER accounts from scratch; every new USER receives exactly one newly linked STAFF profile and a fresh stable identity. DEV assigns DEV1 or protected ADMIN through the dedicated ROOTS workflow. No old identity, credentials, session, tier or permission assignment is inherited.
+
+Preserve historical audit and shared operational/business records for traceability. Remove only live identity-owned records and media proven to belong to reset identities. The reset requires an exact deletion manifest, dependency review, rehearsal, idempotency, optimistic version checks, before/after verification, recovery/rollback planning and explicit final production approval. No production data is to be changed before that gate.
+
+The canonical ordinary YARD ROLE permission matrix uses exactly one mutually exclusive level per role per department:
+
+| Level | Meaning |
+|---|---|
+| **OFF** | Department tile disabled/inaccessible; no access. |
+| **Read Only** | View information only; no changes. |
+| **Input** | View, add and edit entries; cannot remove or delete. |
+| **Manage** | Full department access and privileges, including removal and deletion where supported. |
+
+These levels govern department tile availability and server-side actions. They are not four independent CRUD checkboxes. One level is selected for each role/department pair. The unified YARD ROLE model supersedes both legacy Central DOWNTIME and YARDHUB permission planes. ROOTS authority and STAFF operational job roles remain separate from ordinary YARD ROLE permissions.
