@@ -27,7 +27,7 @@ for (const action of ['person-save', 'person-archive', 'company-save', 'company-
 assert.ok(staff.includes("staffType:type.value"), 'Staff classification is persisted as USER or STAFF');
 assert.ok(staff.includes("linkedUsername:type.value==='USER'"), 'USER records carry a linked existing account reference');
 assert.ok(staff.includes("person?.linked_username||''"), 'Existing account links are preserved for users without account-management rights');
-assert.ok(staff.includes("window.YARD_HUB_SETTINGS?.openUsers()"), 'Account creation and disabling are delegated to the existing USERS manager');
+assert.ok(staff.includes("window.YARD_HUB_SETTINGS?.openUsers") && staff.includes("window.YARD_HUB_SETTINGS.openUsers()"), 'Account creation and disabling are delegated to the existing USERS manager');
 assert.ok(!staff.includes('DowntimeCentral.saveUser('), 'Staff Management never creates or updates login credentials directly');
 assert.ok(!staff.includes('DowntimeCentral.deleteUser('), 'Staff Management never deletes YARD HUB login accounts');
 assert.ok(!staff.includes('DowntimeCentral.saveStaff('), 'Staff Management does not write the DOWNTIME staff roster');
