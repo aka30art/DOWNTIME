@@ -104,6 +104,12 @@ export function diagnoseIdentityDirectory(bank) {
       addDiagnostic(diagnostics, "warning", "staff-roster-compatibility-mismatch", "appData.staffRoster", "STAFF roster compatibility copy differs from staff.roster.");
     }
   }
+  if (appData.staffRoster != null && !Array.isArray(appData.staffRoster)) {
+    addDiagnostic(diagnostics, "error", "staff-roster-compatibility-invalid", "appData.staffRoster", "STAFF roster compatibility copy must be an array.");
+  }
+  if (appData.operatorProfiles != null && !isObject(appData.operatorProfiles)) {
+    addDiagnostic(diagnostics, "error", "staff-profile-compatibility-invalid", "appData.operatorProfiles", "STAFF profile compatibility copy must be an object.");
+  }
   if (isObject(appData.operatorProfiles) && isObject(rawProfiles)) {
     const canonicalNames = new Set(Object.keys(rawProfiles).map(normaliseUsername));
     const compatibilityNames = new Set(Object.keys(appData.operatorProfiles).map(normaliseUsername));
@@ -174,6 +180,21 @@ export function diagnoseIdentityDirectory(bank) {
     }
   });
 
+  // Name similarity is a diagnostic only. It never creates or repairs an identity link.
+  users.forEach((user, index) => {
+    if (normaliseUsername(user.username) === "dev" || user.staffId) return;
+    const userNames = new Set([normaliseUsername(user.username), normaliseUsername(user.displayName)].filter(Boolean));
+    const candidates = staffProfiles.filter((profile) => {
+      const profileNames = [normaliseUsername(profile.legacyKey), normaliseUsername(profile.displayName)].filter(Boolean);
+      return profileNames.some((name) => userNames.has(name));
+    });
+    if (candidates.length > 1) {
+      addDiagnostic(diagnostics, "error", "ambiguous-legacy-name-match", `users[${index}]`, "Multiple STAFF profiles resemble this USER by name; no link may be inferred.");
+    } else if (candidates.length === 1) {
+      addDiagnostic(diagnostics, "warning", "legacy-name-match-unverified", `users[${index}]`, "A STAFF profile resembles this USER by name, but names are not identity links.");
+    }
+  });
+
   const staffById = new Map(
     staffProfiles.filter((profile) => isUuid(profile.staffId))
       .map((profile) => [profile.staffId.toLowerCase(), profile]),
@@ -212,6 +233,10 @@ export function diagnoseIdentityDirectory(bank) {
 export function buildIdentityMigrationPreview(bank) {
   const { users, staffProfiles, staffRoster } = normaliseIdentityDirectory(bank);
   const diagnostics = diagnoseIdentityDirectory(bank);
+  const rawUsersCount = Array.isArray(bank?.users) ? bank.users.length : 0;
+  const rawStaffProfilesCount = isObject(bank?.staff?.profiles) ? Object.keys(bank.staff.profiles).length : 0;
+  const invalidUserRecordCount = Math.max(0, rawUsersCount - users.length);
+  const invalidStaffProfileCount = Math.max(0, rawStaffProfilesCount - staffProfiles.length);
   const errors = diagnostics.filter((item) => item.severity === "error").length;
   const warnings = diagnostics.filter((item) => item.severity === "warning").length;
   const onlyDevRemains = users.length === 1 && normaliseUsername(users[0]?.username) === "dev";
@@ -233,13 +258,17 @@ export function buildIdentityMigrationPreview(bank) {
     mode: "read-only",
     writesPerformed: 0,
     users: {
-      total: users.length,
+      total: rawUsersCount,
+      validRecordCount: users.length,
+      invalidRecordCount: invalidUserRecordCount,
       withUserId: users.filter((user) => isUuid(user.userId)).length,
       withStaffLink: users.filter((user) => Boolean(user.staffId)).length,
       devRootCount: users.filter((user) => normaliseUsername(user.username) === "dev").length,
     },
     staff: {
-      profileCount: staffProfiles.length,
+      profileCount: rawStaffProfilesCount,
+      validProfileCount: staffProfiles.length,
+      invalidProfileCount: invalidStaffProfileCount,
       rosterEntryCount: staffRoster.length,
       withStaffId: staffProfiles.filter((profile) => isUuid(profile.staffId)).length,
       linkedToUser: staffProfiles.filter((profile) => Boolean(profile.linkedUserId)).length,
@@ -259,6 +288,10 @@ export function buildIdentityMigrationPreview(bank) {
  */
 export function validateNewUserStaffPair(user, staff, existingUsers = [], existingStaffProfiles = []) {
   if (!isObject(user) || !isObject(staff)) throw new TypeError("USER and STAFF records are required.");
+  if ("rootsClass" in user || "rootClass" in user || "rootsClass" in staff || "rootClass" in staff) {
+    throw new Error("Protected ROOTS classification cannot be supplied through ordinary USER/STAFF provisioning.");
+  }
+  if (user.tier != null) throw new Error("Legacy tier claims cannot be supplied through ordinary USER provisioning.");
   if (normaliseUsername(user.username) === "dev") throw new Error("DEV is the immutable root identity and cannot be linked to STAFF.");
   if (!isUuid(user.userId)) throw new Error("USER userId must be a valid immutable UUID.");
   if (!isUuid(user.staffId)) throw new Error("USER staffId must be a valid immutable UUID.");
