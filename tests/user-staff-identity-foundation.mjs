@@ -7,6 +7,7 @@ import {
   buildPendingUserStaffProvisioning,
   diagnoseIdentityDirectory,
   normaliseIdentityDirectory,
+  renameLinkedStaffDisplayName,
   validateNewUserStaffPair,
   validateStaffOperationalProfile,
 } from "../supabase/functions/_shared/user-staff-identity.mjs";
@@ -329,12 +330,24 @@ assert.equal(activated.payload.identityProvisioningReceipts[idempotencyKey].stag
 assert.equal(activated.payload.identityProvisioningReceipts[idempotencyKey].roleAssignmentVersion, 1);
 assert.equal(activatePendingUserStaffProvisioning(activated.payload, validRoleAssignment).replayed, true, "activation retries are idempotent");
 
+const renameSource = structuredClone(activated.payload);
+const renamedStaff = renameLinkedStaffDisplayName(renameSource, uid1, sid1, "Renamed Operator");
+assert.equal(renamedStaff.changed, true);
+assert.equal(renamedStaff.payload.users.find((item) => item.userId === uid1).staffId, sid1);
+assert.equal(renamedStaff.payload.staff.profiles["Renamed Operator"].staffId, sid1);
+assert.equal(renamedStaff.payload.staff.profiles["Renamed Operator"].linkedUserId, uid1);
+assert.deepEqual(renamedStaff.payload.staff.roster, ["Renamed Operator"]);
+assert.deepEqual(renamedStaff.payload.appData.staffRoster, ["Renamed Operator"]);
+assert.equal(renamedStaff.payload.appData.operatorProfiles["Renamed Operator"].staffId, sid1);
+assert.deepEqual(renameSource, activated.payload, "linked STAFF rename must not mutate the original payload");
+assert.throws(() => renameLinkedStaffDisplayName(activated.payload, uid1, sid1, "Other Staff"), /display name already exists/);
+
 const centralApi = await readFile("supabase/functions/central-bank/index.ts", "utf8");
 const yardHubApi = await readFile("supabase/functions/yard-hub-settings-api/index.ts", "utf8");
 const browserClient = await readFile("central-bank-client.js", "utf8");
 const yardHubUi = await readFile("yard-hub-settings.js", "utf8");
 const provisioningMigration = await readFile("supabase/migrations/20261126233000_canonical_yard_role_registry.sql", "utf8");
-assert.match(centralApi, /import \{ activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning \} from ["']\.\.\/_shared\/user-staff-identity\.mjs["']/);
+assert.match(centralApi, /import \\{ activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning, renameLinkedStaffDisplayName \\} from ["']\.\.\/_shared\/user-staff-identity\.mjs["']/);
 const provisioningRoutes = centralApi.slice(
   centralApi.indexOf('if(action==="user-staff-provision")'),
   centralApi.indexOf('if(action==="identity-diagnostics")'),
