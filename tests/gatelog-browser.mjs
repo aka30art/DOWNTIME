@@ -82,7 +82,7 @@ try{
  });
  assert.deepEqual(desktopHeaderComparison.g,desktopHeaderComparison.r,'GATELOG and R&M desktop headers must share identical geometry and icon sizing');
  const stats=await page.locator('.gatelog-kpis').boundingBox(),actions=await page.locator('.gatelog-toolbar-actions').boundingBox();
- assert.ok(stats.x+stats.width<actions.x);
+ assert.ok(actions.y>stats.y,'New Visit action must follow the Day-to-Day panel and sit below the live counters');
  await page.getByRole('button',{name:'Close'}).click();
 }finally{await browser.close()}
 console.log('GATELOG browser workflow: PASS');
