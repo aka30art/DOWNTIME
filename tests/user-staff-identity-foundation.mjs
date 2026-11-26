@@ -291,6 +291,9 @@ assert.deepEqual(pending.payload.staff.roster, [], "pending STAFF must not appea
 assert.deepEqual(pending.payload.appData.staffRoster, [], "pending STAFF must not appear in compatibility roster");
 assert.deepEqual(pending.payload.appData.operatorProfiles, {}, "pending STAFF must not appear in active operator profiles");
 assert.equal(pending.receipt.stage, "YARD_ROLE_PENDING");
+assert.equal(pending.auditEvent.action, "USER_STAFF_PROVISIONING_STARTED");
+assert.equal(pending.auditEvent.actor, "DEV");
+assert.equal(pending.payload.identityProvisioningEvents, undefined, "mutable payload is not treated as immutable audit history");
 assert.equal(buildPendingUserStaffProvisioning(pending.payload, provisioningInput).replayed, true, "same idempotency key and fingerprint replay safely");
 assert.throws(() => buildPendingUserStaffProvisioning(pending.payload, {
   ...provisioningInput, requestFingerprint: "d".repeat(64),
@@ -313,7 +316,7 @@ assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
 assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
   ...validRoleAssignment, staffId: sid2,
 }), /does not match the USER\/STAFF identity pair/);
-const activated = activatePendingUserStaffProvisioning(pending.payload, validRoleAssignment);
+const activated = activatePendingUserStaffProvisioning(pending.payload, validRoleAssignment, "DEV", "2026-11-26T23:02:00.000Z");
 const activeUser = activated.payload.users.find((item) => item.userId === uid1);
 const activeStaff = activated.payload.staff.profiles["New Operator"];
 assert.equal(activeUser.status, "ACTIVE");
@@ -327,7 +330,10 @@ assert.deepEqual(activated.payload.appData.staffRoster, ["New Operator"]);
 assert.equal(activated.payload.appData.operatorProfiles["New Operator"].staffId, sid1);
 assert.equal(activated.payload.identityProvisioningReceipts[idempotencyKey].stage, "ACTIVE");
 assert.equal(activated.payload.identityProvisioningReceipts[idempotencyKey].roleAssignmentVersion, 1);
-assert.equal(activatePendingUserStaffProvisioning(activated.payload, validRoleAssignment).replayed, true, "activation retries are idempotent");
+assert.equal(activated.auditEvent.action, "USER_STAFF_PROVISIONING_ACTIVATED");
+assert.equal(activated.auditEvent.actor, "DEV");
+assert.equal(activated.payload.identityProvisioningEvents, undefined);
+assert.equal(activatePendingUserStaffProvisioning(activated.payload, validRoleAssignment, "DEV").replayed, true, "activation retries are idempotent");
 
 const centralApi = await readFile("supabase/functions/central-bank/index.ts", "utf8");
 const browserClient = await readFile("central-bank-client.js", "utf8");
