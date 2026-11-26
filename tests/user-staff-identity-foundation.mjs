@@ -89,6 +89,12 @@ const linked = {
   },
 };
 assert.equal(diagnoseIdentityDirectory(linked).filter((item) => item.severity === "error").length, 0);
+assert.equal(diagnoseIdentityDirectory(linked).length, 0, "DEV is correctly exempt from a STAFF link");
+const cleanTarget = {
+  users: [{ username: "DEV", userId: uid2 }],
+  staff: { roster: [], profiles: {} },
+};
+assert.equal(buildIdentityMigrationPreview(cleanTarget).readyForIdentityCutover, true, "a valid DEV-only reset target passes readiness");
 
 const duplicateAndOrphan = {
   users: [
