@@ -160,7 +160,7 @@ jobs:
           grep -q '.yard-hub-tier-card' /tmp/live-yard-hub-settings.css
           grep -q 'YARD_HUB_SETTINGS_API' /tmp/live-site.html
           grep -q 'id="launchDowntimeBtn"' /tmp/live-site.html
-          grep -q 'data-app="floor"' /tmp/live-site.html
+          grep -q 'data-app="staff-management"' /tmp/live-site.html
           grep -q 'id="backToYardHub"' /tmp/live-site.html
           grep -q 'central-bank-client.js' /tmp/live-site.html
           grep -q 'DOWNTIME_CENTRAL_API' /tmp/live-site.html
