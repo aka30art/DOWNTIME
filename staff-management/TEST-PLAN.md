@@ -18,6 +18,7 @@
 - [x] Account link table uses an external UUID identity key; username-based linking is blocked.
 - [x] Dedicated `staff-management-api` deployed to staging, version 3.
 - [x] Deno type-check for the new Edge Function passed in GitHub Actions.
+- [x] API tier defaults aligned with Central Bank role defaults, including the restricted SPECTATOR view and role-specific management defaults.
 - [x] Production database has no `staff_management` schema or RPC.
 - [x] Production Edge Functions and frontend configuration were not changed.
 - [x] Standalone frontend exists on `feature/staff-management-staging`; it is not linked from the production launcher.
