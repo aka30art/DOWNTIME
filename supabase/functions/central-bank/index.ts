@@ -172,6 +172,10 @@ Deno.serve(async(req)=>{
  const isRootAuthority=isDevRoot||isDevacc;
  const isCentralAdmin=tier==="ADMIN"||isRootAuthority;
  const isCentralBankAccess=isRootAuthority;
+ const loadProtectedRootUserIds=async()=>{
+   const result=await db.from("downtime_roots_assignments").select("user_id");
+   return {ids:new Set((result.data||[]).map((assignment:any)=>String(assignment.user_id).toLowerCase())),error:result.error};
+ };
  if(action==="user-staff-provision"){
    if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);
    const username=String(body.username||"").trim(),displayName=String(body.displayName||"").trim(),pin=String(body.pin||"");
@@ -281,12 +285,17 @@ if(action==="roots-state"){
    return json({ok:true,assignment:{userId:assignment.user_id,staffId:assignment.staff_id,rootsClass:assignment.roots_class}});
  }
   if(action==="list-users"){
-   const visibleUsers=priv.canManageUsers||priv.canViewUsers?bank.users.filter((u:any)=>u.enabled!==false).map(safeUser):[safeUser(currentUser)];
+   const rootDirectory=await loadProtectedRootUserIds();
+   if(rootDirectory.error&&rootsAuthority!=="DEV")return json({error:"Protected identity registry is unavailable."},503);
+   const visibleUsers=priv.canManageUsers||priv.canViewUsers?(rootsAuthority==="DEV"?bank.users:bank.users.filter((u:any)=>String(u.username||"").toUpperCase()!=="DEV"&&!rootDirectory.ids.has(String(u.userId||"").toLowerCase())).filter((u:any)=>u.enabled!==false)).map(safeUser):[safeUser(currentUser)];
    return json({users:visibleUsers});
  }
  if(action==="central-admin-state"){
    if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);
-   return json({payload:{...bank,users:bank.users.map(safeUser)},version:row?.version||0,updatedAt:row?.updated_at||null,user:safeUser(currentUser)});
+   const rootDirectory=await loadProtectedRootUserIds();
+   if(rootDirectory.error&&rootsAuthority!=="DEV")return json({error:"Protected identity registry is unavailable."},503);
+   const visibleAccounts=rootsAuthority==="DEV"?bank.users:bank.users.filter((u:any)=>String(u.username||"").toUpperCase()!=="DEV"&&!rootDirectory.ids.has(String(u.userId||"").toLowerCase()));
+   return json({payload:{...bank,users:visibleAccounts.map(safeUser)},version:row?.version||0,updatedAt:row?.updated_at||null,user:safeUser(currentUser)});
  }
   if(typeof action==="string"&&action.startsWith("central-config-")&&!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);
   if(action==="central-config-state"){
@@ -671,7 +680,10 @@ if(action==="roots-state"){
  }
  if(action==="users"){
    if(!priv.canViewUsers&&!priv.canManageUsers)return json({error:"Permission denied"},403);
-   return json({users:bank.users.map(safeUser),tiers:bank.tiers});
+   const rootDirectory=await loadProtectedRootUserIds();
+   if(rootDirectory.error&&rootsAuthority!=="DEV")return json({error:"Protected identity registry is unavailable."},503);
+   const visibleAccounts=rootsAuthority==="DEV"?bank.users:bank.users.filter((u:any)=>String(u.username||"").toUpperCase()!=="DEV"&&!rootDirectory.ids.has(String(u.userId||"").toLowerCase()));
+   return json({users:visibleAccounts.map(safeUser),tiers:bank.tiers});
  }
  if(action==="user-save"){
    if(!priv.canManageUsers)return json({error:"Permission denied"},403);
@@ -680,6 +692,11 @@ if(action==="roots-state"){
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
    const existing=idx>=0?bank.users[idx]:null;
    if(!existing)return json({error:"New accounts must use the canonical USER + STAFF + YARD ROLE provisioning workflow."},409);
+   if(existing.userId){
+     const {data:protectedTarget,error:protectedTargetError}=await db.from("downtime_roots_assignments").select("user_id").eq("user_id",existing.userId).maybeSingle();
+     if(protectedTargetError)return json({error:"Protected identity registry is unavailable."},503);
+     if(protectedTarget&&rootsAuthority!=="DEV")return json({error:"Only immutable DEV may modify a protected ROOTS identity."},403);
+   }
    const canonicalIdentity=!!existing.userId&&!!existing.staffId;
    if(canonicalIdentity&&body.tier!=null)return json({error:"Canonical YARD ROLE identities cannot receive legacy tier claims."},400);
    const newTier=canonicalIdentity?undefined:String(body.tier||existing.tier||"USER");
@@ -717,6 +734,11 @@ if(action==="roots-state"){
    if(bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="DEVACC")&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can remove DEVacc."},403);
    if(target.toLowerCase()===currentUser.username.toLowerCase())return json({error:"Cannot delete your own account"},400);
    const linkedTarget=bank.users.find((u:any)=>u.username.toLowerCase()===target.toLowerCase());
+   if(linkedTarget?.userId){
+     const {data:protectedTarget,error:protectedTargetError}=await db.from("downtime_roots_assignments").select("user_id").eq("user_id",linkedTarget.userId).maybeSingle();
+     if(protectedTargetError)return json({error:"Protected identity registry is unavailable."},503);
+     if(protectedTarget)return json({error:"Protected ROOTS identities cannot be deleted through ordinary account management."},403);
+   }
    if(linkedTarget?.staffId)return json({error:"This USER has a linked STAFF identity. Disable the USER; permanent identity deletion requires the separately approved lifecycle policy."},409);
    bank.users=bank.users.filter((u:any)=>u.username!==target);
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
@@ -730,6 +752,11 @@ if(action==="roots-state"){
    const name=String(body.name||"").trim();if(!name||name.length>80)return json({error:"Staff name required"},400);
    bank.staff.profiles=bank.staff.profiles||{};bank.staff.roster=bank.staff.roster||[];
    const existingProfile=bank.staff.profiles[name]||bank.appData?.operatorProfiles?.[name]||{};
+   if(existingProfile.staffId){
+     const {data:protectedTarget,error:protectedTargetError}=await db.from("downtime_roots_assignments").select("staff_id").eq("staff_id",existingProfile.staffId).maybeSingle();
+     if(protectedTargetError)return json({error:"Protected identity registry is unavailable."},503);
+     if(protectedTarget&&rootsAuthority!=="DEV")return json({error:"Only immutable DEV may modify a protected ROOTS STAFF identity."},403);
+   }
    const proposedProfile=body.profile&&typeof body.profile==="object"&&!Array.isArray(body.profile)?body.profile:{};
    if(("staffId" in proposedProfile&&proposedProfile.staffId!==existingProfile.staffId)||("linkedUserId" in proposedProfile&&proposedProfile.linkedUserId!==existingProfile.linkedUserId)||"userId" in proposedProfile)return json({error:"STAFF-only saves cannot create or alter authenticated USER identity links."},400);
    const nextProfile={...existingProfile,...proposedProfile,name};
