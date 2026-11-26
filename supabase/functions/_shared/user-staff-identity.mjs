@@ -215,11 +215,16 @@ export function buildIdentityMigrationPreview(bank) {
   const errors = diagnostics.filter((item) => item.severity === "error").length;
   const warnings = diagnostics.filter((item) => item.severity === "warning").length;
   const onlyDevRemains = users.length === 1 && normaliseUsername(users[0]?.username) === "dev";
+  const appData = isObject(bank?.appData) ? bank.appData : {};
+  const compatibilityStaffRosterCount = Array.isArray(appData.staffRoster) ? appData.staffRoster.length : 0;
+  const compatibilityOperatorProfileCount = isObject(appData.operatorProfiles) ? Object.keys(appData.operatorProfiles).length : 0;
   const noStaffRemains = staffProfiles.length === 0 && staffRoster.length === 0;
+  const noCompatibilityStaffCopies = compatibilityStaffRosterCount === 0 && compatibilityOperatorProfileCount === 0;
   const devIdentityIsStable = onlyDevRemains && isUuid(users[0]?.userId) && !users[0]?.staffId;
   const cutoverTargetChecks = {
     onlyDevRemains,
     noStaffRemains,
+    noCompatibilityStaffCopies,
     devIdentityIsStable,
     noDiagnostics: diagnostics.length === 0,
   };
@@ -238,10 +243,12 @@ export function buildIdentityMigrationPreview(bank) {
       rosterEntryCount: staffRoster.length,
       withStaffId: staffProfiles.filter((profile) => isUuid(profile.staffId)).length,
       linkedToUser: staffProfiles.filter((profile) => Boolean(profile.linkedUserId)).length,
+      compatibilityRosterEntryCount: compatibilityStaffRosterCount,
+      compatibilityProfileCount: compatibilityOperatorProfileCount,
     },
     diagnostics: { total: diagnostics.length, errors, warnings },
     cutoverTargetChecks,
-    readyForIdentityCutover: errors === 0 && warnings === 0 && onlyDevRemains && noStaffRemains && devIdentityIsStable,
+    readyForIdentityCutover: errors === 0 && warnings === 0 && onlyDevRemains && noStaffRemains && noCompatibilityStaffCopies && devIdentityIsStable,
     findings: diagnostics,
   };
 }
