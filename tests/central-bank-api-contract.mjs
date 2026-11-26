@@ -11,7 +11,7 @@ assert.ok(src.indexOf('if(action==="list-users")')>src.indexOf('const currentUse
 assert.ok(src.indexOf('if(action==="photo-evidence-context")')>src.indexOf('const currentUser=bank.users.find'),'photo permission context is available only after session validation');
 assert.ok(src.includes('permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canDeleteRecords:priv.canDeleteRecords===true}'),'photo context returns only the three server-resolved tracker capabilities');
 assert.ok(src.includes('user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username}'),'photo context exposes only the authenticated actor snapshot');
-assert.ok(!src.includes('login-options'),'the unauthenticated account directory endpoint is removed');
+assert.ok(!src.includes('login-options'),'no separate pre-authentication directory action exists');
 assert.ok(src.includes('if(action==="list-users"&&!req.headers.get("x-downtime-session"))return json({users:bank.users.filter((u:any)=>u.enabled!==false).map((u:any)=>({username:u.username}))});'),'legacy cached login clients receive usernames only, without profile or permission metadata');
 assert.ok(src.includes('return json({error:"Invalid username or PIN"},401)'),'unknown usernames and incorrect PINs share a generic login error');
 assert.ok(src.includes('pinSalt:"central-login-dummy-salt",pinHash:"0".repeat(64)')&&src.includes('const validPin=await verifyPin(pin,pinCandidate)'),'unknown and disabled usernames receive the same PBKDF2 verification work as invalid PIN attempts');
