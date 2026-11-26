@@ -369,10 +369,20 @@ Deno.serve(async(req)=>{
      const currentProfiles=bank.staff?.profiles||bank.appData?.operatorProfiles||{};
      const incomingProfiles=structuredClone(nextAppData.operatorProfiles||{});
      const savedProfiles=priv.canManageStaff?incomingProfiles:structuredClone(currentProfiles||{});
+     if(priv.canManageStaff){
+       for(const [name,profile] of Object.entries(currentProfiles) as [string,any][]){
+         if((profile as any)?.linkedUserId&&!Object.prototype.hasOwnProperty.call(incomingProfiles,name))return json({error:"Linked STAFF profiles cannot be removed through tracker saves. Archive the STAFF profile instead."},409);
+       }
+       const incomingRoster=Array.isArray(nextAppData.staffRoster)?nextAppData.staffRoster:[];
+       for(const [name,profile] of Object.entries(currentProfiles) as [string,any][]){
+         if((profile as any)?.linkedUserId&&!incomingRoster.includes(name))return json({error:"Linked STAFF roster entries cannot be removed through tracker saves."},409);
+       }
+     }
      for(const [name,incomingProfile] of Object.entries(incomingProfiles) as [string,any][]){
        if(!Object.prototype.hasOwnProperty.call(currentProfiles,name)||!incomingProfile||typeof incomingProfile!=="object"||Array.isArray(incomingProfile))continue;
        const existing={...(currentProfiles as any)[name]};
        const merged=priv.canManageStaff?{...incomingProfile}:{...existing};
+       for(const field of ["staffId","linkedUserId"]){if(Object.prototype.hasOwnProperty.call(existing,field))merged[field]=existing[field];else delete merged[field]}
        // Assignment metadata and its lock can only be changed by the Staff Settings save-settings route.
        if(existing.stationLocked===true||!priv.canManageAssignments){
          if("station" in existing)merged.station=existing.station;else delete merged.station;
