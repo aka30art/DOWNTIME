@@ -181,6 +181,11 @@ assert.ok(ui.includes("const modes=['NONE','READ','INPUT','EDIT']"),'YARD HUB ti
 assert.ok(ui.includes("['READ','INPUT','EDIT'].forEach(mode=>{"),'YARD HUB tier UI renders INPUT checkbox');
 assert.ok(hubApi.includes('["NONE", "READ", "INPUT", "EDIT"]'),'YARD HUB settings API validates INPUT mode');
 
+assert.match(hubApi,/resolveRootsAuthority/,'YARD HUB settings resolves protected ROOTS separately from legacy tiers');
+assert.match(hubApi,/const isProtectedRoot = \["DEV", "DEV1", "ADMIN"\]/,'only protected ROOTS identities receive automatic settings access');
+assert.match(hubApi,/rootsAuthority === "DEV" \|\|/,'ROOTS identities are hidden from non-DEV settings user listings');
+assert.match(hubApi,/Protected ROOTS identities cannot receive ordinary YARD HUB tier assignments/,'ROOTS identities cannot be assigned ordinary Hub tiers');
+
 // Custom YARD HUB tiers are root-managed and persisted independently.
 assert.ok(ui.includes('function addCustomTier()'),'custom tier creation workflow exists');
 assert.ok(ui.includes('workingPayload.customTiers'),'custom tier definitions are included in saved payload');
