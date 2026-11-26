@@ -159,6 +159,7 @@ assert.ok(api.includes('permissions.canReadRepairMaintenanceMachinery'),'registr
 assert.match(api,/resolveRootsAuthority/,'R&M resolves protected ROOTS separately from legacy tiers');
 assert.match(api,/downtime_roots_assignments/,'R&M reads server-side protected ROOTS assignments');
 assert.match(api,/includes\(rootsAuthority \|\| ""\)/,'protected DEV, DEV1 and ADMIN receive automatic R&M Manage authority');
+assert.match(api,/user.yardRoleId && !\["DEV1", "ADMIN"\]/,'ROOTS authority is a separate override for ordinary YARD ROLE gating');
 console.log('R&M module contract checks passed.');
 
 assert.ok(api.includes('permissions.canCreateRepairMaintenance = mode === "INPUT" || mode === "EDIT"'),'R&M INPUT tier can create faults');
