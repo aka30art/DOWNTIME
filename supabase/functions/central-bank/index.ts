@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning, renameLinkedStaffDisplayName } from "../_shared/user-staff-identity.mjs";
 import { resolveYardRolePermissions } from "../_shared/yard-role-resolver.mjs";
+import { resolveRootsAuthority } from "../_shared/roots-authority.mjs";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const allowedOrigin="https://aka30art.github.io";
