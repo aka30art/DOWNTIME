@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { buildIdentityMigrationPreview } from "../_shared/user-staff-identity.mjs";
+import { activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning } from "../_shared/user-staff-identity.mjs";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const allowedOrigin="https://aka30art.github.io";
@@ -160,6 +160,40 @@ Deno.serve(async(req)=>{
  const isRootAuthority=isDevRoot||isDevacc;
  const isCentralAdmin=tier==="ADMIN"||isRootAuthority;
  const isCentralBankAccess=isRootAuthority;
+ if(action==="user-staff-provision"){
+   if(!priv.canManageUsers||!priv.canManageStaff||!isCentralAdmin)return json({error:"USER + STAFF provisioning is restricted to authorised account administrators."},403);
+   const username=String(body.username||"").trim(),displayName=String(body.displayName||"").trim(),pin=String(body.pin||"");
+   const idempotencyKey=String(body.idempotencyKey||"");
+   const staffFields=body.staff&&typeof body.staff==="object"&&!Array.isArray(body.staff)?body.staff:{};
+   if(!/^[0-9a-f-]{36}$/i.test(idempotencyKey))return json({error:"A UUID idempotency key is required."},400);
+   if(!/^[0-9]{4,8}$/.test(pin))return json({error:"PIN must contain 4–8 digits."},400);
+   const requestFingerprint=await digest(JSON.stringify({username,displayName,pin,staff:staffFields}));
+   try{
+     const pending=buildPendingUserStaffProvisioning(bank,{userFields:{username,displayName},staffFields,idempotencyKey,requestFingerprint,userId:crypto.randomUUID(),staffId:crypto.randomUUID(),pinSalt:cryptoHex(crypto.getRandomValues(new Uint8Array(16))),pinHash:await hashPin(pin,cryptoHex(crypto.getRandomValues(new Uint8Array(16)))),actor:currentUser.username});
+     if(pending.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),userId:pending.receipt.userId,staffId:pending.receipt.staffId,stage:pending.receipt.stage});
+     if(!Number.isInteger(Number(body.version))||Number(body.version)!==Number(row?.version||0))return json({error:"Central USER directory changed. Refresh and retry provisioning."},409);
+     const {data:write,error}=await db.from("downtime_central_bank").update({payload:pending.payload,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
+     if(error||!write)return json({error:"Central USER directory changed. Refresh and retry provisioning."},409);
+     await db.from("downtime_central_audit").insert({username:currentUser.username,action:"user-staff-provision",details:{target:username,userId:pending.receipt.userId,staffId:pending.receipt.staffId,idempotencyKey,stage:pending.receipt.stage}});
+     return json({ok:true,replayed:false,version:(row?.version||0)+1,userId:pending.receipt.userId,staffId:pending.receipt.staffId,stage:pending.receipt.stage},201);
+   }catch(error){return json({error:error instanceof Error?error.message:"Invalid USER/STAFF provisioning request."},400)}
+ }
+ if(action==="user-staff-activate"){
+   if(!priv.canManageUsers||!isCentralAdmin)return json({error:"USER provisioning activation is restricted to authorised account administrators."},403);
+   const username=String(body.username||"").trim();
+   const {data:yardConfig,error:yardConfigError}=await db.from("yard_hub_tier_config").select("payload,version").eq("id",1).maybeSingle();
+   if(yardConfigError||!yardConfig?.payload)return json({error:"YARDHUB tier configuration is unavailable; USER remains inactive."},503);
+   const tierName=String(yardConfig.payload?.userTiers?.[username.toLowerCase()]||"").toUpperCase();
+   if(!tierName||!yardConfig.payload?.tiers?.[tierName])return json({error:"A persisted YARDHUB tier assignment is required before USER activation."},409);
+   let activation;
+   try{activation=activatePendingUserStaffProvisioning(bank,username,tierName)}catch(error){return json({error:error instanceof Error?error.message:"USER provisioning activation failed."},400)}
+   if(activation.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),username:activation.user.username,enabled:true});
+   if(!Number.isInteger(Number(body.version))||Number(body.version)!==Number(row?.version||0))return json({error:"Central USER directory changed. Refresh before activation."},409);
+   const {data:write,error}=await db.from("downtime_central_bank").update({payload:activation.payload,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
+   if(error||!write)return json({error:"Central USER directory changed. Refresh before activation."},409);
+   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"user-staff-provision-activate",details:{target:username,yardHubTier:tierName}});
+   return json({ok:true,replayed:false,version:(row?.version||0)+1,username,enabled:true,yardHubTier:tierName});
+ }
  if(action==="identity-diagnostics"){
    if(!isDevRoot)return json({error:"Identity diagnostics are restricted to immutable DEV."},403);
    const preview=buildIdentityMigrationPreview(bank);
@@ -551,6 +585,7 @@ Deno.serve(async(req)=>{
    if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username)||!tiers.includes(newTier))return json({error:"Invalid user/tier"},400);
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
    const existing=idx>=0?bank.users[idx]:null;
+   if(!existing)return json({error:"New accounts must use the atomic USER + STAFF provisioning workflow."},409);
    const isRootName=username.toUpperCase()==="DEV";
    if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEV and DEVACC can create accounts or assign user tiers."},403);
    if(isRootName){
@@ -579,6 +614,8 @@ Deno.serve(async(req)=>{
    if(target.toUpperCase()==="DEV"||bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="OWNER"))return json({error:"The DEV root OWNER account cannot be deleted or removed."},403);
    if(bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="DEVACC")&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can remove DEVacc."},403);
    if(target.toLowerCase()===currentUser.username.toLowerCase())return json({error:"Cannot delete your own account"},400);
+   const linkedTarget=bank.users.find((u:any)=>u.username.toLowerCase()===target.toLowerCase());
+   if(linkedTarget?.staffId)return json({error:"This USER has a linked STAFF identity. Disable the USER; identity deletion requires the separately approved lifecycle policy."},409);
    bank.users=bank.users.filter((u:any)=>u.username!==target);
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Version conflict"},409);
@@ -592,7 +629,9 @@ Deno.serve(async(req)=>{
    bank.staff.profiles=bank.staff.profiles||{};bank.staff.roster=bank.staff.roster||[];
    const existingProfile=bank.staff.profiles[name]||bank.appData?.operatorProfiles?.[name]||{};
    const proposedProfile=body.profile&&typeof body.profile==="object"&&!Array.isArray(body.profile)?body.profile:{};
+   if("linkedUserId" in proposedProfile||"userId" in proposedProfile)return json({error:"STAFF-only saves cannot create or alter authenticated USER identity links."},400);
    const nextProfile={...existingProfile,...proposedProfile,name};
+   for(const field of ["staffId","linkedUserId"]){if(Object.prototype.hasOwnProperty.call(existingProfile,field))nextProfile[field]=existingProfile[field];else delete nextProfile[field]}
    if(!priv.canManageAssignments){
      if("station" in existingProfile)nextProfile.station=existingProfile.station;else delete nextProfile.station;
      if("assignedStation" in existingProfile)nextProfile.assignedStation=existingProfile.assignedStation;else delete nextProfile.assignedStation;
