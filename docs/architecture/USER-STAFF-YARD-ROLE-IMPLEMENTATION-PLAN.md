@@ -1,6 +1,52 @@
 # USER / STAFF / YARD ROLE Restructure — Technical Review and Implementation Plan
 
-Status: Planning gate — no implementation authorised by this document alone  
+
+> **CONTROLLING SPECIFICATION — 2026-11-26**
+>
+> This section is the current authoritative decision record. It supersedes every earlier statement elsewhere in this document that conflicts with it. The chronological decision notes below are retained as history only; they are not implementation instructions where they conflict with this section. Do not derive implementation behaviour from a superseded note.
+>
+> ### Identity reset
+> - Retain only the existing immutable DEV USER identity. Preserve its existing credential material and root protection.
+> - At a future approved deployment migration, remove every other existing USER account and every existing STAFF profile. This is a full reset, not a legacy-account migration, rename, reclassification, archive or disable operation.
+> - After deployment, DEV creates all new USER accounts from scratch. Each new USER receives fresh immutable USER and STAFF IDs, fresh credentials and exactly one linked STAFF profile. No prior account, credential, session, tier, ROOTS classification or permission assignment is inherited.
+> - DEV assigns DEV1 or protected ADMIN only through the dedicated ROOTS workflow. Ordinary account creation cannot grant ROOTS authority.
+> - Preserve historical audit records and shared operational/business history. Remove only live identity-owned records and media whose ownership and dependencies are proven by an exact manifest. Never delete shared history merely because it contains a former display name.
+> - Production reset requires a complete dependency inventory, exact deletion manifest and counts, isolated rehearsal, idempotency, optimistic version checks, recovery/rollback plan, before/after verification and explicit final production approval. No production data has been changed by this architecture work.
+>
+> ### USER / STAFF contract
+> - USER is the only authenticated identity. STAFF is an operational directory/profile and grants no authentication or application authority.
+> - Every newly created USER has exactly one linked STAFF profile; every STAFF profile links to at most one USER. Link by immutable IDs, never names or usernames.
+> - USER creation is one logical provisioning workflow across the Central Bank and YARDHUB persistence boundaries. It is not a cross-database atomic transaction: use explicit staged states, idempotency keys, optimistic version checks, audit events, retry, compensation and reconciliation. A partially provisioned account must remain non-active and unable to authenticate or access either application.
+> - STAFF operational fields remain distinct from application permissions. STAFF archive does not disable/delete USER. USER lifecycle does not silently erase STAFF or historical operational records. STAFF-only workflows must never create USER accounts.
+>
+> ### ROOTS authority
+> - ROOTS is hidden protected system metadata, not a USER category or ordinary YARD ROLE.
+> - DEV is immutable and has full root authority.
+> - DEV1 receives automatic Manage authority across every department. DEV1 cannot view, inspect, edit, disable, delete or otherwise interact with DEV; DEV1 cannot browse/manage ROOTS or assign DEV1. DEV1 may assign ADMIN only through a separate narrowly scoped action that does not expose ROOTS.
+> - Protected ADMIN receives automatic Manage authority across every department. ADMIN cannot interact with DEV or DEV1, cannot browse/manage ROOTS and cannot assign protected classifications.
+> - DEV alone can browse/manage ROOTS and assign DEV1 or ADMIN. DEV may also assign ADMIN. Every root rule and isolation boundary is enforced server-side for every relevant API action.
+>
+> ### Ordinary YARD ROLE authorization
+> - Replace both legacy Central DOWNTIME tier permissions and YARDHUB tier/section permissions with one canonical YARD ROLE model, authoritative across both applications after cutover.
+> - For each ordinary YARD ROLE and department, exactly one mutually exclusive level applies: **OFF** (no tile/access), **Read Only** (view only), **Input** (view, add and edit; no removal/deletion), or **Manage** (full supported department privileges, including removal/deletion).
+> - The selected level governs both department availability and server-side actions. UI hiding is not a security boundary.
+> - DEV1 and protected ADMIN do not need ordinary YARD ROLE assignments to obtain their automatic Manage authority. ROOTS is a separate authorization layer and must not be represented by populating the ordinary matrix.
+> - No legacy tier or permission profile is automatically mapped to a new YARD ROLE. The unified schema, every permission consumer, migration mapping and fallback must be reviewed. Legacy stores remain compatibility-only until all consumers have migrated and cutover is approved; they must not remain competing authorities after cutover.
+>
+> ### Administration location and boundaries
+> - USER management, STAFF directory/management and Access and Rights belong in YARDHUB.
+> - YARDHUB Access and Rights is available only to DEV, DEV1 and protected ADMIN, subject to server-side authorization. ROOTS visibility and assignment limits above still apply.
+> - Remove the corresponding USERS, STAFF and ACCESS AND RIGHTS cards from DOWNTIME Settings only after their YARDHUB replacements are implemented, tested and verified.
+> - Preserve unrelated DOWNTIME modules and existing data boundaries. Do not make unrelated changes as part of this restructure.
+>
+> ### Authorization to execute
+> - This is an architecture and implementation-planning decision only. It does not authorize production data changes, account deletion, database migrations, PR merge or deployment.
+
+
+
+Status: Planning gate — no implementation authorised by this document alone
+
+The controlling specification at the beginning of the architecture record governs this plan. Any older decision text retained below is historical and superseded where inconsistent.  
 Architecture record: `docs/architecture/USER-STAFF-YARD-ROLE-RESTRUCTURE.md`  
 Base reviewed: `main` at `b08735da3e8b7dd4ad863bdf94bd672e3c25e846`  
 Review date: 2026-11-26  
