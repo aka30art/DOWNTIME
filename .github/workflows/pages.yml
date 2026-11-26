@@ -92,6 +92,14 @@ jobs:
           grep -q 'id="yardHubSettingsTiers"' /tmp/live-site.html
           grep -q 'yard-hub-settings.js' /tmp/live-site.html
           grep -q 'yard-hub-settings.css' /tmp/live-site.html
+          grep -q 'yard-hub-staff.js' /tmp/live-site.html
+          grep -q 'yard-hub-staff.css' /tmp/live-site.html
+          grep -q 'YARD_HUB_STAFF_API' /tmp/live-site.html
+          curl --fail --silent --show-error --location "$LIVE_URL/yard-hub-staff.js?v=20261126-1" -o /tmp/live-yard-hub-staff.js
+          grep -q "callApi('person-save'" /tmp/live-yard-hub-staff.js
+          grep -q 'window.YardHubStaff={open,close' /tmp/live-yard-hub-staff.js
+          curl --fail --silent --show-error --location "$LIVE_URL/yard-hub-staff.css?v=20261126-1" -o /tmp/live-yard-hub-staff.css
+          grep -q '.yard-staff-screen' /tmp/live-yard-hub-staff.css
           grep -q 'id="launchGatelogBtn"' /tmp/live-site.html
           grep -q 'gatelog-app.js' /tmp/live-site.html
           grep -q 'gatelog-app.css' /tmp/live-site.html
