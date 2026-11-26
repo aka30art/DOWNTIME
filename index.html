@@ -759,7 +759,8 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
             <strong id="yardHubUserDowntimeTier">USER · SAFE DEFAULT</strong>
             <small>This value is not editable here. DOWNTIME Access &amp; Rights stays independent.</small>
           </div>
-          <label>YARD HUB TIER<select id="yardHubUserHubTier" required></select></label>
+          <label id="yardHubLegacyTierField">LEGACY YARD HUB TIER<select id="yardHubUserHubTier" required></select></label>
+          <label id="yardHubUserYardRoleField">CANONICAL YARD ROLE<select id="yardHubUserYardRole" required></select></label>
           <label>PIN<input id="yardHubUserPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label>
           <label class="yard-hub-enabled-option"><input id="yardHubUserEnabled" type="checkbox" checked> ACCOUNT ACTIVE</label>
           <p id="yardHubUserModalHint" class="yard-hub-note"></p>
