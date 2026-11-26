@@ -43,6 +43,7 @@ assert.match(scopeMigration,/add column if not exists record_id text/,'Attachmen
 assert.match(scopeMigration,/add column if not exists department text not null default 'DOWNTIME'/,'Attachment metadata stores its authorization department');
 assert.match(html,/function photoAuthHeaders\(\)/,'Browser photo calls attach the authenticated Central Bank session');
 assert.match(html,/recordId:photoRecordId/,'Photo uploads are linked to the stable tracker record ID');
+assert.match(html,/if\(error\)\{photoEntryKey=photoId\(\);throw error\}/,'Failed signed uploads receive a fresh key for safe retry');
 assert.match(html,/permission\('canDeleteRecords'\)/,'Browser photo removal is limited to Manage permission');
 assert.match(html,/async function flushPendingPhotoDeletes\(\)/,'Photo deletion is queued until the operational record save succeeds');
 assert.ok(html.indexOf('saveTracker(snapshot,centralVersion)')<html.indexOf('await flushPendingPhotoDeletes()'),'photo object deletion runs after the central record save');
