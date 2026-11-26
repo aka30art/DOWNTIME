@@ -73,7 +73,7 @@ Deno.serve(async (req: Request) => {
   if(action==="gateman-save"){
     if(!canManageGateman)return json({error:"You do not have permission to manage daily Gateman assignments."},403);
     const dutyDate=clean(body.dutyDate,10),username=clean(body.username,80);
-    if(!/^\d{4}-\\d{2}-\\d{2}$/.test(dutyDate)||!username)return json({error:"Select a valid date and Gateman."},400);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate)||!username)return json({error:"Select a valid date and Gateman."},400);
     const selected=gatemen.find((item:any)=>item.username.toLowerCase()===username.toLowerCase());
     if(!selected)return json({error:"The selected account is not active in the YARD HUB user directory."},404);
     const existing=await db.from("gatelog_daily_gateman_assignments").select("is_locked").eq("duty_date",dutyDate).maybeSingle();
@@ -86,7 +86,7 @@ Deno.serve(async (req: Request) => {
   if(action==="gateman-lock"){
     if(!canManageGateman)return json({error:"You do not have permission to lock daily Gateman assignments."},403);
     const dutyDate=clean(body.dutyDate,10);
-    if(!/^\d{4}-\\d{2}-\\d{2}$/.test(dutyDate))return json({error:"Select a valid date."},400);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate))return json({error:"Select a valid date."},400);
     const {data,error}=await db.from("gatelog_daily_gateman_assignments").update({is_locked:true,locked_by:actor,locked_at:new Date().toISOString(),updated_by:actor,updated_at:new Date().toISOString()}).eq("duty_date",dutyDate).eq("is_locked",false).not("gateman_username","is",null).select("*").maybeSingle();
     if(error)return fail(error);
     if(!data)return json({error:"Assign a Gateman first, or refresh because this assignment is already locked."},409);
@@ -94,7 +94,7 @@ Deno.serve(async (req: Request) => {
   }
   if(action==="day-register"){
     const dutyDate=clean(body.dutyDate,10);
-    if(!/^\d{4}-\\d{2}-\\d{2}$/.test(dutyDate))return json({error:"Select a valid date."},400);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate))return json({error:"Select a valid date."},400);
     const {data,error}=await db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,time_out,status,created_by,departed_by,gatelog_customers(customer_name),gatelog_visit_waste_types(gatelog_waste_types(label))").eq("visit_date",dutyDate).order("time_in",{ascending:false}).limit(5000);
     if(error)return fail(error);
     const visits=(data||[]).map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)}));
@@ -105,7 +105,7 @@ Deno.serve(async (req: Request) => {
   if(action==="report"){
     if(bank.payload.tiers?.[legacyTier]?.canExportReports!==true)return json({error:"Your YARD HUB role cannot export reports."},403);
     const period=clean(body.period,10),anchor=clean(body.anchorDate,10);
-    if(!["daily","weekly","monthly"].includes(period)||!/^\d{4}-\\d{2}-\\d{2}$/.test(anchor))return json({error:"Select a valid report period and date."},400);
+    if(!["daily","weekly","monthly"].includes(period)||!/^\d{4}-\d{2}-\d{2}$/.test(anchor))return json({error:"Select a valid report period and date."},400);
     const d=new Date(anchor+"T00:00:00Z");let from=anchor,to=anchor;
     if(period==="weekly"){d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));from=d.toISOString().slice(0,10);d.setUTCDate(d.getUTCDate()+5);to=d.toISOString().slice(0,10);}
     if(period==="monthly"){from=anchor.slice(0,7)+"-01";const end=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0));to=end.toISOString().slice(0,10);}
