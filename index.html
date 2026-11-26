@@ -759,8 +759,18 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
             <strong id="yardHubUserDowntimeTier">USER · SAFE DEFAULT</strong>
             <small>This value is not editable here. DOWNTIME Access &amp; Rights stays independent.</small>
           </div>
-          <label>YARD HUB TIER<select id="yardHubUserHubTier" required></select></label>
+          <label id="yardHubLegacyTierField">LEGACY YARD HUB TIER<select id="yardHubUserHubTier" required></select></label>
+          <label id="yardHubUserYardRoleField">CANONICAL YARD ROLE<select id="yardHubUserYardRole" required></select></label>
           <label>PIN<input id="yardHubUserPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label>
+          <div id="yardHubStaffFields" class="yard-hub-staff-fields">
+            <strong>LINKED STAFF PROFILE</strong>
+            <p>Every new USER receives one operational STAFF profile. This profile does not grant permissions by itself.</p>
+            <label>STAFF DEPARTMENT<select id="yardHubStaffDepartment" required><option value="SCPL">SCPL · Site Crew Picking Line</option><option value="R&amp;M">R&amp;M</option><option value="Management">Management</option><option value="SCFL">SCFL · Site Crew Floor</option><option value="Traffic">Traffic</option></select></label>
+            <label>OPERATIONAL ROLE<select id="yardHubStaffRole" required><option value="Main Operator">Main Operator</option><option value="Picking Line Crew">Picking Line Crew</option></select></label>
+            <label>ASSIGNED STATION<input id="yardHubStaffStation" maxlength="100" placeholder="Optional · e.g. Station 1 · WOOD"></label>
+            <label class="yard-hub-enabled-option"><input id="yardHubStaffStationLocked" type="checkbox"> LOCK STATION</label>
+            <label class="yard-hub-enabled-option"><input id="yardHubStaffOnSite" type="checkbox" checked> ON PLANT</label>
+          </div>
           <label class="yard-hub-enabled-option"><input id="yardHubUserEnabled" type="checkbox" checked> ACCOUNT ACTIVE</label>
           <p id="yardHubUserModalHint" class="yard-hub-note"></p>
           <div class="yard-hub-user-modal-actions">
@@ -2668,4 +2678,10 @@ details[open]>summary .disclosure-chevron{transform:rotate(180deg)}
     touch-action:manipulation;
   }
 }
+
+.yard-hub-staff-fields{display:grid;gap:10px;padding:13px;border:1px solid #344d60;border-radius:12px;background:#0a1924}
+.yard-hub-staff-fields[hidden]{display:none}
+.yard-hub-staff-fields strong{font-size:11px;letter-spacing:.08em}
+.yard-hub-staff-fields p{margin:0;font-size:12px;color:var(--muted)}
+.yard-hub-staff-fields label{margin:0}
 </style>
