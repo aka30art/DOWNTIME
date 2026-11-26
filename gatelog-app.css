@@ -140,3 +140,7 @@ body.gatelog-modal-open{overflow:hidden}
  .gatelog-hero-icon{width:43px;height:43px;min-width:43px}
  .gatelog-hero-title{margin-top:48px}
 }
+
+
+/* Keep the two KPI cards inside very narrow mobile viewports. */
+@media(max-width:380px){.gatelog-screen .gatelog-kpis{grid-template-columns:minmax(0,1fr);width:100%;flex-basis:100%}.gatelog-screen .gatelog-kpi{min-width:0}}
