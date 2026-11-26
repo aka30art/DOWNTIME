@@ -178,7 +178,7 @@ Deno.serve(async(req)=>{
      const pinSalt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));
      const pending=buildPendingUserStaffProvisioning(bank,{
        userFields:{username,displayName},staffFields,idempotencyKey,requestedYardRoleId,requestFingerprint,
-       userId:crypto.randomUUID(),staffId:crypto.randomUUID(),pinSalt,pinHash:await hashPin(pin,pinSalt),actor:currentUser.username
+       userId:crypto.randomUUID(),staffId:crypto.randomUUID(),pinSalt,pinHash:await hashPin(pin,pinSalt),actorUserId:currentUser.userId,actorUsername:currentUser.username,actorDisplayName:currentUser.displayName||currentUser.username
      });
      if(pending.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),userId:pending.receipt.userId,staffId:pending.receipt.staffId,stage:pending.receipt.stage,requestedYardRoleId:pending.receipt.requestedYardRoleId});
      if(!pending.auditEvent)return json({error:"Provisioning audit event is missing."},500);
@@ -205,7 +205,7 @@ Deno.serve(async(req)=>{
    if(assignmentError||!assignment)return json({error:"A persisted active canonical YARD ROLE assignment is required; USER remains inactive."},409);
    const roleAssignment={userId:assignment.user_id,staffId:assignment.staff_id,yardRoleId:assignment.yard_role_id,status:assignment.status,version:Number(assignment.version),verifiedAt:assignment.verified_at};
    let activation;
-   try{activation=activatePendingUserStaffProvisioning(bank,roleAssignment,currentUser.username)}catch(error){return json({error:error instanceof Error?error.message:"USER provisioning activation failed."},400)}
+   try{activation=activatePendingUserStaffProvisioning(bank,roleAssignment,{userId:currentUser.userId,username:currentUser.username,displayName:currentUser.displayName||currentUser.username})}catch(error){return json({error:error instanceof Error?error.message:"USER provisioning activation failed."},400)}
    if(activation.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),username:activation.user.username,enabled:true,yardRoleId:roleAssignment.yardRoleId});
    if(!activation.auditEvent)return json({error:"Activation audit event is missing."},500);
    if(!Number.isInteger(Number(body.version))||Number(body.version)!==Number(row?.version||0))return json({error:"Central USER directory changed. Refresh before activation."},409);
