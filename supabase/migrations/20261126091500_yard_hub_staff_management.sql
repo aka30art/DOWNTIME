@@ -222,7 +222,7 @@ begin
      and ended_at is null
      and (
        not (role_id = any(v_role_ids))
-       or is_primary <> (role_id = p_primary_role_id)
+       or is_primary <> coalesce(role_id = p_primary_role_id, false)
      );
 
   foreach v_role_id in array v_role_ids loop
@@ -234,7 +234,7 @@ begin
       insert into public.yard_hub_staff_role_assignments (
         person_id, role_id, is_primary, assigned_by
       ) values (
-        v_person.id, v_role_id, (v_role_id = p_primary_role_id), p_actor
+        v_person.id, v_role_id, coalesce(v_role_id = p_primary_role_id, false), p_actor
       );
     else
       update public.yard_hub_staff_role_assignments
