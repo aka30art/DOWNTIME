@@ -2117,7 +2117,7 @@ window.saveDowntimeCentralUserFromYardHub=function(userData){
  cloudWrite=task.then(()=>undefined,()=>undefined);
  return task;
 };
-window.activateDowntimeCentralUserFromYardHub=function(username){
+window.activateDowntimeCentralUserFromYardHub=function(userId){
  const task=cloudWrite.then(async()=>{
   centralPendingWrites++;cloudBusy=true;
   try{
@@ -2125,7 +2125,7 @@ window.activateDowntimeCentralUserFromYardHub=function(username){
    if(cloudSyncFailed)throw new Error('A DOWNTIME change is still unsynced. Resolve the DOWNTIME sync warning before activating the account.');
    const freshVersion=await window.refreshDowntimeCentralDirectory();
    if(!freshVersion)throw new Error('Unable to refresh the Central USER directory.');
-   const saved=await window.DowntimeCentral.activateProvisionedUser(username,centralVersion);
+   const saved=await window.DowntimeCentral.activateProvisionedUser(userId,centralVersion);
    let verifiedVersion;
    try{verifiedVersion=await window.refreshDowntimeCentralDirectory()}
    catch(error){error.centralUserSaved=true;throw error}
