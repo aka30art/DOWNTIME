@@ -389,7 +389,7 @@ assert.match(provisioningRoutes, /if\(!isDevRoot\)/, "only immutable DEV can pro
 assert.match(provisioningRoutes, /buildPendingUserStaffProvisioning\(bank/);
 assert.match(provisioningRoutes, /requestedYardRoleId/);
 assert.match(provisioningRoutes, /yard_role_assignments/, "activation reads the canonical YARD ROLE assignment store");
-assert.match(provisioningRoutes, /activatePendingUserStaffProvisioning\(bank,roleAssignment,currentUser\.username\)/);
+assert.match(provisioningRoutes, /activatePendingUserStaffProvisioning\(bank,roleAssignment,\{userId:currentUser\.userId,username:currentUser\.username/);
 assert.match(provisioningRoutes, /downtime_central_commit_identity_event/, "payload commit and immutable audit are atomic");
 assert.doesNotMatch(provisioningRoutes, /yard_hub_tier_config|save-user-tier/, "legacy YARD HUB tiers cannot activate new identities");
 assert.match(centralApi, /renameLinkedStaffDisplayName\(bank,existing\.userId,existing\.staffId,displayName\)/, "USER display-name edits preserve the linked STAFF identity");
@@ -407,6 +407,7 @@ assert.match(legacyUserSave, /New accounts must use the canonical USER \+ STAFF 
 
 assert.match(yardHubApi, /action === "assign-user-role"/);
 assert.match(yardHubApi, /yard_role_assign_user/);
+assert.match(yardHubApi, /const targetUserId = String\(body\.userId \|\| ""\)/, "YARD ROLE assignment addresses the immutable USER ID rather than a username");
 assert.match(yardHubApi, /yardRoles/);
 assert.match(yardHubApi, /yard_role_assignments/);
 assert.match(yardHubApi, /resolveYardRolePermissions/);
@@ -427,7 +428,7 @@ assert.match(html, /activateDowntimeCentralUserFromYardHub/);
 
 assert.match(browserClient, /identityDiagnostics\(\)\{return call\("identity-diagnostics"\)\}/, "browser adapter exposes read-only diagnostics");
 assert.match(browserClient, /provisionUserStaff\(data,version,idempotencyKey\)/);
-assert.match(browserClient, /activateProvisionedUser\(username,version\)/);
+assert.match(browserClient, /activateProvisionedUser\(userId,version\)/);
 
 assert.match(provisioningMigration, /create table if not exists public\.yard_roles/);
 assert.match(provisioningMigration, /create table if not exists public\.yard_role_assignments/);
