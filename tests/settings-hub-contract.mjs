@@ -57,8 +57,8 @@ for (const id of [
 
 const helpersMatch=html.match(/function canManageSettingsSection\(section\)\{[\s\S]*?function anySettingsAccess\(\)\{[^}]*\}/);
 assert.ok(helpersMatch,'granular Settings permission helpers must be present');
-const accessHelpers=new Function('permission','canManageAccessRights',helpersMatch[0]+'; return {settingsAccess,canManageSettingsSection};');
-const helper=(permission)=>accessHelpers(permission,()=>false);
+const accessHelpers=new Function('permission','canManageAccessRights','isStaffModuleAutoAccess',helpersMatch[0]+'; return {settingsAccess,canManageSettingsSection};');
+const helper=(permission)=>accessHelpers(permission,()=>false,()=>false);
 const managerOnly=helper(name=>({canManageUsers:true,canViewUsers:false}[name]===true));
 assert.equal(managerOnly.settingsAccess('users'),true);
 assert.equal(managerOnly.settingsAccess('areas'),false);
@@ -86,7 +86,7 @@ assert.equal(staffViewer.settingsAccess('staff'),true,'STAFF visibility preserve
 const fullAdmin=helper(()=>true);
 for(const section of requiredTiles)assert.equal(fullAdmin.settingsAccess(section),true);
 assert.equal(fullAdmin.settingsAccess('accessRights'),false,'a role without the ADMIN/JAN identity allow-list cannot access tier rights');
-assert.equal(accessHelpers(()=>false,()=>true).settingsAccess('accessRights'),true,'ADMIN tier or JAN root OWNER allow-list can access Access and Rights');
+assert.equal(accessHelpers(()=>false,()=>true,()=>false).settingsAccess('accessRights'),true,'ADMIN tier or JAN root OWNER allow-list can access Access and Rights');
 const manageAccessRightsStart=html.indexOf('function canManageAccessRights(){');
 assert.notEqual(manageAccessRightsStart,-1,'Access and Rights permission gate must be present');
 const manageAccessRightsEnd=html.indexOf('}',manageAccessRightsStart)+1;

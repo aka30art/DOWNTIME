@@ -421,7 +421,12 @@ async function signIn(page,pin='2468',username='DEV'){
  await page.waitForFunction(()=>document.querySelector('#yardHubSettingsBtn')?.dataset.accessChecked==='true',{timeout:5000});
  if(username.toUpperCase()==='JAN')assert.equal(await page.locator('#yardHubSettingsBtn').isVisible(),false,'ordinary USER cannot see HUB SETTINGS after access verification');
  assert.equal(await page.locator('#launchDowntimeBtn').isEnabled(),true,'DOWNTIME is the available application');
- assert.equal(await page.locator('.yard-tile[data-app="floor"]').isDisabled(),true,'FLOOR stays unavailable until released');
+ assert.equal(await page.locator('.yard-tile[data-app="staff-management"]').count(),1,'Staff Management launcher remains present in YARD HUB');
+ const authenticatedIdentity=await page.evaluate(()=>window.DowntimeCentral?.session?.user||null);
+ const authenticatedUsername=String(authenticatedIdentity?.username||'').trim().toUpperCase();
+ const authenticatedTier=String(authenticatedIdentity?.tier||'').trim().toUpperCase();
+ const expectsStaffAutoAccess=(authenticatedUsername==='DEV'&&authenticatedTier==='OWNER')||authenticatedTier==='DEVACC'||authenticatedTier==='ADMIN';
+ assert.equal(await page.locator('.yard-tile[data-app="staff-management"]').isEnabled(),expectsStaffAutoAccess,authenticatedUsername+'/'+authenticatedTier+' receives only the configured automatic Staff Management access');
  assert.equal(await page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until released');
  await page.waitForFunction(()=>{const tile=document.querySelector('.yard-tile[data-app="repair-maintenance"]');return tile&&!tile.disabled},{timeout:5000});
  assert.equal(await page.locator('.yard-tile[data-app="repair-maintenance"]').isEnabled(),true,'R&M unlocks after the existing DOWNTIME session passes its module permission check');
@@ -550,7 +555,7 @@ try{
  await owner.page.locator('#yardHubSettingsBack').click();
  await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:3000});
  assert.equal(await owner.page.locator('#launchDowntimeBtn').isEnabled(),true,'DOWNTIME remains available after Hub Settings changes');
- assert.equal(await owner.page.locator('.yard-tile[data-app="floor"]').isDisabled(),true,'FLOOR stays unavailable until the application is released');
+ assert.equal(await owner.page.locator('.yard-tile[data-app="staff-management"]').isEnabled(),true,'DEV OWNER retains automatic Staff Management access after Hub Settings changes');
  assert.equal(await owner.page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until the application is released');
  assert.equal(await owner.page.locator('#yardHubSettingsBtn').isVisible(),true,'DEV root retains YARD HUB Settings access');
  await owner.page.locator('#launchDowntimeBtn').click();
