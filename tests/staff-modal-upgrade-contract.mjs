@@ -13,6 +13,7 @@ assert.match(html,/station-[1-6]/,'SCPL station choices are limited to Stations 
 assert.match(html,/department!=='SCPL'/,'station assignment is only exposed for SCPL');
 assert.match(central,/YARD ROLE does not match the selected department/,'Central Bank enforces department-specific YARD ROLE values');
 assert.match(central,/SCPL staff may only be assigned to Stations 1-6/,'Central Bank restricts SCPL station assignments to Stations 1–6');
+assert.match(central,/if\(department&&department!==\"SCPL\"\)\{\s*profile\.station=\"\";\s*profile\.stationLocked=false;\s*delete profile\.assignedStation;/,'non-SCPL department changes clear stale station assignments even for staff managers without assignment permission');
 
 
 assert.match(html,/if\(!manageStaff&&!manageAssign\)return;if\(!name&&!manageStaff\)return/,'only staff admins can create, assignment managers may open profile settings');
