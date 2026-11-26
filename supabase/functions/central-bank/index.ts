@@ -158,6 +158,12 @@ Deno.serve(async(req)=>{
  if(!session)return json({error:"Session expired. Sign in again."},401);
  const currentUser=bank.users.find((u:any)=>u.username===session.username&&u.enabled!==false);
  if(!currentUser)return json({error:"Account disabled"},401);
+ let rootsAssignment:any=null,rootsLookupError:any=null;
+ if(currentUser.userId){
+   const rootsLookup=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class").eq("user_id",currentUser.userId).maybeSingle();
+   rootsAssignment=rootsLookup.data;rootsLookupError=rootsLookup.error;
+ }
+ const rootsAuthority=resolveRootsAuthority(currentUser,rootsAssignment);
  const tier=currentUser.tier,storedPrivileges=bank.tiers[tier]||{},priv={...tierDefault[tier],...storedPrivileges};
  if(lockedRolePrivileges[tier])Object.assign(priv,lockedRolePrivileges[tier]);
  const currentUsername=String(currentUser.username||"").trim().toUpperCase();
@@ -233,9 +239,48 @@ Deno.serve(async(req)=>{
    return json({contractVersion:1,centralVersion:Number(row?.version||0),preview});
  }
  if(action==="photo-evidence-context"){
-   return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username},permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canDeleteRecords:priv.canDeleteRecords===true}});
+   return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username,userId:currentUser.userId||null,staffId:currentUser.staffId||null},permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canDeleteRecords:priv.canDeleteRecords===true}});
  }
- if(action==="list-users"){
+if(action==="roots-state"){
+   if(rootsAuthority!=="DEV")return json({error:"ROOTS directory is restricted to immutable DEV."},403);
+   if(rootsLookupError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   const {data:assignments,error:assignmentsError}=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,assigned_by_username,created_at").order("created_at");
+   if(assignmentsError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   const usersById=new Map(bank.users.filter((account:any)=>account.userId).map((account:any)=>[String(account.userId).toLowerCase(),account]));
+   return json({assignments:(assignments||[]).map((assignment:any)=>{
+     const target:any=usersById.get(String(assignment.user_id).toLowerCase());
+     return {userId:assignment.user_id,staffId:assignment.staff_id,rootsClass:assignment.roots_class,username:target?.username||null,displayName:target?.displayName||target?.username||null,assignedBy:assignment.assigned_by_username,createdAt:assignment.created_at};
+   })});
+ }
+ if(action==="roots-assign"||action==="roots-assign-admin"){
+   const requestedClass=String(body.rootsClass||"").toUpperCase();
+   if(action==="roots-assign"&&rootsAuthority!=="DEV")return json({error:"Only immutable DEV may assign DEV1 or protected ADMIN."},403);
+   if(action==="roots-assign-admin"&&!(rootsAuthority==="DEV"||rootsAuthority==="DEV1"))return json({error:"Only DEV or protected DEV1 may assign protected ADMIN."},403);
+   if(action==="roots-assign-admin"&&requestedClass!=="ADMIN")return json({error:"The scoped DEV1 action can assign ADMIN only."},403);
+   if(!["DEV1","ADMIN"].includes(requestedClass))return json({error:"A protected DEV1 or ADMIN classification is required."},400);
+   if(requestedClass==="DEV1"&&rootsAuthority!=="DEV")return json({error:"Only immutable DEV may assign DEV1."},403);
+   if(rootsLookupError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   if(!/^[0-9a-f-]{36}$/i.test(String(body.userId||""))||!/^[0-9a-f-]{36}$/i.test(String(body.staffId||"")))return json({error:"Immutable USER and STAFF IDs are required."},400);
+   const target=bank.users.find((account:any)=>String(account.userId||"").toLowerCase()===String(body.userId).toLowerCase());
+   if(!target||target.enabled===false||target.provisioning)return json({error:"An active, fully provisioned USER is required."},409);
+   if(String(target.username||"").trim().toUpperCase()==="DEV"||String(target.staffId||"").toLowerCase()!==String(body.staffId).toLowerCase())return json({error:"Protected ROOTS assignments require a linked non-DEV USER and STAFF identity."},409);
+   const profiles=bank.staff?.profiles&&typeof bank.staff.profiles==="object"?Object.values(bank.staff.profiles):[];
+   const linkedProfile:any=profiles.find((profile:any)=>profile&&String(profile.staffId||"").toLowerCase()===String(target.staffId).toLowerCase()&&String(profile.linkedUserId||"").toLowerCase()===String(target.userId).toLowerCase());
+   if(!linkedProfile||String(linkedProfile.status||"ACTIVE").toUpperCase()==="ARCHIVED")return json({error:"The USER and STAFF identities must have an active reciprocal link."},409);
+   const {data:existingAssignment,error:existingError}=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class").or("user_id.eq."+target.userId+",staff_id.eq."+target.staffId).maybeSingle();
+   if(existingError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   if(existingAssignment&&(String(existingAssignment.user_id).toLowerCase()!==String(target.userId).toLowerCase()||String(existingAssignment.staff_id).toLowerCase()!==String(target.staffId).toLowerCase()||existingAssignment.roots_class!==requestedClass))return json({error:"This USER or STAFF identity already has a different protected ROOTS assignment."},409);
+   const {data:assignment,error:assignmentError}=await db.rpc("downtime_roots_assign_identity",{
+     p_user_id:target.userId,p_staff_id:target.staffId,p_roots_class:requestedClass,
+     p_actor_user_id:currentUser.userId||null,p_actor_username:String(currentUser.username),
+     p_actor_display_name:String(currentUser.displayName||currentUser.username)
+   });
+   if(assignmentError||!assignment)return json({error:assignmentError?.message||"Protected ROOTS assignment failed."},409);
+   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"roots-assignment-created",details:{targetUserId:target.userId,targetStaffId:target.staffId,rootsClass:requestedClass}});
+   if(action==="roots-assign-admin"&&rootsAuthority==="DEV1")return json({ok:true});
+   return json({ok:true,assignment:{userId:assignment.user_id,staffId:assignment.staff_id,rootsClass:assignment.roots_class}});
+ }
+  if(action==="list-users"){
    const visibleUsers=priv.canManageUsers||priv.canViewUsers?bank.users.filter((u:any)=>u.enabled!==false).map(safeUser):[safeUser(currentUser)];
    return json({users:visibleUsers});
  }
