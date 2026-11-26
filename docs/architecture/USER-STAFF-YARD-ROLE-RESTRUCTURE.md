@@ -182,3 +182,19 @@ The owner approved the proposed destination for account, personnel and permissio
 - Operational STAFF job roles remain distinct from application access permissions.
 
 This decision confirms the administration destination and UI direction. It does not yet resolve the separate Phase 1 questions about which existing permission planes are converted into YARD ROLES, cross-store transaction semantics, legacy account mapping, or exact migration details. No accounts are to be deleted or reclassified in production based solely on this decision. Preserve historical records and audit attribution; any retirement/reclassification must be an explicit, reviewed migration with rollback.
+
+
+## Owner decision — unified YARD ROLE permission model (2026-11-26)
+
+The owner approved the recommended direction:
+
+- The existing Central DOWNTIME tier permission plane and the existing YARDHUB tier/section permission plane are to be replaced by **one unified YARD ROLE permission model**.
+- YARD ROLE is the application authorization model across departments and modules, configured using the agreed mutually exclusive levels: **Off**, **Read Only**, **Input**, and **Manage**.
+- The two existing permission stores are legacy persistence/authorization sources to be retired through a staged migration. They must not remain competing authorities after cutover.
+- ROOTS (DEV1 and protected ADMIN classifications) remains a separate, hidden system-authority mechanism, not a YARD ROLE and not part of the ordinary department permission matrix.
+- STAFF operational job roles remain separate from YARD ROLE permissions.
+- Existing permissions must not be silently copied by matching legacy tier names. A reviewed mapping and explicit fallback policy are required for every existing account and department.
+- Preserve server-side enforcement, audit history, session safety, Central Bank optimistic versioning and the existing YARDHUB/R&M data boundaries unless a separately approved migration design explicitly changes them.
+- Do not remove either legacy permission store or its enforcement until the unified model is implemented, tested, rehearsed and approved for cutover.
+
+This resolves Phase 1 Decision A in favour of a unified model. It does not by itself approve a production migration, account deletion/reclassification, or deployment.
