@@ -349,7 +349,7 @@ const yardHubApi = await readFile("supabase/functions/yard-hub-settings-api/inde
 const browserClient = await readFile("central-bank-client.js", "utf8");
 const yardHubUi = await readFile("yard-hub-settings.js", "utf8");
 const provisioningMigration = await readFile("supabase/migrations/20261126233000_canonical_yard_role_registry.sql", "utf8");
-assert.match(centralApi, /import \\{ activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning, renameLinkedStaffDisplayName \\} from ["']\.\.\/_shared\/user-staff-identity\.mjs["']/);
+assert.match(centralApi, /import \{ activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning, renameLinkedStaffDisplayName \} from ["']\.\.\/_shared\/user-staff-identity\.mjs["']/);
 const provisioningRoutes = centralApi.slice(
   centralApi.indexOf('if(action==="user-staff-provision")'),
   centralApi.indexOf('if(action==="identity-diagnostics")'),
