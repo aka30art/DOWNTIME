@@ -422,9 +422,15 @@ Deno.serve(async(req)=>{
          }
        }
        if(!canManageAssignments){
-         if("station" in existing)profile.station=existing.station;else delete profile.station;
-         if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
-         if("stationLocked" in existing)profile.stationLocked=existing.stationLocked;else delete profile.stationLocked;
+         if(department&&department!=="SCPL"){
+           profile.station="";
+           profile.stationLocked=false;
+           delete profile.assignedStation;
+         }else{
+           if("station" in existing)profile.station=existing.station;else delete profile.station;
+           if("assignedStation" in existing)profile.assignedStation=existing.assignedStation;else delete profile.assignedStation;
+           if("stationLocked" in existing)profile.stationLocked=existing.stationLocked;else delete profile.stationLocked;
+         }
        }else{
          const wasLocked=existing.stationLocked===true;
          const explicitlyUnlocked=profile.stationLocked===false;
