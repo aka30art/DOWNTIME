@@ -234,7 +234,7 @@
     $('yardHubUserPin').placeholder=user?'Leave blank to keep current PIN':'4–8 digit PIN';
     $('yardHubUserEnabled').checked=user?.enabled!==false;
     $('yardHubUserEnabled').disabled=!canManageCentralUsers;
-    $('yardHubUserDowntimeTier').textContent=user?(user.legacyTier||'USER'):'USER · SAFE DEFAULT';
+    $('yardHubUserDowntimeTier').textContent=user?(user.legacyTier||'NO LEGACY TIER'):'NO LEGACY TIER · NEW IDENTITY';
     $('yardHubUserHubTier').replaceChildren();
     allowedHubTiers(user?.hubTier,user?.username||'').forEach(role=>{
       const option=element('option','',roleLabels[role]||role);option.value=role;
@@ -267,7 +267,7 @@
     const pin=String($('yardHubUserPin').value||'');
     const enabled=$('yardHubUserEnabled').checked;
     const existing=editingUsername?state.users.find(user=>String(user.username).toLowerCase()===editingUsername.toLowerCase()):null;
-    const downtimeTier=existing?.legacyTier||'USER';
+    const downtimeTier=existing?.legacyTier??null;
     const pendingProvisioning=existing?.provisioningState==='YARD_ROLE_PENDING';
     const isNew=!existing;
     const centralChanges=!pendingProvisioning&&(!existing||
