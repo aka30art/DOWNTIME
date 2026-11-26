@@ -30,7 +30,8 @@ for(const id of ['yardHubSettingsBtn','yardHubSettingsScreen','yardHubSettingsUs
 assert.match(html,/window\.YARD_HUB_SETTINGS_API=/,'Hub Settings uses a separate Edge Function endpoint');
 assert.match(html,/yard-hub-settings\.js\?v=/,'Hub Settings client asset is versioned');
 assert.match(html,/yard-hub-settings\.css\?v=/,'Hub Settings style asset is versioned');
-assert.match(html,/data-app="floor" type="button" disabled/,'STAFF MANAGEMENT remains unavailable until its application is released');
+assert.match(html,/id="launchStaffManagementBtn" data-app="staff-management" type="button"/,'STAFF MANAGEMENT has a dedicated authenticated launcher');
+assert.match(html,/function isStaffModuleAutoAccess\(\)[\s\S]*?tier==='DEVACC'\|\|tier==='ADMIN'/,'DEV OWNER, DEVACC and ADMIN automatically access STAFF MANAGEMENT');
 assert.ok(ui.includes("key:'floor',label:'STAFF MANAGEMENT'"),'STAFF MANAGEMENT is the label shown in the Hub tier editor');
 assert.match(html,/data-app="check-sheets" type="button" disabled/,'DAILY remains unavailable until its application is released');
 assert.ok(ui.includes("key:'checkSheets',label:'DAILY'"),'DAILY is the label shown in the Hub tier editor');
