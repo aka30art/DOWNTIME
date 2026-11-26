@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning } from "../_shared/user-staff-identity.mjs";
+import { activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning, renameLinkedStaffDisplayName } from "../_shared/user-staff-identity.mjs";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const allowedOrigin="https://aka30art.github.io";
@@ -385,10 +385,24 @@ Deno.serve(async(req)=>{
      const currentProfiles=bank.staff?.profiles||bank.appData?.operatorProfiles||{};
      const incomingProfiles=structuredClone(nextAppData.operatorProfiles||{});
      const savedProfiles=priv.canManageStaff?incomingProfiles:structuredClone(currentProfiles||{});
+     if(priv.canManageStaff){
+       for(const [name,profile] of Object.entries(currentProfiles) as [string,any][]){
+         if((profile as any)?.linkedUserId&&!Object.prototype.hasOwnProperty.call(incomingProfiles,name))return json({error:"Linked STAFF profiles cannot be removed through tracker saves. Archive the STAFF profile instead."},409);
+       }
+       const incomingRoster=Array.isArray(nextAppData.staffRoster)?nextAppData.staffRoster:[];
+       for(const [name,profile] of Object.entries(currentProfiles) as [string,any][]){
+         if((profile as any)?.linkedUserId&&!incomingRoster.includes(name))return json({error:"Linked STAFF roster entries cannot be removed through tracker saves."},409);
+       }
+       for(const [name,profile] of Object.entries(incomingProfiles) as [string,any][]){
+         const existing=(currentProfiles as any)[name];
+         if(!existing&&profile&&typeof profile==="object"&&("staffId" in profile||"linkedUserId" in profile))return json({error:"Tracker saves cannot create STAFF identity links."},400);
+       }
+     }
      for(const [name,incomingProfile] of Object.entries(incomingProfiles) as [string,any][]){
        if(!Object.prototype.hasOwnProperty.call(currentProfiles,name)||!incomingProfile||typeof incomingProfile!=="object"||Array.isArray(incomingProfile))continue;
        const existing={...(currentProfiles as any)[name]};
        const merged=priv.canManageStaff?{...incomingProfile}:{...existing};
+       for(const field of ["staffId","linkedUserId"]){if(Object.prototype.hasOwnProperty.call(existing,field))merged[field]=existing[field];else delete merged[field]}
        // Assignment metadata and its lock can only be changed by the Staff Settings save-settings route.
        if(existing.stationLocked===true||!priv.canManageAssignments){
          if("station" in existing)merged.station=existing.station;else delete merged.station;
@@ -468,7 +482,9 @@ Deno.serve(async(req)=>{
        const cleanName=String(name||"").trim();
        if(!cleanName||cleanName.length>80||!incomingProfile||typeof incomingProfile!=="object"||Array.isArray(incomingProfile))return json({error:"Invalid staff profile entry"},400);
        const existing={...((newProfiles as any)[cleanName]||{})};
+       if(("staffId" in incomingProfile&&incomingProfile.staffId!==existing.staffId)||("linkedUserId" in incomingProfile&&incomingProfile.linkedUserId!==existing.linkedUserId)||"userId" in incomingProfile)return json({error:"STAFF Settings cannot create or alter authenticated USER identity links."},400);
        const profile={...existing,...incomingProfile};
+       for(const field of ["staffId","linkedUserId"]){if(Object.prototype.hasOwnProperty.call(existing,field))profile[field]=existing[field];else delete profile[field]}
        const department=String(profile.department||"");
        if(department){
          const departmentRoles:Record<string,string[]>={"SCPL":["Main Operator","Picking Line Crew"],"R&M":["Mechanic"],"Management":["Manager"],"SCFL":["Floor Crew"],"Traffic":["Gateman"]};
@@ -598,11 +614,15 @@ Deno.serve(async(req)=>{
  }
  if(action==="user-save"){
    if(!priv.canManageUsers)return json({error:"Permission denied"},403);
-   const username=String(body.username||"").trim(),displayName=String(body.displayName||username).trim(),newTier=String(body.tier||"USER"),pin=String(body.pin||"");
-   if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username)||!tiers.includes(newTier))return json({error:"Invalid user/tier"},400);
+   const username=String(body.username||"").trim(),displayName=String(body.displayName||username).trim(),pin=String(body.pin||"");
+   if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username))return json({error:"Invalid username"},400);
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
    const existing=idx>=0?bank.users[idx]:null;
-   if(!existing)return json({error:"New accounts are blocked until the canonical YARD ROLE provisioning workflow is implemented."},409);
+   if(!existing)return json({error:"New accounts must use the canonical USER + STAFF + YARD ROLE provisioning workflow."},409);
+   const canonicalIdentity=!!existing.userId&&!!existing.staffId;
+   if(canonicalIdentity&&body.tier!=null)return json({error:"Canonical YARD ROLE identities cannot receive legacy tier claims."},400);
+   const newTier=canonicalIdentity?undefined:String(body.tier||existing.tier||"USER");
+   if(!canonicalIdentity&&(!newTier||!tiers.includes(newTier)))return json({error:"Invalid user/tier"},400);
    const isRootName=username.toUpperCase()==="DEV";
    if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEV and DEVACC can create accounts or assign user tiers."},403);
    if(isRootName){
@@ -614,8 +634,12 @@ Deno.serve(async(req)=>{
      if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);
      if(existing?.tier==="OWNER")return json({error:"The root OWNER account is protected."},403);
    }
-   let user=existing||{username};
-   user.username=username;user.displayName=displayName;user.tier=newTier;user.enabled=body.enabled!==false;
+   if(canonicalIdentity&&displayName!==(existing.displayName||existing.username)){
+     try{bank=renameLinkedStaffDisplayName(bank,existing.userId,existing.staffId,displayName).payload}
+     catch(error){return json({error:error instanceof Error?error.message:"Linked STAFF display-name update failed."},409)}
+   }
+   let user=bank.users[idx]||existing||{username};
+   user.username=username;user.displayName=displayName;if(canonicalIdentity)delete user.tier;else user.tier=newTier;user.enabled=body.enabled!==false;
    if(pin){if(!/^[0-9]{4,8}$/.test(pin))return json({error:"PIN must be 4-8 digits"},400);user.pinSalt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));user.pinHash=await hashPin(pin,user.pinSalt)}
    if(idx>=0)bank.users[idx]=user;else{if(!pin)return json({error:"PIN required for new user"},400);bank.users.push(user)}
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
@@ -631,6 +655,8 @@ Deno.serve(async(req)=>{
    if(target.toUpperCase()==="DEV"||bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="OWNER"))return json({error:"The DEV root OWNER account cannot be deleted or removed."},403);
    if(bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="DEVACC")&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can remove DEVacc."},403);
    if(target.toLowerCase()===currentUser.username.toLowerCase())return json({error:"Cannot delete your own account"},400);
+   const linkedTarget=bank.users.find((u:any)=>u.username.toLowerCase()===target.toLowerCase());
+   if(linkedTarget?.staffId)return json({error:"This USER has a linked STAFF identity. Disable the USER; permanent identity deletion requires the separately approved lifecycle policy."},409);
    bank.users=bank.users.filter((u:any)=>u.username!==target);
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Version conflict"},409);
@@ -644,7 +670,9 @@ Deno.serve(async(req)=>{
    bank.staff.profiles=bank.staff.profiles||{};bank.staff.roster=bank.staff.roster||[];
    const existingProfile=bank.staff.profiles[name]||bank.appData?.operatorProfiles?.[name]||{};
    const proposedProfile=body.profile&&typeof body.profile==="object"&&!Array.isArray(body.profile)?body.profile:{};
+   if(("staffId" in proposedProfile&&proposedProfile.staffId!==existingProfile.staffId)||("linkedUserId" in proposedProfile&&proposedProfile.linkedUserId!==existingProfile.linkedUserId)||"userId" in proposedProfile)return json({error:"STAFF-only saves cannot create or alter authenticated USER identity links."},400);
    const nextProfile={...existingProfile,...proposedProfile,name};
+   for(const field of ["staffId","linkedUserId"]){if(Object.prototype.hasOwnProperty.call(existingProfile,field))nextProfile[field]=existingProfile[field];else delete nextProfile[field]}
    if(!priv.canManageAssignments){
      if("station" in existingProfile)nextProfile.station=existingProfile.station;else delete nextProfile.station;
      if("assignedStation" in existingProfile)nextProfile.assignedStation=existingProfile.assignedStation;else delete nextProfile.assignedStation;
