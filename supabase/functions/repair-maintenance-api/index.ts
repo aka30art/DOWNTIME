@@ -75,8 +75,7 @@ Deno.serve(async (req: Request) => {
     rootsAssignment = rootsLookup.data;
   }
   const rootsAuthority = resolveRootsAuthority(user, rootsAssignment);
-  if (user.yardRoleId && ["DEV1", "ADMIN"].includes(rootsAuthority || "")) return json({ error: "Conflicting ordinary YARD ROLE and protected ROOTS assignments." }, 409);
-  if (user.yardRoleId) return json({ error: "Canonical YARD ROLE authorization is not yet enabled for R&M. Access is denied until the unified resolver is integrated." }, 403);
+  if (user.yardRoleId && !["DEV1", "ADMIN"].includes(rootsAuthority || "")) return json({ error: "Canonical YARD ROLE authorization is not yet enabled for R&M. Access is denied until the unified resolver is integrated." }, 403);
   const tier = String(user.tier || "USER").toUpperCase();
   const stored = bank.tiers?.[tier] || {};
   const permissions = { ...(tierDefault[tier] || tierDefault.USER), ...stored };
