@@ -161,7 +161,7 @@ Deno.serve(async(req)=>{
  const isCentralAdmin=tier==="ADMIN"||isRootAuthority;
  const isCentralBankAccess=isRootAuthority;
  if(action==="user-staff-provision"){
-   if(!priv.canManageUsers||!priv.canManageStaff||!isCentralAdmin)return json({error:"USER + STAFF provisioning is restricted to authorised account administrators."},403);
+   if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);
    const username=String(body.username||"").trim(),displayName=String(body.displayName||"").trim(),pin=String(body.pin||"");
    const idempotencyKey=String(body.idempotencyKey||""),requestedYardRoleId=String(body.requestedYardRoleId||"");
    const staffFields=body.staff&&typeof body.staff==="object"&&!Array.isArray(body.staff)?body.staff:{};
@@ -180,7 +180,7 @@ Deno.serve(async(req)=>{
    }catch(error){return json({error:error instanceof Error?error.message:"Invalid USER/STAFF provisioning request."},400)}
  }
  if(action==="user-staff-activate"){
-   if(!priv.canManageUsers||!isCentralAdmin)return json({error:"USER provisioning activation is restricted to authorised account administrators."},403);
+   if(!isDevRoot)return json({error:"Only immutable DEV may activate newly provisioned USER identities."},403);
    const username=String(body.username||"").trim();
    const target=bank.users.find((item:any)=>String(item.username||"").trim().toLowerCase()===username.toLowerCase());
    if(!target)return json({error:"Provisioned USER was not found."},404);
