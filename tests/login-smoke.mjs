@@ -365,7 +365,7 @@ window.supabase={createClient:()=>({
   return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':origin,'vary':'Origin'},body:JSON.stringify({user:{username:'DEV',displayName:'DEV',tier:'DEV'},permissions:{canAccessYardHub:true,canAccessRepairMaintenance:true,canEditRepairMaintenance:true,canDeleteRepairMaintenance:true,canExportRepairMaintenanceReports:true}})});
  });
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
- try{await page.waitForFunction(()=>document.querySelector('#centralUsername')?.tagName==='INPUT',{timeout:8000})}catch(error){throw new Error('Central login options failed to populate. Browser errors: '+errors.slice(-10).join(' | ')+'; auth message: '+await page.locator('#authMsg').textContent().catch(()=> 'missing')+'; window adapter: '+await page.evaluate(()=>String(!!window.DowntimeCentral)).catch(()=> 'unavailable')+'; original: '+error.message)}
+ try{await page.waitForFunction(()=>document.querySelector('#centralUsername')?.tagName==='INPUT',{timeout:8000})}catch(error){throw new Error('Manual username login field failed to render. Browser errors: '+errors.slice(-10).join(' | ')+'; auth message: '+await page.locator('#authMsg').textContent().catch(()=> 'missing')+'; window adapter: '+await page.evaluate(()=>String(!!window.DowntimeCentral)).catch(()=> 'unavailable')+'; original: '+error.message)}
  if(!loginPresentationVerified){
   const desktopBox=await page.locator('#authGate .authbox-central').boundingBox();
   const desktopStyle=await page.locator('#authGate .authbox-central').evaluate(el=>({border:getComputedStyle(el).borderTopColor,brandVisible:!!el.querySelector('.auth-brand-wordmark')}));
