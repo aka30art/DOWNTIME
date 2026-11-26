@@ -243,3 +243,28 @@ Required safety contract:
 8. Add fault-injection tests for failure after each stage, retry/replay tests, concurrent creation tests, version conflicts, compensation/reconciliation tests, and proof that incomplete accounts cannot authenticate or access either application.
 
 This resolves the logical USER + STAFF + YARD ROLE creation boundary. It does not authorise production changes and does not settle individual legacy account mapping, incomplete existing USER/STAFF matching, or the full ordinary YARD ROLE catalogue.
+
+
+## Owner decision — permanent identity and personnel reset (2026-11-26)
+
+The owner corrected and explicitly approved a **permanent removal policy**, not disablement, archival or retention of other accounts.
+
+### Identities to retain/reclassify
+- `DEV` remains the immutable DEV root identity.
+- The existing `DEVacc` identity is reclassified as protected `DEV1`.
+- The designated existing `ADMIN` identity is reclassified as protected ROOTS `ADMIN`.
+- `JAN` is the sole retained ordinary USER account.
+
+The target identity set is therefore DEV, DEV1 (from DEVacc), protected ADMIN (from the designated Admin identity), and JAN. Do not create duplicate replacement accounts for these identities. Preserve or establish the linked STAFF identity required by the target USER/STAFF invariant for each retained identity; operational details must be verified rather than guessed.
+
+### Permanent purge
+- Permanently remove every other USER and STAFF account/profile.
+- Permanently remove all data belonging to those removed USER/STAFF identities, including their account records, personnel profiles, associated photographs/media, profile metadata, assignments and other directly associated personnel records.
+- This is not an archive, soft-delete or disable operation. No recoverable copy is to be retained as an application-level substitute for deletion.
+- Before execution, inventory every dependent reference and classify records that contain mixed or shared business data. Remove the purged identities and their directly associated data without corrupting unrelated operational/business records or leaving broken references. Any ambiguous dependency must be surfaced for explicit owner review rather than guessed.
+- Record a deletion manifest with exact identity IDs, affected data categories and counts; test the purge and its rollback/recovery implications in an isolated rehearsal before production execution. The owner’s desired final state is permanent erasure; a backup/rehearsal safeguard is a pre-execution control, not permission to retain deleted records in the live application.
+
+### Execution boundary
+This decision defines the intended migration outcome. It does **not** itself authorise immediate production deletion. No USER/STAFF data has been deleted or modified by recording this decision. Production purge requires a reviewed, exact deletion manifest, verified dependent-reference handling, approved execution window and explicit final go-ahead.
+
+This decision supersedes any previous suggestion to merely disable or archive the other accounts.
