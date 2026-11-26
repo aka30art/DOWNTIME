@@ -282,7 +282,7 @@ function normalizeYardHubMenu(input: unknown) {
     seenTitles.add(titleKey);
     const order = Number.isInteger(Number(item.order)) && Number(item.order) >= 0 ? Number(item.order) : index;
     const enabled = base?.protected ? true : item.enabled !== false;
-    const rawSubmenus = base?.kind === "downtime" || base?.kind === "gatelog" || base?.kind === "hub-settings" || base?.kind === "repairs-maintenance" ? [] : (Array.isArray(item.submenus) ? item.submenus : []);
+    const rawSubmenus = base?.kind === "downtime" || base?.kind === "gatelog" || base?.kind === "hub-settings" || base?.kind === "repairs-maintenance" || base?.kind === "floor" ? [] : (Array.isArray(item.submenus) ? item.submenus : []);
     if (rawSubmenus.length > 30) throw new Error("A department can contain no more than 30 sub-menu items");
     const submenuIds = new Set<string>();
     const submenus = rawSubmenus.map((child: any, childIndex: number) => {
