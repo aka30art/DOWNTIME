@@ -476,3 +476,23 @@ comment on table public.yard_hub_staff_role_assignments is
   'Current and historical role assignments for YARD HUB staff people.';
 comment on table public.yard_hub_staff_audit is
   'Append-only audit history for YARD HUB staff, company and yard role changes.';
+
+-- Curated starter roles; administrators can rename, reorder or archive these later.
+insert into public.yard_hub_staff_roles (name, description, sort_order, created_by, updated_by)
+select seed.name, seed.description, seed.sort_order, 'SYSTEM', 'SYSTEM'
+from (values
+  ('Yard Operative', 'General yard operations and material handling', 10),
+  ('Machine Operator', 'Authorised operation of assigned yard machinery', 20),
+  ('Forklift Driver', 'Authorised forklift operation', 30),
+  ('Weighbridge Operator', 'Weighbridge and vehicle recording duties', 40),
+  ('Banksman', 'Vehicle movement guidance and site marshalling', 50),
+  ('Yard Supervisor', 'Day-to-day yard supervision and coordination', 60),
+  ('Site Manager', 'Site-level operational management', 70),
+  ('Mechanic', 'Maintenance and mechanical support', 80),
+  ('Administrator', 'Administrative and office support', 90)
+) as seed(name, description, sort_order)
+where not exists (
+  select 1 from public.yard_hub_staff_roles existing
+  where lower(existing.name) = lower(seed.name) and existing.archived_at is null
+);
+
