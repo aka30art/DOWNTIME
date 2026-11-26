@@ -496,3 +496,40 @@ where not exists (
   where lower(existing.name) = lower(seed.name) and existing.archived_at is null
 );
 
+
+-- Enable the new YARD HUB directory for protected administration tiers only.
+-- All other tier profiles retain their existing floor access value (normally NONE).
+do $$
+declare
+  v_previous jsonb;
+  v_next jsonb;
+  v_version bigint;
+  v_tier text;
+begin
+  select payload, version into v_previous, v_version
+    from public.yard_hub_tier_config
+   where id = 1
+   for update;
+  if not found or v_previous is null then
+    raise exception 'YARD HUB tier configuration is required before Staff Management can be enabled.';
+  end if;
+
+  v_next := v_previous;
+  foreach v_tier in array array['OWNER','DEVACC','ADMIN'] loop
+    v_next := jsonb_set(v_next, array['tiers', v_tier, 'floor'], to_jsonb('EDIT'::text), true);
+  end loop;
+
+  if v_next is distinct from v_previous then
+    update public.yard_hub_tier_config
+       set payload = v_next,
+           version = v_version + 1,
+           updated_by = 'SYSTEM',
+           updated_at = now()
+     where id = 1;
+
+    insert into public.yard_hub_access_audit (actor, action, previous_payload, new_payload)
+    values ('SYSTEM', 'staff-management-initial-permissions', v_previous, v_next);
+  end if;
+end;
+$$;
+
