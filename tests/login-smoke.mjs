@@ -16,6 +16,7 @@ const yardHubSettingsCss=await readFile(resolve('yard-hub-settings.css'),'utf8')
 const yardHubStructureScript=await readFile(resolve('yard-hub-structure.js'),'utf8');
 const yardHubStructureCss=await readFile(resolve('yard-hub-structure.css'),'utf8');
 const gatelogApp=await readFile(resolve('gatelog-app.js'),'utf8');
+const gatelogDayManagement=await readFile(resolve('gatelog-day-management.js'),'utf8');
 const gatelogCss=await readFile(resolve('gatelog-app.css'),'utf8');
 const repairMaintenanceStructureScript=await readFile(resolve('repair-maintenance-structure.js'),'utf8');
 
@@ -37,7 +38,7 @@ for (const requiredAuthHook of ['id="centralUsername"', 'id="teamPin"', 'data-pi
 }
 const server=createServer((req,res)=>{
   const pathname=String(req.url||'').split('?')[0];
-  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js'||pathname==='/yard-hub-settings.js'||pathname==='/yard-hub-structure.js'||pathname==='/repair-maintenance-structure.js'||pathname==='/gatelog-app.js';
+  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js'||pathname==='/yard-hub-settings.js'||pathname==='/yard-hub-structure.js'||pathname==='/repair-maintenance-structure.js'||pathname==='/gatelog-app.js'||pathname==='/gatelog-day-management.js';
   const isCss=pathname==='/yard-hub-settings.css'||pathname==='/yard-hub-structure.css'||pathname==='/gatelog-app.css';
   res.writeHead(200,{'content-type':isJavaScript?'application/javascript; charset=utf-8':isCss?'text/css; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store'});
   if(pathname==='/central-bank-client.js')return res.end(adapter);
@@ -50,6 +51,7 @@ const server=createServer((req,res)=>{
   if(pathname==='/yard-hub-structure.js')return res.end(yardHubStructureScript);
   if(pathname==='/yard-hub-structure.css')return res.end(yardHubStructureCss);
   if(pathname==='/gatelog-app.js')return res.end(gatelogApp);
+  if(pathname==='/gatelog-day-management.js')return res.end(gatelogDayManagement);
   if(pathname==='/gatelog-app.css')return res.end(gatelogCss);
   if(pathname==='/repair-maintenance-structure.js')return res.end(repairMaintenanceStructureScript);
   res.end(pathname==='/plant-overview-preview.html'?overviewHtml:indexHtml);
