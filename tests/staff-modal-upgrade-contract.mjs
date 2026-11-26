@@ -31,5 +31,7 @@ assert.match(html,/function manageStaffRoles\(\)/,'on-site roles use a dedicated
 assert.match(html,/draftRoleOrigins/,'role renames remain mapped to the original staff assignments when list items are removed');
 assert.doesNotMatch(html,/prompt\(['"]ON-SITE ROLE SETTINGS/,'role management does not rely on browser prompts');
 assert.match(html,/Historical records will be retained/,'archive action explicitly preserves historical records');
+assert.match(html,/const previousRoster=allStaffRoster\(\)\.slice\(\)/,'adding staff preserves archived roster entries');
+assert.match(html,/allStaffRoster\(\)\.some\(n=>n\.toLowerCase\(\)===entered\.toLowerCase\(\)\)/,'archived names cannot be recreated as duplicate staff records');
 assert.doesNotMatch(html,/id="newStaffName"/,'old inline add-name input removed');
 console.log('PASS: STAFF modal upgrade contract — cards, Add New Member, photo lifecycle, station lock, plant status and permissions');
