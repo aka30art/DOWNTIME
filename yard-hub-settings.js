@@ -342,7 +342,7 @@
         :canonicalIdentity?'CANONICAL USER AND LINKED STAFF DETAILS SAVED.':'LEGACY USER AND YARD HUB SETTINGS SAVED.','ok');
     }catch(error){
       const detail=centralSaved||error?.centralUserSaved
-        ?'Central account saved, but the YARD HUB tier was not saved or could not be verified. Refresh the user list before retrying. '
+        ?'Central USER + STAFF record was saved, but canonical YARD ROLE assignment or activation did not complete. The account remains inactive. Refresh the user list before retrying. '
         :'';
       setStatus(detail+(error.message||'Unable to save the user account.'),'error');
       try{await loadState()}catch{}
