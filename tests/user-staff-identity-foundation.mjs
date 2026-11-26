@@ -369,6 +369,10 @@ assert.match(centralApi, /identity deletion requires the separately approved lif
 assert.match(yardHubApi, /action === "assign-user-role"/);
 assert.match(yardHubApi, /yard_role_assign_user/);
 assert.match(yardHubApi, /Canonical YARD ROLE identities cannot be assigned legacy YARD HUB tiers/);
+assert.match(yardHubApi, /const canAccessYardHub = !hasCanonicalYardRole/, "canonical identities fail closed until unified authorization is active");
+assert.match(yardHubApi, /legacyTier: account\.tier \? String\(account\.tier\)\.toUpperCase\(\) : null/, "no legacy tier is fabricated for new USERs");
+assert.match(centralApi, /Canonical YARD ROLE identities cannot receive legacy tier claims/);
+assert.match(yardHubUi, /NO ACTIVE YARD ROLES CONFIGURED/, "new account creation waits for an approved active role catalogue");
 assert.match(yardHubUi, /yardHubUserYardRole/);
 assert.match(yardHubUi, /assign-user-role/);
 assert.match(yardHubUi, /activateDowntimeCentralUserFromYardHub/);
