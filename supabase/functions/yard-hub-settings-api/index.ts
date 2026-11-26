@@ -148,6 +148,7 @@ Deno.serve(async (req: Request) => {
         ...safeUser(account),
         legacyTier: String(account.tier || "USER").toUpperCase(),
         hubTier: assignedHubTier(configRow.payload, account.username),
+        provisioningState: account.provisioning?.stage || null,
       })).sort((a: any, b: any) => a.username.localeCompare(b.username)),
       userTiers: configRow.payload?.userTiers || {},
       centralVersion: Number(bankRow.version || 0),
