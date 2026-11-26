@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { resolveRootsAuthority } from "../_shared/roots-authority.mjs";
 
 const allowedOrigin = "https://aka30art.github.io";
 const headers = {
@@ -31,12 +32,22 @@ Deno.serve(async (req: Request) => {
   if(bankError||!bank?.payload)return json({error:"Central user directory unavailable."},503);
   const user=(Array.isArray(bank.payload.users)?bank.payload.users:[]).find((item:any)=>String(item.username).toLowerCase()===String(session.username).toLowerCase()&&item.enabled!==false);
   if(!user)return json({error:"Account disabled or unavailable."},401);
+  let rootsAssignment:any=null;
+  if(user.userId){
+    const rootsLookup=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class").eq("user_id",user.userId).maybeSingle();
+    if(rootsLookup.error)return json({error:"Protected identity registry is unavailable."},503);
+    rootsAssignment=rootsLookup.data;
+  }
+  const rootsAuthority=resolveRootsAuthority(user,rootsAssignment);
+  if(user.yardRoleId&&["DEV1","ADMIN"].includes(rootsAuthority||""))return json({error:"Conflicting ordinary YARD ROLE and protected ROOTS assignments."},409);
   if(user.yardRoleId)return json({error:"Canonical YARD ROLE authorization is not yet enabled for GATELOG. Access is denied until the unified resolver is integrated."},403);
   const legacyTier=String(user.tier||"USER").toUpperCase();
-  const canAccess=bank.payload.tiers?.[legacyTier]?.canAccessYardHub!==false||String(user.username).toUpperCase()==="DEV"&&legacyTier==="OWNER";
+  const isProtectedRoot=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"");
+  const canAccess=isProtectedRoot||bank.payload.tiers?.[legacyTier]?.canAccessYardHub!==false||String(user.username).toUpperCase()==="DEV"&&legacyTier==="OWNER";
   if(!canAccess)return json({error:"YARD HUB access is disabled for this account."},403);
   const actor=clean(user.displayName||user.username,80), action=String(body.action||"");
-  const canManageGateman=bank.payload.tiers?.[legacyTier]?.canManageAssignments===true;
+  const canManageGateman=isProtectedRoot||bank.payload.tiers?.[legacyTier]?.canManageAssignments===true;
+  const canExportReports=isProtectedRoot||bank.payload.tiers?.[legacyTier]?.canExportReports===true;
   // Gateman duty is assigned to operational STAFF, never to a USER account.
   const staffRoster=Array.isArray(bank.payload.staff?.roster)?bank.payload.staff.roster:(Array.isArray(bank.payload.appData?.staffRoster)?bank.payload.appData.staffRoster:[]);
   const staffProfiles=bank.payload.staff?.profiles||bank.payload.appData?.operatorProfiles||{};
@@ -73,7 +84,7 @@ Deno.serve(async (req: Request) => {
       customerIds.length?db.from("gatelog_customers").select("id,customer_name").in("id",customerIds):Promise.resolve({data:[],error:null})
     ]);
     if(visitWaste.error||customerRows.error)return json({error:"GATELOG relationships could not be loaded."},503);
-    return json({customers:customers.data||[],vehicles:vehicles.data||[],customerStats:Object.fromEntries((customerStats.data||[]).map((row:any)=>[row.customer_id,{totalVisits:Number(row.total_visits)||0,todayVisits:Number(row.today_visits)||0}])),arrivalsToday:(todayVisits.data||[]).length,departuresToday:(todayVisits.data||[]).filter((v:any)=>v.status==="DEPARTED").length,activeVisits:visits.map((v:any)=>({...v,customer_name:(customerRows.data||[]).find((c:any)=>c.id===v.customer_id)?.customer_name||"Unknown",waste_types:(visitWaste.data||[]).filter((w:any)=>w.visit_id===v.id).map((w:any)=>w.gatelog_waste_types?.label).filter(Boolean)})),wasteTypes:waste.data||[],statistics:{overallVisits:Number(overallStats.data?.[0]?.total_visits)||0,mostCommonWasteType:overallStats.data?.[0]?.most_common_waste_type||"—",averageMinutes:overallStats.data?.[0]?.average_minutes==null?null:Number(overallStats.data[0].average_minutes),completedVisits:Number(overallStats.data?.[0]?.completed_visits)||0},periodStatistics:Object.fromEntries((periodStats.data||[]).filter((row:any)=>["daily","weekly","monthly"].includes(row.period_key)).map((row:any)=>[row.period_key,{totalVisits:Number(row.total_visits)||0,mostCommonWasteType:row.most_common_waste_type||"—"}])),dailyGatemen,dayVisitCounts,gatemen,canManageGateman,canExportReports:bank.payload.tiers?.[legacyTier]?.canExportReports===true,register:(registerRows.data||[]).map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)}))});
+    return json({customers:customers.data||[],vehicles:vehicles.data||[],customerStats:Object.fromEntries((customerStats.data||[]).map((row:any)=>[row.customer_id,{totalVisits:Number(row.total_visits)||0,todayVisits:Number(row.today_visits)||0}])),arrivalsToday:(todayVisits.data||[]).length,departuresToday:(todayVisits.data||[]).filter((v:any)=>v.status==="DEPARTED").length,activeVisits:visits.map((v:any)=>({...v,customer_name:(customerRows.data||[]).find((c:any)=>c.id===v.customer_id)?.customer_name||"Unknown",waste_types:(visitWaste.data||[]).filter((w:any)=>w.visit_id===v.id).map((w:any)=>w.gatelog_waste_types?.label).filter(Boolean)})),wasteTypes:waste.data||[],statistics:{overallVisits:Number(overallStats.data?.[0]?.total_visits)||0,mostCommonWasteType:overallStats.data?.[0]?.most_common_waste_type||"—",averageMinutes:overallStats.data?.[0]?.average_minutes==null?null:Number(overallStats.data[0].average_minutes),completedVisits:Number(overallStats.data?.[0]?.completed_visits)||0},periodStatistics:Object.fromEntries((periodStats.data||[]).filter((row:any)=>["daily","weekly","monthly"].includes(row.period_key)).map((row:any)=>[row.period_key,{totalVisits:Number(row.total_visits)||0,mostCommonWasteType:row.most_common_waste_type||"—"}])),dailyGatemen,dayVisitCounts,gatemen,canManageGateman,canExportReports,register:(registerRows.data||[]).map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)}))});
   }
   if(action==="gateman-save"){
     if(!canManageGateman)return json({error:"You do not have permission to manage daily Gateman assignments."},403);
@@ -108,7 +119,7 @@ Deno.serve(async (req: Request) => {
     return json({visits,assignment:assignment||{gateman_name:"Not assigned",is_locked:false}});
   }
   if(action==="report"){
-    if(bank.payload.tiers?.[legacyTier]?.canExportReports!==true)return json({error:"Your YARD HUB role cannot export reports."},403);
+    if(!canExportReports)return json({error:"Your YARD HUB role cannot export reports."},403);
     const period=clean(body.period,10),anchor=clean(body.anchorDate,10);
     if(!["daily","weekly","monthly"].includes(period)||!/^\d{4}-\d{2}-\d{2}$/.test(anchor))return json({error:"Select a valid report period and date."},400);
     const d=new Date(anchor+"T00:00:00Z");let from=anchor,to=anchor;
@@ -133,7 +144,7 @@ Deno.serve(async (req: Request) => {
     if(error)return fail(error);return json({reports:data||[]});
   }
   if(action==="customer-update"){
-    if(bank.payload.tiers?.[legacyTier]?.canManageAssignments!==true)return json({error:"Your YARD HUB role cannot manage customer settings."},403);
+    if(!canManageGateman)return json({error:"Your YARD HUB role cannot manage customer settings."},403);
     const id=clean(body.customerId,60),name=clean(body.customerName,120);
     if(!id||!name)return json({error:"Customer and customer name are required."},400);
     const {data,error}=await db.from("gatelog_customers").update({customer_name:name}).eq("id",id).eq("active",true).select("id,customer_name").single();
