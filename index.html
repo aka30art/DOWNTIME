@@ -680,12 +680,12 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
       <button class="yard-tile yard-tile-locked" data-app="floor" type="button" disabled aria-describedby="yardFloorStatus">
         <span class="yard-tile-icon" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M8 28 50 7l42 21-42 22Z"/><path class="accent" d="m12 48 38 20 38-20M12 66l38 20 38-20"/></svg></span>
         <span class="yard-tile-divider" aria-hidden="true"></span>
-        <span class="yard-tile-copy"><strong>FLOOR</strong><small>FLOOR &amp; YARD OPERATIONS</small><span class="yard-tile-status" id="yardFloorStatus">COMING LATER</span></span>
+        <span class="yard-tile-copy"><strong>STAFF MANAGEMENT</strong><small>STAFF &amp; YARD OPERATIONS</small><span class="yard-tile-status" id="yardFloorStatus">COMING LATER</span></span>
       </button>
       <button class="yard-tile yard-tile-locked" data-app="check-sheets" type="button" disabled aria-describedby="yardCheckSheetsStatus">
         <span class="yard-tile-icon" aria-hidden="true"><svg viewBox="0 0 100 100"><rect x="17" y="15" width="66" height="76" rx="8"/><path d="M35 15v-6a8 8 0 0 1 16 0v6"/><path class="accent" d="m30 39 6 6 10-12M53 42h17M30 59l6 6 10-12M53 62h17M30 79l6 6 10-12M53 82h17"/></svg></span>
         <span class="yard-tile-divider" aria-hidden="true"></span>
-        <span class="yard-tile-copy"><strong>CHECK SHEETS</strong><small>INSPECTIONS &amp; COMPLIANCE</small><span class="yard-tile-status" id="yardCheckSheetsStatus">COMING LATER</span></span>
+        <span class="yard-tile-copy"><strong>DAILY</strong><small>INSPECTIONS &amp; COMPLIANCE</small><span class="yard-tile-status" id="yardCheckSheetsStatus">COMING LATER</span></span>
       </button>
       <button class="yard-tile yard-tile-active" id="launchGatelogBtn" data-app="gatelog" type="button" aria-label="Open GATELOG customer and site entry management">
         <span class="yard-tile-icon" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M22 15h42l14 14v56H22z"/><path d="M64 15v16h14M34 46h32M34 59h32M34 72h21"/><circle class="accent" cx="72" cy="72" r="17"/><path class="accent" d="M72 63v10l7 4"/></svg></span>
@@ -744,7 +744,7 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
           </div>
         </div>
         <div id="yardHubTierCards" class="yard-hub-tier-grid"></div>
-        <p class="yard-hub-note">DOWNTIME is intentionally excluded from this permission matrix. Its existing Access &amp; Rights system remains independent and unchanged. FLOOR and CHECK SHEETS stay unavailable until their applications are released.</p>
+        <p class="yard-hub-note">DOWNTIME is intentionally excluded from this permission matrix. Its existing Access &amp; Rights system remains independent and unchanged. STAFF MANAGEMENT and DAILY stay unavailable until their applications are released.</p>
       </div>
       <div id="yardHubUserModal" class="yard-hub-user-modal" hidden role="dialog" aria-modal="true" aria-labelledby="yardHubUserModalTitle">
         <form id="yardHubUserForm" class="yard-hub-user-form">
@@ -2132,7 +2132,7 @@ if(window.DowntimeCentral?.session?.token)resumeCentralSession();
 })();
 </script>
 <script src="repair-maintenance-launch.js"></script>
-<script src="yard-hub-settings.js?v=20261124-5"></script>
+<script src="yard-hub-settings.js?v=20261126-1"></script>
 <script id="section-page-navigation-script">
 (function(){
  const back=document.getElementById('returnMainMenu');
