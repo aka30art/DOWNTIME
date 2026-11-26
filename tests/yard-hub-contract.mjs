@@ -12,7 +12,27 @@ assert.match(html, /YARD OPERATIONS CORE/, 'YARD HUB carries the approved platfo
 assert.match(html, /id="yardHubUsername"/, 'YARD HUB displays the authenticated user');
 assert.match(html, /id="yardHubLogoutBtn"/, 'YARD HUB provides a sign-out action');
 assert.match(html, /id="launchDowntimeBtn" data-app="downtime"/, 'DOWNTIME has a dedicated application launcher');
-assert.match(html, /data-app="floor" type="button" disabled/, 'STAFF MANAGEMENT remains visible but unavailable');
+assert.match(html, /id="launchStaffManagementBtn" data-app="staff-management" type="button"/, 'STAFF MANAGEMENT has a dedicated module launcher');
+assert.doesNotMatch(html, /id="launchStaffManagementBtn"[^>]*disabled/, 'STAFF MANAGEMENT is not hard-disabled in the launcher markup');
+assert.match(html, /function isStaffModuleAutoAccess\(\)[\s\S]*?tier==='DEVACC'\|\|tier==='ADMIN'/, 'DEV OWNER, DEVACC and ADMIN receive automatic Staff Management access');
+assert.match(html, /function syncStaffModuleAccess\(\)[\s\S]*?tile\.disabled=!allowed/, 'Staff Management launcher is enabled or restricted from the authenticated central tier');
+assert.match(html, /function launchStaffManagement\(\)[\s\S]*?openSettingsPanel\('staff'\)/, 'Staff Management launcher opens the existing central STAFF workspace');
+assert.match(html, /launchStaffManagementBtn'\)\?\.addEventListener\('click',launchStaffManagement\)/, 'Staff Management launcher has a click handler');
+assert.match(html, /if\(section==='staff'&&isStaffModuleAutoAccess\(\)\)return true/, 'privileged tiers can open STAFF even when granular view flags are unset');
+const staffAccessSource = html.match(/function isStaffModuleAutoAccess\(\)\{[^}]*\}/)?.[0];
+assert.ok(staffAccessSource, 'Staff Management auto-access policy is explicit and testable');
+const staffAccess = new Function('centralUser', staffAccessSource + '; return isStaffModuleAutoAccess;');
+for (const user of [
+  { username: 'DEV', tier: 'OWNER' },
+  { username: 'devacc-user', tier: 'DEVACC' },
+  { username: 'admin-user', tier: 'ADMIN' }
+]) assert.equal(staffAccess(user)(), true, user.tier + ' must receive automatic Staff Management access');
+for (const user of [
+  { username: 'ordinary-user', tier: 'USER' },
+  { username: 'supervisor-user', tier: 'SUPERVISOR' },
+  { username: 'dev-lookalike', tier: 'USER' },
+  { username: 'DEV', tier: 'ADMIN' }
+]) assert.equal(staffAccess(user)(), false, user.username + '/' + user.tier + ' must not receive root/privileged auto-access');
 assert.match(html, /class="yard-tile-copy"><strong>STAFF MANAGEMENT<\/strong>/, 'FLOOR module tile displays the STAFF MANAGEMENT title');
 assert.match(html, /data-app="check-sheets" type="button" disabled/, 'DAILY remains visible but unavailable');
 assert.match(html, /class="yard-tile-copy"><strong>DAILY<\/strong>/, 'CHECK SHEETS module tile displays the DAILY title');
