@@ -330,8 +330,39 @@ assert.equal(activated.payload.identityProvisioningReceipts[idempotencyKey].role
 assert.equal(activatePendingUserStaffProvisioning(activated.payload, validRoleAssignment).replayed, true, "activation retries are idempotent");
 
 const centralApi = await readFile("supabase/functions/central-bank/index.ts", "utf8");
+const yardHubApi = await readFile("supabase/functions/yard-hub-settings-api/index.ts", "utf8");
 const browserClient = await readFile("central-bank-client.js", "utf8");
-assert.match(centralApi, /import \{ buildIdentityMigrationPreview \} from ["']\.\.\/_shared\/user-staff-identity\.mjs["']/);
+const yardHubUi = await readFile("yard-hub-settings.js", "utf8");
+const provisioningMigration = await readFile("supabase/migrations/20261126233000_canonical_yard_role_registry.sql", "utf8");
+assert.match(centralApi, /import \{ activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning \} from ["']\.\.\/_shared\/user-staff-identity\.mjs["']/);
+const provisioningRoutes = centralApi.slice(
+  centralApi.indexOf('if(action==="user-staff-provision")'),
+  centralApi.indexOf('if(action==="identity-diagnostics")'),
+);
+assert.ok(provisioningRoutes.length > 0, "staged USER/STAFF provisioning routes are registered");
+assert.match(provisioningRoutes, /if\(!isDevRoot\)/, "only immutable DEV can provision and activate new identities");
+assert.match(provisioningRoutes, /buildPendingUserStaffProvisioning\(bank/);
+assert.match(provisioningRoutes, /requestedYardRoleId/);
+assert.match(provisioningRoutes, /yard_role_assignments/, "activation reads the canonical YARD ROLE assignment store");
+assert.match(provisioningRoutes, /activatePendingUserStaffProvisioning\(bank,roleAssignment\)/);
+assert.doesNotMatch(provisioningRoutes, /yard_hub_tier_config|save-user-tier/, "legacy YARD HUB tiers cannot activate new identities");
+assert.match(centralApi, /New accounts are blocked until the canonical YARD ROLE provisioning workflow is implemented/);
+assert.match(centralApi, /STAFF-only saves cannot create or alter authenticated USER identity links/);
+assert.match(centralApi, /Linked STAFF profiles cannot be removed through tracker saves/);
+assert.match(centralApi, /identity deletion requires the separately approved lifecycle policy/);
+assert.match(yardHubApi, /action === "assign-user-role"/);
+assert.match(yardHubApi, /yard_role_assign_user/);
+assert.match(yardHubApi, /Canonical YARD ROLE identities cannot be assigned legacy YARD HUB tiers/);
+assert.match(yardHubUi, /yardHubUserYardRole/);
+assert.match(yardHubUi, /assign-user-role/);
+assert.match(yardHubUi, /activateDowntimeCentralUserFromYardHub/);
+assert.match(browserClient, /identityDiagnostics\(\)\{return call\("identity-diagnostics"\)\}/, "browser adapter exposes the read-only diagnostics action");
+assert.match(browserClient, /provisionUserStaff\(data,version,idempotencyKey\)/);
+assert.match(browserClient, /activateProvisionedUser\(username,version\)/);
+assert.match(provisioningMigration, /create table if not exists public\.yard_role_assignments/);
+assert.match(provisioningMigration, /yard_role_assign_user/);
+assert.match(provisioningMigration, /enable row level security/);
+assert.doesNotMatch(provisioningMigration, /insert into public\.yard_roles/i, "no unapproved YARD ROLE catalogue entries are seeded");
 const diagnosticsRoute = centralApi.slice(
   centralApi.indexOf('if(action==="identity-diagnostics")'),
   centralApi.indexOf('if(action==="photo-evidence-context")'),
