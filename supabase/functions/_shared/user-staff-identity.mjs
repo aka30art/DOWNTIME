@@ -503,8 +503,7 @@ export function buildPendingUserStaffProvisioning(bank, input) {
     createdAt: now,
   };
   next.identityProvisioningReceipts = { ...receipts, [input.idempotencyKey]: receipt };
-  next.identityProvisioningEvents = Array.isArray(next.identityProvisioningEvents) ? next.identityProvisioningEvents : [];
-  next.identityProvisioningEvents.push({
+  const auditEvent = {
     action: "USER_STAFF_PROVISIONING_STARTED",
     actor,
     username,
@@ -512,17 +511,21 @@ export function buildPendingUserStaffProvisioning(bank, input) {
     staffId: input.staffId,
     requestedYardRoleId: input.requestedYardRoleId,
     at: now,
-  });
+  };
 
-  return { payload: next, receipt, replayed: false };
+  // The caller must persist auditEvent through the service-role audit RPC as
+  // part of the same Central Bank compare-and-swap commit. It is not stored as
+  // mutable JSON and is not itself an immutable audit record.
+  return { payload: next, receipt, replayed: false, auditEvent };
 }
 
 /**
  * Finalize only from a trusted server-side result read from the canonical YARD ROLE
  * assignment store. The caller must not pass a client-supplied role claim.
  */
-export function activatePendingUserStaffProvisioning(bank, roleAssignment, now = new Date().toISOString()) {
+export function activatePendingUserStaffProvisioning(bank, roleAssignment, actor, now = new Date().toISOString()) {
   if (!isObject(bank)) throw new TypeError("Central Bank payload is required.");
+  if (!String(actor ?? "").trim()) throw new Error("Authenticated activation actor is required.");
   if (!isObject(roleAssignment) ||
       !isUuid(roleAssignment.userId) ||
       !isUuid(roleAssignment.staffId) ||
@@ -598,16 +601,18 @@ export function activatePendingUserStaffProvisioning(bank, roleAssignment, now =
     yardRoleId: roleAssignment.yardRoleId,
     roleAssignmentVersion: roleAssignment.version,
   };
-  next.identityProvisioningEvents = Array.isArray(next.identityProvisioningEvents) ? next.identityProvisioningEvents : [];
-  next.identityProvisioningEvents.push({
+  const auditEvent = {
     action: "USER_STAFF_PROVISIONING_ACTIVATED",
+    actor: String(actor).trim(),
     username: user.username,
     userId: user.userId,
     staffId: user.staffId,
     yardRoleId: roleAssignment.yardRoleId,
     roleAssignmentVersion: roleAssignment.version,
     at: now,
-  });
+  };
 
-  return { payload: next, replayed: false, user };
+  // The caller must persist auditEvent through the service-role audit RPC as
+  // part of the same Central Bank compare-and-swap commit.
+  return { payload: next, replayed: false, user, auditEvent };
 }
