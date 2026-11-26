@@ -21,7 +21,7 @@ assert.ok(migration.includes('grant all on table public.yard_hub_staff_companies
 assert.ok(migration.includes('yard_hub_staff_save_person'), 'Personnel changes use an atomic database function');
 assert.ok(migration.includes('yard_hub_staff_role_assignments'), 'Yard Role assignments retain assignment history');
 assert.ok(migration.includes('yard_hub_staff_audit'), 'Personnel changes are audited');
-assert.ok(migration.includes('STAFF MANAGEMENT directory. Separate from DOWNTIME operator rosters'), 'The schema explicitly documents the DOWNTIME boundary');
+assert.ok(migration.includes('Separate from DOWNTIME operator rosters and operational records.'), 'The schema explicitly documents the DOWNTIME boundary');
 assert.ok(migration.includes('Yard Operative') && migration.includes('Forklift Driver') && migration.includes('Yard Supervisor'), 'A configurable starter set of Yard Roles is seeded');
 assert.doesNotMatch(migration, /alter table public\.(downtime_|gatelog_|repair_)/i, 'The new migration does not alter DOWNTIME, GATELOG or R&M tables');
 
