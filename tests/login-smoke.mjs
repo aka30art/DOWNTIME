@@ -554,7 +554,7 @@ try{
  assert.equal(await owner.page.locator('#yardHubSettingsBtn').isVisible(),true,'DEV root retains YARD HUB Settings access');
  await owner.page.locator('#launchDowntimeBtn').click();
  await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
- assert.equal(owner.getVersion(),originalDowntimeCentralVersion+1,'Only the intentional central user creation increments the DOWNTIME user-directory version');
+ assert.equal(owner.getVersion(),originalDowntimeCentralVersion,'YARD HUB-only settings leave the DOWNTIME user-directory version unchanged');
 
  // Jan remains a normal operational USER rather than a root/admin identity.
  const janOperational=await openFor('USER','1357','Jan');
