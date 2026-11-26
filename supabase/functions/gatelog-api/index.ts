@@ -47,7 +47,7 @@ Deno.serve(async (req: Request) => {
       db.from("gatelog_customers").select("id,customer_name,created_at").eq("active",true).order("customer_name"),
       db.from("gatelog_vehicles").select("id,customer_id,registration").eq("active",true).order("registration"),
       db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,status").is("time_out",null).order("time_in",{ascending:false}),
-      db.from("gatelog_waste_types").select("id,label").order("label"),
+      db.from("gatelog_waste_types").select("id,label,active").eq("active",true).order("label"),
       db.from("gatelog_visits").select("id,status").eq("visit_date",today),
       db.rpc("gatelog_customer_visit_stats"),
       db.rpc("gatelog_overall_statistics"),
@@ -112,6 +112,45 @@ Deno.serve(async (req: Request) => {
     const {data:assignments,error:assignmentError}=await db.from("gatelog_daily_gateman_assignments").select("duty_date,gateman_name,is_locked").gte("duty_date",from).lte("duty_date",to).order("duty_date",{ascending:true});
     if(assignmentError)return fail(assignmentError);
     return json({period,from,to,visits:reportRows.map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)})),assignments:assignments||[]});
+  }
+  if(action==="report-save"){
+    if(bank.payload.tiers?.[legacyTier]?.canExportReports!==true)return json({error:"Your YARD HUB role cannot archive reports."},403);
+    const period=clean(body.period,10),from=clean(body.from,10),to=clean(body.to,10);
+    if(!["daily","weekly","monthly"].includes(period)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(from)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(to)||!Array.isArray(body.visits)||body.visits.length>10000)return json({error:"Invalid report snapshot."},400);
+    const snapshot={period,from,to,visits:body.visits,assignments:Array.isArray(body.assignments)?body.assignments:[]};
+    const {data,error}=await db.from("gatelog_report_archive").insert({period,date_from:from,date_to:to,report_data:snapshot,created_by:actor}).select("id,period,date_from,date_to,created_by,created_at").single();
+    if(error)return fail(error);return json({report:data});
+  }
+  if(action==="report-archive"){
+    if(bank.payload.tiers?.[legacyTier]?.canExportReports!==true)return json({error:"Your YARD HUB role cannot view archived reports."},403);
+    const {data,error}=await db.from("gatelog_report_archive").select("id,period,date_from,date_to,report_data,created_by,created_at").order("created_at",{ascending:false}).limit(250);
+    if(error)return fail(error);return json({reports:data||[]});
+  }
+  if(action==="customer-update"){
+    if(bank.payload.tiers?.[legacyTier]?.canManageAssignments!==true)return json({error:"Your YARD HUB role cannot manage customer settings."},403);
+    const id=clean(body.customerId,60),name=clean(body.customerName,120);
+    if(!id||!name)return json({error:"Customer and customer name are required."},400);
+    const {data,error}=await db.from("gatelog_customers").update({customer_name:name}).eq("id",id).eq("active",true).select("id,customer_name").single();
+    if(error)return fail(error);return json({customer:data});
+  }
+  if(action==="customer-archive"){
+    if(bank.payload.tiers?.[legacyTier]?.canManageAssignments!==true)return json({error:"Your YARD HUB role cannot manage customer settings."},403);
+    const id=clean(body.customerId,60);if(!id)return json({error:"Customer is required."},400);
+    const {data,error}=await db.from("gatelog_customers").update({active:false}).eq("id",id).eq("active",true).select("id").single();
+    if(error)return fail(error);return json({archived:true,customerId:data.id});
+  }
+  if(action==="waste-type-create"){
+    if(bank.payload.tiers?.[legacyTier]?.canManageAssignments!==true)return json({error:"Your YARD HUB role cannot manage waste types."},403);
+    const label=clean(body.label,80);if(!label)return json({error:"Waste type label is required."},400);
+    const {data,error}=await db.from("gatelog_waste_types").upsert({label,active:true},{onConflict:"label"}).select("id,label,active").single();
+    if(error)return fail(error);return json({wasteType:data});
+  }
+  if(action==="waste-type-update"){
+    if(bank.payload.tiers?.[legacyTier]?.canManageAssignments!==true)return json({error:"Your YARD HUB role cannot manage waste types."},403);
+    const id=clean(body.wasteTypeId,60),label=clean(body.label,80),active=body.active===true;
+    if(!id||!label)return json({error:"Waste type and label are required."},400);
+    const {data,error}=await db.from("gatelog_waste_types").update({label,active}).eq("id",id).select("id,label,active").single();
+    if(error)return fail(error);return json({wasteType:data});
   }
   if(action==="customer-arrival"){
     const name=clean(body.customerName,120),registration=clean(body.registration,20).toUpperCase();
