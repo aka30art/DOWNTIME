@@ -116,7 +116,6 @@ Deno.serve(async (req: Request) => {
     rootsAssignment = rootsLookup.data;
   }
   const rootsAuthority = resolveRootsAuthority(user, rootsAssignment);
-  if (user.yardRoleId && ["DEV1", "ADMIN"].includes(rootsAuthority || "")) return json({ error: "Conflicting ordinary YARD ROLE and protected ROOTS assignments." }, 409);
   const { data: configRow, error: configError } = await db.from("yard_hub_tier_config")
     .select("payload,version,updated_by,updated_at")
     .eq("id", 1)
