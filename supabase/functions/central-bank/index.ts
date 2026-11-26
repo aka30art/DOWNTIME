@@ -128,7 +128,7 @@ Deno.serve(async(req)=>{
    await db.from("downtime_central_audit").insert({username,action:"bootstrap",details:{}});
    return json({ok:true,message:"Owner account initialized. Sign in."});
  }
- if(action==="list-users"){return json({users:bank.users.filter((u:any)=>u.enabled!==false).map((u:any)=>({username:u.username,displayName:u.displayName||u.username,tier:u.tier}))});}
+ if(action==="login-options"){return json({users:bank.users.filter((u:any)=>u.enabled!==false).map((u:any)=>({username:u.username}))});}
  if(action==="login"){
    const username=String(body.username||"").trim(),pin=String(body.pin||""),rateKey=username.toLowerCase();
    if(pin.length>8||!username||!/^[0-9]{4,8}$/.test(pin))return json({error:"Invalid credentials"},401);
@@ -157,6 +157,10 @@ Deno.serve(async(req)=>{
  const isRootAuthority=isDevRoot||isDevacc;
  const isCentralAdmin=tier==="ADMIN"||isRootAuthority;
  const isCentralBankAccess=isRootAuthority;
+ if(action==="list-users"){
+   const visibleUsers=priv.canManageUsers||priv.canViewUsers?bank.users.filter((u:any)=>u.enabled!==false).map(safeUser):[safeUser(currentUser)];
+   return json({users:visibleUsers});
+ }
  if(action==="central-admin-state"){
    if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);
    return json({payload:{...bank,users:bank.users.map(safeUser)},version:row?.version||0,updatedAt:row?.updated_at||null,user:safeUser(currentUser)});
