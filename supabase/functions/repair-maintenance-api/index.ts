@@ -67,6 +67,7 @@ Deno.serve(async (req: Request) => {
   const bank = bankRow.payload as Record<string, any>;
   const user = (Array.isArray(bank.users) ? bank.users : []).find((item: any) => String(item.username).toLowerCase() === String(session.username).toLowerCase() && item.enabled !== false);
   if (!user) return json({ error: "This account is disabled or no longer exists." }, 401);
+  if (user.yardRoleId) return json({ error: "Canonical YARD ROLE authorization is not yet enabled for R&M. Access is denied until the unified resolver is integrated." }, 403);
   const tier = String(user.tier || "USER").toUpperCase();
   const stored = bank.tiers?.[tier] || {};
   const permissions = { ...(tierDefault[tier] || tierDefault.USER), ...stored };
