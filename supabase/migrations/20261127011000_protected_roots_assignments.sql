@@ -5,7 +5,7 @@ create table if not exists public.downtime_roots_assignments (
   user_id uuid not null unique,
   staff_id uuid not null unique,
   roots_class text not null check (roots_class in ('DEV1', 'ADMIN')),
-  assigned_by_user_id uuid not null,
+  assigned_by_user_id uuid,
   assigned_by_username text not null,
   assigned_by_display_name text not null,
   created_at timestamptz not null default now(),
