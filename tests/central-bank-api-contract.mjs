@@ -11,6 +11,11 @@ assert.ok(src.indexOf('if(action==="list-users")')>src.indexOf('const currentUse
 assert.ok(src.indexOf('if(action==="photo-evidence-context")')>src.indexOf('const currentUser=bank.users.find'),'photo permission context is available only after session validation');
 assert.ok(src.includes('permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canDeleteRecords:priv.canDeleteRecords===true}'),'photo context returns only the three server-resolved tracker capabilities');
 assert.ok(src.includes('userId:currentUser.userId||null,staffId:currentUser.staffId||null'),'photo context binds uploads to immutable authenticated identity IDs');
+assert.ok(src.includes('const loadProtectedRootUserIds=async()'),'Central Bank enumerations resolve protected identities before returning account data');
+assert.ok(src.includes('if(protectedTarget&&rootsAuthority!=="DEV")'),'ordinary account updates cannot alter protected ROOTS identities');
+assert.ok(src.includes('Protected ROOTS identities cannot be deleted through ordinary account management.'),'ordinary account deletion cannot remove protected ROOTS identities');
+assert.ok(src.includes('lookupProtectedStaff'),'generic STAFF settings saves preserve protected ROOTS profiles');
+assert.ok(src.includes('Only immutable DEV may view protected ROOTS STAFF photos.'),'protected ROOTS STAFF photos cannot be inspected by other administrators');
 assert.ok(src.includes('if(action==="roots-state")')&&src.includes('rootsAuthority!=="DEV"'),'only immutable DEV can browse protected ROOTS assignments');
 assert.ok(src.includes('action==="roots-assign-admin"&&requestedClass!=="ADMIN"'),'DEV1 scoped action can assign ADMIN only');
 assert.ok(src.includes('requestedClass==="DEV1"&&rootsAuthority!=="DEV"'),'DEV1 cannot assign another DEV1');
