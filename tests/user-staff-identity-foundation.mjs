@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
+  activatePendingUserStaffProvisioning,
   buildIdentityMigrationPreview,
   buildNewUserStaffIdentityPair,
+  buildPendingUserStaffProvisioning,
   diagnoseIdentityDirectory,
   normaliseIdentityDirectory,
   validateNewUserStaffPair,
+  validateStaffOperationalProfile,
 } from "../supabase/functions/_shared/user-staff-identity.mjs";
 
 const uid1 = "11111111-1111-4111-8111-111111111111";
@@ -216,6 +219,115 @@ assert.ok(mismatchCodes.includes("staff-profile-compatibility-mismatch"));
 const noMutationSnapshot = structuredClone(linked);
 buildIdentityMigrationPreview(linked);
 assert.deepEqual(linked, noMutationSnapshot, "migration preview must be read-only");
+
+const operationalStaff = validateStaffOperationalProfile({
+  department: "SCPL",
+  onSiteRole: "Main Operator",
+  onSite: true,
+  station: "Station 1 · WOOD",
+  stationLocked: true,
+});
+assert.deepEqual(operationalStaff, {
+  department: "SCPL",
+  onSiteRole: "Main Operator",
+  station: "Station 1 · WOOD",
+  stationLocked: true,
+  onSite: true,
+});
+assert.throws(() => validateStaffOperationalProfile({
+  department: "SCPL", onSiteRole: "Mechanic", onSite: true, station: "", stationLocked: false,
+}), /operational role is invalid/);
+assert.throws(() => validateStaffOperationalProfile({
+  department: "SCPL", onSiteRole: "Main Operator", onSite: true, station: "", stationLocked: true,
+}), /locked STAFF station must have/);
+assert.throws(() => validateStaffOperationalProfile({
+  department: "R&M", onSiteRole: "Mechanic", onSite: true, station: "Station 1 · WOOD", stationLocked: false,
+}), /available only for SCPL/);
+assert.throws(() => validateStaffOperationalProfile({
+  department: "R&M", onSiteRole: "Mechanic", onSite: true, station: "", stationLocked: false, photoPath: "private/path",
+}), /photo fields are not accepted/);
+
+const requestedRoleId = "77777777-7777-4777-8777-777777777777";
+const idempotencyKey = "88888888-8888-4888-8888-888888888888";
+const provisioningBank = {
+  users: [{ username: "DEV", userId: uid2, tier: "OWNER", enabled: true }],
+  staff: { roster: [], profiles: {} },
+  appData: { staffRoster: [], operatorProfiles: {} },
+};
+const provisioningInput = {
+  idempotencyKey,
+  requestFingerprint: "c".repeat(64),
+  userId: uid1,
+  staffId: sid1,
+  requestedYardRoleId: requestedRoleId,
+  userFields: { username: "New.Operator", displayName: "New Operator" },
+  staffFields: {
+    department: "SCPL",
+    onSiteRole: "Main Operator",
+    onSite: true,
+    station: "Station 1 · WOOD",
+    stationLocked: true,
+  },
+  pinSalt: "a".repeat(32),
+  pinHash: "b".repeat(64),
+  actor: "DEV",
+  createdAt: "2026-11-26T23:00:00.000Z",
+};
+const provisioningBankSnapshot = structuredClone(provisioningBank);
+const pending = buildPendingUserStaffProvisioning(provisioningBank, provisioningInput);
+assert.deepEqual(provisioningBank, provisioningBankSnapshot, "pending provisioning must not mutate its input payload");
+const pendingUser = pending.payload.users.find((item) => item.userId === uid1);
+const pendingStaff = pending.payload.staff.profiles["New Operator"];
+assert.equal(pendingUser.status, "PROVISIONING");
+assert.equal(pendingUser.enabled, false, "pending USER cannot authenticate");
+assert.equal(pendingUser.tier, undefined, "new USER receives no legacy tier claim");
+assert.equal(pendingUser.provisioning.stage, "YARD_ROLE_PENDING");
+assert.equal(pendingUser.provisioning.requestedYardRoleId, requestedRoleId);
+assert.equal(pendingStaff.status, "PROVISIONING");
+assert.equal(pendingStaff.staffId, sid1);
+assert.equal(pendingStaff.linkedUserId, uid1);
+assert.equal(pendingStaff.station, "Station 1 · WOOD");
+assert.deepEqual(pending.payload.staff.roster, [], "pending STAFF must not appear in active roster");
+assert.deepEqual(pending.payload.appData.staffRoster, [], "pending STAFF must not appear in compatibility roster");
+assert.deepEqual(pending.payload.appData.operatorProfiles, {}, "pending STAFF must not appear in active operator profiles");
+assert.equal(pending.receipt.stage, "YARD_ROLE_PENDING");
+assert.equal(buildPendingUserStaffProvisioning(pending.payload, provisioningInput).replayed, true, "same idempotency key and fingerprint replay safely");
+assert.throws(() => buildPendingUserStaffProvisioning(pending.payload, {
+  ...provisioningInput, requestFingerprint: "d".repeat(64),
+}), /different provisioning request/);
+assert.throws(() => buildPendingUserStaffProvisioning(provisioningBank, {
+  ...provisioningInput, requestedYardRoleId: "not-a-role-id",
+}), /canonical YARD ROLE ID/);
+
+const validRoleAssignment = {
+  userId: uid1,
+  staffId: sid1,
+  yardRoleId: requestedRoleId,
+  status: "ACTIVE",
+  version: 1,
+  verifiedAt: "2026-11-26T23:01:00.000Z",
+};
+assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
+  ...validRoleAssignment, status: "PENDING",
+}), /verified active canonical YARD ROLE assignment/);
+assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
+  ...validRoleAssignment, staffId: sid2,
+}), /does not match the USER\/STAFF identity pair/);
+const activated = activatePendingUserStaffProvisioning(pending.payload, validRoleAssignment);
+const activeUser = activated.payload.users.find((item) => item.userId === uid1);
+const activeStaff = activated.payload.staff.profiles["New Operator"];
+assert.equal(activeUser.status, "ACTIVE");
+assert.equal(activeUser.enabled, true);
+assert.equal(activeUser.yardRoleId, requestedRoleId);
+assert.equal(activeUser.tier, undefined, "activation does not restore legacy tier permissions");
+assert.equal(activeUser.provisioning, undefined);
+assert.equal(activeStaff.status, "ACTIVE");
+assert.deepEqual(activated.payload.staff.roster, ["New Operator"]);
+assert.deepEqual(activated.payload.appData.staffRoster, ["New Operator"]);
+assert.equal(activated.payload.appData.operatorProfiles["New Operator"].staffId, sid1);
+assert.equal(activated.payload.identityProvisioningReceipts[idempotencyKey].stage, "ACTIVE");
+assert.equal(activated.payload.identityProvisioningReceipts[idempotencyKey].roleAssignmentVersion, 1);
+assert.equal(activatePendingUserStaffProvisioning(activated.payload, validRoleAssignment).replayed, true, "activation retries are idempotent");
 
 const centralApi = await readFile("supabase/functions/central-bank/index.ts", "utf8");
 const browserClient = await readFile("central-bank-client.js", "utf8");
