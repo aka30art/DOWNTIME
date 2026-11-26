@@ -35,6 +35,7 @@ assert.match(fn,/permissions\.canViewDashboards!==true/,'Photo viewing requires 
 assert.match(fn,/permissions\.canEditTracker!==true/,'Photo upload requires server-side DOWNTIME input permission');
 assert.match(fn,/permissions\.canDeleteRecords!==true/,'Photo deletion requires server-side DOWNTIME Manage permission');
 assert.match(fn,/findOperationalRecord/,'Photo access is scoped to a live operational record');
+assert.match(fn,/photo-evidence-delete-authorized/,'Photo deletion actor and target are audited before storage mutation');
 assert.match(fn,/existing\.record_id!==recordId/,'photo entry keys cannot be reused across operational records');
 assert.match(fn,/row\.department!==department/,'Photo access enforces the record department');
 assert.match(scopeMigration,/add column if not exists record_id text/,'Attachment metadata stores the operational record ID');
