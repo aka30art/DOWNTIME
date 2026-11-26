@@ -369,3 +369,41 @@ Do **not** delete historical audit records or historical daily operator assignme
 - The new JAN account is created only after deployment, through the normal USER creation path, which creates the linked STAFF profile. It receives ordinary USER access only unless DEV later changes it through the approved controls.
 
 This is an owner-approved future removal instruction, not permission to execute production changes before the deployment gate.
+
+
+## Superseding owner decision — clean USER/STAFF reset and department permission levels (2026-11-26)
+
+This decision supersedes every earlier migration/retention proposal in this document that conflicts with the clean-reset target, including the earlier proposal to retain or reclassify existing DEVACC/ADMIN identities or retain the existing JAN account.
+
+### Clean starting state
+- The only identity retained from the current USER system is the existing immutable root USER **DEV**.
+- All other existing USER accounts and all existing STAFF profiles are to be removed as part of the approved future reset migration. No existing non-DEV USER or STAFF identity is to be migrated, renamed, reclassified, or automatically recreated.
+- After the reset is deployed and verified, DEV creates all new USER accounts from scratch.
+- Each newly created USER receives exactly one newly linked STAFF record through the new USER creation workflow.
+- DEV assigns the new account its ROOTS classification (**DEV1** or protected **ADMIN**) through the dedicated protected assignment workflow. ROOTS classifications are not ordinary YARD ROLES.
+- New identities receive fresh stable IDs and credentials. No prior account permissions, sessions, or identity authority are inherited.
+- The live DEV root identity and its credential material remain protected and unchanged unless a separately approved security migration is required.
+
+### Historical records and reset boundary
+- Remove live USER records, STAFF profiles/roster entries, live role assignments, sessions and identity-owned media associated with the reset identities, using an exact reviewed deletion manifest.
+- Preserve historical audit records and historical operational records where they are shared business history or are needed for traceability. Do not rewrite historical attribution merely because a display name is reused by a newly created USER.
+- Remove identity-owned media only after exact ownership and references are verified. Do not delete shared media or unrelated business records.
+- This is a future deployment migration only. It is not permission to delete or modify production data now. Require rehearsal, exact before/after counts, idempotency, optimistic version checks, audit evidence, recovery/rollback planning and explicit final production approval.
+
+### Canonical department permission levels
+Every ordinary YARD ROLE has exactly one selected permission level for each department. The levels are mutually exclusive:
+
+| Level | Department tile | Allowed actions |
+|---|---|---|
+| **OFF** | Disabled / inaccessible | No department access. |
+| **Read Only** | Enabled | View information only. No changes. |
+| **Input** | Enabled | View, add and edit entries. Cannot remove or delete entries. |
+| **Manage** | Enabled | Full access and privileges within that department, including removal and deletion where supported. |
+
+The selected level governs both department tile availability and server-enforced actions inside that department. UI hiding alone is not an authorization control. The four levels replace generic CRUD tick-boxes; they are one mutually exclusive level per role per department, not four independently selectable booleans.
+
+### Permission architecture
+- The owner-approved unified YARD ROLE model replaces both legacy Central DOWNTIME and YARDHUB permission planes as the sole ordinary application authorization model across both applications.
+- ROOTS authority remains separate from ordinary YARD ROLE permissions.
+- STAFF operational job roles remain separate from application permissions.
+- No legacy tier name or existing permission profile is automatically mapped into the new roles or ROOTS classifications.
