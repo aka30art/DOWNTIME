@@ -141,6 +141,7 @@ assert.match(centralClient,/async saveTiers\(tiers,version\)/);
  assert.ok(hubApi.includes('Administrators cannot remove their own YARD HUB tier assignment.'), 'admins cannot remove their own Hub tier directly');
  assert.doesNotMatch(hubApi,/\.from\("downtime_central_bank"\)\.(update|insert|delete)/,'Hub settings service cannot mutate the DOWNTIME user bank');
  assert.ok(ui.includes('const centralChanges=!existing'), 'client detects whether central account fields actually changed');
+ assert.ok(ui.includes('New USER creation is paused until the canonical YARD ROLE catalogue and assignment store are implemented.'), 'new account creation stays blocked until canonical YARD ROLE provisioning is available');
  assert.ok(ui.includes('if(centralChanges){'), 'the legacy user API call is conditional on a real central account change');
  assert.ok(ui.includes('YARD HUB TIER SAVED. DOWNTIME USER DATA WAS NOT CHANGED.'), 'Hub-only tier save confirms no DOWNTIME mutation');
  assert.ok(ui.includes('state?.canManageCentralUsers!==true'), 'new user creation requires the existing Central Users right');
