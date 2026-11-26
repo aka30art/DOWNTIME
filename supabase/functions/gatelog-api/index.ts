@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
   // Gateman duty is assigned to operational STAFF, never to a USER account.
   const staffRoster=Array.isArray(bank.payload.staff?.roster)?bank.payload.staff.roster:(Array.isArray(bank.payload.appData?.staffRoster)?bank.payload.appData.staffRoster:[]);
   const staffProfiles=bank.payload.staff?.profiles||bank.payload.appData?.operatorProfiles||{};
-  const gatemen=staffRoster.filter((name:any)=>typeof name==="string"&&name.trim()).map((name:string)=>({staffName:clean(name,80),displayName:clean(name,120),onSiteRole:clean(staffProfiles[name]?.onSiteRole||"ROLE NOT SET",60),status:clean(staffProfiles[name]?.status||"ACTIVE",20),onSite:staffProfiles[name]?.onSite!==false})).filter((item:any)=>item.status!=="ARCHIVED"&&item.onSite).sort((a:any,b:any)=>a.displayName.localeCompare(b.displayName));
+  // Compatibility fields username/tier keep the previous GATELOG client rendering, but their values are derived only from STAFF records.\n  const gatemen=staffRoster.filter((name:any)=>typeof name==="string"&&name.trim()).map((name:string)=>({staffName:clean(name,80),username:clean(name,80),displayName:clean(name,120),onSiteRole:clean(staffProfiles[name]?.onSiteRole||"ROLE NOT SET",60),tier:clean(staffProfiles[name]?.onSiteRole||"ROLE NOT SET",60),status:clean(staffProfiles[name]?.status||"ACTIVE",20),onSite:staffProfiles[name]?.onSite!==false})).filter((item:any)=>item.status!=="ARCHIVED"&&item.onSite).sort((a:any,b:any)=>a.displayName.localeCompare(b.displayName));
   const fail=(error:any)=>json({error:error?.message||"GATELOG request failed."},400);
 
   if(action==="bootstrap"){
@@ -75,7 +75,7 @@ Deno.serve(async (req: Request) => {
   }
   if(action==="gateman-save"){
     if(!canManageGateman)return json({error:"You do not have permission to manage daily Gateman assignments."},403);
-    const dutyDate=clean(body.dutyDate,10),staffName=clean(body.staffName,80);
+    const dutyDate=clean(body.dutyDate,10),staffName=clean(body.staffName??body.username,80); // username is accepted only as a legacy client field and is still validated exclusively against STAFF.
     if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate)||!staffName)return json({error:"Select a valid date and staff member."},400);
     const selected=gatemen.find((item:any)=>item.staffName.toLowerCase()===staffName.toLowerCase());
     if(!selected)return json({error:"The selected staff member is not active in the STAFF directory."},404);
