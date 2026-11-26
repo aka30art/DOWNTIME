@@ -77,8 +77,8 @@ export function diagnoseIdentityDirectory(bank) {
       userIds.set(user.userId.toLowerCase(), path);
     }
 
-    if (normaliseUsername(user.username) === "dev" && user.staffId) {
-      addDiagnostic(diagnostics, "error", "dev-staff-link-forbidden", path, "The immutable DEV root identity must not be linked to a STAFF profile.");
+    if (normaliseUsername(user.username) === "dev") {
+      if (user.staffId) addDiagnostic(diagnostics, "error", "dev-staff-link-forbidden", path, "The immutable DEV root identity must not be linked to a STAFF profile.");
     } else if (!user.staffId) {
       addDiagnostic(diagnostics, "warning", "legacy-user-staff-link-missing", path, "USER has no linked STAFF identity; this is not repaired during diagnostics.");
     } else if (!isUuid(user.staffId)) {
