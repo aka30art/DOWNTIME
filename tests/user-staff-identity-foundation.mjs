@@ -301,6 +301,12 @@ assert.throws(() => buildPendingUserStaffProvisioning(pending.payload, {
 assert.throws(() => buildPendingUserStaffProvisioning(provisioningBank, {
   ...provisioningInput, requestedYardRoleId: "not-a-role-id",
 }), /canonical YARD ROLE ID/);
+const duplicateCompatibilityName = {
+  users: [{ username: "DEV", userId: uid2 }],
+  staff: { roster: [], profiles: {} },
+  appData: { operatorProfiles: { "New Operator": {} }, staffRoster: [] },
+};
+assert.throws(() => buildPendingUserStaffProvisioning(duplicateCompatibilityName, provisioningInput), /display name already exists/);
 
 const validRoleAssignment = {
   userId: uid1,
@@ -313,6 +319,9 @@ const validRoleAssignment = {
 assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
   ...validRoleAssignment, status: "PENDING",
 }, "DEV"), /verified active canonical YARD ROLE assignment/);
+const prematurelyEnabled = structuredClone(pending.payload);
+prematurelyEnabled.users.find((item) => item.userId === uid1).enabled = true;
+assert.throws(() => activatePendingUserStaffProvisioning(prematurelyEnabled, validRoleAssignment, "DEV"), /must remain disabled/);
 assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
   ...validRoleAssignment, staffId: sid2,
 }, "DEV"), /does not match the USER\/STAFF identity pair/);
@@ -334,6 +343,12 @@ assert.equal(activated.auditEvent.action, "USER_STAFF_PROVISIONING_ACTIVATED");
 assert.equal(activated.auditEvent.actor, "DEV");
 assert.equal(activated.payload.identityProvisioningEvents, undefined);
 assert.equal(activatePendingUserStaffProvisioning(activated.payload, validRoleAssignment, "DEV").replayed, true, "activation retries are idempotent");
+const missingActiveStaff = structuredClone(activated.payload);
+delete missingActiveStaff.staff.profiles["New Operator"];
+assert.throws(() => activatePendingUserStaffProvisioning(missingActiveStaff, validRoleAssignment, "DEV"), /missing its reciprocal active STAFF profile/);
+const missingActiveRoster = structuredClone(activated.payload);
+missingActiveRoster.staff.roster = [];
+assert.throws(() => activatePendingUserStaffProvisioning(missingActiveRoster, validRoleAssignment, "DEV"), /missing from the canonical roster/);
 
 const centralApi = await readFile("supabase/functions/central-bank/index.ts", "utf8");
 const browserClient = await readFile("central-bank-client.js", "utf8");
