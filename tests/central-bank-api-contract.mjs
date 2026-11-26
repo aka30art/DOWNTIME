@@ -8,6 +8,8 @@ assert.ok(config.includes('[functions.central-bank]')&&/verify_jwt\s*=\s*false/.
 assert.ok(src.includes('eq("id",1).eq("version"'),'singleton version compare-and-swap');
 assert.ok(src.includes('login-failed'),'failed login attempts are audited');
 assert.ok(src.indexOf('if(action==="list-users")')>src.indexOf('const currentUser=bank.users.find'),'full user directory is only available after session resolution');
+assert.ok(!src.includes('login-options'),'the unauthenticated account directory endpoint is removed');
+assert.ok(src.includes('return json({error:"Invalid username or PIN"},401)'),'unknown usernames and incorrect PINs share a generic login error');
 assert.ok(src.includes('priv.canManageUsers||priv.canViewUsers?bank.users.filter((u:any)=>u.enabled!==false).map(safeUser):[safeUser(currentUser)]'),'authenticated directory listing is permission-scoped');
 assert.ok(src.includes('failedCount||0)>=5'),'server enforces a five-attempt account lock');
 assert.ok(src.includes('Try again in five minutes.'),'server lockout window is communicated');
