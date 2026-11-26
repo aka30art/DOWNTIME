@@ -571,3 +571,69 @@ The target identity set is therefore DEV, DEV1 (from DEVacc), protected ADMIN (f
 This decision defines the intended migration outcome. It does **not** itself authorise immediate production deletion. No USER/STAFF data has been deleted or modified by recording this decision. Production purge requires a reviewed, exact deletion manifest, verified dependent-reference handling, approved execution window and explicit final go-ahead.
 
 This decision supersedes any previous suggestion to merely disable or archive the other accounts.
+
+## Production read-only inventory — initial identity reconciliation (2026-11-26)
+
+Read-only inspection was performed against the authorised production project **ygwfipksbbprqynvbklk**, region **eu-west-1**. No writes, deletions, migrations or storage operations were performed.
+
+Observed Central Bank payload version: **492**.
+Observed YARDHUB tier configuration version: **26**.
+
+### Current Central USER records (11)
+| Username | Central legacy tier | Enabled |
+|---|---|---|
+| Callum | USER | true |
+| Chris | SUPERVISOR | true |
+| Dave | USER | true |
+| Dean | SUPERVISOR | true |
+| DEV | OWNER | true |
+| Dowie | ADMIN | true |
+| Jan | DEVACC | true |
+| Jay | SUPERVISOR | true |
+| Lee | MANAGER | true |
+| Paul | USER | true |
+| Paulie | USER | true |
+
+### Current YARDHUB user-tier assignments (11)
+| Username key | YARDHUB tier |
+|---|---|
+| callum | MECHA_2 |
+| chris | SUPERVISOR |
+| dave | USER |
+| dean | SUPERVISOR |
+| dev | OWNER |
+| dowie | ADMIN |
+| jan | DEVACC |
+| jay | MECHA_1 |
+| lee | MANAGER |
+| paul | MECHA_2 |
+| paulie | USER |
+
+### Current STAFF directory
+- 13 STAFF profile keys observed: Aaron, Big Harry, Chris, Daz, Dean, Dowie, Gigi, Jan, Lee, Mick, Ryan, Scotty and Shayne.
+- STAFF profiles are currently keyed by display name, not stable linked identity IDs.
+- Exact field-level dependency analysis remains outstanding.
+
+### Current STAFF photo storage
+Bucket **downtime-staff-photos** contains 4 objects:
+- daz/216033c2-3cad-4926-990c-ea136df62434
+- gigi/5f087f9e-4335-47dd-99ac-7f9ee457f77a
+- jan/40d9f4f9-4303-4951-afcc-5a7a5738535f
+- jan/f3b9d9c2-fa8b-451d-84ab-1fac2eb6f2c8
+
+### Critical identity mismatch — execution blocked
+The owner's intended mapping was stated as DEV → DEV, DEVacc → DEV1, Admin → ADMIN, with JAN retained as the sole ordinary USER. The live username inventory contains no username **DEVacc** and no username **Admin**. Instead:
+- **Jan** is the username whose Central legacy tier and YARDHUB tier are both **DEVACC**.
+- **Dowie** is the username whose Central legacy tier and YARDHUB tier are both **ADMIN**.
+- The same **Jan** account therefore appears to be both the proposed DEV1 source (if “DEVacc” refers to its tier) and the explicitly retained JAN account.
+
+No identity has been reclassified. No account, STAFF profile, session, audit record, photo, or other data has been removed. Do not infer that Jan should be DEV1 or that Dowie is the intended protected ADMIN without owner confirmation.
+
+### Next inventory work
+- Inspect full STAFF profile field shapes and appData compatibility copies.
+- Inspect Central Bank sessions, audit, config-history and YARDHUB audit references by username.
+- Inspect other tables and storage paths that may contain direct personnel references.
+- Separate identity-owned data from shared operational history that must not be deleted.
+- Produce a row-level deletion manifest with exact usernames, STAFF keys, object paths and dependent record counts only after the Jan/DEV1 and Dowie/ADMIN identity mapping is resolved.
+
+This inventory is read-only and does not authorise or execute any purge.
