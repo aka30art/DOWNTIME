@@ -714,7 +714,7 @@ function defaultDepartmentSettings(){
    const actions=menuNode("div","cdb-menu-actions");
    const up=menuNode("button","quiet","MOVE UP"),down=menuNode("button","quiet","MOVE DOWN"),add=menuNode("button","quiet","ADD SUB-MENU");
    up.type=down.type=add.type="button";up.disabled=index===0;down.disabled=index===departments.length-1;
-   up.addEventListener("click",()=>moveYardHubDepartment(entry.id,-1));down.addEventListener("click",()=>moveYardHubDepartment(entry.id,1));add.disabled=entry.kind==="downtime"||entry.kind==="gatelog"||entry.kind==="repairs-maintenance"||entry.kind==="hub-settings";add.title=add.disabled?"This core application does not support configurable sub-menus.":"";add.addEventListener("click",()=>addYardHubSubmenu(entry.id));
+   up.addEventListener("click",()=>moveYardHubDepartment(entry.id,-1));down.addEventListener("click",()=>moveYardHubDepartment(entry.id,1));add.disabled=entry.kind==="downtime"||entry.kind==="gatelog"||entry.kind==="repairs-maintenance"||entry.kind==="hub-settings"||entry.kind==="floor";add.title=add.disabled?"This core application does not support configurable sub-menus.":"";add.addEventListener("click",()=>addYardHubSubmenu(entry.id));
    actions.append(up,down,add);
    const remove=menuNode("button",entry.protected?"quiet":"danger",entry.protected?"CORE DEPARTMENT":entry.kind==="custom"?"REMOVE":"HIDE FROM MENU");
    remove.type="button";remove.disabled=entry.protected===true;
