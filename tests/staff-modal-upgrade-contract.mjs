@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const html=await readFile('index.html','utf8');
+const central=await readFile('supabase/functions/central-bank/index.ts','utf8');
 assert.match(html,/id="staffRosterList" class="staff-roster-grid"/,'STAFF uses compact profile cards');
 assert.match(html,/STAFF PROFILE/,'modal is a dedicated profile editor');
 assert.match(html,/function staffModalOpen\(name=null\)/,'existing member and blank new-member flows share the modal');
@@ -10,6 +11,9 @@ assert.match(html,/STAFF_DEPARTMENT_RULES=\{'SCPL':\{roles:\['Main Operator','Pi
 assert.match(html,/STAFF_YARD_ROLES=\['Manager','Mechanic','Picking Line Crew','Floor Crew','Gateman','Main Operator'\]/,'YARD ROLE choices use the six approved roles');
 assert.match(html,/station-[1-6]/,'SCPL station choices are limited to Stations 1–6');
 assert.match(html,/department!=='SCPL'/,'station assignment is only exposed for SCPL');
+assert.match(central,/YARD ROLE does not match the selected department/,'Central Bank enforces department-specific YARD ROLE values');
+assert.match(central,/SCPL staff may only be assigned to Stations 1-6/,'Central Bank restricts SCPL station assignments to Stations 1–6');
+
 
 assert.match(html,/if\(!manageStaff&&!manageAssign\)return;if\(!name&&!manageStaff\)return/,'only staff admins can create, assignment managers may open profile settings');
 assert.match(html,/staffModalOpen\(\);/,'Add New Member opens a blank modal');
