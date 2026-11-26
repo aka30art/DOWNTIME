@@ -154,7 +154,7 @@ Deno.serve(async (req: Request) => {
         const assignment: any = roleByUser.get(String(account.userId || "").toLowerCase());
         return {
           ...safeUser(account),
-          legacyTier: String(account.tier || "USER").toUpperCase(),
+          legacyTier: account.tier ? String(account.tier).toUpperCase() : null,
           hubTier: assignedHubTier(configRow.payload, account.username),
           provisioningState: account.provisioning?.stage || null,
           userId: account.userId || null,
