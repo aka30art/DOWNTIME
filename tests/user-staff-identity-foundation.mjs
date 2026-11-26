@@ -346,7 +346,7 @@ assert.match(provisioningRoutes, /requestedYardRoleId/);
 assert.match(provisioningRoutes, /yard_role_assignments/, "activation reads the canonical YARD ROLE assignment store");
 assert.match(provisioningRoutes, /activatePendingUserStaffProvisioning\(bank,roleAssignment\)/);
 assert.doesNotMatch(provisioningRoutes, /yard_hub_tier_config|save-user-tier/, "legacy YARD HUB tiers cannot activate new identities");
-assert.match(centralApi, /New accounts are blocked until the canonical YARD ROLE provisioning workflow is implemented/);
+assert.match(centralApi, /New accounts must use the canonical USER + STAFF + YARD ROLE provisioning workflow/);
 assert.match(centralApi, /STAFF-only saves cannot create or alter authenticated USER identity links/);
 assert.match(centralApi, /Linked STAFF profiles cannot be removed through tracker saves/);
 assert.match(centralApi, /identity deletion requires the separately approved lifecycle policy/);
