@@ -175,6 +175,7 @@ Deno.serve(async(req)=>{
        userId:crypto.randomUUID(),staffId:crypto.randomUUID(),pinSalt,pinHash:await hashPin(pin,pinSalt),actor:currentUser.username
      });
      if(pending.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),userId:pending.receipt.userId,staffId:pending.receipt.staffId,stage:pending.receipt.stage,requestedYardRoleId:pending.receipt.requestedYardRoleId});
+     if(!pending.auditEvent)return json({error:"Provisioning audit event is missing."},500);
      if(!Number.isInteger(Number(body.version))||Number(body.version)!==Number(row?.version||0))return json({error:"Central USER directory changed. Refresh and retry provisioning."},409);
      const {data:commit,error:commitError}=await db.rpc("downtime_central_commit_identity_event",{
        p_expected_version:Number(body.version),
@@ -200,6 +201,7 @@ Deno.serve(async(req)=>{
    let activation;
    try{activation=activatePendingUserStaffProvisioning(bank,roleAssignment,currentUser.username)}catch(error){return json({error:error instanceof Error?error.message:"USER provisioning activation failed."},400)}
    if(activation.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),username:activation.user.username,enabled:true,yardRoleId:roleAssignment.yardRoleId});
+   if(!activation.auditEvent)return json({error:"Activation audit event is missing."},500);
    if(!Number.isInteger(Number(body.version))||Number(body.version)!==Number(row?.version||0))return json({error:"Central USER directory changed. Refresh before activation."},409);
    const {data:commit,error:commitError}=await db.rpc("downtime_central_commit_identity_event",{
      p_expected_version:Number(body.version),
