@@ -42,6 +42,8 @@ assert.equal(preview.writesPerformed, 0);
 assert.equal(preview.users.total, 2);
 assert.equal(preview.staff.profileCount, 2);
 assert.equal(preview.staff.rosterEntryCount, 2);
+assert.equal(preview.staff.compatibilityRosterEntryCount, 0);
+assert.equal(preview.staff.compatibilityProfileCount, 0);
 assert.equal(preview.users.devRootCount, 1);
 assert.equal(preview.readyForIdentityCutover, false, "legacy missing IDs must keep the cutover readiness gate closed");
 assert.ok(preview.diagnostics.warnings >= 5);
@@ -94,9 +96,19 @@ assert.equal(diagnoseIdentityDirectory(linked).length, 0, "DEV is correctly exem
 const cleanTarget = {
   users: [{ username: "DEV", userId: uid2 }],
   staff: { roster: [], profiles: {} },
+  appData: { staffRoster: [], operatorProfiles: {} },
 };
 assert.equal(buildIdentityMigrationPreview(cleanTarget).readyForIdentityCutover, true, "a valid DEV-only reset target passes readiness");
 assert.equal(buildIdentityMigrationPreview(linked).readyForIdentityCutover, false, "a linked multi-user directory is not the clean cutover target");
+const staleCompatibility = {
+  users: [{ username: "DEV", userId: uid2 }],
+  staff: { roster: [], profiles: {} },
+  appData: { staffRoster: ["Old Staff"], operatorProfiles: { "Old Staff": {} } },
+};
+const stalePreview = buildIdentityMigrationPreview(staleCompatibility);
+assert.equal(stalePreview.readyForIdentityCutover, false, "compatibility STAFF copies must also be empty at reset completion");
+assert.equal(stalePreview.staff.compatibilityRosterEntryCount, 1);
+assert.equal(stalePreview.staff.compatibilityProfileCount, 1);
 
 const duplicateAndOrphan = {
   users: [
