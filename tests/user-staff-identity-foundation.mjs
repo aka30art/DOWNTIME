@@ -114,10 +114,11 @@ const duplicateAndOrphan = {
   users: [
     { username: "Sam", userId: uid1, staffId: sid1 },
     { username: " sam ", userId: uid1, staffId: sid2 },
+    { username: "Orphan", userId: uid2, staffId: "55555555-5555-4555-8555-555555555555" },
   ],
   staff: {
     profiles: {
-      First: { staffId: sid1, linkedUserId: uid2 },
+      First: { staffId: sid1, linkedUserId: "66666666-6666-4666-8666-666666666666" },
       Second: { staffId: sid1, linkedUserId: uid1 },
       Third: { staffId: sid2, linkedUserId: uid1 },
     },
