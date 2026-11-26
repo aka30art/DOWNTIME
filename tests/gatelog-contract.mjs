@@ -29,7 +29,7 @@ assert.match(client,/data-period/);
 assert.match(client,/TODAY'S VISITS/);
 assert.match(api,/gatelog_period_statistics/);
 assert.match(api,/downtime_daily_operator_assignments/);
-assert.match(api,/\.eq\("visit_date",today\).*\.limit\(1000\)/);
+assert.match(api,/\.eq\("visit_date",today\).*\.range\(offset,offset\+999\)/);
 assert.match(customerArrival,/gatelog_overall_statistics/);
 const periodStats=await readFile('supabase/migrations/20261126100000_gatelog_period_statistics.sql','utf8');
 assert.match(periodStats,/period_key text/);
