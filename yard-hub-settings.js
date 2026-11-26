@@ -7,6 +7,7 @@
   const roleLabels={OWNER:'OWNER · ROOT',DEVACC:'DEVACC',ADMIN:'ADMIN',MANAGER:'MANAGER',SUPERVISOR:'SUPERVISOR',MECHANIC:'MECHANIC',USER:'USER',SPECTATOR:'SPECTATOR'};
   const sections=[{key:'floor',label:'STAFF MANAGEMENT'},{key:'checkSheets',label:'DAILY'},{key:'repairMaintenance',label:'REPAIRS & MAINTENANCE'},{key:'repairMaintenanceMachinery',label:'R&M MACHINERY'}];
   const modes=['NONE','READ','INPUT','EDIT'];
+  const staffDepartmentRules={SCPL:{roles:['Main Operator','Picking Line Crew']},'R&M':{role:'Mechanic'},Management:{role:'Manager'},SCFL:{role:'Floor Crew'},Traffic:{role:'Gateman'}};
   const allRoles=()=>[...roles.filter(role=>!(workingPayload?.retiredTiers||[]).includes(role)),...(Array.isArray(workingPayload?.customTiers)?workingPayload.customTiers:[])];
   let state=null,workingPayload=null,editingUsername=null,saving=false,myHubTier=null,myCanManageSettings=false,accessRefresh=null;
 
@@ -16,6 +17,16 @@
   function rootDev(){return String(currentUser()?.username||'').trim().toUpperCase()==='DEV'&&legacyTier()==='OWNER'}
   function isRootAdmin(){return rootDev()||myHubTier==='DEVACC'}
   function isSettingsAdmin(){return rootDev()||myHubTier==='DEVACC'||myHubTier==='ADMIN'}
+  function syncStaffRoleOptions(){
+    const department=$('yardHubStaffDepartment')?.value||'SCPL';
+    const select=$('yardHubStaffRole');if(!select)return;
+    const rule=staffDepartmentRules[department];const values=rule?.roles||[rule?.role].filter(Boolean);
+    select.replaceChildren();
+    values.forEach(value=>{const option=element('option','',value);option.value=value;select.appendChild(option)});
+    const station=$('yardHubStaffStation'),locked=$('yardHubStaffStationLocked');
+    if(station){station.disabled=department!=='SCPL';if(department!=='SCPL')station.value=''}
+    if(locked){locked.disabled=department!=='SCPL';if(department!=='SCPL')locked.checked=false}
+  }
   function setStatus(message,type=''){
     const node=$('yardHubSettingsStatus');
     if(!node)return;
@@ -157,7 +168,7 @@
       const meta=element('div','yard-hub-user-meta');
       meta.appendChild(element('span','yard-hub-tier-tag','YARD HUB · '+(user.hubTier||'USER')));
       meta.appendChild(element('span','yard-hub-legacy-tag','DOWNTIME · '+(user.legacyTier||'USER')));
-      meta.appendChild(element('span',user.enabled===false?'yard-hub-status off':'yard-hub-status',user.enabled===false?'DISABLED':'ACTIVE'));
+      meta.appendChild(element('span',user.provisioningState==='YARDHUB_TIER_PENDING'?'yard-hub-status off':user.enabled===false?'yard-hub-status off':'yard-hub-status',user.provisioningState==='YARDHUB_TIER_PENDING'?'PENDING SETUP':user.enabled===false?'DISABLED':'ACTIVE'));
       const actions=element('div','yard-hub-user-actions');
       const protectedUser=userIsProtected(user)&&!isRootAdmin();
       const isSelf=String(user.username).toLowerCase()===me;
@@ -166,7 +177,7 @@
       edit.title=isSelf?'Use a different administrator account to edit this account.':protectedUser?'Protected tier account.':'Edit user';
       edit.addEventListener('click',()=>openUserModal(user));
       actions.appendChild(edit);
-      const status=element('button','yard-hub-small-button '+(user.enabled===false?'':'danger'),user.enabled===false?'RE-ENABLE':'DISABLE');
+      const status=element('button','yard-hub-small-button '+(user.enabled===false?'':'danger'),user.provisioningState==='YARDHUB_TIER_PENDING'?'COMPLETE SETUP':user.enabled===false?'RE-ENABLE':'DISABLE');
       status.type='button';status.disabled=saving||state.canManageCentralUsers!==true||isSelf||protectedUser||(String(user.username).toUpperCase()==='DEV');
       status.addEventListener('click',()=>setUserEnabled(user,user.enabled===false));
       actions.appendChild(status);
@@ -193,12 +204,16 @@
     if(!user&&!canManageCentralUsers){setStatus('Your administrator account does not have the existing Central Users management right.','error');return}
     editingUsername=user?String(user.username):null;
     $('yardHubUserForm').reset();
+    $('yardHubStaffFields').hidden=!!user;
+    $('yardHubStaffDepartment').value='SCPL';syncStaffRoleOptions();
+    $('yardHubStaffRole').value='Main Operator';$('yardHubStaffStation').value='';
+    $('yardHubStaffStationLocked').checked=false;$('yardHubStaffOnSite').checked=true;
     $('yardHubUserModal').hidden=false;
     $('yardHubUserModalTitle').textContent=user?'EDIT USER':'ADD USER';
     $('yardHubUserUsername').value=user?.username||'';
     $('yardHubUserUsername').disabled=!!user||!canManageCentralUsers;
     $('yardHubUserDisplay').value=user?.displayName||'';
-    $('yardHubUserDisplay').disabled=!canManageCentralUsers;
+    $('yardHubUserDisplay').disabled=!canManageCentralUsers||user?.provisioningState==='YARDHUB_TIER_PENDING';
     $('yardHubUserPin').value='';
     $('yardHubUserPin').required=!user;
     $('yardHubUserPin').disabled=!canManageCentralUsers;
@@ -212,9 +227,11 @@
       $('yardHubUserHubTier').appendChild(option);
     });
     $('yardHubUserHubTier').value=user?.hubTier||'USER';
-    $('yardHubUserModalHint').textContent=user
-      ?'DOWNTIME tier is preserved exactly. Changes below affect YARD HUB only.'
-      :'New accounts are created with the restricted DOWNTIME USER tier. Choose a separate YARD HUB tier.';
+    $('yardHubUserModalHint').textContent=user?.provisioningState==='YARDHUB_TIER_PENDING'
+      ?'This USER and STAFF pair has been saved but remains inactive. Save a YARDHUB tier and enable the account to complete provisioning.'
+      :user
+        ?'DOWNTIME tier is preserved exactly. Changes below affect YARD HUB only.'
+        :'A new USER is provisioned with one linked STAFF profile. The account stays inactive until its YARDHUB tier is saved.';
     $('yardHubUserSave').textContent=user?'SAVE USER':'ADD USER';
     $('yardHubUserStatus').hidden=!user||!canManageCentralUsers;
     if(user)$('yardHubUserStatus').textContent=user.enabled===false?'RE-ENABLE ACCOUNT':'DISABLE ACCOUNT';
@@ -234,10 +251,11 @@
     const enabled=$('yardHubUserEnabled').checked;
     const existing=editingUsername?state.users.find(user=>String(user.username).toLowerCase()===editingUsername.toLowerCase()):null;
     const downtimeTier=existing?.legacyTier||'USER';
-    const centralChanges=!existing||
+    const pendingProvisioning=existing?.provisioningState==='YARDHUB_TIER_PENDING';
+    const centralChanges=!pendingProvisioning&&(!existing||
       displayName!==(existing.displayName||existing.username)||
       pin.length>0||
-      enabled!==(existing.enabled!==false);
+      enabled!==(existing.enabled!==false));
     if(centralChanges&&state.canManageCentralUsers!==true){
       setStatus('Central account details are controlled by the existing Central Users permission. YARD HUB tier assignment remains separate.','error');return;
     }
@@ -253,6 +271,16 @@
     if(hubTier==='DEVACC'&&(!isRootAdmin()||!rootDev())){setStatus('Only root DEV can assign the DEVACC YARD HUB tier.','error');return}
     const userData={username,displayName,tier:downtimeTier,enabled};
     if(pin)userData.pin=pin;
+    if(!existing){
+      userData.idempotencyKey=crypto.randomUUID();
+      userData.staff={
+        department:$('yardHubStaffDepartment').value,
+        onSiteRole:$('yardHubStaffRole').value,
+        station:$('yardHubStaffStation').value.trim(),
+        stationLocked:$('yardHubStaffStationLocked').checked,
+        onSite:$('yardHubStaffOnSite').checked
+      };
+    }
     setBusy(true);setStatus(centralChanges?'SAVING CENTRAL USER…':'SAVING YARD HUB TIER…');
     let centralSaved=false;
     try{
@@ -265,9 +293,17 @@
       }
       const assigned=await callApi('save-user-tier',{username,tier:hubTier,version:state.permissionVersion});
       state.permissionVersion=Number(assigned.version||state.permissionVersion+1);
+      if((!existing||pendingProvisioning)&&enabled){
+        const activate=window.activateDowntimeCentralUserFromYardHub;
+        if(typeof activate!=='function')throw new Error('USER activation bridge is unavailable. The account remains inactive.');
+        const activated=await activate(username);
+        state.centralVersion=Number(activated.version||state.centralVersion+1);
+      }
       closeUserModal();
       await loadState();
-      setStatus(centralChanges?'CENTRAL USER AND YARD HUB TIER SAVED.':'YARD HUB TIER SAVED. DOWNTIME USER DATA WAS NOT CHANGED.','ok');
+      setStatus((!existing||pendingProvisioning)&&!enabled
+        ?'USER + STAFF SAVED. ACCOUNT REMAINS INACTIVE UNTIL ENABLED.'
+        :centralChanges?'USER, STAFF AND YARD HUB TIER PROVISIONED.':'YARD HUB TIER SAVED. DOWNTIME USER DATA WAS NOT CHANGED.','ok');
     }catch(error){
       const detail=centralSaved||error?.centralUserSaved
         ?'Central account saved, but the YARD HUB tier was not saved or could not be verified. Refresh the user list before retrying. '
@@ -282,14 +318,21 @@
     if(!window.confirm(action+' '+user.username+'? This will revoke their current sessions.'))return;
     setBusy(true);setStatus((enabled?'RE-ENABLING ':'DISABLING ')+user.username+'…');
     try{
-      const saveCentralUser=window.saveDowntimeCentralUserFromYardHub;
+      if(user.provisioningState==='YARDHUB_TIER_PENDING'&&enabled){
+        const activate=window.activateDowntimeCentralUserFromYardHub;
+        if(typeof activate!=='function')throw new Error('USER activation bridge is unavailable.');
+        const result=await activate(user.username);
+        state.centralVersion=Number(result.version||state.centralVersion+1);
+      }else{
+        const saveCentralUser=window.saveDowntimeCentralUserFromYardHub;
         if(typeof saveCentralUser!=='function')throw new Error('Central user mutation bridge is unavailable. Refresh and try again.');
-      const result=await saveCentralUser({
-        username:user.username,displayName:user.displayName||user.username,tier:user.legacyTier||'USER',enabled
-      });
-      state.centralVersion=Number(result.version||state.centralVersion+1);
+        const result=await saveCentralUser({
+          username:user.username,displayName:user.displayName||user.username,tier:user.legacyTier||'USER',enabled
+        });
+        state.centralVersion=Number(result.version||state.centralVersion+1);
+      }
       await loadState();
-      setStatus('ACCOUNT '+(enabled?'RE-ENABLED.':'DISABLED.')+' Existing sessions have been revoked.','ok');
+      setStatus(user.provisioningState==='YARDHUB_TIER_PENDING'?'USER + STAFF PROVISIONING COMPLETED.':'ACCOUNT '+(enabled?'RE-ENABLED.':'DISABLED.')+' Existing sessions have been revoked.','ok');
     }catch(error){setStatus(error.message||'Unable to update account status.','error')}
     finally{setBusy(false)}
   }
@@ -378,6 +421,7 @@
     $('yardHubUserAdd')?.addEventListener('click',()=>openUserModal());
     $('yardHubUserCancel')?.addEventListener('click',closeUserModal);
     $('yardHubUserForm')?.addEventListener('submit',saveUser);
+    $('yardHubStaffDepartment')?.addEventListener('change',syncStaffRoleOptions);
     $('yardHubUserStatus')?.addEventListener('click',()=>{
       const user=state?.users?.find(item=>item.username===editingUsername);
       if(user)setUserEnabled(user,user.enabled===false).then(()=>closeUserModal());
