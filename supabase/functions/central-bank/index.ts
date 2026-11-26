@@ -163,37 +163,40 @@ Deno.serve(async(req)=>{
  if(action==="user-staff-provision"){
    if(!priv.canManageUsers||!priv.canManageStaff||!isCentralAdmin)return json({error:"USER + STAFF provisioning is restricted to authorised account administrators."},403);
    const username=String(body.username||"").trim(),displayName=String(body.displayName||"").trim(),pin=String(body.pin||"");
-   const idempotencyKey=String(body.idempotencyKey||"");
+   const idempotencyKey=String(body.idempotencyKey||""),requestedYardRoleId=String(body.requestedYardRoleId||"");
    const staffFields=body.staff&&typeof body.staff==="object"&&!Array.isArray(body.staff)?body.staff:{};
    if(!/^[0-9a-f-]{36}$/i.test(idempotencyKey))return json({error:"A UUID idempotency key is required."},400);
    if(!/^[0-9]{4,8}$/.test(pin))return json({error:"PIN must contain 4–8 digits."},400);
-   const requestFingerprint=await digest(JSON.stringify({username,displayName,pin,staff:staffFields}));
+   const requestFingerprint=await digest(JSON.stringify({username,displayName,pin,staff:staffFields,requestedYardRoleId}));
    try{
      const pinSalt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));
-     const pending=buildPendingUserStaffProvisioning(bank,{userFields:{username,displayName},staffFields,idempotencyKey,requestFingerprint,userId:crypto.randomUUID(),staffId:crypto.randomUUID(),pinSalt,pinHash:await hashPin(pin,pinSalt),actor:currentUser.username});
-     if(pending.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),userId:pending.receipt.userId,staffId:pending.receipt.staffId,stage:pending.receipt.stage});
+     const pending=buildPendingUserStaffProvisioning(bank,{userFields:{username,displayName},staffFields,idempotencyKey,requestedYardRoleId,requestFingerprint,userId:crypto.randomUUID(),staffId:crypto.randomUUID(),pinSalt,pinHash:await hashPin(pin,pinSalt),actor:currentUser.username});
+     if(pending.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),userId:pending.receipt.userId,staffId:pending.receipt.staffId,stage:pending.receipt.stage,requestedYardRoleId:pending.receipt.requestedYardRoleId});
      if(!Number.isInteger(Number(body.version))||Number(body.version)!==Number(row?.version||0))return json({error:"Central USER directory changed. Refresh and retry provisioning."},409);
      const {data:write,error}=await db.from("downtime_central_bank").update({payload:pending.payload,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
      if(error||!write)return json({error:"Central USER directory changed. Refresh and retry provisioning."},409);
-     await db.from("downtime_central_audit").insert({username:currentUser.username,action:"user-staff-provision",details:{target:username,userId:pending.receipt.userId,staffId:pending.receipt.staffId,idempotencyKey,stage:pending.receipt.stage}});
-     return json({ok:true,replayed:false,version:(row?.version||0)+1,userId:pending.receipt.userId,staffId:pending.receipt.staffId,stage:pending.receipt.stage},201);
+     await db.from("downtime_central_audit").insert({username:currentUser.username,action:"user-staff-provision",details:{target:username,userId:pending.receipt.userId,staffId:pending.receipt.staffId,requestedYardRoleId,idempotencyKey,stage:pending.receipt.stage}});
+     return json({ok:true,replayed:false,version:(row?.version||0)+1,userId:pending.receipt.userId,staffId:pending.receipt.staffId,stage:pending.receipt.stage,requestedYardRoleId},201);
    }catch(error){return json({error:error instanceof Error?error.message:"Invalid USER/STAFF provisioning request."},400)}
  }
  if(action==="user-staff-activate"){
    if(!priv.canManageUsers||!isCentralAdmin)return json({error:"USER provisioning activation is restricted to authorised account administrators."},403);
    const username=String(body.username||"").trim();
-   const {data:yardConfig,error:yardConfigError}=await db.from("yard_hub_tier_config").select("payload,version").eq("id",1).maybeSingle();
-   if(yardConfigError||!yardConfig?.payload)return json({error:"YARDHUB tier configuration is unavailable; USER remains inactive."},503);
-   const tierName=String(yardConfig.payload?.userTiers?.[username.toLowerCase()]||"").toUpperCase();
-   if(!tierName||!yardConfig.payload?.tiers?.[tierName])return json({error:"A persisted YARDHUB tier assignment is required before USER activation."},409);
+   const target=bank.users.find((item:any)=>String(item.username||"").trim().toLowerCase()===username.toLowerCase());
+   if(!target)return json({error:"Provisioned USER was not found."},404);
+   const {data:assignment,error:assignmentError}=await db.from("yard_role_assignments")
+     .select("user_id,staff_id,yard_role_id,status,version,verified_at")
+     .eq("user_id",target.userId).eq("status","ACTIVE").maybeSingle();
+   if(assignmentError||!assignment)return json({error:"A persisted active canonical YARD ROLE assignment is required; USER remains inactive."},409);
+   const roleAssignment={userId:assignment.user_id,staffId:assignment.staff_id,yardRoleId:assignment.yard_role_id,status:assignment.status,version:Number(assignment.version),verifiedAt:assignment.verified_at};
    let activation;
-   try{activation=activatePendingUserStaffProvisioning(bank,username,tierName)}catch(error){return json({error:error instanceof Error?error.message:"USER provisioning activation failed."},400)}
-   if(activation.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),username:activation.user.username,enabled:true});
+   try{activation=activatePendingUserStaffProvisioning(bank,roleAssignment)}catch(error){return json({error:error instanceof Error?error.message:"USER provisioning activation failed."},400)}
+   if(activation.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),username:activation.user.username,enabled:true,yardRoleId:roleAssignment.yardRoleId});
    if(!Number.isInteger(Number(body.version))||Number(body.version)!==Number(row?.version||0))return json({error:"Central USER directory changed. Refresh before activation."},409);
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:activation.payload,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
    if(error||!write)return json({error:"Central USER directory changed. Refresh before activation."},409);
-   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"user-staff-provision-activate",details:{target:username,yardHubTier:tierName}});
-   return json({ok:true,replayed:false,version:(row?.version||0)+1,username,enabled:true,yardHubTier:tierName});
+   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"user-staff-provision-activate",details:{target:username,yardRoleId:roleAssignment.yardRoleId,roleAssignmentVersion:roleAssignment.version}});
+   return json({ok:true,replayed:false,version:(row?.version||0)+1,username,enabled:true,yardRoleId:roleAssignment.yardRoleId});
  }
  if(action==="identity-diagnostics"){
    if(!isDevRoot)return json({error:"Identity diagnostics are restricted to immutable DEV."},403);
