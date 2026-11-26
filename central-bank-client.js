@@ -23,7 +23,7 @@
     async state(){return call("get-state")},
     async identityDiagnostics(){return call("identity-diagnostics")},
     async provisionUserStaff(data,version,idempotencyKey){return call("user-staff-provision",{...data,version,idempotencyKey})},
-    async activateProvisionedUser(username,version){return call("user-staff-activate",{username,version})},
+    async activateProvisionedUser(userId,version){return call("user-staff-activate",{userId,version})},
     async dailyOperators(fromDate,toDate){return call("daily-operator-list",{fromDate,toDate})},
     async assignDailyOperator(dutyDate,operatorName,reason=""){return call("daily-operator-assign",{dutyDate,operatorName,reason})},
     async unlockDailyOperator(dutyDate,reason){return call("daily-operator-unlock",{dutyDate,reason})},
