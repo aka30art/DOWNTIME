@@ -164,11 +164,11 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
-as $
+as $$
 begin
   raise exception 'YARD ROLE assignment audit records are immutable';
 end;
-$;
+$$;
 
 drop trigger if exists yard_role_assignment_audit_immutable on public.yard_role_assignment_audit;
 create trigger yard_role_assignment_audit_immutable
