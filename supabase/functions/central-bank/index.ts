@@ -17,6 +17,10 @@ const tierDefault:Record<string,Record<string,boolean>>={
 };
 const cryptoHex=(bytes:Uint8Array)=>Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 const digest=async(s:string)=>cryptoHex(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s))));
+const hmacDigest=async(secret:string,s:string)=>{
+ const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+ return cryptoHex(new Uint8Array(await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(s))));
+};
 async function hashPin(pin:string,salt:string){const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(pin),"PBKDF2",false,["deriveBits"]);return cryptoHex(new Uint8Array(await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode(salt),iterations:150000,hash:"SHA-256"},key,256)))}
 async function verifyPin(pin:string,user:any){return user?.pinSalt&&user?.pinHash&&await hashPin(pin,user.pinSalt)===user.pinHash}
 function safeUser(u:any){return {username:u.username,tier:u.tier,enabled:u.enabled!==false,displayName:u.displayName||u.username}}
@@ -167,7 +171,9 @@ Deno.serve(async(req)=>{
    const staffFields=body.staff&&typeof body.staff==="object"&&!Array.isArray(body.staff)?body.staff:{};
    if(!/^[0-9a-f-]{36}$/i.test(idempotencyKey))return json({error:"A UUID idempotency key is required."},400);
    if(!/^[0-9]{4,8}$/.test(pin))return json({error:"PIN must contain 4–8 digits."},400);
-   const requestFingerprint=await digest(JSON.stringify({username,displayName,pin,staff:staffFields,requestedYardRoleId}));
+   const fingerprintSecret=Deno.env.get("DOWNTIME_IDENTITY_FINGERPRINT_SECRET")||"";
+   if(fingerprintSecret.length<32)return json({error:"Identity provisioning fingerprint secret is not configured. USER remains uncreated."},503);
+   const requestFingerprint=await hmacDigest(fingerprintSecret,JSON.stringify({username,displayName,pin,staff:staffFields,requestedYardRoleId}));
    try{
      const pinSalt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));
      const pending=buildPendingUserStaffProvisioning(bank,{
