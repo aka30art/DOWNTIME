@@ -312,7 +312,7 @@ const validRoleAssignment = {
 };
 assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
   ...validRoleAssignment, status: "PENDING",
-}), /verified active canonical YARD ROLE assignment/);
+}, "DEV"), /verified active canonical YARD ROLE assignment/);
 assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
   ...validRoleAssignment, staffId: sid2,
 }), /does not match the USER\/STAFF identity pair/);
