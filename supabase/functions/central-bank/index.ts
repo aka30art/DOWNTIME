@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning, renameLinkedStaffDisplayName } from "../_shared/user-staff-identity.mjs";
+import { resolveYardRolePermissions } from "../_shared/yard-role-resolver.mjs";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const allowedOrigin="https://aka30art.github.io";
@@ -205,6 +206,10 @@ Deno.serve(async(req)=>{
      .select("user_id,staff_id,yard_role_id,status,version,verified_at")
      .eq("user_id",target.userId).eq("status","ACTIVE").maybeSingle();
    if(assignmentError||!assignment)return json({error:"A persisted active canonical YARD ROLE assignment is required; USER remains inactive."},409);
+   const {data:role,error:roleError}=await db.from("yard_roles").select("id,name,description,status").eq("id",assignment.yard_role_id).eq("status","ACTIVE").maybeSingle();
+   const {data:permissions,error:permissionsError}=await db.from("yard_role_department_permissions").select("yard_role_id,department,access_level").eq("yard_role_id",assignment.yard_role_id);
+   if(roleError||permissionsError||!role)return json({error:"Assigned canonical YARD ROLE is no longer active."},409);
+   try{resolveYardRolePermissions(role,permissions||[])}catch(error){return json({error:error instanceof Error?error.message:"Assigned YARD ROLE permission matrix is no longer valid."},409)}
    const roleAssignment={userId:assignment.user_id,staffId:assignment.staff_id,yardRoleId:assignment.yard_role_id,status:assignment.status,version:Number(assignment.version),verifiedAt:assignment.verified_at};
    let activation;
    try{activation=activatePendingUserStaffProvisioning(bank,roleAssignment,{userId:currentUser.userId,username:currentUser.username,displayName:currentUser.displayName||currentUser.username})}catch(error){return json({error:error instanceof Error?error.message:"USER provisioning activation failed."},400)}
