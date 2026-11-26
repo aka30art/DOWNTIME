@@ -75,8 +75,9 @@ declare
   v_action text;
 begin
   if p_user_id is null or p_staff_id is null or p_user_id = p_staff_id
-     or p_roots_class not in ('DEV1', 'ADMIN')
+     or p_roots_class is null or p_roots_class not in ('DEV1', 'ADMIN')
      or coalesce(trim(p_actor_username), '') = ''
+     or (p_actor_user_id is null and upper(trim(p_actor_username)) <> 'DEV')
      or coalesce(trim(p_actor_display_name), '') = '' then
     raise exception 'Invalid protected ROOTS assignment request';
   end if;
