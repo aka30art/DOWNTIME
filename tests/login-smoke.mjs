@@ -13,6 +13,8 @@ const repairMaintenanceHtml=await readFile(resolve('repair-maintenance.html'),'u
 const repairMaintenanceApp=await readFile(resolve('repair-maintenance-app.js'),'utf8');
 const yardHubSettingsScript=await readFile(resolve('yard-hub-settings.js'),'utf8');
 const yardHubSettingsCss=await readFile(resolve('yard-hub-settings.css'),'utf8');
+const yardHubStaffScript=await readFile(resolve('yard-hub-staff.js'),'utf8');
+const yardHubStaffCss=await readFile(resolve('yard-hub-staff.css'),'utf8');
 const yardHubStructureScript=await readFile(resolve('yard-hub-structure.js'),'utf8');
 const yardHubStructureCss=await readFile(resolve('yard-hub-structure.css'),'utf8');
 const gatelogApp=await readFile(resolve('gatelog-app.js'),'utf8');
@@ -39,8 +41,8 @@ for (const requiredAuthHook of ['id="centralUsername"', 'id="teamPin"', 'data-pi
 }
 const server=createServer((req,res)=>{
   const pathname=String(req.url||'').split('?')[0];
-  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js'||pathname==='/yard-hub-settings.js'||pathname==='/yard-hub-structure.js'||pathname==='/repair-maintenance-structure.js'||pathname==='/gatelog-app.js'||pathname==='/gatelog-day-management.js'||pathname==='/gatelog-settings.js';
-  const isCss=pathname==='/yard-hub-settings.css'||pathname==='/yard-hub-structure.css'||pathname==='/gatelog-app.css';
+  const isJavaScript=pathname==='/central-bank-client.js'||pathname==='/assets/staff/staff-image-library.js'||pathname==='/repair-maintenance-launch.js'||pathname==='/repair-maintenance-app.js'||pathname==='/yard-hub-settings.js'||pathname==='/yard-hub-staff.js'||pathname==='/yard-hub-structure.js'||pathname==='/repair-maintenance-structure.js'||pathname==='/gatelog-app.js'||pathname==='/gatelog-day-management.js'||pathname==='/gatelog-settings.js';
+  const isCss=pathname==='/yard-hub-settings.css'||pathname==='/yard-hub-staff.css'||pathname==='/yard-hub-structure.css'||pathname==='/gatelog-app.css';
   res.writeHead(200,{'content-type':isJavaScript?'application/javascript; charset=utf-8':isCss?'text/css; charset=utf-8':'text/html; charset=utf-8','cache-control':'no-store'});
   if(pathname==='/central-bank-client.js')return res.end(adapter);
   if(pathname==='/assets/staff/staff-image-library.js')return res.end(staffImageLibrary);
@@ -49,6 +51,8 @@ const server=createServer((req,res)=>{
   if(pathname==='/repair-maintenance.html')return res.end(repairMaintenanceHtml);
   if(pathname==='/yard-hub-settings.js')return res.end(yardHubSettingsScript);
   if(pathname==='/yard-hub-settings.css')return res.end(yardHubSettingsCss);
+  if(pathname==='/yard-hub-staff.js')return res.end(yardHubStaffScript);
+  if(pathname==='/yard-hub-staff.css')return res.end(yardHubStaffCss);
   if(pathname==='/yard-hub-structure.js')return res.end(yardHubStructureScript);
   if(pathname==='/yard-hub-structure.css')return res.end(yardHubStructureCss);
   if(pathname==='/gatelog-app.js')return res.end(gatelogApp);
