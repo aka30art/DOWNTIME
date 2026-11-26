@@ -230,17 +230,21 @@ In addition to the initial contracts, the tree includes these tests that must be
 
 These test filenames identify likely contracts, not their complete assertions. Their source must be read before finalizing the test migration matrix.
 
-## 11. Census status after expanded tree review
+## 11. Census status after Phase 1 review
 
-The recursive feature-branch tree has now been enumerated (163 tracked files), and the additional server, browser, database, automation and regression-test surfaces above have been added to the review register.
+The 163-file repository tree inventory and the targeted identity/permission source census have been completed for the Phase 1 architecture review.
 
-**The repository-wide source census is still open.** A complete line-level scan of every candidate source file and a full SQL/RPC/policy/trigger review have not yet been completed. The GitHub code-search index returned no usable results for the attempted identifier queries, and the connector imposed a tool-call limit during the attempted bulk file scan. No absence claim is therefore made for files not directly inspected.
+The completed review directly inspected:
+- All 7 request-handling Edge Functions and the R&M PDF helper.
+- The primary application shell, Central Data Bank admin page, Central Bank browser adapter, YARDHUB settings/structure clients and R&M client.
+- All 33 SQL migrations, `supabase/schema.sql` and `supabase/config.toml`.
+- The 19 identity/access/STAFF/YARDHUB/R&M/photo regression contracts, plus the GATELOG contracts.
+- CI, Pages deployment and photo-evidence cleanup workflows.
 
-Phase 1 remains incomplete. Next source-review pass must:
-1. Inspect the additional Edge Functions and browser modules listed above, including all authorization and actor attribution branches.
-2. Read every relevant test listed above and map each assertion to the new role model or a preserved non-role boundary.
-3. Enumerate all SQL function definitions, RLS policies, grants, triggers and scheduled workflows in the migrations.
-4. Build a permission-consumer matrix: action/API route → current permission source → target department → required OFF/Read Only/Input/Manage behaviour → ROOTS override/isolation → negative tests.
-5. Build the identity-reset dependency manifest: USER IDs, STAFF IDs, sessions, profile/roster copies, photo objects, actor references, audit/history and shared operational records.
+The action-level permission-consumer matrix, canonical USER/STAFF/ROOTS/YARD ROLE contract, reset-manifest structure, test migration matrix and release boundaries are recorded in:
 
-No application implementation, data reset, migration, merge or deployment is authorized by this documentation update.
+`docs/architecture/USER-STAFF-YARD-ROLE-PHASE-1-REVIEW.md`
+
+**Phase 1 is accepted for architecture-record merge only.** Known carry-forward findings F1–F6 in the review are mandatory requirements for subsequent security/implementation work. This acceptance does not authorise application implementation, database migrations, production data changes, identity reset or production rollout.
+
+The earlier outstanding-census list in Section 9 is retained as review history; the later Phase 1 review document supersedes its status. No application code, production data, schema, migrations, Supabase configuration or deployment was changed by the Phase 1 documentation review.
