@@ -223,6 +223,7 @@
     $('yardHubStaffRole').value='Main Operator';$('yardHubStaffStation').value='';
     $('yardHubStaffStationLocked').checked=false;$('yardHubStaffOnSite').checked=true;
     const hasRoles=populateYardRoles(user?.requestedYardRoleId||user?.yardRoleId||'');
+    $('yardHubUserYardRole').disabled=isPending;
     $('yardHubUserModal').hidden=false;
     $('yardHubUserModalTitle').textContent=user?'EDIT USER':'ADD USER';
     $('yardHubUserUsername').value=user?.username||'';
