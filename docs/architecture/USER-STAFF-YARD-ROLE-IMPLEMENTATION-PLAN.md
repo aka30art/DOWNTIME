@@ -40,11 +40,11 @@
 > - Preserve unrelated DOWNTIME modules and existing data boundaries. Do not make unrelated changes as part of this restructure.
 >
 > ### Authorization to execute
-> - This is an architecture and implementation-planning decision only. It does not authorize production data changes, account deletion, database migrations, PR merge or deployment.
+> - The owner approved the reconciled programme for non-production implementation with the instruction “Proceed” on 2026-11-26. This authorises implementation work in isolated branches and test environments only. It does not authorise production data changes, production migrations, account deletion, merging to `main`, Edge Function deployment or production rollout. Each milestone must pass integrated testing and acceptance; production release and identity reset require separate explicit approval.
 
 
 
-Status: Planning gate — no implementation authorised by this document alone
+Status: Non-production implementation programme approved by owner on 2026-11-26; production changes remain separately gated
 
 The controlling specification at the beginning of the architecture record governs this plan. Any older decision text retained below is historical and superseded where inconsistent.  
 Architecture record: `docs/architecture/USER-STAFF-YARD-ROLE-RESTRUCTURE.md`  
@@ -758,3 +758,36 @@ A source dependency inventory has been added at `docs/architecture/USER-STAFF-YA
 The source map is explicitly preliminary: repository-wide enumeration of every permission consumer, session consumer, STAFF reference, database function/policy and identity-owned dependency remains outstanding. Phase 1 is not complete and implementation must not start until that census, the canonical schema/API contract and the Phase 1 exit review are complete.
 
 No application code, database schema/data, Supabase configuration or deployment has been changed. The work to date consists only of architecture documentation on this feature branch.
+
+
+## Owner approval — non-production implementation start (2026-11-26)
+
+Following the read-only architecture and production reconciliation, the owner approved the complete USER / STAFF / ROOTS / YARD ROLE programme with the instruction “Proceed”.
+
+This approval authorises:
+- Non-production implementation in isolated feature branches.
+- Additive code and schema work for the approved phases.
+- Automated tests, isolated fixtures, migration previews and non-production rehearsals.
+- Draft pull requests and milestone review.
+
+This approval does **not** authorise:
+- Any production database, storage, account, session, audit, permission or configuration change.
+- Production migrations or Edge Function deployment.
+- Merging implementation work into `main` or deploying GitHub Pages.
+- Executing the identity reset or deleting existing USER/STAFF records or media.
+
+Production rollout remains a separate, explicit approval gate after full integrated acceptance and exact migration/recovery review.
+
+## Phase 2 execution record — additive identity foundation
+
+Implementation is underway on `feat/user-staff-identity-foundation-phase-2`, tracked by draft PR #193.
+
+The first increment adds:
+- A non-mutating USER/STAFF identity normalizer that preserves legacy fields and never invents IDs or links.
+- UUID and reciprocal-link validation for newly provisioned USER/STAFF pairs.
+- Read-only diagnostics for duplicate usernames/IDs, orphan links, duplicate STAFF links, malformed records, roster/profile inconsistencies and compatibility-copy mismatches.
+- A migration preview that reports canonical and compatibility STAFF counts and keeps the cutover readiness gate closed unless the target shape is exactly one stable DEV identity, no STAFF profiles/roster entries and no compatibility STAFF copies.
+- A DEV-only Central Bank diagnostics action and browser adapter method.
+- Automated contract tests integrated into the Central Bank test suite.
+
+This increment does not provision accounts, assign ROOTS or YARD ROLE permissions, write database records, add a migration or alter production. It is not a completed Phase 2 acceptance; the remaining identity foundation and migration-preview coverage must pass before Phase 2 can close.
