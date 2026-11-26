@@ -83,6 +83,7 @@ assert.match(admin,/id:"gatelog",kind:"gatelog"/);
 assert.match(api,/resolveRootsAuthority/,'GATELOG resolves protected ROOTS separately from legacy tiers');
 assert.match(api,/downtime_roots_assignments/,'GATELOG reads server-side protected ROOTS assignments');
 assert.match(api,/const isProtectedRoot=\["DEV","DEV1","ADMIN"\]/,'DEV, DEV1 and protected ADMIN receive ROOTS access');
+assert.match(api,/user.yardRoleId&&!\["DEV1","ADMIN"\]/,'ROOTS authority overrides ordinary YARD ROLE gating without deriving authority from the matrix');
 assert.match(api,/const canManageGateman=isProtectedRoot/,'ROOTS identities receive GATELOG Manage authority');
 assert.match(api,/const canExportReports=isProtectedRoot/,'ROOTS identities receive GATELOG report authority');
 console.log('GATELOG module contract: PASS');
