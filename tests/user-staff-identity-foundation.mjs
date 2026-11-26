@@ -112,6 +112,19 @@ const cleanTarget = {
 };
 assert.equal(buildIdentityMigrationPreview(cleanTarget).readyForIdentityCutover, true, "a valid DEV-only reset target passes readiness");
 assert.equal(buildIdentityMigrationPreview(linked).readyForIdentityCutover, false, "a linked multi-user directory is not the clean cutover target");
+const malformedRecords = {
+  users: [{ username: "DEV", userId: uid2 }, null],
+  staff: { roster: [], profiles: { Broken: null } },
+};
+const malformedPreview = buildIdentityMigrationPreview(malformedRecords);
+assert.equal(malformedPreview.users.total, 2);
+assert.equal(malformedPreview.users.validRecordCount, 1);
+assert.equal(malformedPreview.users.invalidRecordCount, 1);
+assert.equal(malformedPreview.staff.profileCount, 1);
+assert.equal(malformedPreview.staff.validProfileCount, 0);
+assert.equal(malformedPreview.staff.invalidProfileCount, 1);
+assert.equal(malformedPreview.readyForIdentityCutover, false, "malformed identity records must block readiness");
+
 const staleCompatibility = {
   users: [{ username: "DEV", userId: uid2 }],
   staff: { roster: [], profiles: {} },
