@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const [api, ui, styles, migration, index] = await Promise.all([
+const [api, ui, styles, migration, atomic, index] = await Promise.all([
   readFile(new URL('../supabase/functions/gatelog-api/index.ts', import.meta.url), 'utf8'),
   readFile(new URL('../gatelog-day-management.js', import.meta.url), 'utf8'),
   readFile(new URL('../gatelog-app.css', import.meta.url), 'utf8'),
   readFile(new URL('../supabase/migrations/20261126110000_gatelog_daily_gateman_assignments.sql', import.meta.url), 'utf8'),
+  readFile(new URL('../supabase/migrations/20261126120000_gatelog_gateman_atomic_actions.sql', import.meta.url), 'utf8'),
   readFile(new URL('../index.html', import.meta.url), 'utf8')
 ]);
 
@@ -22,7 +23,11 @@ assert.match(api, /action==="gateman-save"/);
 assert.match(api, /action==="gateman-lock"/);
 assert.match(api, /action==="day-register"/);
 assert.match(api, /action==="report"/);
-assert.match(api, /\.eq\("is_locked",false\)/);
+assert.match(api, /gatelog_assign_gateman/);
+assert.match(api, /gatelog_lock_gateman/);
+assert.match(atomic, /on conflict \(duty_date\) do update/);
+assert.match(atomic, /where not public\.gatelog_daily_gateman_assignments\.is_locked/);
+assert.match(atomic, /grant execute .* to service_role/i);
 assert.match(api, /canExportReports/);
 assert.match(api, /\["daily","weekly","monthly"\]/);
 assert.doesNotMatch(api, /downtime_daily_operator_assignments/);
