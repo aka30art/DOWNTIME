@@ -285,8 +285,13 @@
     const primary=primaryIds.find(x=>x.is_primary)?.role_id||'';
     const primaryRole=select('yardStaffPrimaryRole',roles,primary,'NO PRIMARY ROLE');
     const assigned=primaryIds.filter(x=>!x.is_primary).map(x=>x.role_id);
-    const secondary=node('select','yard-staff-input');secondary.id='yardStaffSecondaryRoles';secondary.multiple=true;secondary.size=Math.min(5,Math.max(3,roles.length));
-    roles.forEach(role=>{if(role.value===primary)return;const option=node('option','',role.label);option.value=role.value;option.selected=assigned.includes(role.value);secondary.appendChild(option)});
+    const secondary=node('div','yard-staff-role-checks');secondary.id='yardStaffSecondaryRoles';
+    roles.forEach(role=>{
+      if(role.value===primary)return;
+      const label=node('label','yard-staff-role-check');
+      const checkbox=node('input');checkbox.type='checkbox';checkbox.value=role.value;checkbox.checked=assigned.includes(role.value);
+      label.append(checkbox,node('span','',role.label));secondary.appendChild(label);
+    });
     const start=input('yardStaffStartDate',person?.start_date||'','date');
     const notes=node('textarea','yard-staff-input');notes.id='yardStaffNotes';notes.rows=3;notes.value=person?.notes||'';
     let account;
@@ -301,7 +306,7 @@
     const accountHint=node('p','yard-staff-note');accountHint.id='yardStaffAccountHint';
     accountBox.append(field('LINKED ACCOUNT',account),accountHint);
     const grid=node('div','yard-staff-form-grid');
-    grid.append(field('FULL NAME',name),field('DISPLAY NAME',display),field('CLASSIFICATION',type,'USER = linked YARD HUB account. STAFF = no account.'),field('EMPLOYMENT STATUS',status),field('COMPANY / AGENCY',company),field('START DATE',start),field('PRIMARY YARD ROLE',primaryRole),field('ADDITIONAL YARD ROLES',secondary,'Select multiple roles with your device’s multi-select gesture.'),field('NOTES',notes));
+    grid.append(field('FULL NAME',name),field('DISPLAY NAME',display),field('CLASSIFICATION',type,'USER = linked YARD HUB account. STAFF = no account.'),field('EMPLOYMENT STATUS',status),field('COMPANY / AGENCY',company),field('START DATE',start),field('PRIMARY YARD ROLE',primaryRole),field('ADDITIONAL YARD ROLES',secondary,'Choose any additional roles using the checkboxes.'),field('NOTES',notes));
     form.appendChild(grid);form.appendChild(accountBox);
     const actions=node('div','yard-staff-modal-actions');
     actions.appendChild(button('CANCEL','secondary',closeModal));
@@ -309,7 +314,7 @@
     type.addEventListener('change',syncPersonType);syncPersonType();
     form.addEventListener('submit',async event=>{
       event.preventDefault();if(save.disabled)return;
-      const roleIds=[primaryRole.value,...Array.from(secondary.selectedOptions).map(x=>x.value)].filter(Boolean);
+      const roleIds=[primaryRole.value,...Array.from(secondary.querySelectorAll('input[type="checkbox"]:checked')).map(x=>x.value)].filter(Boolean);
       const payload={
         id:person?.id||null,
         fullName:name.value.trim(),displayName:display.value.trim(),
