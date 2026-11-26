@@ -690,3 +690,14 @@ The canonical ordinary YARD ROLE permission matrix uses exactly one mutually exc
 | **Manage** | Full department access and privileges, including removal and deletion where supported. |
 
 These levels govern department tile availability and server-side actions. They are not four independent CRUD checkboxes. One level is selected for each role/department pair. The unified YARD ROLE model supersedes both legacy Central DOWNTIME and YARDHUB permission planes. ROOTS authority and STAFF operational job roles remain separate from ordinary YARD ROLE permissions.
+## Owner decision — ROOTS department authority defaults (2026-11-26)
+
+The owner confirms that protected ROOTS identities **DEV1** and **ADMIN** automatically receive **Manage** access across every department. They do not require individual ordinary YARD ROLE assignments or per-department permission selections to obtain this access. This automatic department authority is derived from protected ROOTS classification and enforced server-side.
+
+- **DEV** retains full immutable root authority.
+- **DEV1** automatically has Manage access across all departments, while remaining unable to view, inspect, edit, disable, delete or otherwise interact with DEV. DEV1 retains only the separately scoped ability to assign ADMIN; it cannot browse or administer ROOTS or assign DEV1.
+- **ADMIN** automatically has Manage access across all departments, while remaining unable to view, inspect, edit, disable, delete or otherwise interact with DEV or DEV1. ADMIN cannot browse ROOTS or assign protected classifications.
+- The ordinary YARD ROLE matrix (OFF, Read Only, Input, Manage) applies to ordinary users. ROOTS authority is a separate authorization layer and must not be represented by silently setting ordinary role matrix values.
+- Root isolation and all department actions remain subject to server-side enforcement; UI visibility is not a security boundary.
+
+This decision resolves whether DEV1 and ADMIN need per-department matrix configuration: **no**. Their Manage access is automatic by ROOTS classification, subject to the stated higher-root isolation rules. It does not authorize production changes or deployment.
