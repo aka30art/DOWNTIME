@@ -311,4 +311,40 @@ export function validateNewUserStaffPair(user, staff, existingUsers = [], existi
   return { valid: true, userId: user.userId, staffId: staff.staffId, linkedUserId: staff.linkedUserId };
 }
 
+
+/**
+ * Builds a new ordinary USER/STAFF identity pair with fresh immutable IDs.
+ * The new USER is deliberately non-active until the cross-store YARD ROLE
+ * provisioning workflow finalizes it. Callers cannot provide IDs, tier claims,
+ * credentials, ROOTS classifications or an active status.
+ *
+ * Idempotency and persistence are handled by the Phase 3 provisioning API.
+ */
+export function buildNewUserStaffIdentityPair(
+  userFields,
+  staffFields,
+  existingUsers = [],
+  existingStaffProfiles = [],
+  uuidFactory = () => crypto.randomUUID(),
+) {
+  if (!isObject(userFields) || !isObject(staffFields)) throw new TypeError("USER and STAFF fields are required.");
+  const userReserved = ["userId", "staffId", "rootsClass", "rootClass", "tier", "enabled", "status", "pinSalt", "pinHash"];
+  const staffReserved = ["staffId", "linkedUserId", "rootsClass", "rootClass"];
+  if (userReserved.some((key) => Object.hasOwn(userFields, key))) throw new Error("USER identity, tier, credential and activation fields are server-generated.");
+  if (staffReserved.some((key) => Object.hasOwn(staffFields, key))) throw new Error("STAFF identity and ROOTS fields are server-generated.");
+  if (normaliseUsername(userFields.username) === "dev") throw new Error("DEV is the immutable root identity and cannot be provisioned as an ordinary USER.");
+
+  const userId = uuidFactory();
+  const staffId = uuidFactory();
+  if (!isUuid(userId) || !isUuid(staffId) || userId.toLowerCase() === staffId.toLowerCase()) {
+    throw new Error("Identity ID generator must return two distinct UUIDs.");
+  }
+
+  const user = { ...userFields, userId, staffId, status: "PROVISIONING", enabled: false };
+  const staff = { ...staffFields, staffId, linkedUserId: userId };
+  validateNewUserStaffPair(user, staff, existingUsers, existingStaffProfiles);
+
+  return { user, staff };
+}
+
 export const identityUuidPattern = UUID_PATTERN;
