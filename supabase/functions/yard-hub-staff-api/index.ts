@@ -107,6 +107,9 @@ Deno.serve(async (req: Request) => {
     ]);
     const err = peopleResult.error || companiesResult.error || rolesResult.error || assignmentsResult.error;
     if (err) return json({ error: "STAFF MANAGEMENT directory could not be loaded." }, 503);
+    const linkedUsernames = new Set((peopleResult.data || [])
+      .map((person: any) => String(person.linked_username || "").toLowerCase())
+      .filter(Boolean));
     return json({
       actor,
       hubTier,
@@ -116,7 +119,12 @@ Deno.serve(async (req: Request) => {
       companies: companiesResult.data || [],
       roles: rolesResult.data || [],
       roleAssignments: assignmentsResult.data || [],
-      accounts: canManageAccounts ? accounts.map(safeUser).sort((a: any, b: any) => a.username.localeCompare(b.username)) : [],
+      // Account choices are returned only to existing Central Users managers.
+      // Other readers receive safe status details for accounts already linked to a staff profile.
+      accounts: accounts
+        .filter((account: any) => canManageAccounts || linkedUsernames.has(String(account.username || "").toLowerCase()))
+        .map(safeUser)
+        .sort((a: any, b: any) => a.username.localeCompare(b.username)),
     });
   }
 
