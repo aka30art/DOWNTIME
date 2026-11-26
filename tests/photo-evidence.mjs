@@ -46,6 +46,7 @@ assert.match(html,/recordId:photoRecordId/,'Photo uploads are linked to the stab
 assert.match(html,/if\(error\)\{photoEntryKey=photoId\(\);throw error\}/,'Failed signed uploads receive a fresh key for safe retry');
 assert.match(html,/permission\('canDeleteRecords'\)/,'Browser photo removal is limited to Manage permission');
 assert.match(html,/async function flushPendingPhotoDeletes\(\)/,'Photo deletion is queued until the operational record save succeeds');
+assert.match(html,/response\.status===403/,'Input users defer physical object removal to the expiry cleanup rather than bypassing Manage');
 assert.ok(html.indexOf('saveTracker(snapshot,centralVersion)')<html.indexOf('await flushPendingPhotoDeletes()'),'photo object deletion runs after the central record save');
 assert.match(migration,/public=false/,'Storage bucket is private');
 assert.match(migration,/enable row level security/,'Metadata table uses RLS');
