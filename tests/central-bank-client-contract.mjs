@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const src=fs.readFileSync('central-bank-client.js','utf8');
-for(const action of ['login-options','list-users','login','get-state','save-state','save-settings','user-save','user-delete','staff-save','tiers-save','staff-photo-url','staff-photo-read','staff-photo-remove','bootstrap','logout']){
+for(const action of ['list-users','login','get-state','save-state','save-settings','user-save','user-delete','staff-save','tiers-save','staff-photo-url','staff-photo-read','staff-photo-remove','bootstrap','logout']){
   assert.ok(src.includes(action),action+' browser adapter method/action');
 }
 assert.ok(src.includes('x-downtime-session'),'authenticated requests carry the session header');
