@@ -183,7 +183,13 @@ Deno.serve(async(req)=>{
  };
  const findStaffProfileBySlug=(slug:string)=>{
    const profiles=bank.staff?.profiles&&typeof bank.staff.profiles==="object"?bank.staff.profiles:bank.appData?.operatorProfiles||{};
-   return Object.entries(profiles).find(([name])=>String(name).toLowerCase().replace(/[^a-z0-9_-]/g,"-")===slug)?.[1] as any;
+   const matches=Object.entries(profiles).filter(([name])=>{
+     const value=String(name).toLowerCase();
+     const photoSlug=value.replace(/[^a-z0-9_-]/g,"-");
+     const originalSlug=value.replace(/[^a-z0-9]/g,"");
+     return photoSlug===slug||originalSlug===slug;
+   });
+   return matches.length===1?matches[0][1] as any:null;
  };
  if(action==="user-staff-provision"){
    if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);
@@ -812,7 +818,7 @@ if(action==="roots-state"){
  if(action==="staff-original-upload"){
    if(!priv.canManageStaff)return json({error:"Permission denied"},403);
    const slug=String(body.staffKey||"").trim().toLowerCase();
-   if(!/^[a-z0-9_-]{1,80}$/.test(slug))return json({error:"Invalid STAFF destination"},400);
+   if(!/^[a-z0-9]{1,30}$/.test(slug))return json({error:"Invalid STAFF destination"},400);
    const originalProfile=findStaffProfileBySlug(slug);
    if(!originalProfile)return json({error:"STAFF destination not found"},404);
    const protectedOriginal=await lookupProtectedStaff(originalProfile);
