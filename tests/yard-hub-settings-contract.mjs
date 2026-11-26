@@ -143,7 +143,7 @@ assert.match(centralClient,/async saveTiers\(tiers,version\)/);
  assert.match(ui,/const centralChanges=!pendingProvisioning&&\(!existing\|\|[\s\S]*?displayName!==\(existing\.displayName\|\|existing\.username\)[\s\S]*?pin\.length>0[\s\S]*?enabled!==\(existing\.enabled!==false\)\);/,'client detects new accounts and changes to display name, PIN or enabled state while excluding pending provisioning');
  assert.match(centralApi,/if\(!existing\)return json\(\{error:"New accounts must use the canonical USER \+ STAFF \+ YARD ROLE provisioning workflow\."\},409\)/,'legacy Central Bank user-save rejects new identities until canonical USER/STAFF provisioning is available');
  assert.ok(ui.includes('if(centralChanges){'), 'the legacy user API call is conditional on a real central account change');
- assert.ok(ui.includes('YARD HUB TIER SAVED. DOWNTIME USER DATA WAS NOT CHANGED.'), 'Hub-only tier save confirms no DOWNTIME mutation');
+ assert.ok(ui.includes("const assigned=await callApi('save-user-tier',{username,tier:hubTier,version:state.permissionVersion});"), 'Hub-only tier assignment uses the isolated YARD HUB permission API');
  assert.ok(ui.includes('state?.canManageCentralUsers!==true'), 'new user creation requires the existing Central Users right');
 assert.match(config,/\[functions\.yard-hub-settings-api\][\s\S]*?verify_jwt\s*=\s*false/,'YARD HUB API validates the existing opaque session itself');
 
