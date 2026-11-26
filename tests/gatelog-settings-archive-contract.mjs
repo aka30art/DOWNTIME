@@ -21,7 +21,7 @@ assert.doesNotMatch(settings,/data-admin-tab/);
 assert.match(app,/data-catalogue-edit=/);
 assert.match(app,/data-catalogue-remove=/);
 assert.match(app,/gatelogCatalogueAdd/);
-assert.match(app,/GATELOGSettings\\?\.addCustomer/);
+assert.ok(app.includes('window.GATELOGSettings?.addCustomer()'));
 assert.match(settings,/REPORT ARCHIVE/);
 assert.match(settings,/customer-update/);
 assert.match(settings,/customer-archive/);
