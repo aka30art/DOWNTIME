@@ -18,7 +18,7 @@
     "test:section-page-navigation": "node tests/section-page-navigation-contract.mjs",
     "test:phase09-application-structure": "node tests/phase09-application-structure-contract.mjs && node tests/phase09-repair-maintenance-category-contract.mjs && node tests/phase09-application-structure-browser.mjs",
     "test:phase10-generator": "node tests/phase10-application-generator-contract.mjs",
-    "test:gatelog": "node tests/gatelog-contract.mjs && node tests/gatelog-browser.mjs"
+    "test:gatelog": "node tests/gatelog-contract.mjs && node tests/gatelog-day-management-contract.mjs && node tests/gatelog-browser.mjs"
   },
   "devDependencies": {
     "playwright": "1.56.1"
