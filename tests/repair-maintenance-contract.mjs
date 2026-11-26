@@ -156,6 +156,9 @@ assert.ok(app.includes("api('export-create',filters"),'PDF generation supports a
 assert.ok(api.includes('permissions.canManageRepairMaintenanceMachinery'),'registry mutations are server-authorized');
 assert.ok(api.includes('permissions.canReadRepairMaintenanceMachinery'),'registry reads are server-authorized');
 
+assert.match(api,/resolveRootsAuthority/,'R&M resolves protected ROOTS separately from legacy tiers');
+assert.match(api,/downtime_roots_assignments/,'R&M reads server-side protected ROOTS assignments');
+assert.match(api,/includes\(rootsAuthority \|\| ""\)/,'protected DEV, DEV1 and ADMIN receive automatic R&M Manage authority');
 console.log('R&M module contract checks passed.');
 
 assert.ok(api.includes('permissions.canCreateRepairMaintenance = mode === "INPUT" || mode === "EDIT"'),'R&M INPUT tier can create faults');
