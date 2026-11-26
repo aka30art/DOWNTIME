@@ -17,7 +17,14 @@ assert.match(migration, /locked_at timestamptz/);
 assert.match(migration, /revoke all .* from public, anon, authenticated/i);
 assert.doesNotMatch(migration, /downtime_daily_operator_assignments/);
 
-assert.match(api, /bank\.payload\.users/);
+assert.match(api, /bank\.payload\.staff\?\.roster/);
+assert.match(api, /staffProfiles\[name\]\?\.status/);
+assert.match(api, /item\.status!=="ARCHIVED"&&item\.onSite/);
+assert.match(api, /staffName=clean\(body\.staffName,80\)/);
+assert.doesNotMatch(api, /const gatemen=.*bank\.payload\.users/);
+assert.match(ui, /Choose an active staff member from the STAFF directory/);
+assert.match(ui, /staffName:\$\('gatelogGatemanSelect'\)\.value/);
+assert.doesNotMatch(ui, /staff\/user directory/);
 assert.match(api, /canManageAssignments===true/);
 assert.match(api, /action==="gateman-save"/);
 assert.match(api, /action==="gateman-lock"/);
