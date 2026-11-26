@@ -11,7 +11,7 @@ assert.match(migration,/grant all on public\.downtime_roots_assignments to servi
 assert.match(migration,/downtime_roots_assignment_audit/);
 assert.match(migration,/prevent_downtime_roots_audit_mutation/);
 assert.match(migration,/prevent_downtime_roots_assignment_mutation/);
-assert.match(migration,/revoke insert, update, delete on public\\.downtime_roots_assignments from service_role/);
+assert.match(migration,/revoke insert, update, delete on public.downtime_roots_assignments from service_role/);
 assert.match(migration,/downtime_roots_assign_identity/);
 assert.match(migration,/on conflict do nothing/);
 assert.match(api,/resolveRootsAuthority\(currentUser,rootsAssignment\)/);
