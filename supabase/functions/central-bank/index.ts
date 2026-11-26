@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { buildIdentityMigrationPreview } from "../_shared/user-staff-identity.mjs";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const allowedOrigin="https://aka30art.github.io";
@@ -159,6 +160,11 @@ Deno.serve(async(req)=>{
  const isRootAuthority=isDevRoot||isDevacc;
  const isCentralAdmin=tier==="ADMIN"||isRootAuthority;
  const isCentralBankAccess=isRootAuthority;
+ if(action==="identity-diagnostics"){
+   if(!isDevRoot)return json({error:"Identity diagnostics are restricted to immutable DEV."},403);
+   const preview=buildIdentityMigrationPreview(bank);
+   return json({contractVersion:1,centralVersion:Number(row?.version||0),preview});
+ }
  if(action==="photo-evidence-context"){
    return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username},permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canDeleteRecords:priv.canDeleteRecords===true}});
  }
