@@ -238,7 +238,7 @@ function normalizeRepairMaintenanceCategories(input: unknown) {
 const yardHubDepartmentDefaults = [
   { id: "downtime", kind: "downtime", title: "DOWNTIME", description: "PLANT DOWNTIME & OPERATIONS", enabled: true, order: 0, protected: true, submenus: [] },
   { id: "gatelog", kind: "gatelog", title: "GATELOG", description: "CUSTOMER & SITE ENTRY MANAGEMENT", enabled: true, order: 5, protected: true, submenus: [] },
-  { id: "floor", kind: "floor", title: "STAFF MANAGEMENT", description: "STAFF & YARD OPERATIONS", enabled: true, order: 1, protected: false, submenus: [] },
+  { id: "floor", kind: "floor", title: "STAFF MANAGEMENT", description: "STAFF & YARD OPERATIONS", enabled: true, order: 1, protected: true, submenus: [] },
   { id: "check-sheets", kind: "check-sheets", title: "CHECK SHEETS", description: "INSPECTIONS & COMPLIANCE", enabled: true, order: 2, protected: false, submenus: [] },
   { id: "repairs-maintenance", kind: "repairs-maintenance", title: "R&M", description: "REPAIRS & MAINTENANCE", enabled: true, order: 3, protected: false, submenus: [] },
   { id: "hub-settings", kind: "hub-settings", title: "HUB SETTINGS", description: "YARD HUB CONFIGURATION & ACCESS CONTROL", enabled: true, order: 4, protected: true, submenus: [] },
@@ -249,8 +249,22 @@ function defaultYardHubMenu() {
 function normalizeYardHubMenu(input: unknown) {
   const fallback = defaultYardHubMenu();
   const raw = input && typeof input === "object" && !Array.isArray(input) ? input as Record<string, unknown> : {};
-  const supplied = Array.isArray(raw.departments) ? raw.departments : fallback.departments;
+  const supplied = Array.isArray(raw.departments) ? raw.departments.slice() : fallback.departments.slice();
   if (supplied.length < 1 || supplied.length > 100) throw new Error("YARD HUB must contain between 1 and 100 departments");
+  // Protected core departments are additive defaults. Restore missing built-ins on read
+  // so an older saved menu cannot hide newly released core modules or invalidate the menu.
+  const sourceIds = new Set(supplied.map((item: any) => String(item?.id || "").toLowerCase()));
+  let nextOrder = supplied.reduce((max: number, item: any, index: number) => {
+    const value = Number(item?.order);
+    return Math.max(max, Number.isInteger(value) && value >= 0 ? value : index);
+  }, -1);
+  for (const base of yardHubDepartmentDefaults.filter(entry => entry.protected)) {
+    if (!sourceIds.has(base.id)) {
+      supplied.push({ ...base, order: ++nextOrder });
+      sourceIds.add(base.id);
+    }
+  }
+  if (supplied.length > 100) throw new Error("YARD HUB must contain between 1 and 100 departments");
   const seenIds = new Set<string>();
   const seenTitles = new Set<string>();
   const departments = supplied.map((item: any, index: number) => {
@@ -260,8 +274,8 @@ function normalizeYardHubMenu(input: unknown) {
     seenIds.add(id);
     const base = yardHubDepartmentDefaults.find(entry => entry.id === id);
     const kind = base ? base.kind : "custom";
-    const title = base?.kind === "downtime" ? base.title : configString(item.title ?? base?.title, "Department title", 48);
-    const description = base?.kind === "downtime" ? base.description : configString(item.description ?? base?.description ?? "", "Department description", 100);
+    const title = base?.kind === "downtime" || base?.kind === "floor" ? base.title : configString(item.title ?? base?.title, "Department title", 48);
+    const description = base?.kind === "downtime" || base?.kind === "floor" ? base.description : configString(item.description ?? base?.description ?? "", "Department description", 100);
     if (!title) throw new Error("Department titles cannot be blank");
     const titleKey = title.toLocaleLowerCase();
     if (seenTitles.has(titleKey)) throw new Error("Department titles must be unique");
