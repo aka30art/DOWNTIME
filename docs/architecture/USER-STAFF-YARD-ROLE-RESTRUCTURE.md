@@ -220,3 +220,26 @@ Implementation constraints:
 6. Keep a compatibility/rollback path until all permission consumers have migrated and production verification passes.
 
 This resolves Phase 1 Decision A. It does not by itself resolve cross-service transaction semantics for USER+STAFF+role assignment, individual legacy account mapping, incomplete STAFF matching, account lifecycle policy, or final field-level schema. No implementation, production data migration, merge or deployment is authorised by this decision alone.
+
+
+## Owner decision — logical USER + STAFF + YARD ROLE creation (2026-11-26)
+
+The owner approved a single logical account-creation operation that:
+- creates the authenticated USER;
+- creates exactly one linked operational STAFF profile;
+- assigns the approved YARD ROLE and its department-level access configuration;
+- exposes the account as active only after all required parts have been committed successfully.
+
+The current Central Bank USER/STAFF payload and YARDHUB permission configuration are separate persistence boundaries. Therefore, this must **not** be implemented as two uncoordinated writes or described as a database-atomic transaction. Design a staged cross-store workflow with explicit states, idempotency keys, optimistic version checks, audit events, retry handling, compensation/rollback and reconciliation.
+
+Required safety contract:
+1. A newly created USER must not be able to log in or gain usable application access while its linked STAFF and required YARD ROLE assignment are incomplete.
+2. The workflow must prevent duplicate USER records, duplicate STAFF records and duplicate role assignments on retry.
+3. If any stage fails, either complete safely on retry or compensate to a consistent non-active state; never leave a partially provisioned active account.
+4. The linked USER/STAFF identity relationship uses immutable IDs, not usernames or display names.
+5. The canonical unified YARD ROLE model is the sole future authority for permissions in both DOWNTIME and YARDHUB. Legacy Central tiers and YARDHUB tiers remain compatibility inputs only during migration and cannot independently grant privileges after cutover.
+6. Keep ROOTS classifications separate from ordinary YARD ROLE assignment. A normal account-creation flow cannot assign DEV1 or protected ADMIN; those require their dedicated authorised ROOTS workflows.
+7. Preserve audit attribution and historical STAFF data. Account disablement, STAFF archive and permanent deletion remain distinct lifecycle actions.
+8. Add fault-injection tests for failure after each stage, retry/replay tests, concurrent creation tests, version conflicts, compensation/reconciliation tests, and proof that incomplete accounts cannot authenticate or access either application.
+
+This resolves the logical USER + STAFF + YARD ROLE creation boundary. It does not authorise production changes and does not settle individual legacy account mapping, incomplete existing USER/STAFF matching, or the full ordinary YARD ROLE catalogue.
