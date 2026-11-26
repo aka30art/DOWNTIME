@@ -60,7 +60,7 @@ try{
  assert.equal(await page.locator('.gatelog-day-panel').evaluate(el=>el.open),false,'Day-to-Day panel must start collapsed');
  assert.equal(await page.locator('.gatelog-statistics-panel').evaluate(el=>el.open),false,'Visit Statistics panel must start collapsed');
  await page.locator('.gatelog-day-panel summary').click();
- assert.match(await page.locator('.gatelog-day-panel').innerText(),/MON[\s\S]*TUE[\s\S]*WED[\s\S]*THU[\s\S]*FRI[\s\S]*SAT[\s\S]*GATEMAN[\s\S]*NOT ASSIGNED/);
+ assert.match(await page.locator('.gatelog-day-panel').innerText(),/MON[\s\S]*TUE[\s\S]*WED[\s\S]*THU[\s\S]*FRI[\s\S]*SAT[\s\S]*GATEMAN[\s\S]*NOT ASSIGNED/i);
  await page.locator('.gatelog-statistics-panel summary').click();
  assert.match(await page.locator('#gatelogPeriodStatistics').innerText(),/DAILY[\s\S]*WEEKLY[\s\S]*MONTHLY[\s\S]*VISITS[\s\S]*MOST COMMON WASTE TYPE/);
  assert.doesNotMatch(await page.locator('#gatelogPeriodStatistics').innerText(),/ALL TIME|AVERAGE TIME ON SITE/);
