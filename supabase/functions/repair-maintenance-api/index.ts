@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { resolveRootsAuthority } from "../_shared/roots-authority.mjs";
 import { buildRepairMaintenancePdf } from "./pdf.ts";
 import { RM_FAULT_PRIORITIES, isFaultUpdateValid } from "./update-contract.js";
 
@@ -67,6 +68,14 @@ Deno.serve(async (req: Request) => {
   const bank = bankRow.payload as Record<string, any>;
   const user = (Array.isArray(bank.users) ? bank.users : []).find((item: any) => String(item.username).toLowerCase() === String(session.username).toLowerCase() && item.enabled !== false);
   if (!user) return json({ error: "This account is disabled or no longer exists." }, 401);
+  let rootsAssignment: any = null;
+  if (user.userId) {
+    const rootsLookup = await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class").eq("user_id", user.userId).maybeSingle();
+    if (rootsLookup.error) return json({ error: "Protected identity registry is unavailable." }, 503);
+    rootsAssignment = rootsLookup.data;
+  }
+  const rootsAuthority = resolveRootsAuthority(user, rootsAssignment);
+  if (user.yardRoleId && ["DEV1", "ADMIN"].includes(rootsAuthority || "")) return json({ error: "Conflicting ordinary YARD ROLE and protected ROOTS assignments." }, 409);
   if (user.yardRoleId) return json({ error: "Canonical YARD ROLE authorization is not yet enabled for R&M. Access is denied until the unified resolver is integrated." }, 403);
   const tier = String(user.tier || "USER").toUpperCase();
   const stored = bank.tiers?.[tier] || {};
@@ -114,7 +123,7 @@ Deno.serve(async (req: Request) => {
     permissions.canReadRepairMaintenanceMachinery = permissions.canAccessRepairMaintenance === true;
     permissions.canManageRepairMaintenanceMachinery = permissions.canEditRepairMaintenance === true;
   }
-  const rootOperator = (String(user.username).trim().toUpperCase() === "DEV" && tier === "OWNER") || tier === "DEVACC" || hubTier === "DEVACC";
+  const rootOperator = (String(user.username).trim().toUpperCase() === "DEV" && tier === "OWNER") || tier === "DEVACC" || hubTier === "DEVACC" || ["DEV", "DEV1", "ADMIN"].includes(rootsAuthority || "");
   if (rootOperator) {
     Object.assign(permissions, {
       canAccessYardHub: true,
