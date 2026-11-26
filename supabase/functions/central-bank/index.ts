@@ -412,7 +412,7 @@ Deno.serve(async(req)=>{
            const requestedStation=String(profile.station??profile.assignedStation??"").trim();
            if(requestedStation){
              const stationConfig=Array.isArray(bank.appData?.stationConfig)?bank.appData.stationConfig:[];
-             const selected=stationConfig.find((station:any)=>String(station.id||"")===requestedStation||String(station.name||"").toLowerCase()===requestedStation.toLowerCase());
+             const selected=stationConfig.find((station:any)=>String(station.id||"")===requestedStation||String(station.name||"").toLowerCase()===requestedStation.toLowerCase()||(String(station.name||"")+" · "+String(station.category||"GENERAL")).toLowerCase()===requestedStation.toLowerCase());
              if(!selected||!/^station-[1-6]$/.test(String(selected.id||"")))return json({error:"SCPL staff may only be assigned to Stations 1-6"},400);
            }
          }else if(department!=="SCPL"&&canManageAssignments){
