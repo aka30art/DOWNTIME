@@ -128,7 +128,6 @@ Deno.serve(async(req)=>{
    await db.from("downtime_central_audit").insert({username,action:"bootstrap",details:{}});
    return json({ok:true,message:"Owner account initialized. Sign in."});
  }
- if(action==="login-options"){return json({users:bank.users.filter((u:any)=>u.enabled!==false).map((u:any)=>({username:u.username}))});}
  if(action==="login"){
    const username=String(body.username||"").trim(),pin=String(body.pin||""),rateKey=username.toLowerCase();
    if(pin.length>8||!username||!/^[0-9]{4,8}$/.test(pin))return json({error:"Invalid credentials"},401);
