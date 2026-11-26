@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 const html=await readFile('index.html','utf8');
 const client=await readFile('central-bank-client.js','utf8');
 const api=await readFile('supabase/functions/central-bank/index.ts','utf8');
-const atomicMigration=await readFile('supabase/migrations/20261126110247_central_bank_atomic_state_audit.sql','utf8');
+const atomicMigration=await readFile('supabase/migrations/20261126114151_central_bank_atomic_state_audit.sql','utf8');
 
 // USERS and STAFF are deliberately separate central collections.
 assert.match(html,/DowntimeCentral\.listUsers\(\)/,'login choices come from central USERS');
