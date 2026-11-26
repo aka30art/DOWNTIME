@@ -53,7 +53,7 @@ Do not introduce `staff_management`, `yard_hub_staff_*`, a separate staff Edge F
 
 GATELOG continues to use its existing production tables and `gatelog-api` Edge Function. Its daily Gateman selector reads active STAFF from the Central Bank directory, not from `payload.users`.
 
-The legacy `gatelog_daily_gateman_assignments.gateman_username` column and RPC argument are retained for compatibility. In the STAFF assignment workflow, that legacy-named value represents the selected STAFF roster key; it must never be resolved as a USER account. `gateman_name` remains the historical display snapshot.
+The legacy `gatelog_daily_gateman_assignments.gateman_username` column and RPC argument are retained for compatibility. New assignments write the selected STAFF roster key into that legacy-named field; it must never be resolved as a USER account for new operations. The current production inventory contains one historical assignment whose value resolves to an existing USER but not to a STAFF roster entry. Preserve that row and its `gateman_name` display snapshot unchanged. Mark it as a retained historical/unlinked assignment in the UI; do not silently map, delete or rewrite it. Replacing it requires an authorised operator to explicitly select an active STAFF member.
 
 Customer, vehicle, visit, waste-type, assignment and audit data remain owned by GATELOG. Each visit retains its own vehicle-registration snapshot and its own waste-type line items. Reusable customer and vehicle directories remain separate master records linked to individual visit history.
 
