@@ -315,7 +315,7 @@ assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
 }, "DEV"), /verified active canonical YARD ROLE assignment/);
 assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
   ...validRoleAssignment, staffId: sid2,
-}), /does not match the USER\/STAFF identity pair/);
+}, "DEV"), /does not match the USER\/STAFF identity pair/);
 const activated = activatePendingUserStaffProvisioning(pending.payload, validRoleAssignment, "DEV", "2026-11-26T23:02:00.000Z");
 const activeUser = activated.payload.users.find((item) => item.userId === uid1);
 const activeStaff = activated.payload.staff.profiles["New Operator"];
