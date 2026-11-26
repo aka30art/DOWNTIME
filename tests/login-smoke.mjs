@@ -1192,7 +1192,7 @@ await ensureNavigationMenuOpen(owner.page);
   assert.ok(supervisor.getBank().staff.roster.includes('Supervisor QA'),'SUPERVISOR changes sync to central roster');
   assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].department,'R&M','SUPERVISOR saves the selected department');
   assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].onSiteRole,'Mechanic','R&M role is automatically saved as Mechanic');
-  assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].station||'','R&M profile has no station assignment');
+  assert.equal(supervisor.getBank().staff.profiles['Supervisor QA'].station||'','','R&M profile has no station assignment');
   await supervisor.page.locator('#manageStaffRolesBtn').click();
   assert.equal(await supervisor.page.locator('#staffRolesModalBackdrop').isVisible(),true,'authorised staff manager can view YARD ROLES');
   assert.deepEqual(await supervisor.page.locator('.staff-role-readonly').allTextContents(),['Manager','Mechanic','Picking Line Crew','Floor Crew','Gateman','Main Operator'],'YARD ROLE directory contains exactly the six approved roles');
