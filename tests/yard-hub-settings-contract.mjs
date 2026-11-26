@@ -198,7 +198,7 @@ assert.ok(ui.includes("remove.type='button'"), 'custom tier delete control is an
 assert.ok(ui.includes("setStatus('REASSIGN '"), 'client warns when a custom tier still has assigned users');
 
 // Tier assignment accepts every active tier; tier removal protects DEV and DEVACC.
-assert.ok(ui.includes("if(!allRoles().includes(hubTier))"), 'custom and built-in active tiers pass user assignment validation');
+assert.ok(ui.includes("!allRoles().includes(hubTier)"), 'legacy custom and built-in Hub tiers remain validated only for legacy users');
 assert.ok(ui.includes("!['OWNER','DEVACC'].includes(role)"), 'only OWNER/DEV and DEVACC tier profiles are protected from deletion');
 assert.ok(ui.includes('function deleteTier(role)'), 'all other tiers can be removed through one workflow');
 assert.ok(hubApi.includes('retiredTiers'), 'built-in tier removals persist as retired tier profiles');
