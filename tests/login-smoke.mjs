@@ -305,7 +305,7 @@ window.supabase={createClient:()=>({
     users:users.map(user=>({...user,legacyTier:user.tier,hubTier:yardHubConfig.userTiers[user.username.toLowerCase()]||'USER'})),
     userTiers:yardHubConfig.userTiers,
     centralVersion:version,
-    canManageCentralUsers:tiers[tier]?.canManageUsers===true,
+    canManageCentralUsers:root||tiers[tier]?.canManageUsers===true,
     tierPermissions:JSON.parse(JSON.stringify(yardHubConfig)),
     permissionVersion:yardHubPermissionVersion,
     editableTiers:root||hubTier==='DEVACC'?Object.keys(yardHubConfig.tiers):['MANAGER','SUPERVISOR','USER','SPECTATOR']
@@ -542,6 +542,7 @@ try{
  await owner.page.locator('#yardHubTiersView [data-yard-settings-home]').click();
  await owner.page.locator('#yardHubSettingsUsers').click();
  await owner.page.locator('.yard-hub-user-row[data-username="Jan"]').getByRole('button',{name:'EDIT'}).click();
+ await owner.page.locator('#yardHubUserModal').waitFor({state:'visible',timeout:5000});
  await owner.page.locator('#yardHubUserHubTier').selectOption('MANAGER');
  await owner.page.locator('#yardHubUserSave').click();
  await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsStatus')?.textContent.includes('LEGACY USER AND YARD HUB SETTINGS SAVED'),{timeout:5000});
