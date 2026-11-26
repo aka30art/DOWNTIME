@@ -8,6 +8,14 @@ const [ui,api,settings,css,migration,archiveMigration,day,app]=await Promise.all
  readFile('gatelog-day-management.js','utf8'),readFile('gatelog-app.js','utf8')
 ]);
 assert.match(ui,/gatelog-settings\.js/);
+assert.match(app,/id="gatelogMainMenu"/);
+assert.match(app,/GATELOG Main Menu/);
+assert.match(app,/id="gatelogOpenCustomers"/);
+assert.match(app,/id="gatelogOpenSettings"/);
+assert.match(app,/id="gatelogOpenReports"/);
+assert.match(app,/id="gatelogBack"/);
+assert.match(css,/gatelog-main-menu-panel/);
+assert.match(css,/single DOWNTIME-style main navigation dropdown/);
 assert.match(settings,/CUSTOMER CATALOGUE/);
 assert.match(settings,/WASTE TYPES/);
 assert.match(settings,/REPORT ARCHIVE/);
