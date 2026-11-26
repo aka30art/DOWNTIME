@@ -196,8 +196,9 @@ Deno.serve(async(req)=>{
  }
  if(action==="user-staff-activate"){
    if(!isDevRoot)return json({error:"Only immutable DEV may activate newly provisioned USER identities."},403);
-   const username=String(body.username||"").trim();
-   const target=bank.users.find((item:any)=>String(item.username||"").trim().toLowerCase()===username.toLowerCase());
+   const userId=String(body.userId||"");
+   if(!/^[0-9a-f-]{36}$/i.test(userId))return json({error:"Immutable USER ID required."},400);
+   const target=bank.users.find((item:any)=>String(item.userId||"").toLowerCase()===userId.toLowerCase());
    if(!target)return json({error:"Provisioned USER was not found."},404);
    const {data:assignment,error:assignmentError}=await db.from("yard_role_assignments")
      .select("user_id,staff_id,yard_role_id,status,version,verified_at")
@@ -206,7 +207,7 @@ Deno.serve(async(req)=>{
    const roleAssignment={userId:assignment.user_id,staffId:assignment.staff_id,yardRoleId:assignment.yard_role_id,status:assignment.status,version:Number(assignment.version),verifiedAt:assignment.verified_at};
    let activation;
    try{activation=activatePendingUserStaffProvisioning(bank,roleAssignment,{userId:currentUser.userId,username:currentUser.username,displayName:currentUser.displayName||currentUser.username})}catch(error){return json({error:error instanceof Error?error.message:"USER provisioning activation failed."},400)}
-   if(activation.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),username:activation.user.username,enabled:true,yardRoleId:roleAssignment.yardRoleId});
+   if(activation.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),userId:activation.user.userId,username:activation.user.username,enabled:true,yardRoleId:roleAssignment.yardRoleId});
    if(!activation.auditEvent)return json({error:"Activation audit event is missing."},500);
    if(!Number.isInteger(Number(body.version))||Number(body.version)!==Number(row?.version||0))return json({error:"Central USER directory changed. Refresh before activation."},409);
    const {data:commit,error:commitError}=await db.rpc("downtime_central_commit_identity_event",{
@@ -217,7 +218,7 @@ Deno.serve(async(req)=>{
      p_details:activation.auditEvent
    });
    if(commitError||!commit)return json({error:commitError?.message?.includes("VERSION_CONFLICT")?"Central USER directory changed. Refresh before activation.":"USER activation commit failed."},409);
-   return json({ok:true,replayed:false,version:Number(commit.version),username,enabled:true,yardRoleId:roleAssignment.yardRoleId});
+   return json({ok:true,replayed:false,version:Number(commit.version),userId:activation.user.userId,username:activation.user.username,enabled:true,yardRoleId:roleAssignment.yardRoleId});
  }
  if(action==="identity-diagnostics"){
    if(!isDevRoot)return json({error:"Identity diagnostics are restricted to immutable DEV."},403);
