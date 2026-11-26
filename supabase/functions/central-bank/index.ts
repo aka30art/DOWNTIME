@@ -607,7 +607,7 @@ Deno.serve(async(req)=>{
    const canonicalIdentity=!!existing.userId&&!!existing.staffId;
    if(canonicalIdentity&&body.tier!=null)return json({error:"Canonical YARD ROLE identities cannot receive legacy tier claims."},400);
    const newTier=canonicalIdentity?undefined:String(body.tier||existing.tier||"USER");
-   if(!canonicalIdentity&&!tiers.includes(newTier))return json({error:"Invalid user/tier"},400);
+   if(!canonicalIdentity&&(!newTier||!tiers.includes(newTier)))return json({error:"Invalid user/tier"},400);
    if(existing.provisioning&&body.enabled!==false)return json({error:"A pending USER must be activated only after its canonical YARD ROLE assignment is persisted."},409);
    const isRootName=username.toUpperCase()==="DEV";
    if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEV and DEVACC can create accounts or assign user tiers."},403);
