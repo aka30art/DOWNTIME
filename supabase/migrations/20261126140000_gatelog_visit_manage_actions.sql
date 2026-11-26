@@ -45,6 +45,9 @@ begin
   if p_visit_date is null or p_time_in is null then
     raise exception 'Visit date and Time In are required';
   end if;
+  if p_visit_date <> (p_time_in at time zone 'Europe/London')::date then
+    raise exception 'Visit date must match the UK date of Time In';
+  end if;
   if p_time_out is not null and p_time_out<p_time_in then
     raise exception 'Time Out cannot be earlier than Time In';
   end if;
@@ -135,6 +138,7 @@ declare
   v_actor text := coalesce(nullif(trim(p_actor),''),'SYSTEM');
 begin
   select jsonb_build_object(
+    'visit_id',v.id,
     'customer_id',v.customer_id,
     'customer_name',c.customer_name,
     'registration',v.vehicle_registration_snapshot,
