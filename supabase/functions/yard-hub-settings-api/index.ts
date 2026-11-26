@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { resolveYardRolePermissions } from "../_shared/yard-role-resolver.mjs";
 
 const allowedOrigin = "https://aka30art.github.io";
 const tierNames = ["OWNER", "DEVACC", "ADMIN", "MANAGER", "SUPERVISOR", "MECHANIC", "USER", "SPECTATOR"] as const;
@@ -143,11 +144,16 @@ Deno.serve(async (req: Request) => {
   if (!isAdmin) return json({ error: "YARD HUB SETTINGS is restricted to DEV, DEVACC and ADMIN." }, 403);
 
   if (action === "settings-state") {
-    const [{ data: yardRoles, error: yardRolesError }, { data: roleAssignments, error: roleAssignmentsError }] = await Promise.all([
+    const [{ data: yardRoles, error: yardRolesError }, { data: roleAssignments, error: roleAssignmentsError }, { data: rolePermissions, error: rolePermissionsError }] = await Promise.all([
       db.from("yard_roles").select("id,name,description,status").eq("status", "ACTIVE").order("name"),
       db.from("yard_role_assignments").select("user_id,staff_id,yard_role_id,status,version,verified_at"),
+      db.from("yard_role_department_permissions").select("yard_role_id,department,access_level"),
     ]);
-    if (yardRolesError || roleAssignmentsError) return json({ error: "Canonical YARD ROLE registry is unavailable." }, 503);
+    if (yardRolesError || roleAssignmentsError || rolePermissionsError) return json({ error: "Canonical YARD ROLE registry is unavailable." }, 503);
+    const assignableYardRoles = (yardRoles || []).filter((role: any) => {
+      try { return Object.keys(resolveYardRolePermissions(role, rolePermissions || []).departments).length > 0; }
+      catch { return false; }
+    });
     const roleByUser = new Map((roleAssignments || []).map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));
     return json({
       user: { ...safeUser(user), legacyTier, hubTier },
@@ -164,7 +170,7 @@ Deno.serve(async (req: Request) => {
           yardRoleId: assignment?.yard_role_id || account.yardRoleId || null,
         };
       }).sort((a: any, b: any) => a.username.localeCompare(b.username)),
-      yardRoles: yardRoles || [],
+      yardRoles: assignableYardRoles,
       userTiers: configRow.payload?.userTiers || {},
       centralVersion: Number(bankRow.version || 0),
       tierPermissions: normalizeTierPermissions(configRow.payload, configRow.payload, [...tierNames.filter(name => !(configRow.payload.retiredTiers || []).includes(name)), ...(Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [])]),
@@ -188,6 +194,11 @@ Deno.serve(async (req: Request) => {
     if (!target) return json({ error: "Central USER account not found." }, 404);
     if (target.provisioning?.stage !== "YARD_ROLE_PENDING") return json({ error: "USER is not awaiting canonical YARD ROLE assignment." }, 409);
     if (target.provisioning.requestedYardRoleId !== yardRoleId) return json({ error: "Selected YARD ROLE does not match the provisioned request." }, 409);
+    const { data: role, error: roleError } = await db.from("yard_roles").select("id,name,description,status").eq("id", yardRoleId).eq("status", "ACTIVE").maybeSingle();
+    const { data: permissions, error: permissionsError } = await db.from("yard_role_department_permissions").select("yard_role_id,department,access_level").eq("yard_role_id", yardRoleId);
+    if (roleError || permissionsError || !role) return json({ error: "Selected canonical YARD ROLE is unavailable." }, 409);
+    try { resolveYardRolePermissions(role, permissions || []); }
+    catch (error) { return json({ error: error instanceof Error ? error.message : "YARD ROLE permission matrix is invalid." }, 409); }
     const { data: assignment, error: assignmentError } = await db.rpc("yard_role_assign_user", {
       p_user_id: target.userId,
       p_staff_id: target.staffId,
