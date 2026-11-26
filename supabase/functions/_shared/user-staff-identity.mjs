@@ -429,8 +429,12 @@ export function buildPendingUserStaffProvisioning(bank, input) {
       typeof input.pinHash !== "string" || !/^[a-f0-9]{64}$/i.test(input.pinHash)) {
     throw new Error("Server-hashed PIN credentials are required.");
   }
-  const actor = String(input.actor ?? "").trim();
-  if (!actor) throw new Error("Authenticated provisioning actor is required.");
+  const actorUserId = String(input.actorUserId ?? "");
+  const actorUsername = String(input.actorUsername ?? input.actor ?? "").trim();
+  const actorDisplayName = String(input.actorDisplayName ?? actorUsername).trim();
+  if (!isUuid(actorUserId) || !actorUsername || !actorDisplayName) {
+    throw new Error("Authenticated actor USER ID, username and display-name snapshot are required.");
+  }
 
   const source = isObject(bank) ? bank : {};
   if (source.staff != null && !isObject(source.staff)) throw new Error("Canonical STAFF collection is malformed.");
@@ -513,8 +517,11 @@ export function buildPendingUserStaffProvisioning(bank, input) {
   next.identityProvisioningReceipts = { ...receipts, [input.idempotencyKey]: receipt };
   const auditEvent = {
     action: "USER_STAFF_PROVISIONING_STARTED",
-    actor,
+    actorUserId,
+    actorUsername,
+    actorDisplayName,
     username,
+    displayName,
     userId: input.userId,
     staffId: input.staffId,
     requestedYardRoleId: input.requestedYardRoleId,
@@ -533,7 +540,9 @@ export function buildPendingUserStaffProvisioning(bank, input) {
  */
 export function activatePendingUserStaffProvisioning(bank, roleAssignment, actor, now = new Date().toISOString()) {
   if (!isObject(bank)) throw new TypeError("Central Bank payload is required.");
-  if (!String(actor ?? "").trim()) throw new Error("Authenticated activation actor is required.");
+  if (!isObject(actor) || !isUuid(actor.userId) || !String(actor.username ?? "").trim() || !String(actor.displayName ?? "").trim()) {
+    throw new Error("Authenticated actor USER ID, username and display-name snapshot are required.");
+  }
   if (!isObject(roleAssignment) ||
       !isUuid(roleAssignment.userId) ||
       !isUuid(roleAssignment.staffId) ||
@@ -625,8 +634,11 @@ export function activatePendingUserStaffProvisioning(bank, roleAssignment, actor
   };
   const auditEvent = {
     action: "USER_STAFF_PROVISIONING_ACTIVATED",
-    actor: String(actor).trim(),
+    actorUserId: actor.userId,
+    actorUsername: String(actor.username).trim(),
+    actorDisplayName: String(actor.displayName).trim(),
     username: user.username,
+    displayName: user.displayName || user.username,
     userId: user.userId,
     staffId: user.staffId,
     yardRoleId: roleAssignment.yardRoleId,
