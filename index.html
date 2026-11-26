@@ -1910,7 +1910,7 @@ async function setCrewSwitchboardStatus(name,nextOnSite){if(crewSwitchboardSavin
 async function manageStaffRoles(){
  if(!permission('canManageStaff'))return;
  const originalRoles=Array.isArray(state.staffRoles)?state.staffRoles.slice():[];
- let draftRoles=originalRoles.slice();
+ let draftRoles=originalRoles.slice(),draftRoleOrigins=originalRoles.map((role,index)=>index);
  let modal=$('staffRolesModalBackdrop');
  if(!modal){
   modal=document.createElement('div');modal.id='staffRolesModalBackdrop';modal.className='staff-modal-backdrop';modal.hidden=true;
@@ -1922,10 +1922,10 @@ async function manageStaffRoles(){
  function renderRows(){
   rows.replaceChildren();
   draftRoles.forEach((role,index)=>{
-   const assigned=allStaffRoster().filter(name=>String(state.operatorProfiles?.[name]?.onSiteRole||'').toLowerCase()===String(originalRoles[index]||role).toLowerCase()).length;
+   const origin=draftRoleOrigins[index],assigned=origin===null?0:allStaffRoster().filter(name=>String(state.operatorProfiles?.[name]?.onSiteRole||'').toLowerCase()===String(originalRoles[origin]||'').toLowerCase()).length;
    const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px';
    const input=document.createElement('input');input.type='text';input.maxLength=60;input.value=role;input.setAttribute('aria-label','On-site role '+(index+1));input.style.flex='1';input.oninput=()=>{draftRoles[index]=input.value;message.textContent=''};
-   const remove=document.createElement('button');remove.type='button';remove.textContent='REMOVE';remove.disabled=assigned>0;remove.title=assigned?'Reassign staff using this role before removing it':'Remove this role';remove.onclick=()=>{draftRoles.splice(index,1);renderRows()};
+   const remove=document.createElement('button');remove.type='button';remove.textContent='REMOVE';remove.disabled=assigned>0;remove.title=assigned?'Reassign staff using this role before removing it':'Remove this role';remove.onclick=()=>{draftRoles.splice(index,1);draftRoleOrigins.splice(index,1);renderRows()};
    const meta=document.createElement('small');meta.className='muted';meta.textContent=assigned?assigned+' assigned':'';
    const group=document.createElement('div');group.style.cssText='display:flex;align-items:center;gap:8px';group.append(meta,remove);
    row.append(input,group);rows.appendChild(row);
@@ -1933,7 +1933,7 @@ async function manageStaffRoles(){
  }
  $('staffRolesClose').onclick=close;$('staffRolesCancel').onclick=close;
  modal.onclick=event=>{if(event.target===modal)close()};
- $('staffRoleAdd').onclick=()=>{const input=$('staffRoleNewName'),value=String(input.value||'').trim();if(!value||value.length>60){message.textContent='Enter a role name of 1–60 characters.';return}if(draftRoles.some(role=>role.toLowerCase()===value.toLowerCase())){message.textContent='That role already exists.';return}draftRoles.push(value);input.value='';renderRows();message.textContent='Role added. Save to apply.'};
+ $('staffRoleAdd').onclick=()=>{const input=$('staffRoleNewName'),value=String(input.value||'').trim();if(!value||value.length>60){message.textContent='Enter a role name of 1–60 characters.';return}if(draftRoles.some(role=>role.toLowerCase()===value.toLowerCase())){message.textContent='That role already exists.';return}draftRoles.push(value);draftRoleOrigins.push(null);input.value='';renderRows();message.textContent='Role added. Save to apply.'};
  $('staffRoleNewName').onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();$('staffRoleAdd').click()}};
  save.onclick=async()=>{
   const next=draftRoles.map(role=>String(role||'').trim());
