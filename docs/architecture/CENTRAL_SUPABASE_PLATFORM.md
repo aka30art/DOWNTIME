@@ -25,7 +25,7 @@ The staff directory stores the minimum operational information required by depar
 
 ### Shared platform services
 
-- One Supabase Auth / central identity and session authority for actual system users.
+- One central authentication and session authority for actual system users, backed by the shared Supabase project. Preserve the existing Central Data Bank identity implementation as the initial authority unless a separately approved design replaces it.
 - Centralised permission evaluation and server-side authorisation.
 - Shared append-only audit framework.
 - Shared customer, vehicle, and other master records only where departments genuinely use the same business entity.
