@@ -157,7 +157,7 @@ Deno.serve(async(req)=>{
  const isCentralAdmin=tier==="ADMIN"||isRootAuthority;
  const isCentralBankAccess=isRootAuthority;
  if(action==="photo-evidence-context"){
-   return json({user:safeUser(currentUser),permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canDeleteRecords:priv.canDeleteRecords===true}});
+   return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username},permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canDeleteRecords:priv.canDeleteRecords===true}});
  }
  if(action==="list-users"){
    const visibleUsers=priv.canManageUsers||priv.canViewUsers?bank.users.filter((u:any)=>u.enabled!==false).map(safeUser):[safeUser(currentUser)];
