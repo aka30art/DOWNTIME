@@ -358,14 +358,16 @@ const STAFF_DEPARTMENT_RULES = Object.freeze({
   Traffic: { role: "Gateman" },
 });
 
-const DEFAULT_STATIONS = Array.from({ length: 6 }, (_, index) => ({
-  id: "station-" + (index + 1),
-  name: "Station " + (index + 1),
-  active: true,
-  aliases: [],
-}));
+const DEFAULT_STATIONS = [
+  { id: "station-1", name: "Station 1", category: "WOOD", active: true, aliases: [] },
+  { id: "station-2", name: "Station 2", category: "WOOD", active: true, aliases: [] },
+  { id: "station-3", name: "Station 3", category: "SCRAP", active: true, aliases: [] },
+  { id: "station-4", name: "Station 4", category: "SCRAP", active: true, aliases: [] },
+  { id: "station-5", name: "Station 5", category: "GENERAL", active: true, aliases: [] },
+  { id: "station-6", name: "Station 6", category: "GENERAL", active: true, aliases: [] },
+];
 
-/** Validate the existing operational STAFF contract without granting application access. */
+/** Validate existing operational STAFF fields without granting application access. */
 export function validateStaffOperationalProfile(fields, stationConfig = DEFAULT_STATIONS) {
   if (!isObject(fields)) throw new TypeError("STAFF operational details are required.");
   const department = String(fields.department ?? "").trim();
@@ -376,9 +378,11 @@ export function validateStaffOperationalProfile(fields, stationConfig = DEFAULT_
   if (!allowedRoles.includes(onSiteRole)) throw new Error("STAFF operational role is invalid for the selected department.");
   if (typeof fields.onSite !== "boolean") throw new Error("STAFF onSite status must be explicitly supplied.");
   if (typeof fields.stationLocked !== "boolean") throw new Error("STAFF stationLocked status must be explicitly supplied.");
+
   const station = String(fields.station ?? "").trim();
   const activeStations = (Array.isArray(stationConfig) && stationConfig.length ? stationConfig : DEFAULT_STATIONS)
     .filter((item) => isObject(item) && item.active !== false && /^station-[1-6]$/.test(String(item.id ?? "")));
+
   if (department === "SCPL") {
     if (station && !activeStations.some((item) => {
       const label = String(item.name || "Station") + " · " + String(item.category || "GENERAL");
@@ -389,23 +393,24 @@ export function validateStaffOperationalProfile(fields, stationConfig = DEFAULT_
   } else if (station || fields.stationLocked) {
     throw new Error("Station assignment and station lock are available only for SCPL STAFF.");
   }
+
   for (const key of ["photo", "photoPath", "photoOriginalStored", "rootsClass", "rootClass", "staffId", "linkedUserId"]) {
     if (Object.hasOwn(fields, key)) throw new Error("STAFF identity, ROOTS and photo fields are not accepted by ordinary provisioning.");
   }
+
   return {
     department,
     onSiteRole,
     station: department === "SCPL" ? station : "",
     stationLocked: department === "SCPL" && fields.stationLocked,
     onSite: fields.onSite,
-    status: "ACTIVE",
   };
 }
 
 /**
- * Creates the first durable provisioning stage. USER and STAFF are inserted
- * together in a cloned Central Bank payload; the USER is disabled until the
- * separately persisted YARDHUB role assignment has been verified.
+ * Create a pending USER and linked STAFF record in one cloned Central Bank payload.
+ * The USER remains disabled and the STAFF profile stays out of active roster copies
+ * until the canonical YARD ROLE assignment is independently persisted and verified.
  */
 export function buildPendingUserStaffProvisioning(bank, input) {
   if (!isObject(input) || !isObject(input.userFields) || !isObject(input.staffFields)) {
@@ -415,15 +420,24 @@ export function buildPendingUserStaffProvisioning(bank, input) {
   if (!isUuid(input.userId) || !isUuid(input.staffId) || input.userId.toLowerCase() === input.staffId.toLowerCase()) {
     throw new Error("Two distinct server-generated identity UUIDs are required.");
   }
+  if (!isUuid(input.requestedYardRoleId)) throw new Error("A canonical YARD ROLE ID is required.");
   if (typeof input.requestFingerprint !== "string" || !/^[a-f0-9]{64}$/i.test(input.requestFingerprint)) {
     throw new Error("A SHA-256 provisioning request fingerprint is required.");
   }
-  if (!input.pinSalt || !input.pinHash) throw new Error("Server-hashed PIN credentials are required.");
+  if (typeof input.pinSalt !== "string" || !/^[a-f0-9]{32}$/i.test(input.pinSalt) ||
+      typeof input.pinHash !== "string" || !/^[a-f0-9]{64}$/i.test(input.pinHash)) {
+    throw new Error("Server-hashed PIN credentials are required.");
+  }
+  const actor = String(input.actor ?? "").trim();
+  if (!actor) throw new Error("Authenticated provisioning actor is required.");
+
   const source = isObject(bank) ? bank : {};
   const receipts = isObject(source.identityProvisioningReceipts) ? source.identityProvisioningReceipts : {};
   const prior = receipts[input.idempotencyKey];
   if (prior) {
-    if (prior.requestFingerprint !== input.requestFingerprint) throw new Error("Idempotency key was already used for a different provisioning request.");
+    if (prior.requestFingerprint !== input.requestFingerprint) {
+      throw new Error("Idempotency key was already used for a different provisioning request.");
+    }
     return { payload: bank, receipt: prior, replayed: true };
   }
 
@@ -432,26 +446,24 @@ export function buildPendingUserStaffProvisioning(bank, input) {
   if (!/^[A-Za-z0-9_.-]{2,32}$/.test(username)) throw new Error("Username must be 2–32 letters, numbers, dots, underscores or hyphens.");
   if (!displayName || displayName.length > 80) throw new Error("A display name of up to 80 characters is required.");
   if (normaliseUsername(username) === "dev") throw new Error("DEV is the immutable root identity.");
-  if (source.users?.some((item) => normaliseUsername(item?.username) === normaliseUsername(username))) {
-    throw new Error("USER username already exists.");
+  if (!Array.isArray(source.users) || source.users.some((item) => normaliseUsername(item?.username) === normaliseUsername(username))) {
+    throw new Error("USER username already exists or the USER collection is invalid.");
   }
+
   const staff = validateStaffOperationalProfile(input.staffFields, source.appData?.stationConfig);
   const profiles = isObject(source.staff?.profiles) ? source.staff.profiles : {};
   const roster = Array.isArray(source.staff?.roster) ? source.staff.roster : [];
-  const duplicateStaffName = [...Object.keys(profiles), ...roster].some((name) => normaliseUsername(name) === normaliseUsername(displayName));
+  const duplicateStaffName = [...Object.keys(profiles), ...roster]
+    .some((name) => normaliseUsername(name) === normaliseUsername(displayName));
   if (duplicateStaffName) throw new Error("STAFF display name already exists; use a unique display name.");
+
   const { user, staff: linkedStaff } = buildNewUserStaffIdentityPair(
     { username, displayName },
     { ...staff, name: displayName },
-    Array.isArray(source.users) ? source.users : [],
+    source.users,
     Object.values(profiles),
     (() => { const ids = [input.userId, input.staffId]; return () => ids.shift(); })(),
   );
-  // The pair builder is used for contract validation; use the distinct server STAFF ID.
-  user.staffId = input.staffId;
-  linkedStaff.staffId = input.staffId;
-  linkedStaff.linkedUserId = input.userId;
-  validateNewUserStaffPair(user, linkedStaff, Array.isArray(source.users) ? source.users : [], Object.values(profiles));
 
   const next = structuredClone(source);
   next.users = Array.isArray(next.users) ? next.users : [];
@@ -461,60 +473,140 @@ export function buildPendingUserStaffProvisioning(bank, input) {
   next.appData = isObject(next.appData) ? next.appData : {};
   next.appData.operatorProfiles = isObject(next.appData.operatorProfiles) ? next.appData.operatorProfiles : {};
   next.appData.staffRoster = Array.isArray(next.appData.staffRoster) ? next.appData.staffRoster : [];
+
   const now = String(input.createdAt || new Date().toISOString());
   const record = {
     ...user,
-    tier: "USER",
-    enabled: false,
     pinSalt: input.pinSalt,
     pinHash: input.pinHash,
-    provisioning: { stage: "YARDHUB_TIER_PENDING", idempotencyKey: input.idempotencyKey, createdAt: now },
+    provisioning: {
+      stage: "YARD_ROLE_PENDING",
+      idempotencyKey: input.idempotencyKey,
+      requestedYardRoleId: input.requestedYardRoleId,
+      createdAt: now,
+    },
   };
   next.users.push(record);
-  const staffProfile = { ...linkedStaff, createdAt: now };
+
+  const staffProfile = { ...linkedStaff, status: "PROVISIONING", createdAt: now };
   next.staff.profiles[displayName] = staffProfile;
-  next.staff.roster.push(displayName);
-  next.appData.operatorProfiles[displayName] = structuredClone(staffProfile);
-  next.appData.staffRoster = next.staff.roster.slice();
+
   const receipt = {
     idempotencyKey: input.idempotencyKey,
     requestFingerprint: input.requestFingerprint,
     username,
     userId: input.userId,
     staffId: input.staffId,
-    stage: "YARDHUB_TIER_PENDING",
+    requestedYardRoleId: input.requestedYardRoleId,
+    stage: "YARD_ROLE_PENDING",
     createdAt: now,
   };
   next.identityProvisioningReceipts = { ...receipts, [input.idempotencyKey]: receipt };
   next.identityProvisioningEvents = Array.isArray(next.identityProvisioningEvents) ? next.identityProvisioningEvents : [];
-  next.identityProvisioningEvents.push({ action: "USER_STAFF_PROVISIONING_STARTED", actor: input.actor || "", username, userId: input.userId, staffId: input.staffId, at: now });
+  next.identityProvisioningEvents.push({
+    action: "USER_STAFF_PROVISIONING_STARTED",
+    actor,
+    username,
+    userId: input.userId,
+    staffId: input.staffId,
+    requestedYardRoleId: input.requestedYardRoleId,
+    at: now,
+  });
+
   return { payload: next, receipt, replayed: false };
 }
 
-/** Activate only after the caller has verified a persisted YARDHUB role assignment. */
-export function activatePendingUserStaffProvisioning(bank, username, yardHubTier, now = new Date().toISOString()) {
+/**
+ * Finalize only from a trusted server-side result read from the canonical YARD ROLE
+ * assignment store. The caller must not pass a client-supplied role claim.
+ */
+export function activatePendingUserStaffProvisioning(bank, roleAssignment, now = new Date().toISOString()) {
   if (!isObject(bank)) throw new TypeError("Central Bank payload is required.");
-  const target = String(username ?? "").trim();
-  if (!target || !String(yardHubTier ?? "").trim()) throw new Error("USER and persisted YARDHUB tier are required.");
+  if (!isObject(roleAssignment) ||
+      !isUuid(roleAssignment.userId) ||
+      !isUuid(roleAssignment.staffId) ||
+      !isUuid(roleAssignment.yardRoleId) ||
+      roleAssignment.status !== "ACTIVE" ||
+      !Number.isInteger(roleAssignment.version) ||
+      roleAssignment.version < 1 ||
+      typeof roleAssignment.verifiedAt !== "string" ||
+      Number.isNaN(Date.parse(roleAssignment.verifiedAt))) {
+    throw new Error("A verified active canonical YARD ROLE assignment is required.");
+  }
+
   const next = structuredClone(bank);
-  const user = (Array.isArray(next.users) ? next.users : []).find((item) => normaliseUsername(item?.username) === normaliseUsername(target));
+  const user = (Array.isArray(next.users) ? next.users : [])
+    .find((item) => item?.userId?.toLowerCase() === roleAssignment.userId.toLowerCase());
   if (!user) throw new Error("Provisioned USER was not found.");
+  if (user.staffId?.toLowerCase() !== roleAssignment.staffId.toLowerCase()) {
+    throw new Error("Canonical YARD ROLE assignment does not match the USER/STAFF identity pair.");
+  }
+
   if (!user.provisioning) {
-    if (user.enabled === true && isUuid(user.userId) && isUuid(user.staffId)) return { payload: bank, replayed: true, user };
+    if (user.status === "ACTIVE" && user.enabled === true && user.yardRoleId === roleAssignment.yardRoleId) {
+      return { payload: bank, replayed: true, user };
+    }
     throw new Error("USER is not awaiting provisioning activation.");
   }
-  if (user.provisioning.stage !== "YARDHUB_TIER_PENDING") throw new Error("Unsupported USER provisioning stage.");
-  const staffProfiles = isObject(next.staff?.profiles) ? Object.values(next.staff.profiles) : [];
-  const staff = staffProfiles.find((item) => item?.staffId?.toLowerCase() === String(user.staffId).toLowerCase());
-  if (!staff || staff.linkedUserId?.toLowerCase() !== String(user.userId).toLowerCase()) {
-    throw new Error("USER/STAFF reciprocal identity link is not valid.");
+  if (user.provisioning.stage !== "YARD_ROLE_PENDING") throw new Error("Unsupported USER provisioning stage.");
+  if (user.provisioning.requestedYardRoleId !== roleAssignment.yardRoleId) {
+    throw new Error("Persisted YARD ROLE assignment does not match the requested role.");
   }
+  if (user.tier != null) throw new Error("New USER provisioning must not restore a legacy tier permission claim.");
+
+  const profiles = isObject(next.staff?.profiles) ? next.staff.profiles : {};
+  const matchingStaff = Object.entries(profiles)
+    .filter(([, profile]) => profile?.staffId?.toLowerCase() === user.staffId.toLowerCase());
+  if (matchingStaff.length !== 1) throw new Error("Exactly one linked STAFF profile is required.");
+  const [staffName, staff] = matchingStaff[0];
+  if (staff.linkedUserId?.toLowerCase() !== user.userId.toLowerCase() || staff.status !== "PROVISIONING") {
+    throw new Error("USER/STAFF reciprocal identity link or provisioning state is invalid.");
+  }
+
+  next.staff = isObject(next.staff) ? next.staff : {};
+  next.staff.roster = Array.isArray(next.staff.roster) ? next.staff.roster : [];
+  next.appData = isObject(next.appData) ? next.appData : {};
+  next.appData.operatorProfiles = isObject(next.appData.operatorProfiles) ? next.appData.operatorProfiles : {};
+  next.appData.staffRoster = Array.isArray(next.appData.staffRoster) ? next.appData.staffRoster : [];
+
+  if (next.staff.roster.some((name) => normaliseUsername(name) === normaliseUsername(staffName)) ||
+      next.appData.staffRoster.some((name) => normaliseUsername(name) === normaliseUsername(staffName)) ||
+      Object.keys(next.appData.operatorProfiles).some((name) => normaliseUsername(name) === normaliseUsername(staffName))) {
+    throw new Error("STAFF display name became occupied before provisioning activation.");
+  }
+
+  staff.status = "ACTIVE";
+  user.yardRoleId = roleAssignment.yardRoleId;
+  user.status = "ACTIVE";
   user.enabled = true;
+
+  next.staff.roster.push(staffName);
+  next.appData.operatorProfiles[staffName] = structuredClone(staff);
+  next.appData.staffRoster = next.staff.roster.slice();
+
+  const idempotencyKey = user.provisioning.idempotencyKey;
   delete user.provisioning;
   const receipts = isObject(next.identityProvisioningReceipts) ? next.identityProvisioningReceipts : {};
-  const receiptKey = Object.keys(receipts).find((id) => receipts[id]?.userId === user.userId);
-  if (receiptKey) next.identityProvisioningReceipts[receiptKey] = { ...receipts[receiptKey], stage: "ACTIVE", activatedAt: now, yardHubTier: String(yardHubTier).toUpperCase() };
+  if (!receipts[idempotencyKey] || receipts[idempotencyKey].userId !== user.userId) {
+    throw new Error("Provisioning receipt is missing or does not match the USER.");
+  }
+  next.identityProvisioningReceipts[idempotencyKey] = {
+    ...receipts[idempotencyKey],
+    stage: "ACTIVE",
+    activatedAt: now,
+    yardRoleId: roleAssignment.yardRoleId,
+    roleAssignmentVersion: roleAssignment.version,
+  };
   next.identityProvisioningEvents = Array.isArray(next.identityProvisioningEvents) ? next.identityProvisioningEvents : [];
-  next.identityProvisioningEvents.push({ action: "USER_STAFF_PROVISIONING_ACTIVATED", username: user.username, userId: user.userId, staffId: user.staffId, yardHubTier: String(yardHubTier).toUpperCase(), at: now });
+  next.identityProvisioningEvents.push({
+    action: "USER_STAFF_PROVISIONING_ACTIVATED",
+    username: user.username,
+    userId: user.userId,
+    staffId: user.staffId,
+    yardRoleId: roleAssignment.yardRoleId,
+    roleAssignmentVersion: roleAssignment.version,
+    at: now,
+  });
+
   return { payload: next, replayed: false, user };
 }
