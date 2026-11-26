@@ -51,14 +51,15 @@ The old tier permission profiles must not silently become the new YARD ROLE perm
 
 ### ROOTS category
 
-`ROOTS` is a hidden, system-managed category used only to assign the protected classifications `DEV1` and `ADMIN` to STAFF members (and therefore to their linked USER identities).
+`ROOTS` is a hidden, system-managed assignment category used only to assign the protected classifications `DEV1` and `ADMIN` to STAFF members (and therefore to their linked USER identities).
+
 - ROOTS is not a normal USER category, account tier or ordinary YARD ROLE.
-- ROOTS is not displayed in ordinary USER or STAFF interfaces, menus, lists, searches, exports, or API responses.
-- Only DEV can see and use the ROOTS assignment controls.
+- The ROOTS category itself is visible and browsable only by DEV. It is not displayed in ordinary USER or STAFF interfaces, menus, lists, searches, exports, or API responses.
 - DEV alone can assign DEV1 to a STAFF member.
 - DEV and DEV1 can assign ADMIN to a STAFF member.
-- ROOTS is a protected system category and cannot be deleted, renamed, exposed to ordinary users or managed through ordinary role controls.
-- The ROOTS category and its assignment controls are hidden completely from everyone other than DEV; DEV1 and ADMIN do not receive visibility of the category itself.
+- DEV1's authority to assign ADMIN is a narrowly scoped action only. It must not expose the ROOTS category, its directory, its configuration, or the DEV1-assignment capability to DEV1.
+- ADMIN and ordinary users cannot see ROOTS or assign either protected classification.
+- ROOTS is a protected system category and cannot be deleted, renamed, exposed as an ordinary role, or managed through ordinary role controls.
 
 ### DEV1
 
@@ -66,12 +67,14 @@ The old tier permission profiles must not silently become the new YARD ROLE perm
 - Its linked USER has authority intended to match DEV, subject to the explicit isolation rule.
 - DEV1 cannot view, inspect, edit, disable, delete, or otherwise interact with DEV.
 - DEV remains protected from DEV1 actions at the server boundary.
+- DEV1 can perform the narrowly scoped assignment of ADMIN to STAFF, without gaining visibility of the ROOTS category or the ability to assign DEV1.
 
 ### ADMIN
 
 - Protected ROOTS classification assigned by DEV or DEV1 to a STAFF member.
 - Its linked USER has authority intended to match DEV1, subject to the explicit isolation rules.
 - ADMIN cannot view, inspect, edit, disable, delete, or otherwise interact with DEV or DEV1.
+- ADMIN cannot view ROOTS or assign DEV1 or ADMIN.
 - Higher-root isolation must be enforced on every server action, not only the account-management screen.
 
 ## 4. ROOTS assignment and protection matrix
@@ -79,10 +82,10 @@ The old tier permission profiles must not silently become the new YARD ROLE perm
 | Actor | ROOTS category visible? | Assign DEV1 to STAFF | Assign ADMIN to STAFF | Interact with DEV | Interact with DEV1 | Interact with ADMIN |
 |---|---:|---:|---:|---:|---:|---:|
 | DEV | Yes | Yes | Yes | Self/root | Yes | Yes |
-| DEV1 | No | No | Yes | No | Self/root | Yes |
+| DEV1 | No | No | Yes — scoped action only | No | Self/root | Yes |
 | ADMIN | No | No | No | No | No | Self/root |
 
-This table records assignment and isolation requirements only. It does not define the future rights of ordinary YARD ROLES.
+The DEV1 ADMIN-assignment action must be presented independently of the ROOTS category interface. It must not reveal ROOTS or any other ROOTS management capability. This table records assignment and isolation requirements only. It does not define the future rights of ordinary YARD ROLES.
 
 ## 5. Proposed persistence model
 
@@ -132,7 +135,7 @@ Implementation must retain the existing Central Bank single-payload storage and 
 - The USER creation form includes the current STAFF operational fields.
 - The linked STAFF profile is displayed and maintained through the operational STAFF directory, with a clear link back to its USER account for authorised managers.
 - STAFF-only legacy entries remain clearly distinguishable as operational-only until linked.
-- ROOTS assignment controls are completely hidden from everyone except DEV. DEV can assign DEV1; DEV and DEV1 can assign ADMIN. ROOTS is used to assign these classifications to STAFF members and is not shown as a normal USER category or YARD ROLE.
+- The ROOTS category and its management interface are visible only to DEV. DEV can assign DEV1 and ADMIN there. DEV1 receives a separate, narrowly scoped action to assign ADMIN to a STAFF member; this action must not reveal or open ROOTS. ADMIN and ordinary users see no ROOTS interface or protected-classification assignment action.
 - Do not expose old TIERS as if they were YARD ROLES.
 - Do not build the final YARD ROLE selector until the role catalogue is approved.
 
@@ -149,14 +152,14 @@ Implementation must retain the existing Central Bank single-payload storage and 
 
 - USER creation creates exactly one linked STAFF record atomically.
 - DEV alone can see the hidden ROOTS category and assign DEV1 to a STAFF member.
-- DEV and DEV1 can assign ADMIN to a STAFF member; ADMIN cannot assign either root classification.
+- DEV and DEV1 can assign ADMIN to a STAFF member; DEV1's assignment path does not expose ROOTS.
 - ROOTS is never exposed as a normal USER category or YARD ROLE.
 - No STAFF creation path can create a USER account.
 - USER and STAFF share a stable identity link that survives name changes.
 - STAFF presentation edits cannot mutate credentials or account authority.
 - STAFF archive/removal cannot delete or disable USER.
 - DEV is immutable and unassignable at the server layer.
-- ROOTS is a protected hidden system category; only DEV can see/use its assignment controls, and it cannot be deleted.
+- ROOTS is a protected hidden system category; only DEV can see the category interface, and it cannot be deleted.
 - DEV1 cannot interact with DEV.
 - ADMIN cannot interact with DEV or DEV1.
 - Assignment rules for DEV1 and ADMIN are enforced server-side.
