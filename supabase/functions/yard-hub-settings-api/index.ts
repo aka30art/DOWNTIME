@@ -211,6 +211,7 @@ Deno.serve(async (req: Request) => {
       String(account.username || "").toLowerCase() === targetUsername.toLowerCase()
     );
     if (!target) return json({ error: "Central user account not found." }, 404);
+    if (target.provisioning || target.yardRoleId) return json({ error: "Canonical YARD ROLE identities cannot be assigned legacy YARD HUB tiers." }, 409);
     const targetLegacyTier = String(target.tier || "USER").toUpperCase();
     if (String(target.username).trim().toUpperCase() === "DEV" && targetLegacyTier === "OWNER" && nextTier !== "OWNER") {
       return json({ error: "The DEV root account must remain assigned to the OWNER YARD HUB tier." }, 403);
@@ -256,6 +257,7 @@ Deno.serve(async (req: Request) => {
       String(account.username || "").toLowerCase() === targetUsername.toLowerCase()
     );
     if (!target) return json({ error: "Central user account not found." }, 404);
+    if (target.provisioning || target.yardRoleId) return json({ error: "Canonical YARD ROLE identities do not have legacy YARD HUB tier assignments." }, 409);
     const root = isRootAdmin(user, hubTier, legacyTier);
     if (!root && !editableByAdmin.includes(assignedHubTier(configRow.payload, target.username) as any)) {
       return json({ error: "ADMIN cannot remove protected YARD HUB tier assignments." }, 403);
