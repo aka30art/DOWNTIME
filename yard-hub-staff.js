@@ -95,8 +95,7 @@
     if(loading)return loading;
     showNotice('LOADING STAFF DIRECTORY…');
     loading=callApi('state').then(result=>{
-      state=result;renderKpis();renderPermissionNotice();renderTab();
-      showNotice('');
+      state=result;renderKpis();renderTab();showNotice('');renderPermissionNotice();
       return result;
     }).catch(error=>{
       showNotice(error.message||'Unable to load STAFF MANAGEMENT.','error');throw error;
@@ -129,9 +128,6 @@
   }
   function openTab(tab){
     if(!['people','companies','roles','audit'].includes(tab))return;
-    if((tab==='companies'||tab==='roles')&&!canEdit()){
-      showNotice('Company and Yard Role configuration requires EDIT access.','error');return;
-    }
     activeTab=tab;
     screen.querySelectorAll('[data-staff-tab]').forEach(item=>item.classList.toggle('active',item.dataset.staffTab===tab));
     renderTab();
@@ -209,7 +205,7 @@
         roleNames(person.id).forEach(role=>tags.appendChild(createTag((role.primary?'PRIMARY · ':'')+role.name,role.primary?'primary':'')));
         if(person.staff_type==='USER'){
           const account=(state.accounts||[]).find(item=>item.username.toLowerCase()===String(person.linked_username||'').toLowerCase());
-          tags.appendChild(createTag('ACCOUNT · '+(account?(account.enabled?'ACTIVE':'DISABLED'):'MISSING'),account?.enabled?'account-active':'account-disabled'));
+          tags.appendChild(createTag(account?'ACCOUNT · '+(account.enabled?'ACTIVE':'DISABLED'):'LINKED · DETAILS RESTRICTED',account?(account.enabled?'account-active':'account-disabled'):'muted'));
         }else tags.appendChild(createTag('NO YARD HUB ACCOUNT','muted'));
         const right=node('div','yard-staff-person-actions');
         if(canEdit()&&!person.archived_at)right.appendChild(button('EDIT','secondary',()=>openPersonModal(person)));
@@ -258,9 +254,9 @@
   }
   function syncPersonType(){
     const kind=$('yardStaffType'),box=$('yardStaffAccountBox'),account=$('yardStaffAccount');
-    if(!kind||!box||!account)return;
+    if(!kind||!box)return;
     box.hidden=kind.value!=='USER';
-    if(kind.value==='STAFF')account.value='';
+    if(kind.value==='STAFF'&&account&&'value' in account)account.value='';
     const hint=$('yardStaffAccountHint');
     if(hint)hint.textContent=kind.value==='USER'
       ?'USER means a linked, existing YARD HUB account. Accounts are created and disabled in HUB SETTINGS → USERS.'
@@ -274,8 +270,9 @@
     const typeOptions=canManageAccounts()
       ? [{value:'STAFF',label:'STAFF · NO YARD HUB ACCOUNT'},{value:'USER',label:'USER · LINKED YARD HUB ACCOUNT'}]
       : [{value:'STAFF',label:'STAFF · NO YARD HUB ACCOUNT'}];
-    if(person?.staff_type==='USER'&&!canManageAccounts())typeOptions.push({value:'USER',label:'USER · EXISTING LINK PRESERVED'});
+    if(person?.staff_type==='USER'&&!canManageAccounts())typeOptions.splice(0,typeOptions.length,{value:'USER',label:'USER · EXISTING ACCOUNT LINK PRESERVED'});
     const type=select('yardStaffType',typeOptions,person?.staff_type||'STAFF');
+    if(person?.staff_type==='USER'&&!canManageAccounts())type.disabled=true;
     const status=select('yardStaffStatus',[{value:'ACTIVE',label:'ACTIVE'},{value:'INACTIVE',label:'INACTIVE'},{value:'LEFT',label:'LEFT'}],person?.employment_status||'ACTIVE');
     const company=select('yardStaffCompany',(state.companies||[]).filter(x=>x.is_active&&!x.archived_at).map(x=>({value:x.id,label:x.name+' · '+x.company_type})),person?.company_id||'','NO COMPANY / AGENCY');
     const roles=(state.roles||[]).filter(x=>x.is_active&&!x.archived_at).map(x=>({value:x.id,label:x.name}));
@@ -287,7 +284,14 @@
     roles.forEach(role=>{if(role.value===primary)return;const option=node('option','',role.label);option.value=role.value;option.selected=assigned.includes(role.value);secondary.appendChild(option)});
     const start=input('yardStaffStartDate',person?.start_date||'','date');
     const notes=node('textarea','yard-staff-input');notes.id='yardStaffNotes';notes.rows=3;notes.value=person?.notes||'';
-    const account=select('yardStaffAccount',(state.accounts||[]).filter(x=>x.enabled||x.username===person?.linked_username).map(x=>({value:x.username,label:(x.displayName||x.username)+' · '+x.username+' · '+x.tier+(x.enabled?' · ACTIVE':' · DISABLED')})),person?.linked_username||'','SELECT EXISTING YARD HUB ACCOUNT');
+    let account;
+    if(person?.staff_type==='USER'&&!canManageAccounts()){
+      account=node('div','yard-staff-input','LINKED ACCOUNT · '+person.linked_username);
+      account.id='yardStaffAccount';
+      account.setAttribute('role','status');
+    }else{
+      account=select('yardStaffAccount',(state.accounts||[]).filter(x=>x.enabled||x.username===person?.linked_username).map(x=>({value:x.username,label:(x.displayName||x.username)+' · '+x.username+' · '+x.tier+(x.enabled?' · ACTIVE':' · DISABLED')})),person?.linked_username||'','SELECT EXISTING YARD HUB ACCOUNT');
+    }
     const accountBox=node('div','yard-staff-account-box');accountBox.id='yardStaffAccountBox';
     const accountHint=node('p','yard-staff-note');accountHint.id='yardStaffAccountHint';
     const accountActions=node('div','yard-staff-inline-actions');
@@ -307,7 +311,7 @@
         id:person?.id||null,
         fullName:name.value.trim(),displayName:display.value.trim(),
         staffType:type.value,employmentStatus:status.value,companyId:company.value||null,
-        linkedUsername:type.value==='USER'?account.value:'',
+        linkedUsername:type.value==='USER'?(canManageAccounts()?(account?.value||''):(person?.linked_username||'')):'',
         startDate:start.value||null,notes:notes.value.trim(),
         roleIds:[...new Set(roleIds)],primaryRoleId:primaryRole.value||null
       };
