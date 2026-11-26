@@ -140,6 +140,7 @@ assert.match(centralClient,/async saveTiers\(tiers,version\)/);
  assert.ok(hubApi.includes('["DEVACC", "OWNER", "ADMIN"].includes(previousTier)'), 'non-root administrators cannot demote protected OWNER/DEVACC/ADMIN tiers');
  assert.ok(hubApi.includes('Administrators cannot change their own YARD HUB tier.'), 'admins cannot change their own Hub tier directly');
  assert.ok(hubApi.includes('Administrators cannot remove their own YARD HUB tier assignment.'), 'admins cannot remove their own Hub tier directly');
+assert.match(hubApi,/if \(action === "remove-user-tier"\)[\s\S]*?if \(target\.provisioning \|\| target\.yardRoleId\)/,'legacy YARD HUB tier removal is blocked for canonical YARD ROLE identities');
  assert.doesNotMatch(hubApi,/\.from\("downtime_central_bank"\)\.(update|insert|delete)/,'Hub settings service cannot mutate the DOWNTIME user bank');
  assert.ok(ui.includes('const centralChanges=!pendingProvisioning&&(!existing'), 'client detects central changes while keeping pending provisioning idempotent');
  assert.ok(ui.includes('requestedYardRoleId')&&ui.includes('assign-user-role')&&ui.includes('activateDowntimeCentralUserFromYardHub'), 'new USER creation uses staged canonical YARD ROLE provisioning');
