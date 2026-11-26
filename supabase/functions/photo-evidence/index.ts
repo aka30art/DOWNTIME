@@ -151,7 +151,7 @@ Deno.serve(async(req)=>{
     if(row.department!==department)return json({error:"Photo belongs to an unavailable department"},403);
     const {data:bankRow,error:bankError}=await admin.from("downtime_central_bank").select("payload").eq("id",1).maybeSingle();
     if(bankError||!bankRow?.payload)return json({error:"Operational record state unavailable"},503);
-    const associated=findOperationalRecord(bankRow.payload,row.record_id||null,id);
+    const associated=row.record_id?findOperationalRecord(bankRow.payload,row.record_id,null):findOperationalRecord(bankRow.payload,null,id);
     if(!associated)return json({error:"Photo is not attached to an active operational record"},404);
     const {error:removeError}=await admin.storage.from(bucket).remove([row.storage_path]);
     if(removeError)return json({error:removeError.message},500);
