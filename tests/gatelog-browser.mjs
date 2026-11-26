@@ -71,6 +71,7 @@ try{
  assert.match(await page.locator('#gatelogPeriodStatistics').innerText(),/VISITS[\s\S]*8/);
  await page.locator('[data-gatelog-day="2026-11-25"]').click();
  assert.match(await page.locator('#gatelogRegister').innerText(),/AB12 CDE/);
+ await page.setViewportSize({width:320,height:844});
  const dayVisit=page.locator('[data-visit-card="day-2026-11-25"]');
  assert.equal(await dayVisit.isVisible(),true,'Selected-date visits must render as individual cards');
  const visitActions=await dayVisit.locator('.gatelog-visit-actions').boundingBox();
