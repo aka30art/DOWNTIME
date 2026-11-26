@@ -345,3 +345,10 @@ PR #190 contains documentation only. Merging it will trigger the existing Pages 
 | Release and rollback separation | Complete — Section 9 |
 
 **Phase 1 accepted for architecture-record merge only.** The findings F1–F6 are mandatory carry-forward requirements for the application implementation/security work. They are not silently waived by this acceptance. No production identity reset, application implementation, migration or production deployment of the new architecture is authorised by this document.
+
+
+## Owner implementation approval update — 2026-11-26
+
+The Phase 1 architecture/source review remains accepted as the architecture-record baseline. The owner subsequently approved the reconciled programme for non-production implementation with the instruction “Proceed”.
+
+This supersedes the earlier planning-only execution restriction for isolated branch implementation and automated testing. It does not supersede the production boundary: no production data, schema, storage, sessions, permissions, Edge Functions or deployment may be changed without a separate explicit production release approval.
