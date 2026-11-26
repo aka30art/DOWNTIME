@@ -186,9 +186,14 @@ Deno.serve(async (req: Request) => {
       if (employmentStatus !== "ACTIVE" && linkedAccount.enabled !== false) {
         return json({ error: "Disable the YARD HUB account in HUB SETTINGS → USERS before setting employment status to INACTIVE or LEFT." }, 409);
       }
-      const duplicate = await db.from("yard_hub_staff_people").select("id").ilike("linked_username", linkedUsername).neq("id", id || "00000000-0000-0000-0000-000000000000").is("archived_at", null).maybeSingle();
-      if (duplicate.error) return json({ error: "Account-link uniqueness could not be verified." }, 503);
-      if (duplicate.data) return json({ error: "This YARD HUB account is already linked to another staff record." }, 409);
+      const duplicates = await db.from("yard_hub_staff_people")
+        .select("id,linked_username")
+        .neq("id", id || "00000000-0000-0000-0000-000000000000")
+        .is("archived_at", null);
+      if (duplicates.error) return json({ error: "Account-link uniqueness could not be verified." }, 503);
+      if ((duplicates.data || []).some((person: any) =>
+        String(person.linked_username || "").toLowerCase() === linkedUsername.toLowerCase()
+      )) return json({ error: "This YARD HUB account is already linked to another staff record." }, 409);
     } else if (existing?.linked_username) {
       const oldAccount = accountByUsername(String(existing.linked_username));
       if (oldAccount?.enabled !== false) return json({ error: "Disable the linked YARD HUB account in HUB SETTINGS → USERS before converting this person to STAFF." }, 409);
