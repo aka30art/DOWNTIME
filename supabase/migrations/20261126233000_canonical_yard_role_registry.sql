@@ -139,3 +139,48 @@ comment on table public.yard_roles is 'Canonical ordinary YARD ROLE registry. RO
 comment on table public.yard_role_department_permissions is 'One mutually exclusive OFF, READ_ONLY, INPUT or MANAGE level per YARD ROLE and department.';
 comment on table public.yard_role_assignments is 'Canonical USER-to-YARD ROLE assignment used by staged USER provisioning.';
 comment on table public.yard_role_assignment_audit is 'Append-only audit for canonical YARD ROLE assignment changes.';
+
+
+-- Atomically compare-and-swap the Central Bank payload and append its immutable audit event.
+create or replace function public.downtime_central_commit_identity_event(
+  p_expected_version integer,
+  p_payload jsonb,
+  p_actor_username text,
+  p_action text,
+  p_details jsonb
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_current_version integer;
+  v_next_version integer;
+begin
+  if p_expected_version is null or p_payload is null or jsonb_typeof(p_payload) <> 'object'
+     or coalesce(trim(p_actor_username), '') = ''
+     or p_action not in ('user-staff-provision', 'user-staff-provision-activate') then
+    raise exception 'Invalid Central identity commit request';
+  end if;
+
+  select version into v_current_version
+    from public.downtime_central_bank
+   where id = 1
+   for update;
+  if not found then raise exception 'Central Bank row is missing'; end if;
+  if v_current_version <> p_expected_version then raise exception 'VERSION_CONFLICT'; end if;
+
+  v_next_version := v_current_version + 1;
+  update public.downtime_central_bank
+     set payload = p_payload, version = v_next_version, updated_at = now()
+   where id = 1;
+
+  insert into public.downtime_central_audit (username, action, details)
+  values (trim(p_actor_username), p_action, coalesce(p_details, '{}'::jsonb));
+
+  return jsonb_build_object('version', v_next_version);
+end;
+$$;
+
+revoke all on function public.downtime_central_commit_identity_event(integer, jsonb, text, text, jsonb) from public, anon, authenticated;
+grant execute on function public.downtime_central_commit_identity_event(integer, jsonb, text, text, jsonb) to service_role;
