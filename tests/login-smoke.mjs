@@ -979,6 +979,8 @@ try{
  assert.equal(await owner.page.locator('#smName').inputValue(),'','new STAFF profile template is blank');
  assert.equal(await owner.page.locator('#smOnPlant').isChecked(),true,'new profile defaults ON PLANT');
  await owner.page.locator('#smName').fill('Rita');
+ await owner.page.locator('#smDepartment').selectOption('SCPL');
+ await owner.page.locator('#smRole').selectOption('Main Operator');
   const ritaGif=Buffer.from('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=','base64');
   await owner.page.locator('#smFile').setInputFiles({name:'rita.gif',mimeType:'image/gif',buffer:ritaGif});
   await owner.page.waitForFunction(()=>document.querySelector('#smPreview')?.src.startsWith('data:image/jpeg'),{timeout:5000});
