@@ -449,7 +449,8 @@ assert.match(centralApi, /hmacDigest\(fingerprintSecret,JSON\.stringify\(\{usern
 assert.match(centralApi, /const userId=String\(body\.userId\|\|""\)/, "activation targets immutable USER ID");
 assert.match(centralApi, /actorUserId:currentUser\.userId,actorUsername:currentUser\.username,actorDisplayName/, "provisioning audit captures immutable actor identity and display-name snapshot");
 assert.match(yardHubApi, /p_actor_user_id: user\.userId/, "YARD ROLE assignment audit captures immutable actor ID");
-assert.doesNotMatch(yardHubApi, /const targetUsername = String\(body\.username/, "YARD ROLE assignment never targets a mutable username");
+const yardRoleAssignmentRoute = yardHubApi.slice(yardHubApi.indexOf('if (action === "assign-user-role")'), yardHubApi.indexOf('if (action === "save-user-tier")'));
+assert.doesNotMatch(yardRoleAssignmentRoute, /targetUsername|body\.username/, "YARD ROLE assignment never targets a mutable username");
 assert.match(provisioningMigration, /actor_user_id uuid not null/, "YARD ROLE assignment audit stores immutable actor ID");
 assert.match(provisioningMigration, /p_actor_user_id uuid/, "YARD ROLE assignment RPC requires immutable actor ID");
 assert.match(resolverSource, /SCPL.*R&M.*Management.*SCFL.*Traffic/, "resolver enforces the owner-approved five-department catalogue");
