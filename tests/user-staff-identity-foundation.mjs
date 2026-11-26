@@ -340,7 +340,9 @@ assert.deepEqual(renamedStaff.payload.staff.roster, ["Renamed Operator"]);
 assert.deepEqual(renamedStaff.payload.appData.staffRoster, ["Renamed Operator"]);
 assert.equal(renamedStaff.payload.appData.operatorProfiles["Renamed Operator"].staffId, sid1);
 assert.deepEqual(renameSource, activated.payload, "linked STAFF rename must not mutate the original payload");
-assert.throws(() => renameLinkedStaffDisplayName(activated.payload, uid1, sid1, "Other Staff"), /display name already exists/);
+const collisionPayload = structuredClone(activated.payload);
+collisionPayload.staff.profiles["Other Staff"] = { staffId: sid2, linkedUserId: uid2 };
+assert.throws(() => renameLinkedStaffDisplayName(collisionPayload, uid1, sid1, "Other Staff"), /display name already exists/);
 
 const centralApi = await readFile("supabase/functions/central-bank/index.ts", "utf8");
 const yardHubApi = await readFile("supabase/functions/yard-hub-settings-api/index.ts", "utf8");
@@ -358,6 +360,7 @@ assert.match(provisioningRoutes, /buildPendingUserStaffProvisioning\(bank/);
 assert.match(provisioningRoutes, /requestedYardRoleId/);
 assert.match(provisioningRoutes, /yard_role_assignments/, "activation reads the canonical YARD ROLE assignment store");
 assert.match(provisioningRoutes, /activatePendingUserStaffProvisioning\(bank,roleAssignment\)/);
+assert.match(centralApi, /renameLinkedStaffDisplayName\\(bank,existing.userId,existing.staffId,displayName\\)/, "USER display-name edits rename the linked STAFF presentation without changing IDs");
 assert.doesNotMatch(provisioningRoutes, /yard_hub_tier_config|save-user-tier/, "legacy YARD HUB tiers cannot activate new identities");
 assert.match(centralApi, /New accounts must use the canonical USER + STAFF + YARD ROLE provisioning workflow/);
 assert.match(centralApi, /STAFF-only saves cannot create or alter authenticated USER identity links/);
