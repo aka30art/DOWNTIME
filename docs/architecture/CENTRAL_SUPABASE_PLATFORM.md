@@ -1,119 +1,132 @@
 # Central Supabase Platform Architecture
 
-Status: Approved architecture; implementation and migration are staged.
+Status: Controlling architecture for the DOWNTIME ecosystem.
 
-## Decision
+Snapshot date: 26 November 2026.
 
-The DOWNTIME ecosystem will operate from one Supabase project as its shared backend foundation. DOWNTIME, YARD HUB, GATELOG and future departments are application modules within that project, not separately provisioned Supabase backends.
+## 1. Single-database decision
 
-A single project does not mean one table or one unstructured data object. Departmental data remains logically separated in purpose-built tables and schemas, with shared platform services for authentication, authorisation, audit, and genuinely common records.
+The existing **DOWNTIME Supabase project** is the one and only database for the ecosystem:
 
-## Identity boundary: STAFF is not USER
+- Project: `DOWNTIME`
+- Project ID: `ygwfipksbbprqynvbklk`
+- Region: `eu-west-1`
 
-These are separate domain concepts and must never be conflated.
+DOWNTIME, YARD HUB, GATELOG, Repair & Maintenance and future modules are application areas within this one project. There are no separate departmental databases, duplicate identity stores, or parallel staff directories.
 
-- **USER** is an authenticated system identity. Users sign in and receive permissions, tiers, and access to authorised applications.
-- **STAFF** is an operational personnel record. A staff member may be on site and assigned an operational role without having any system account.
-- A user account does not automatically create a staff record.
-- A staff record does not require a user account.
-- No account-linking workflow, staff login, second identity provider, or bootstrap process is part of the staff-directory design.
-- Staff on-site roles are operational roles, not application permission tiers.
+For this work, do not create, access, configure, test against, deploy to, or migrate data through any staging project or Supabase development branch. Development checks are performed against repository source, deterministic local tests and CI. Production preflight checks are read-only until a specific additive production change is ready.
 
-The staff directory stores the minimum operational information required by departments: display name, configurable on-site role, active/archived status, and relevant operational activity history. Existing operational fields required by YARD HUB (such as station assignment and plant availability) must remain compatible until their consumers are safely migrated.
+## 2. Keep the architecture simple
 
-## Platform boundaries
+A shared project does not mean putting every department's records into one table. Keep the existing module tables and Edge Function APIs. Reuse shared platform services where the business entity is genuinely shared. Do not create new schemas, tables, APIs or identity flows merely to make the architecture look more normalised.
 
-### Shared platform services
+The existing production database already contains the core modules. This is an extension of the live platform, not a migration from multiple departmental production databases.
 
-- One central authentication and session authority for actual system users, backed by the shared Supabase project. Preserve the existing Central Data Bank identity implementation as the initial authority unless a separately approved design replaces it.
-- Centralised permission evaluation and server-side authorisation.
-- Shared append-only audit framework.
-- Shared customer, vehicle, and other master records only where departments genuinely use the same business entity.
-- Central secrets and service-role access held server-side only.
+## 3. Identity boundary: USER is not STAFF
 
-### Department-owned data
+These are distinct concepts:
 
-Each department owns its operational data model and API surface. Department boundaries are enforced through schema ownership, least-privilege database grants, Row Level Security, and server-side Edge Function checks. A department must not gain access to another department's records merely because both reside in the same Supabase project.
+- **USER** is an authenticated system identity. Only USER records sign in and receive application permission tiers.
+- **STAFF** is an operational personnel record. A staff member can be assigned to a shift, station or gate duty without having a system account.
+- Creating, archiving or restoring STAFF must never create, disable or delete USER accounts.
+- USER records must not be used as a substitute for operational STAFF records.
+- There is one Central Bank authentication and session authority. No staff login, account-link table, secondary identity provider, or separate staff bootstrap is permitted.
+- On-site roles such as Gateman, Forklift Driver or Supervisor are operational labels, not application permission tiers.
 
-Suggested logical ownership:
-- DOWNTIME: plant downtime, shifts, operational records, maintenance and related evidence.
-- YARD HUB: yard operations, staff operational assignments, settings and shared yard workflows.
-- GATELOG: vehicle visits, weighbridge/gate records, customers, vehicles and waste-type line items.
-- Shared platform: authenticated users, permissions, staff directory, audit events, and approved master data.
+## 4. Canonical STAFF directory
 
-Names above describe logical ownership; final table and schema names are established through the relevant migration design.
+Use the existing Central Bank staff collection as the single source of truth:
 
-## Verified environment inventory (2026-11-26)
+- `downtime_central_bank.payload.staff.roster` holds the staff roster.
+- `downtime_central_bank.payload.staff.profiles` holds each staff member's operational profile.
+- `appData.staffRoster` and `appData.operatorProfiles` remain compatibility fields while existing DOWNTIME and YARD HUB screens consume them. They must be kept consistent with the canonical `staff` collection.
+- `appData.staffRoles` stores configurable on-site role definitions.
+- Archive and restore records; do not physically delete them through normal staff workflows.
+- Archived staff remain available for historical records but are excluded from active operator and Gateman choices.
+- Role removal is rejected while that role is assigned. Role renames update affected staff profiles.
+- Staff lifecycle and role changes are appended to the existing Central Bank audit history.
+- Existing station assignments, assignment locks, plant availability, photos and historical references must be preserved.
 
-The Supabase organisation currently contains two projects:
+Do not introduce `staff_management`, `yard_hub_staff_*`, a separate staff Edge Function, or a new STAFF database. Do not turn STAFF names into user accounts. The existing JSON-backed Central Bank model is the least disruptive approach for the current platform and data volume; a separate relational staff model is not required for this feature.
 
-- **DOWNTIME** (`ygwfipksbbprqynvbklk`, `eu-west-1`) — the existing production project and the target shared production backend.
-- **DOWNTIME-staging** (`phfojlqezudbjslfrnyw`, `eu-west-1`) — the isolated development/test environment. It is not a separate departmental production backend and remains available for staging validation.
+## 5. GATELOG integration
 
-The production project already contains the active Central Bank, DOWNTIME, Repair & Maintenance, YARD HUB settings, GATELOG, photo-evidence, and spectator Edge Functions. Its database already contains the DOWNTIME central bank/audit/session tables, Repair & Maintenance tables, YARD HUB access configuration/audit, daily operator assignments, and GATELOG customers, vehicles, visits, waste types, assignments, and audit tables. Therefore, the core DOWNTIME + YARD HUB + GATELOG production consolidation is already present; development should extend this project rather than create another production project.
+GATELOG continues to use its existing production tables and `gatelog-api` Edge Function. Its daily Gateman selector reads active STAFF from the Central Bank directory, not from `payload.users`.
 
-The staging project contains legacy experimental STAFF structures, including the isolated `staff_management` schema and a separate `yard_hub_staff_*` table family. These are not the approved production STAFF architecture. Do not merge, deploy, or migrate either model into production. Preserve the staging data and services while assessing dependencies; the replacement staff directory must build on the existing Central Data Bank staff roster and keep STAFF independent of USER identity.
+The legacy `gatelog_daily_gateman_assignments.gateman_username` column and RPC argument are retained for compatibility. In the STAFF assignment workflow, that legacy-named value represents the selected STAFF roster key; it must never be resolved as a USER account. `gateman_name` remains the historical display snapshot.
 
-Current production module tables are largely namespaced in `public`. This is an existing implementation detail, not a requirement that every future department use one shared table. Schema ownership, RLS, grants, and Edge Function authorisation must be evaluated per module before any schema reorganisation.
+Customer, vehicle, visit, waste-type, assignment and audit data remain owned by GATELOG. Each visit retains its own vehicle-registration snapshot and its own waste-type line items. Reusable customer and vehicle directories remain separate master records linked to individual visit history.
 
-## Current implementation starting point
+## 6. Verified DOWNTIME production baseline
 
-YARD HUB already uses the Central Data Bank payload and the `downtime_central_bank` / `downtime_central_audit` tables for shared state and audit. Its staff roster and profiles are mirrored under `bank.staff` and the compatibility `bank.appData` fields.
+The following read-only inventory was checked directly against the DOWNTIME project on 26 November 2026:
 
-The existing staff directory is therefore extended in that central foundation rather than introducing a separate `staff_management` Supabase project/schema/API, a second login, or account-link tables. The current JSON payload remains a compatibility layer while a future normalised shared staff table is evaluated; no live records are moved by this feature branch.
+| Resource | Current production state |
+|---|---:|
+| Central Bank data version | 472 |
+| Central USER accounts | 11 |
+| Central STAFF roster entries | 8 |
+| Central STAFF profile entries | 13 |
+| Central Bank audit rows | 574 |
+| Central Bank session rows | 80 |
+| GATELOG customers | 3 |
+| GATELOG vehicles | 3 |
+| GATELOG visits | 0 |
+| GATELOG visit/waste links | 0 |
+| GATELOG daily Gateman assignments | 1 |
+| GATELOG audit rows | 16 |
 
-GATELOG's daily Gateman selector now reads active on-site STAFF records from the Central Data Bank roster/profile collection. It does not select from or create USER accounts. The current GATELOG assignment table still has a legacy `gateman_username` column and its existing RPC argument retains that name for compatibility; the value written by the updated API is a STAFF name key, never an account username. A later non-destructive schema migration should replace this legacy field with a stable staff identifier after the shared STAFF storage contract is finalised. Existing assignment name snapshots remain historical records.
+The live database also contains the existing DOWNTIME reports and photo evidence tables, YARD HUB tier configuration and access audit, daily operator assignments, and Repair & Maintenance assets, faults, notes, attachments, presets, models, settings and audit history.
 
-## Security and data integrity requirements
+The deployed Edge Functions at the inventory checkpoint were `central-bank` v15 and `gatelog-api` v6. The production migration history ended at `20261126062959_gatelog_waste_type_activation`.
 
-1. Never expose the Supabase service-role key to browser clients.
-2. Every write is authenticated and permission-checked server-side.
-3. Department data access is restricted by RLS and least-privilege grants.
-4. Staff records are archived/restored, not physically deleted through normal UI workflows.
-5. Staff and role changes are audited with actor, action, and before/after operational fields.
-6. Staff role changes do not alter user tiers or application permissions.
-7. Existing station assignment locks and permission boundaries remain enforced.
-8. Shared customer and vehicle records must have stable identifiers before cross-department reuse.
-9. No username, display name, or staff name is used as a substitute for a stable authenticated user identifier.
-10. No department may create its own user directory or bootstrap authentication flow.
+No departmental data needs to be copied into a new database. These are existing production records and must be preserved in place. Never assume a table is empty based on an earlier test environment or a previous inventory.
 
-## Migration and release sequence
+## 7. PR #187 integration contract
 
-1. **Inventory:** identify every Supabase project, Edge Function, table, bucket, secret, auth configuration, and client endpoint used by each department.
-2. **Target map:** assign each resource to the single central project and define schema ownership, shared entities, RLS, and permissions.
-3. **Staging foundation:** prepare the target project and migrations in an isolated staging environment. Preserve existing staging records and services.
-4. **Department adapters:** move or reconfigure one department at a time to use the shared project, keeping department APIs and data boundaries intact.
-5. **Data migration rehearsal:** copy, reconcile, count, validate relationships, and test rollback without touching production.
-6. **Integrated acceptance:** verify cross-department workflows, auth, permissions, audit, backups, restore, and failure isolation.
-7. **Production milestone:** only after explicit production migration approval, take verified backups, apply staged migrations, switch endpoints, verify production, and retain rollback capability.
+PR #187 extends the existing Central Bank STAFF directory and changes GATELOG's daily Gateman choice from USER to STAFF.
 
-## Non-negotiable production protection
+Its atomic settings migration adds `public.downtime_commit_central_bank`. This function performs the Central Bank state update and the associated audit writes in one transaction, with optimistic version checking. Its SECURITY DEFINER search path is fixed; execution is revoked from PUBLIC, `anon` and `authenticated`, and granted only to `service_role`.
 
-This architecture decision authorises development and isolated staging work. It does not by itself authorise production schema changes, data migration, configuration changes, endpoint switches, or deployments. Existing DOWNTIME production resources remain protected until a specific production migration milestone is approved.
+The production inventory confirmed this RPC is not yet installed. The branch's migration is additive: it creates the missing function and does not copy, rewrite, delete or seed any existing production data. Apply it only as part of the controlled production release, before deploying the Edge Function version that calls it.
 
-## Acceptance criteria
+Do not deploy a function that calls this RPC until the migration is present and its signature and grants have been verified in DOWNTIME.
 
-- All departments can use the same Supabase project without separate project credentials or bootstrap systems.
-- Authenticated users and operational staff remain distinct.
-- A staff member can exist without a user account.
-- A user can exist without a staff record.
-- Staff management is governed by staff permissions, not user-role assumptions.
-- Departmental data is isolated by schema/table permissions and RLS.
-- Shared records have stable IDs and a single authoritative owner.
-- All sensitive mutations are audited.
-- Staging integration passes with no regression to existing DOWNTIME, YARD HUB, or GATELOG workflows.
-- Production is not changed until the explicit release gate is met.
+## 8. Security and data integrity
 
-## Staging integration record — 26 November 2026
+1. Keep service-role credentials server-side; never expose them in browser code.
+2. Authenticate users through the existing Central Bank session flow.
+3. Check all module permissions server-side in the relevant Edge Function.
+4. Preserve department boundaries through the existing table grants, RLS and API authorization. Do not add blanket public policies to silence security advisor findings.
+5. Keep state changes and audit writes atomic where the operation requires both.
+6. Retain optimistic version checks for Central Bank state.
+7. Keep GATELOG's customer, vehicle, visit and assignment relationships intact.
+8. Do not rename or drop legacy columns until all clients, Edge Functions and historical records have been migrated and verified.
+9. Review RLS/security findings resource by resource; an advisor notice is not permission to change access policies blindly.
 
-The following isolated staging deployment was completed against `DOWNTIME-staging` (`phfojlqezudbjslfrnyw`, `eu-west-1`):
+## 9. No-staging development and production release
 
-- `central-bank` deployed as version 8 from the feature branch. The deployed source was fetched back and matched the branch file exactly.
-- `gatelog-api` deployed as version 5 from the feature branch. The deployed source was fetched back and matched the branch file exactly.
-- Both functions retain their existing custom-session authentication model and `verify_jwt=false` configuration. No secrets or authentication settings were changed.
-- No database migration, table mutation, data migration, or seed operation was performed.
-- The Central Bank payload remained at data version 34, with five roster entries and five staff profiles. GATELOG visits, customers, vehicles, Gateman assignments, and daily operator assignments remained at zero.
-- The legacy `staff-management-api` and `yard-hub-staff-api` functions remain active and unchanged. The legacy `staff_management` and `yard_hub_staff_*` schemas and their existing records were preserved; neither is used by the replacement staff directory.
-- Supabase health advisors returned no findings. The security advisor continues to report 34 informational `rls_enabled_no_policy` findings across the existing staging project. These pre-existing findings require resource-by-resource review before any schema exposure or access-policy change; this feature deployment did not alter them.
+1. Make changes on the feature branch and review the complete diff.
+2. Run the repository's contract, browser and smoke tests locally where available; require CI success on the exact candidate commit.
+3. Run read-only production preflight checks for current schema, migration history, function versions, critical row counts and relevant constraints.
+4. Preserve a recoverable production backup/export and record pre-change invariants before any production write. The additive RPC migration has a simple rollback: drop the newly created function if it has not become a dependency.
+5. Apply the additive RPC migration to the DOWNTIME project only.
+6. Verify the function signature, SECURITY DEFINER setting, empty search path, and EXECUTE grants.
+7. Deploy the matching `central-bank` and `gatelog-api` function versions to DOWNTIME only after the migration verification passes.
+8. Merge and publish the matching frontend only after CI and integrated regression checks pass.
+9. Verify the live login, STAFF create/update/archive/restore, role validation, GATELOG Gateman selection, assignment locking, and USER-count invariance. Confirm existing customer, vehicle, visit, assignment and audit records remain intact.
+10. Keep rollback sources and pre-change counts until post-release verification is complete.
 
-This verifies deployment and source integrity only. Authenticated end-to-end staging workflow tests remain a separate acceptance gate. Production was not accessed or changed.
+There is no staging deployment or staging acceptance gate in this workflow. If a required live authenticated check cannot be performed safely, stop at that release gate rather than claiming it passed.
+
+## 10. Acceptance criteria
+
+- DOWNTIME remains the sole Supabase project and source of truth.
+- No staging project or Supabase development branch is used for this work.
+- DOWNTIME, YARD HUB, GATELOG and Repair & Maintenance continue on the same production database.
+- STAFF and USER remain separate; STAFF never requires a login.
+- One canonical staff directory feeds the relevant operational selectors.
+- Archive, restore, role changes and audit history work without deleting historical records.
+- GATELOG Gateman selection uses active STAFF and does not depend on USER accounts.
+- Existing production records and permission boundaries are preserved.
+- All production changes are additive or demonstrably reversible, with verification and rollback evidence.
