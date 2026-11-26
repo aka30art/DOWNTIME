@@ -67,8 +67,48 @@ export function diagnoseIdentityDirectory(bank) {
     addDiagnostic(diagnostics, "error", "staff-profiles-invalid", "staff.profiles", "STAFF profiles must be an object keyed by the legacy profile key.");
   }
   if (isObject(rawProfiles)) {
+    const profileKeys = new Map();
     for (const [key, profile] of Object.entries(rawProfiles)) {
-      if (!isObject(profile)) addDiagnostic(diagnostics, "error", "staff-profile-invalid", `staff.profiles[${JSON.stringify(key)}]`, "STAFF profile must be an object.");
+      if (!isObject(profile)) {
+        addDiagnostic(diagnostics, "error", "staff-profile-invalid", `staff.profiles[${JSON.stringify(key)}]`, "STAFF profile must be an object.");
+        continue;
+      }
+      const normalisedKey = normaliseUsername(key);
+      if (profileKeys.has(normalisedKey)) addDiagnostic(diagnostics, "error", "duplicate-staff-profile-key", `staff.profiles[${JSON.stringify(key)}]`, `Profile key duplicates ${profileKeys.get(normalisedKey)} case-insensitively.`);
+      else profileKeys.set(normalisedKey, key);
+    }
+  }
+  const rawRoster = isObject(source.staff) ? source.staff.roster : undefined;
+  if (rawRoster != null && !Array.isArray(rawRoster)) {
+    addDiagnostic(diagnostics, "error", "staff-roster-invalid", "staff.roster", "STAFF roster must be an array.");
+  }
+  const rosterSeen = new Map();
+  if (Array.isArray(rawRoster)) {
+    const profileKeySet = new Set(Object.keys(isObject(rawProfiles) ? rawProfiles : {}).map(normaliseUsername));
+    rawRoster.forEach((entry, index) => {
+      if (typeof entry !== "string" || !entry.trim()) {
+        addDiagnostic(diagnostics, "error", "staff-roster-entry-invalid", `staff.roster[${index}]`, "STAFF roster entries must be non-empty names.");
+        return;
+      }
+      const key = normaliseUsername(entry);
+      if (rosterSeen.has(key)) addDiagnostic(diagnostics, "error", "duplicate-staff-roster-entry", `staff.roster[${index}]`, `Roster entry duplicates ${rosterSeen.get(key)} case-insensitively.`);
+      else rosterSeen.set(key, entry);
+      if (!profileKeySet.has(key)) addDiagnostic(diagnostics, "warning", "staff-roster-profile-missing", `staff.roster[${index}]`, "Roster entry has no matching canonical STAFF profile; compatibility copies must be reviewed.");
+    });
+  }
+  const appData = isObject(source.appData) ? source.appData : {};
+  if (Array.isArray(appData.staffRoster) && Array.isArray(rawRoster)) {
+    const canonicalNames = new Set(rawRoster.filter((name) => typeof name === "string").map(normaliseUsername));
+    const compatibilityNames = new Set(appData.staffRoster.filter((name) => typeof name === "string").map(normaliseUsername));
+    if (canonicalNames.size !== compatibilityNames.size || [...canonicalNames].some((name) => !compatibilityNames.has(name))) {
+      addDiagnostic(diagnostics, "warning", "staff-roster-compatibility-mismatch", "appData.staffRoster", "STAFF roster compatibility copy differs from staff.roster.");
+    }
+  }
+  if (isObject(appData.operatorProfiles) && isObject(rawProfiles)) {
+    const canonicalNames = new Set(Object.keys(rawProfiles).map(normaliseUsername));
+    const compatibilityNames = new Set(Object.keys(appData.operatorProfiles).map(normaliseUsername));
+    if (canonicalNames.size !== compatibilityNames.size || [...canonicalNames].some((name) => !compatibilityNames.has(name))) {
+      addDiagnostic(diagnostics, "warning", "staff-profile-compatibility-mismatch", "appData.operatorProfiles", "STAFF profile compatibility copy differs from staff.profiles.");
     }
   }
   const userIds = new Map();
