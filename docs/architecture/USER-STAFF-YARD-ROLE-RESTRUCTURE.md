@@ -198,3 +198,25 @@ The owner approved the recommended direction:
 - Do not remove either legacy permission store or its enforcement until the unified model is implemented, tested, rehearsed and approved for cutover.
 
 This resolves Phase 1 Decision A in favour of a unified model. It does not by itself approve a production migration, account deletion/reclassification, or deployment.
+
+
+## Owner decision — unified YARD ROLE permission model (2026-11-26)
+
+The owner explicitly approved replacing **both** existing application permission systems with one unified YARD ROLE model:
+
+- The existing Central DOWNTIME tier permission system is to be superseded by the unified YARD ROLE model.
+- The existing YARDHUB tier/section permission system is also to be superseded by that same unified YARD ROLE model.
+- A single YARD ROLE assignment and its department-level access matrix will be the authoritative ordinary application permission model across DOWNTIME and YARDHUB.
+- The four mutually exclusive department access levels are **Off**, **Read Only**, **Input**, and **Manage**.
+- ROOTS classifications (DEV1 and protected ADMIN) remain a separate system-authority mechanism, not YARD ROLES.
+- STAFF operational job roles remain separate from application permissions.
+
+Implementation constraints:
+1. Do not simply copy or rename either existing permission store and declare it unified. Define one canonical role/permission schema and a controlled compatibility/migration strategy.
+2. Identify every Central DOWNTIME and YARDHUB permission consumer and migrate enforcement server-side before retiring either legacy permission source.
+3. No legacy tier name (including OWNER, DEVACC, ADMIN, MANAGER, SUPERVISOR, USER, SPECTATOR or MECHANIC) automatically grants a new YARD ROLE or ROOTS classification. Produce an explicit owner-reviewed mapping.
+4. Preserve the existing module and data boundaries until the unified authorization layer is implemented and regression-tested. Do not introduce cross-store writes or weaken existing authorization as an interim shortcut.
+5. The unified model must enforce department-level Off/Read Only/Input/Manage semantics consistently in both applications, including direct API requests; UI visibility is not the security boundary.
+6. Keep a compatibility/rollback path until all permission consumers have migrated and production verification passes.
+
+This resolves Phase 1 Decision A. It does not by itself resolve cross-service transaction semantics for USER+STAFF+role assignment, individual legacy account mapping, incomplete STAFF matching, account lifecycle policy, or final field-level schema. No implementation, production data migration, merge or deployment is authorised by this decision alone.
