@@ -16,7 +16,7 @@ assert.ok(src.includes('failedCount||0)>=5'),'server enforces a five-attempt acc
 assert.ok(src.includes('Try again in five minutes.'),'server lockout window is communicated');
 assert.ok(src.includes('await db.from("downtime_central_sessions").delete().eq("username",existing?.username||username)'), 'updating a USER revokes their prior active sessions');
 assert.ok(src.includes('await db.from("downtime_central_sessions").delete().eq("username",target)'),'deleting a USER revokes their active sessions');
-assert.ok(src.includes('priv.canManageUsers||priv.canViewUsers?bank.users.map(safeUser):[safeUser(currentUser)]'),'only USERS viewers/managers can enumerate accounts');
+assert.ok(src.includes('priv.canManageUsers||priv.canViewUsers?bank.users.filter((u:any)=>u.enabled!==false).map(safeUser):[safeUser(currentUser)]'),'only authenticated USERS viewers/managers can enumerate enabled accounts');
 assert.ok(src.includes('if(!priv.canViewAssignments&&!priv.canManageAssignments)'),'assignment redaction is enforced server-side unless manage access is granted');
 assert.ok(src.includes('if(!priv.canViewDashboards)'),'dashboard redaction is enforced server-side');
 assert.ok(src.includes('if(!priv.canViewReports)delete restrictedData.archive'),'report redaction is enforced server-side');
