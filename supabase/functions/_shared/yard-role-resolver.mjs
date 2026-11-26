@@ -3,6 +3,7 @@
  * ROOTS classifications are deliberately handled by a separate authorization layer.
  */
 export const YARD_ROLE_LEVELS = Object.freeze(["OFF", "READ_ONLY", "INPUT", "MANAGE"]);
+export const YARD_ROLE_DEPARTMENTS = Object.freeze(["SCPL", "R&M", "Management", "SCFL", "Traffic"]);
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -14,6 +15,8 @@ export function resolveYardRolePermissions(role, permissionRows = []) {
   if (String(role.status || "").toUpperCase() !== "ACTIVE") {
     throw new Error("YARD ROLE is not active.");
   }
+  const roleName = String(role.name || "").trim();
+  if (!roleName || roleName.length > 80) throw new Error("YARD ROLE name is invalid.");
   if (!Array.isArray(permissionRows)) {
     throw new Error("YARD ROLE department permissions must be an array.");
   }
@@ -25,15 +28,19 @@ export function resolveYardRolePermissions(role, permissionRows = []) {
     const department = String(row.department || "").trim();
     const key = department.toLocaleLowerCase("en-GB");
     const level = String(row.access_level || row.accessLevel || "").toUpperCase();
-    if (!department || department.length > 80) throw new Error("YARD ROLE department name is invalid.");
+    if (!YARD_ROLE_DEPARTMENTS.includes(department)) throw new Error("YARD ROLE department is not in the approved department catalogue.");
     if (seen.has(key)) throw new Error("A YARD ROLE can have only one access level per department.");
     if (!YARD_ROLE_LEVELS.includes(level)) throw new Error("YARD ROLE department access level is invalid.");
     seen.add(key);
     departments[department] = level;
   }
+  const missingDepartments = YARD_ROLE_DEPARTMENTS.filter((department) => !seen.has(department.toLocaleLowerCase("en-GB")));
+  if (missingDepartments.length) {
+    throw new Error("YARD ROLE must define exactly one access level for each approved department: " + missingDepartments.join(", "));
+  }
   return Object.freeze({
     yardRoleId: role.id,
-    name: String(role.name || ""),
+    name: roleName,
     departments: Object.freeze({ ...departments }),
   });
 }
