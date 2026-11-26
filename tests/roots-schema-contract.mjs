@@ -7,7 +7,7 @@ assert.match(migration,/create table if not exists public\.downtime_roots_assign
 assert.match(migration,/roots_class text not null check \(roots_class in \('DEV1', 'ADMIN'\)\)/);
 assert.match(migration,/enable row level security/);
 assert.match(migration,/revoke all on public\.downtime_roots_assignments from public, anon, authenticated/);
-assert.match(migration,/grant all on public\.downtime_roots_assignments to service_role/);
+assert.match(migration,/grant select on public\.downtime_roots_assignments to service_role/);
 assert.match(migration,/downtime_roots_assignment_audit/);
 assert.match(migration,/prevent_downtime_roots_audit_mutation/);
 assert.match(migration,/prevent_downtime_roots_assignment_mutation/);
