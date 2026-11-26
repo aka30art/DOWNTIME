@@ -51,7 +51,15 @@ try{
  assert.ok(narrowOverflow.html<=narrowOverflow.width,'GATELOG must not overflow at 320px: '+JSON.stringify(narrowOverflow));
  assert.equal(await page.locator('.gatelog-toolbar-spacer').evaluate(el=>getComputedStyle(el).display),'none');
  assert.match(await page.locator('#gatelogRegister').innerText(),/TIME IN|No visits/);
- assert.match(await page.locator('.gatelog-statistics').innerText(),/MOST COMMON WASTE TYPE[\s\S]*OVERALL VISITS[\s\S]*AVERAGE TIME ON SITE/);
+ assert.equal(await page.locator('.gatelog-collapsible').count(),2);
+ assert.equal(await page.locator('.gatelog-day-panel').evaluate(el=>el.open),false,'Day-to-Day panel must start collapsed');
+ assert.equal(await page.locator('.gatelog-statistics-panel').evaluate(el=>el.open),false,'Visit Statistics panel must start collapsed');
+ await page.locator('.gatelog-day-panel summary').click();
+ assert.match(await page.locator('.gatelog-day-panel').innerText(),/Monday[\s\S]*Jan[\s\S]*Tuesday[\s\S]*Mick[\s\S]*Wednesday[\s\S]*Gigi/);
+ await page.locator('.gatelog-statistics-panel summary').click();
+ assert.match(await page.locator('#gatelogPeriodStatistics').innerText(),/DAILY[\s\S]*WEEKLY[\s\S]*MONTHLY[\s\S]*ALL TIME/);
+ await page.locator('[data-period="weekly"]').click();
+ assert.match(await page.locator('#gatelogPeriodStatistics').innerText(),/VISITS[\s\S]*8/);
  await page.locator('#gatelogNewVisit').click();
  assert.equal(await page.locator('#gatelogModal').isVisible(),true);
  await page.getByRole('button',{name:/NEW CUSTOMER/}).click();
