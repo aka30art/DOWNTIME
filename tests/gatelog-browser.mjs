@@ -118,12 +118,12 @@ try{
  assert.ok((await page.evaluate(()=>window.__calls)).includes('visit-delete'),'Deleting a visit must call the visit delete action');
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'Visit cards and controls must not create horizontal overflow at 320px');
  await page.locator('#gatelogAssignGateman').click();
+ assert.equal(await page.locator('#gatelogGatemanSelect option').first().textContent(),'Jan · Supervisor','GATELOG displays the operational staff role');
  await page.locator('#gatelogGatemanSelect').selectOption('Jan');
  await page.locator('#gatelogGatemanForm [type=submit]').click();
- await page.locator('#gatelogLockGateman').click();
  assert.ok((await page.evaluate(()=>window.__calls)).includes('gateman-save'));
  assert.equal(await page.evaluate(()=>window.__gatemanPayload?.staffName),'Jan','GATELOG sends a STAFF name, not a USER username');
- assert.equal(await page.locator('#gatelogGatemanSelect option').first().textContent(),'Jan · Supervisor','GATELOG displays the operational staff role');
+ await page.locator('#gatelogLockGateman').click();
  assert.ok((await page.evaluate(()=>window.__calls)).includes('gateman-lock'));
  await page.locator('#gatelogNewVisit').click();
  assert.equal(await page.locator('#gatelogModal').isVisible(),true);
