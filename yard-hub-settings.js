@@ -310,20 +310,23 @@
     }
     setBusy(true);setStatus(centralChanges?'SAVING CENTRAL USER…':'SAVING YARD HUB TIER…');
     let centralSaved=false;
+    let provisionedUserId=existing?.userId||null;
     try{
       if(centralChanges){
         const saveCentralUser=window.saveDowntimeCentralUserFromYardHub;
         if(typeof saveCentralUser!=='function')throw new Error('Central user mutation bridge is unavailable. Refresh and try again.');
         const saved=await saveCentralUser(userData);
+        provisionedUserId=saved.userId||provisionedUserId;
         state.centralVersion=Number(saved.version||state.centralVersion+1);
         centralSaved=true;
       }
       if(isNew||pendingProvisioning){
-        await callApi('assign-user-role',{username,yardRoleId:requestedYardRoleId});
+        if(!/^[0-9a-f-]{36}$/i.test(String(provisionedUserId||'')))throw new Error('Provisioned immutable USER ID is missing. The account remains inactive.');
+        await callApi('assign-user-role',{userId:provisionedUserId,yardRoleId:requestedYardRoleId});
         if(enabled){
           const activate=window.activateDowntimeCentralUserFromYardHub;
           if(typeof activate!=='function')throw new Error('USER activation bridge is unavailable. The account remains inactive.');
-          const activated=await activate(username);
+          const activated=await activate(provisionedUserId);
           state.centralVersion=Number(activated.version||state.centralVersion+1);
         }
       }else if(!canonicalIdentity){
@@ -352,10 +355,11 @@
     try{
       if(user.provisioningState==='YARD_ROLE_PENDING'&&enabled){
         if(!user.requestedYardRoleId)throw new Error('The pending USER has no requested canonical YARD ROLE.');
-        await callApi('assign-user-role',{username:user.username,yardRoleId:user.requestedYardRoleId});
+        if(!/^[0-9a-f-]{36}$/i.test(String(user.userId||'')))throw new Error('Pending USER has no immutable USER ID.');
+        await callApi('assign-user-role',{userId:user.userId,yardRoleId:user.requestedYardRoleId});
         const activate=window.activateDowntimeCentralUserFromYardHub;
         if(typeof activate!=='function')throw new Error('USER activation bridge is unavailable.');
-        const result=await activate(user.username);
+        const result=await activate(user.userId);
         state.centralVersion=Number(result.version||state.centralVersion+1);
       }else{
         const saveCentralUser=window.saveDowntimeCentralUserFromYardHub;
