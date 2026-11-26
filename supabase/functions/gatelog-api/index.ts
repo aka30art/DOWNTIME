@@ -95,9 +95,8 @@ Deno.serve(async (req: Request) => {
   if(action==="day-register"){
     const dutyDate=clean(body.dutyDate,10);
     if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate))return json({error:"Select a valid date."},400);
-    const {data,error}=await db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,time_out,status,created_by,departed_by,gatelog_customers(customer_name),gatelog_visit_waste_types(gatelog_waste_types(label))").eq("visit_date",dutyDate).order("time_in",{ascending:false}).limit(5000);
-    if(error)return fail(error);
-    const visits=(data||[]).map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)}));
+    const rows:any[]=[];for(let offset=0;offset<100000;offset+=1000){const page=await db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,time_out,status,created_by,departed_by,gatelog_customers(customer_name),gatelog_visit_waste_types(gatelog_waste_types(label))").eq("visit_date",dutyDate).order("time_in",{ascending:false}).range(offset,offset+999);if(page.error)return fail(page.error);rows.push(...(page.data||[]));if((page.data||[]).length<1000)break;}
+    const visits=rows.map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)}));
     const {data:assignment,error:assignmentError}=await db.from("gatelog_daily_gateman_assignments").select("gateman_name,is_locked").eq("duty_date",dutyDate).maybeSingle();
     if(assignmentError)return fail(assignmentError);
     return json({visits,assignment:assignment||{gateman_name:"Not assigned",is_locked:false}});
@@ -109,11 +108,10 @@ Deno.serve(async (req: Request) => {
     const d=new Date(anchor+"T00:00:00Z");let from=anchor,to=anchor;
     if(period==="weekly"){d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));from=d.toISOString().slice(0,10);d.setUTCDate(d.getUTCDate()+5);to=d.toISOString().slice(0,10);}
     if(period==="monthly"){from=anchor.slice(0,7)+"-01";const end=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0));to=end.toISOString().slice(0,10);}
-    const {data,error}=await db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,time_out,status,created_by,departed_by,gatelog_customers(customer_name),gatelog_visit_waste_types(gatelog_waste_types(label))").gte("visit_date",from).lte("visit_date",to).order("time_in",{ascending:true}).limit(20000);
-    if(error)return fail(error);
+    const reportRows:any[]=[];for(let offset=0;offset<100000;offset+=1000){const page=await db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,time_out,status,created_by,departed_by,gatelog_customers(customer_name),gatelog_visit_waste_types(gatelog_waste_types(label))").gte("visit_date",from).lte("visit_date",to).order("time_in",{ascending:true}).range(offset,offset+999);if(page.error)return fail(page.error);reportRows.push(...(page.data||[]));if((page.data||[]).length<1000)break;}
     const {data:assignments,error:assignmentError}=await db.from("gatelog_daily_gateman_assignments").select("duty_date,gateman_name,is_locked").gte("duty_date",from).lte("duty_date",to).order("duty_date",{ascending:true});
     if(assignmentError)return fail(assignmentError);
-    return json({period,from,to,visits:(data||[]).map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)})),assignments:assignments||[]});
+    return json({period,from,to,visits:reportRows.map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)})),assignments:assignments||[]});
   }
   if(action==="customer-arrival"){
     const name=clean(body.customerName,120),registration=clean(body.registration,20).toUpperCase();
