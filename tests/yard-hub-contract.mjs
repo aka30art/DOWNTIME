@@ -12,8 +12,12 @@ assert.match(html, /YARD OPERATIONS CORE/, 'YARD HUB carries the approved platfo
 assert.match(html, /id="yardHubUsername"/, 'YARD HUB displays the authenticated user');
 assert.match(html, /id="yardHubLogoutBtn"/, 'YARD HUB provides a sign-out action');
 assert.match(html, /id="launchDowntimeBtn" data-app="downtime"/, 'DOWNTIME has a dedicated application launcher');
-assert.match(html, /data-app="floor" type="button" disabled/, 'FLOOR remains visible but unavailable');
-assert.match(html, /data-app="check-sheets" type="button" disabled/, 'CHECK SHEETS remains visible but unavailable');
+assert.match(html, /data-app="floor" type="button" disabled/, 'STAFF MANAGEMENT remains visible but unavailable');
+assert.match(html, /class="yard-tile-copy"><strong>STAFF MANAGEMENT<\/strong>/, 'FLOOR module tile displays the STAFF MANAGEMENT title');
+assert.match(html, /data-app="check-sheets" type="button" disabled/, 'DAILY remains visible but unavailable');
+assert.match(html, /class="yard-tile-copy"><strong>DAILY<\/strong>/, 'CHECK SHEETS module tile displays the DAILY title');
+assert.match(html, /STAFF MANAGEMENT and DAILY stay unavailable until their applications are released\./, 'module availability note uses the renamed tile titles');
+assert.doesNotMatch(html, /<strong>FLOOR<\/strong>|<strong>CHECK SHEETS<\/strong>/, 'old module titles are absent from the YARD HUB tile labels');
 assert.match(html, /id="launchRepairMaintenanceBtn" data-app="repair-maintenance" type="button"/, 'R&M has an active dedicated module launcher');
 assert.doesNotMatch(html, /id="launchRepairMaintenanceBtn"[^>]*disabled/, 'R&M is not hard-disabled in the HUB markup');
 assert.match(html, /repair-maintenance-launch\.js/, 'R&M launcher loads its authenticated module gate');
