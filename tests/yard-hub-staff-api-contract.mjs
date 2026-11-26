@@ -30,7 +30,7 @@ assert.match(api, /req\.headers\.get\("x-downtime-session"\)/, 'API requires the
 assert.match(api, /from\("downtime_central_sessions"\)[\s\S]*?eq\("token_hash", tokenHash\)[\s\S]*?gt\("expires_at"/, 'API validates the hashed unexpired YARD HUB session');
 assert.match(api, /from\("downtime_central_bank"\)[\s\S]*?select\("payload"\)/, 'API reads the existing account directory');
 assert.doesNotMatch(api, /from\("downtime_central_bank"\)\.(update|insert|upsert|delete)/, 'API cannot write the central identity or DOWNTIME data payload');
-assert.match(api, /configRow\.payload\?\.tiers\?\[hubTier\]\?\.floor/, 'Access is governed by the existing STAFF MANAGEMENT YARD HUB tier permission');
+assert.ok(api.includes('configRow.payload?.tiers?.[hubTier]?.floor'), 'Access is governed by the existing STAFF MANAGEMENT YARD HUB tier permission');
 assert.match(api, /modeRank: Record<string, number> = \{ NONE: 0, READ: 1, INPUT: 2, EDIT: 3 \}/, 'Existing READ / INPUT / EDIT semantics are used');
 assert.match(api, /staffType === "USER" && !linkedUsername/, 'USER classification requires a linked account');
 assert.match(api, /staffType === "STAFF" && linkedUsername/, 'STAFF classification forbids a linked account');
