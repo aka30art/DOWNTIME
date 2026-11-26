@@ -12,7 +12,7 @@ assert.match(html, /YARD OPERATIONS CORE/, 'YARD HUB carries the approved platfo
 assert.match(html, /id="yardHubUsername"/, 'YARD HUB displays the authenticated user');
 assert.match(html, /id="yardHubLogoutBtn"/, 'YARD HUB provides a sign-out action');
 assert.match(html, /id="launchDowntimeBtn" data-app="downtime"/, 'DOWNTIME has a dedicated application launcher');
-assert.match(html, /data-app="floor" type="button" disabled/, 'STAFF MANAGEMENT remains visible but unavailable');
+assert.match(html, /<button class="yard-tile yard-tile-active" data-app="floor" type="button"/, 'STAFF MANAGEMENT launcher is enabled');
 assert.match(html, /class="yard-tile-copy"><strong>STAFF MANAGEMENT<\/strong>/, 'FLOOR module tile displays the STAFF MANAGEMENT title');
 assert.match(html, /data-app="check-sheets" type="button" disabled/, 'DAILY remains visible but unavailable');
 assert.match(html, /class="yard-tile-copy"><strong>DAILY<\/strong>/, 'CHECK SHEETS module tile displays the DAILY title');
