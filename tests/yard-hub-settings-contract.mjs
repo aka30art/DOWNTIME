@@ -59,7 +59,7 @@ assert.ok(ui.includes("if(typeof saveCentralUser!=='function')throw new Error('C
 assert.ok(!ui.includes('window.DowntimeCentral.saveUser('),'Hub UI cannot bypass the serialized central-user bridge');
 assert.match(ui,/window\.DowntimeCentral\?\.session/,'Hub Settings uses the existing opaque central session');
 assert.match(ui,/tier:downtimeTier/,'editing a user preserves the legacy DOWNTIME tier');
-assert.match(ui,/const downtimeTier=existing\?\.legacyTier\|\|'USER'/,'new accounts default to restricted DOWNTIME USER while existing DOWNTIME tiers are preserved');
+assert.match(ui,/const downtimeTier=existing\?\.legacyTier\?\?null/,'new canonical identities carry no legacy DOWNTIME tier while existing legacy tiers are preserved');
 assert.match(ui,/save-user-tier/,'Hub tier assignment is stored through the separate Hub API');
 assert.match(ui,/legacyTier/,'DOWNTIME tier is displayed separately from Hub tier');
 assert.match(ui,/DISABLE ACCOUNT|DISABLE/,'Hub user management supports disabling accounts');
