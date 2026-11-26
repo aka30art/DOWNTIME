@@ -196,6 +196,7 @@ Deno.serve(async(req)=>{
  }
  if(action==="user-staff-activate"){
    if(!isDevRoot)return json({error:"Only immutable DEV may activate newly provisioned USER identities."},403);
+   if(Deno.env.get("DOWNTIME_CANONICAL_AUTH_READY")!=="true")return json({error:"Canonical USER sessions and YARD ROLE authorization are not yet active. The USER remains disabled."},503);
    const userId=String(body.userId||"");
    if(!/^[0-9a-f-]{36}$/i.test(userId))return json({error:"Immutable USER ID required."},400);
    const target=bank.users.find((item:any)=>String(item.userId||"").toLowerCase()===userId.toLowerCase());
