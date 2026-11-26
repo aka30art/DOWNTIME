@@ -657,7 +657,7 @@ try{
  await owner.page.locator('[data-settings-open="staff"]').click();
  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
  await owner.page.locator('#smDepartment').selectOption('SCPL');
- const stationOptionLabels=await owner.page.locator('#smStation option').allTextContents();
+ const stationOptionLabels=await owner.page.locator('#smStation option').evaluateAll(options=>options.filter(option=>!option.hidden).map(option=>option.textContent.trim()));
  assert.ok(stationOptionLabels.includes('Bay A · WOOD'),'STAFF profile choices display the renamed station label');
  assert.equal(stationOptionLabels.includes('Station 7 · GENERAL'),false,'SCPL assignment choices exclude Station 7 because only Stations 1–6 are permitted');
  assert.equal(stationOptionLabels.includes('Station 2 · WOOD'),false,'STAFF assignment choices exclude a deactivated station');
