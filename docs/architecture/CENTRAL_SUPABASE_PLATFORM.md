@@ -78,7 +78,7 @@ The following read-only inventory was checked directly against the DOWNTIME proj
 
 The live database also contains the existing DOWNTIME reports and photo evidence tables, YARD HUB tier configuration and access audit, daily operator assignments, and Repair & Maintenance assets, faults, notes, attachments, presets, models, settings and audit history.
 
-The deployed Edge Functions at the inventory checkpoint were `central-bank` v15 and `gatelog-api` v6. The production migration history ended at `20261126062959_gatelog_waste_type_activation`.
+The deployed Edge Functions at the inventory checkpoint were `central-bank` v15 and `gatelog-api` v6. At the initial pre-release inventory checkpoint on 26 November, the production migration history ended at `20261126062959_gatelog_waste_type_activation`; the additional atomic Central Bank migration is recorded in Section 7 below.
 
 No departmental data needs to be copied into a new database. These are existing production records and must be preserved in place. Never assume a table is empty based on an earlier test environment or a previous inventory.
 
