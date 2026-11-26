@@ -603,7 +603,7 @@ Deno.serve(async(req)=>{
    if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username)||!tiers.includes(newTier))return json({error:"Invalid user/tier"},400);
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
    const existing=idx>=0?bank.users[idx]:null;
-   if(!existing)return json({error:"New accounts are blocked until the canonical YARD ROLE provisioning workflow is implemented."},409);
+   if(!existing)return json({error:"New accounts must use the canonical USER + STAFF + YARD ROLE provisioning workflow."},409);
    if(existing.provisioning&&body.enabled!==false)return json({error:"A pending USER must be activated only after its canonical YARD ROLE assignment is persisted."},409);
    const isRootName=username.toUpperCase()==="DEV";
    if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEV and DEVACC can create accounts or assign user tiers."},403);
