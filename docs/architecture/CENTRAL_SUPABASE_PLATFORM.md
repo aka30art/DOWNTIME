@@ -43,6 +43,19 @@ Suggested logical ownership:
 
 Names above describe logical ownership; final table and schema names are established through the relevant migration design.
 
+## Verified environment inventory (2026-11-26)
+
+The Supabase organisation currently contains two projects:
+
+- **DOWNTIME** (`ygwfipksbbprqynvbklk`, `eu-west-1`) — the existing production project and the target shared production backend.
+- **DOWNTIME-staging** (`phfojlqezudbjslfrnyw`, `eu-west-1`) — the isolated development/test environment. It is not a separate departmental production backend and remains available for staging validation.
+
+The production project already contains the active Central Bank, DOWNTIME, Repair & Maintenance, YARD HUB settings, GATELOG, photo-evidence, and spectator Edge Functions. Its database already contains the DOWNTIME central bank/audit/session tables, Repair & Maintenance tables, YARD HUB access configuration/audit, daily operator assignments, and GATELOG customers, vehicles, visits, waste types, assignments, and audit tables. Therefore, the core DOWNTIME + YARD HUB + GATELOG production consolidation is already present; development should extend this project rather than create another production project.
+
+The staging project contains legacy experimental STAFF structures, including the isolated `staff_management` schema and a separate `yard_hub_staff_*` table family. These are not the approved production STAFF architecture. Do not merge, deploy, or migrate either model into production. Preserve the staging data and services while assessing dependencies; the replacement staff directory must build on the existing Central Data Bank staff roster and keep STAFF independent of USER identity.
+
+Current production module tables are largely namespaced in `public`. This is an existing implementation detail, not a requirement that every future department use one shared table. Schema ownership, RLS, grants, and Edge Function authorisation must be evaluated per module before any schema reorganisation.
+
 ## Current implementation starting point
 
 YARD HUB already uses the Central Data Bank payload and the `downtime_central_bank` / `downtime_central_audit` tables for shared state and audit. Its staff roster and profiles are mirrored under `bank.staff` and the compatibility `bank.appData` fields.
