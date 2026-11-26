@@ -30,7 +30,6 @@ function render(){const host=ensureWorkspace();if(!host)return;host.innerHTML=`
    <details class="gatelog-main-menu" id="gatelogMainMenu">
     <summary class="gatelog-hero-icon gatelog-main-menu-trigger" aria-label="Open GATELOG main menu" title="GATELOG Main Menu">
      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-     <span class="gatelog-menu-chevron" aria-hidden="true">⌄</span>
     </summary>
     <nav class="gatelog-main-menu-panel" aria-label="GATELOG Main Menu">
      <button id="gatelogOpenCustomers" type="button">☷ &nbsp; CUSTOMER CATALOGUE</button>
