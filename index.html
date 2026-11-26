@@ -1943,7 +1943,8 @@ async function manageStaffRoles(){
   allStaffRoster().forEach(name=>{
    const profile=nextProfiles[name];if(!profile?.onSiteRole)return;
    const oldIndex=originalRoles.findIndex(role=>role.toLowerCase()===String(profile.onSiteRole).toLowerCase());
-   if(oldIndex>=0&&draftRoles[oldIndex]&&draftRoles[oldIndex]!==originalRoles[oldIndex])profile.onSiteRole=draftRoles[oldIndex];
+   const newIndex=draftRoleOrigins.findIndex(origin=>origin===oldIndex);
+   if(oldIndex>=0&&newIndex>=0&&draftRoles[newIndex]&&draftRoles[newIndex]!==originalRoles[oldIndex])profile.onSiteRole=draftRoles[newIndex];
   });
   state.staffRoles=next;state.operatorProfiles=nextProfiles;save.disabled=true;message.textContent='Saving to Central Data Bank…';
   if(!await persistSettingsConfirmed()){state.staffRoles=previousRoles;state.operatorProfiles=previousProfiles;restoreLocalSettingsSnapshot();save.disabled=false;message.textContent='Save failed. No changes were retained.';return}
