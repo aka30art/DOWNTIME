@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   buildIdentityMigrationPreview,
+  buildNewUserStaffIdentityPair,
   diagnoseIdentityDirectory,
   normaliseIdentityDirectory,
   validateNewUserStaffPair,
@@ -53,6 +54,41 @@ assert.ok(preview.diagnostics.warnings >= 6);
 assert.equal(preview.users.validRecordCount, 2);
 assert.equal(preview.staff.validProfileCount, 2);
 assert.ok(preview.findings.some((item) => item.code === "legacy-name-match-unverified"), "possible name matches are reported but never linked");
+
+const generatedPair = buildNewUserStaffIdentityPair(
+  { username: "Generated.User", displayName: "Generated User" },
+  { displayName: "Generated User", department: "Operations", station: "Line 2", stationLocked: false },
+  [],
+  [],
+  (() => { const ids = [uid1, sid1]; return () => ids.shift(); })(),
+);
+assert.equal(generatedPair.user.userId, uid1);
+assert.equal(generatedPair.user.staffId, sid1);
+assert.equal(generatedPair.user.status, "PROVISIONING");
+assert.equal(generatedPair.user.enabled, false, "new USER remains unable to authenticate before role provisioning completes");
+assert.equal(generatedPair.staff.staffId, sid1);
+assert.equal(generatedPair.staff.linkedUserId, uid1);
+assert.equal(generatedPair.staff.station, "Line 2");
+assert.equal(generatedPair.staff.stationLocked, false);
+assert.throws(() => buildNewUserStaffIdentityPair(
+  { username: "Injected", displayName: "Injected", userId: uid1 },
+  { displayName: "Injected" },
+), /USER identity, tier, credential and activation fields are server-generated/);
+assert.throws(() => buildNewUserStaffIdentityPair(
+  { username: "Generated.User", displayName: "Generated User" },
+  { displayName: "Generated User", linkedUserId: uid1 },
+), /STAFF identity and ROOTS fields are server-generated/);
+assert.throws(() => buildNewUserStaffIdentityPair(
+  { username: "DEV", displayName: "DEV" },
+  { displayName: "DEV" },
+), /DEV is the immutable root identity/);
+assert.throws(() => buildNewUserStaffIdentityPair(
+  { username: "Broken", displayName: "Broken" },
+  { displayName: "Broken" },
+  [],
+  [],
+  () => uid1,
+), /two distinct UUIDs/);
 
 const validUser = { userId: uid1, staffId: sid1, username: "New.User", displayName: "New User" };
 const validStaff = { staffId: sid1, linkedUserId: uid1, displayName: "New User", department: "Operations" };
