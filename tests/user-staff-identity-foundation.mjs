@@ -119,6 +119,16 @@ for (const code of [
   "orphan-staff-user-link",
 ]) assert.ok(issues.some((item) => item.code === code), "diagnostic " + code);
 
+const rosterMismatch = {
+  users: [{ username: "DEV", userId: uid2 }],
+  staff: { roster: ["Roster Only"], profiles: { "Different Profile": {} } },
+  appData: { staffRoster: ["Legacy Copy"], operatorProfiles: { "Legacy Copy": {} } },
+};
+const mismatchCodes = diagnoseIdentityDirectory(rosterMismatch).map((item) => item.code);
+assert.ok(mismatchCodes.includes("staff-roster-profile-missing"));
+assert.ok(mismatchCodes.includes("staff-roster-compatibility-mismatch"));
+assert.ok(mismatchCodes.includes("staff-profile-compatibility-mismatch"));
+
 const noMutationSnapshot = structuredClone(linked);
 buildIdentityMigrationPreview(linked);
 assert.deepEqual(linked, noMutationSnapshot, "migration preview must be read-only");
