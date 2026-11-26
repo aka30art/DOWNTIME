@@ -256,3 +256,17 @@ body.gatelog-modal-open{overflow:hidden}
  .gatelog-main-menu-panel{width:min(260px,calc(100vw - 44px));padding:9px}
  .gatelog-main-menu-panel button{min-height:46px;font-size:11px}
 }
+
+
+/* Unified customer catalogue — visit selection and management in one place */
+.gatelog-catalogue-admin-toolbar{display:flex;justify-content:flex-end;margin:0 0 10px}
+.gatelog-catalogue-card-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.gatelog-catalogue-card-actions button{min-height:38px;padding:8px 11px;border:1px solid #40596d;border-radius:8px;background:linear-gradient(180deg,#263e50,#152735);color:#f3f6fa;font-size:10px;font-weight:900;letter-spacing:.4px}
+.gatelog-catalogue-card-actions button[data-use-customer]{border-color:#d9ad19;background:#ffd21a;color:#142334}
+.gatelog-catalogue-card-actions button.danger{border-color:#874b43;color:#ff9d8f}
+.gatelog-catalogue-card-actions button:hover,.gatelog-catalogue-card-actions button:focus-visible{border-color:#ffd21a;outline:none}
+@media(max-width:520px){
+ .gatelog-catalogue-card-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+ .gatelog-catalogue-card-actions button{width:100%}
+ .gatelog-catalogue-card-actions button[data-use-customer]{grid-column:1/-1}
+}
