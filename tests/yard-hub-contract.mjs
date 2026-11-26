@@ -19,6 +19,7 @@ assert.match(html, /function syncStaffModuleAccess\(\)[\s\S]*?tile\.disabled=!al
 assert.match(html, /function launchStaffManagement\(\)[\s\S]*?openSettingsPanel\('staff'\)/, 'Staff Management launcher opens the existing central STAFF workspace');
 assert.match(html, /launchStaffManagementBtn'\)\?\.addEventListener\('click',launchStaffManagement\)/, 'Staff Management launcher has a click handler');
 assert.match(html, /if\(section==='staff'&&isStaffModuleAutoAccess\(\)\)return true/, 'privileged tiers can open STAFF even when granular view flags are unset');
+assert.match(html, /hubTier==='OWNER'\|\|hubTier==='DEVACC'\|\|hubTier==='ADMIN'\|\|permission\('canAccessYardHub'\)/, 'ADMIN tier can reach YARD HUB for its automatic Staff Management access');
 const staffAccessSource = html.match(/function isStaffModuleAutoAccess\(\)\{[^}]*\}/)?.[0];
 assert.ok(staffAccessSource, 'Staff Management auto-access policy is explicit and testable');
 const staffAccess = new Function('centralUser', staffAccessSource + '; return isStaffModuleAutoAccess;');
