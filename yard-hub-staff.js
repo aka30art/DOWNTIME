@@ -88,8 +88,12 @@
     ensure();if(!screen)return;
     setHubVisible(false);screen.hidden=false;activeTab='people';
     window.scrollTo({top:0,behavior:'instant'});
-    await loadState();
-    requestAnimationFrame(()=>screen.focus({preventScroll:true}));
+    try{
+      await loadState();
+      requestAnimationFrame(()=>screen.focus({preventScroll:true}));
+    }catch{
+      // loadState already exposes a user-facing error; avoid an unhandled click promise.
+    }
   }
   async function loadState(){
     if(loading)return loading;
