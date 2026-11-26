@@ -1,0 +1,94 @@
+/* YARD HUB STAFF MANAGEMENT — isolated presentation scope */
+#yardHub .yard-staff-screen{width:100%;max-width:1180px;margin:0 auto;padding:clamp(12px,2.2vw,26px);color:#f3f6f8}
+#yardHub .yard-staff-screen[hidden]{display:none!important}
+#yardHub .yard-staff-header{padding:0 0 18px;border-bottom:1px solid #2a4659}
+#yardHub .yard-staff-header .yard-hub-back{margin-bottom:18px}
+#yardHub .yard-staff-eyebrow{color:#91a9ba;font-size:10px;font-weight:900;letter-spacing:1.5px}
+#yardHub .yard-staff-header h1{margin:10px 0 6px;font-size:clamp(25px,5vw,38px);font-weight:950;letter-spacing:.8px}
+#yardHub .yard-staff-header p{margin:0;color:#9bb0bf;font-size:13px;line-height:1.5}
+#yardHub .yard-staff-notice{min-height:0;margin:10px 0;color:#9fb3c2;font-size:11px;font-weight:800;letter-spacing:.5px}
+#yardHub .yard-staff-notice:empty{display:none}
+#yardHub .yard-staff-notice[data-state="error"]{color:#ff8c8c}
+#yardHub .yard-staff-notice[data-state="ok"]{color:#79dfad}
+#yardHub .yard-staff-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+#yardHub .yard-staff-kpi{min-width:0;padding:14px 15px;border:1px solid #355166;border-radius:13px;background:linear-gradient(145deg,#1c3446,#0d1d2a)}
+#yardHub .yard-staff-kpi strong{display:block;color:#ffd21a;font-size:26px;font-weight:950;line-height:1.1}
+#yardHub .yard-staff-kpi span{display:block;margin-top:8px;color:#a6bac8;font-size:9px;font-weight:900;letter-spacing:.9px}
+#yardHub .yard-staff-tabs{display:flex;gap:7px;overflow-x:auto;padding:0 0 11px;border-bottom:1px solid #2b4658;scrollbar-width:thin}
+#yardHub .yard-staff-tabs button{flex:0 0 auto;min-height:42px;padding:10px 13px;border:1px solid #365267;border-radius:9px;background:#142838;color:#b5c5cf;font-size:10px;font-weight:950;letter-spacing:.6px}
+#yardHub .yard-staff-tabs button.active{border-color:#ffd21a;background:#20394b;color:#ffd21a}
+#yardHub .yard-staff-content{padding-top:16px}
+#yardHub .yard-staff-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0 0 14px}
+#yardHub .yard-staff-section-title h2{margin:0 0 5px;font-size:18px;font-weight:950;letter-spacing:.8px}
+#yardHub .yard-staff-section-title p{margin:0;color:#94aaba;font-size:11px;line-height:1.5}
+#yardHub .yard-staff-actions,#yardHub .yard-staff-person-actions,#yardHub .yard-staff-inline-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+#yardHub .yard-staff-button{min-height:38px;padding:9px 12px;border:1px solid #3c5a6f;border-radius:9px;background:#192f40;color:#f2f5f7;font-size:10px;font-weight:950;letter-spacing:.5px;cursor:pointer}
+#yardHub .yard-staff-button.primary{border-color:#ffd21a;background:#ffd21a;color:#111a22}
+#yardHub .yard-staff-button.danger{border-color:#7b4146;background:#38222b;color:#ffabab}
+#yardHub .yard-staff-button.icon{width:37px;height:37px;padding:0;font-size:23px;line-height:1}
+#yardHub .yard-staff-button:disabled{opacity:.48;cursor:not-allowed}
+#yardHub .yard-staff-filters{display:grid;grid-template-columns:minmax(0,1fr) 175px 165px auto;gap:8px;margin:0 0 12px}
+#yardHub .yard-staff-search,#yardHub .yard-staff-filter,#yardHub .yard-staff-input{width:100%;min-width:0;min-height:42px;padding:10px 11px;border:1px solid #365267;border-radius:9px;background:#091a27;color:#f3f6f8;font:inherit;font-size:12px}
+#yardHub .yard-staff-search::placeholder{color:#8098a8}
+#yardHub .yard-staff-archive-filter{display:flex;align-items:center;gap:7px;padding:0 6px;color:#a9bac7;font-size:10px;font-weight:850;white-space:nowrap}
+#yardHub .yard-staff-list,#yardHub .yard-staff-config-list,#yardHub .yard-staff-audit-list{display:grid;gap:9px}
+#yardHub .yard-staff-person-card,#yardHub .yard-staff-config-row,#yardHub .yard-staff-audit-row{display:flex;align-items:center;justify-content:space-between;gap:13px;min-width:0;padding:13px;border:1px solid #314e62;border-radius:12px;background:linear-gradient(145deg,#172f41,#0d1d29)}
+#yardHub .yard-staff-person-card.archived{opacity:.64;border-style:dashed}
+#yardHub .yard-staff-person-identity{display:grid;gap:3px;min-width:150px;flex:1}
+#yardHub .yard-staff-code{color:#ffd21a;font-size:9px;font-weight:950;letter-spacing:.8px}
+#yardHub .yard-staff-person-identity strong{font-size:15px;font-weight:950;overflow-wrap:anywhere}
+#yardHub .yard-staff-person-detail{display:flex;gap:7px;flex-wrap:wrap;color:#93a9b9;font-size:10px}
+#yardHub .yard-staff-tags{display:flex;align-items:center;gap:5px;justify-content:flex-start;flex-wrap:wrap;flex:2;min-width:180px}
+#yardHub .yard-staff-tag{display:inline-flex;align-items:center;padding:5px 7px;border:1px solid #40586a;border-radius:999px;background:#102231;color:#b6c6d0;font-size:8px;font-weight:900;letter-spacing:.35px}
+#yardHub .yard-staff-tag.user{border-color:#38785d;color:#8ce0b4}
+#yardHub .yard-staff-tag.staff{border-color:#3b647a;color:#a5c5d7}
+#yardHub .yard-staff-tag.active{color:#8ce0b4}
+#yardHub .yard-staff-tag.inactive,#yardHub .yard-staff-tag.left,#yardHub .yard-staff-tag.archived{border-color:#72515a;color:#e5a9ad}
+#yardHub .yard-staff-tag.primary{border-color:#a17e1a;color:#ffdc72}
+#yardHub .yard-staff-tag.account-disabled{border-color:#8a5151;color:#ffabab}
+#yardHub .yard-staff-tag.account-active{border-color:#39785a;color:#8ce0b4}
+#yardHub .yard-staff-tag.muted{color:#8fa2af}
+#yardHub .yard-staff-person-actions{justify-content:flex-end;flex:0 0 auto}
+#yardHub .yard-staff-person-actions .yard-staff-button{min-height:33px;padding:7px 9px;font-size:9px}
+#yardHub .yard-staff-config-copy{display:grid;gap:4px;min-width:0}
+#yardHub .yard-staff-config-copy strong{font-size:14px;font-weight:950;overflow-wrap:anywhere}
+#yardHub .yard-staff-config-copy small{color:#9bb0bf;font-size:10px;overflow-wrap:anywhere}
+#yardHub .yard-staff-empty{padding:26px 14px;border:1px dashed #3a566a;border-radius:12px;color:#93aaba;text-align:center;font-size:12px}
+#yardHub .yard-staff-modal-backdrop{position:fixed;inset:0;z-index:10030;display:grid;place-items:center;padding:14px;background:#020b12d9;overflow-y:auto}
+#yardHub .yard-staff-modal{width:min(680px,100%);max-height:min(92vh,900px);overflow-y:auto;padding:18px;border:1px solid #456176;border-radius:16px;background:linear-gradient(145deg,#1a3446,#081721);box-shadow:0 22px 70px #000b}
+#yardHub .yard-staff-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
+#yardHub .yard-staff-modal-head h2{margin:6px 0 4px;font-size:20px;font-weight:950}
+#yardHub .yard-staff-modal-head p{margin:0;color:#9cb1bf;font-size:11px;line-height:1.5}
+#yardHub .yard-staff-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#yardHub .yard-staff-field{display:grid;gap:6px;min-width:0;color:#d8e1e7;font-size:10px;font-weight:900;letter-spacing:.55px}
+#yardHub .yard-staff-field small{color:#91a7b6;font-size:9px;font-weight:600;line-height:1.45;letter-spacing:0}
+#yardHub .yard-staff-input{font-weight:500;letter-spacing:0}
+#yardHub .yard-staff-input[multiple]{min-height:104px}
+#yardHub .yard-staff-account-box{display:grid;gap:9px;margin-top:14px;padding:12px;border:1px solid #465b6c;border-radius:11px;background:#0c1d2a}
+#yardHub .yard-staff-account-box[hidden]{display:none!important}
+#yardHub .yard-staff-note{margin:0;color:#9eb2c0;font-size:10px;line-height:1.5}
+#yardHub .yard-staff-modal-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:13px;border-top:1px solid #314b5e}
+#yardHub .yard-staff-audit-row{display:grid;gap:5px}
+#yardHub .yard-staff-audit-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#yardHub .yard-staff-audit-top strong{color:#ffd21a;font-size:11px;font-weight:950}
+#yardHub .yard-staff-audit-top time{color:#96aaba;font-size:9px}
+#yardHub .yard-staff-audit-row span{font-size:10px;color:#b5c4ce}
+#yardHub .yard-staff-audit-row small{color:#92a6b4;font-size:10px}
+@media(max-width:760px){
+  #yardHub .yard-staff-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #yardHub .yard-staff-filters{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  #yardHub .yard-staff-search{grid-column:1/-1}
+  #yardHub .yard-staff-person-card{align-items:flex-start;flex-wrap:wrap}
+  #yardHub .yard-staff-person-identity{flex-basis:calc(100% - 4px)}
+  #yardHub .yard-staff-tags{flex-basis:100%;min-width:0}
+  #yardHub .yard-staff-person-actions{width:100%;justify-content:flex-end}
+}
+@media(max-width:520px){
+  #yardHub .yard-staff-screen{padding:12px}
+  #yardHub .yard-staff-kpi{padding:11px}
+  #yardHub .yard-staff-kpi strong{font-size:23px}
+  #yardHub .yard-staff-tabs button{font-size:9px;padding:9px}
+  #yardHub .yard-staff-form-grid{grid-template-columns:1fr}
+  #yardHub .yard-staff-modal{padding:14px}
+  #yardHub .yard-staff-config-row{align-items:flex-start}
+}
