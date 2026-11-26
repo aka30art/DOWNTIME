@@ -490,11 +490,17 @@ Deno.serve(async(req)=>{
      bank.staff.profiles=newProfiles;
    }
    bank.appData=nextAppData;if(canManageTasks)bank.statsSource={weeks:nextAppData.weeks||{}};
-   const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
-   if(error||!write)return json({error:"Version conflict; refresh before saving settings"},409);
-   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"save-settings",details:{areas:canManageAreas,reasons:canAddReasons,schedule:canManageSchedule,dailyTasks:canManageTasks,staff:canManageStaff,assignments:canManageAssignments,stations:canManageStations}});
-   if(staffAuditEvents.length)await db.from("downtime_central_audit").insert(staffAuditEvents);
-   return json({ok:true,version:(row?.version||0)+1,updatedAt:new Date().toISOString()});
+   const {data:commit,error:commitError}=await db.rpc("downtime_commit_central_bank",{
+     p_expected_version:Number(body.version),
+     p_payload:bank,
+     p_username:currentUser.username,
+     p_audit_details:{areas:canManageAreas,reasons:canAddReasons,schedule:canManageSchedule,dailyTasks:canManageTasks,staff:canManageStaff,assignments:canManageAssignments,stations:canManageStations},
+     p_staff_audit_events:staffAuditEvents.map((event:any)=>({action:event.action,details:event.details}))
+   });
+   if(commitError)return json({error:"Central settings and audit transaction failed; no changes were committed"},500);
+   const committedVersion=Number((commit as any)?.version);
+   if(!Number.isInteger(committedVersion))return json({error:"Version conflict; refresh before saving settings"},409);
+   return json({ok:true,version:committedVersion,updatedAt:(commit as any).updatedAt||null});
  }
  if(action==="users"){
    if(!priv.canViewUsers&&!priv.canManageUsers)return json({error:"Permission denied"},403);
