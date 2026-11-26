@@ -8,6 +8,7 @@ create table if not exists public.yard_roles (
   description text not null default '',
   status text not null default 'DRAFT' check (status in ('DRAFT', 'ACTIVE', 'RETIRED')),
   version integer not null default 1 check (version > 0),
+  created_by_user_id uuid not null,
   created_by text not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -33,6 +34,7 @@ create table if not exists public.yard_role_assignments (
   status text not null default 'ACTIVE' check (status in ('ACTIVE', 'REVOKED')),
   version integer not null default 1 check (version > 0),
   verified_at timestamptz not null default now(),
+  assigned_by_user_id uuid not null,
   assigned_by text not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -44,7 +46,9 @@ create table if not exists public.yard_role_assignment_audit (
   user_id uuid not null,
   staff_id uuid not null,
   yard_role_id uuid not null,
+  actor_user_id uuid not null,
   actor_username text not null,
+  actor_display_name text not null,
   action text not null,
   details jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
@@ -69,7 +73,9 @@ create or replace function public.yard_role_assign_user(
   p_user_id uuid,
   p_staff_id uuid,
   p_yard_role_id uuid,
-  p_actor text
+  p_actor_user_id uuid,
+  p_actor_username text,
+  p_actor_display_name text
 ) returns jsonb
 language plpgsql
 security definer
@@ -82,7 +88,9 @@ declare
   v_inserted boolean := false;
 begin
   if p_user_id is null or p_staff_id is null or p_yard_role_id is null
-     or p_user_id = p_staff_id or coalesce(trim(p_actor), '') = '' then
+     or p_user_id = p_staff_id or p_actor_user_id is null
+     or coalesce(trim(p_actor_username), '') = ''
+     or coalesce(trim(p_actor_display_name), '') = '' then
     raise exception 'Invalid USER/STAFF/YARD ROLE assignment request';
   end if;
 
@@ -100,18 +108,18 @@ begin
   end if;
 
   insert into public.yard_role_assignments
-    (user_id, staff_id, yard_role_id, status, version, verified_at, assigned_by)
+    (user_id, staff_id, yard_role_id, status, version, verified_at, assigned_by_user_id, assigned_by)
   values
-    (p_user_id, p_staff_id, p_yard_role_id, 'ACTIVE', 1, now(), trim(p_actor))
+    (p_user_id, p_staff_id, p_yard_role_id, 'ACTIVE', 1, now(), p_actor_user_id, trim(p_actor_username))
   on conflict (user_id) do nothing
   returning * into v_assignment;
 
   if found then
     v_inserted := true;
     insert into public.yard_role_assignment_audit
-      (assignment_id, user_id, staff_id, yard_role_id, actor_username, action, details)
+      (assignment_id, user_id, staff_id, yard_role_id, actor_user_id, actor_username, actor_display_name, action, details)
     values
-      (v_assignment.id, p_user_id, p_staff_id, p_yard_role_id, trim(p_actor),
+      (v_assignment.id, p_user_id, p_staff_id, p_yard_role_id, p_actor_user_id, trim(p_actor_username), trim(p_actor_display_name),
        'USER_YARD_ROLE_ASSIGNED',
        jsonb_build_object('version', v_assignment.version, 'role_name', v_role.name));
   else
@@ -140,8 +148,8 @@ begin
 end;
 $$;
 
-revoke all on function public.yard_role_assign_user(uuid, uuid, uuid, text) from public, anon, authenticated;
-grant execute on function public.yard_role_assign_user(uuid, uuid, uuid, text) to service_role;
+revoke all on function public.yard_role_assign_user(uuid, uuid, uuid, uuid, text, text) from public, anon, authenticated;
+grant execute on function public.yard_role_assign_user(uuid, uuid, uuid, uuid, text, text) to service_role;
 
 comment on table public.yard_roles is 'Canonical ordinary YARD ROLE registry. ROOTS classifications are separate.';
 comment on table public.yard_role_department_permissions is 'One mutually exclusive OFF, READ_ONLY, INPUT or MANAGE level per YARD ROLE and department.';
