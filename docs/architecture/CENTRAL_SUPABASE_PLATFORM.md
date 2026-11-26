@@ -103,3 +103,17 @@ This architecture decision authorises development and isolated staging work. It 
 - All sensitive mutations are audited.
 - Staging integration passes with no regression to existing DOWNTIME, YARD HUB, or GATELOG workflows.
 - Production is not changed until the explicit release gate is met.
+
+## Staging integration record — 26 November 2026
+
+The following isolated staging deployment was completed against `DOWNTIME-staging` (`phfojlqezudbjslfrnyw`, `eu-west-1`):
+
+- `central-bank` deployed as version 8 from the feature branch. The deployed source was fetched back and matched the branch file exactly.
+- `gatelog-api` deployed as version 5 from the feature branch. The deployed source was fetched back and matched the branch file exactly.
+- Both functions retain their existing custom-session authentication model and `verify_jwt=false` configuration. No secrets or authentication settings were changed.
+- No database migration, table mutation, data migration, or seed operation was performed.
+- The Central Bank payload remained at data version 34, with five roster entries and five staff profiles. GATELOG visits, customers, vehicles, Gateman assignments, and daily operator assignments remained at zero.
+- The legacy `staff-management-api` and `yard-hub-staff-api` functions remain active and unchanged. The legacy `staff_management` and `yard_hub_staff_*` schemas and their existing records were preserved; neither is used by the replacement staff directory.
+- Supabase health advisors returned no findings. The security advisor continues to report 34 informational `rls_enabled_no_policy` findings across the existing staging project. These pre-existing findings require resource-by-resource review before any schema exposure or access-policy change; this feature deployment did not alter them.
+
+This verifies deployment and source integrity only. Authenticated end-to-end staging workflow tests remain a separate acceptance gate. Production was not accessed or changed.
