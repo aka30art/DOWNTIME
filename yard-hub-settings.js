@@ -233,6 +233,9 @@
     const pin=String($('yardHubUserPin').value||'');
     const enabled=$('yardHubUserEnabled').checked;
     const existing=editingUsername?state.users.find(user=>String(user.username).toLowerCase()===editingUsername.toLowerCase()):null;
+    if(!existing){
+      setStatus('New USER creation is paused until the canonical YARD ROLE catalogue and assignment store are implemented. Legacy YARD HUB tiers cannot be used as a substitute. No USER or STAFF record was created.','error');return;
+    }
     const downtimeTier=existing?.legacyTier||'USER';
     const centralChanges=!existing||
       displayName!==(existing.displayName||existing.username)||
