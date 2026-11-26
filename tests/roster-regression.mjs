@@ -8,7 +8,8 @@ const api=await readFile('supabase/functions/central-bank/index.ts','utf8');
 // USERS and STAFF are deliberately separate central collections.
 assert.match(html,/DowntimeCentral\.listUsers\(\)/,'login choices come from central USERS');
 assert.match(html,/DowntimeCentral\.login\(username,pin\)/,'username/PIN authentication is central');
-assert.match(html,/function staffRoster\(\)\{const names=Array\.isArray\(state\?\.staffRoster\)/,'STAFF roster is loaded from central app data');
+assert.match(html,/function allStaffRoster\(\)\{const names=Array\.isArray\(state\?\.staffRoster\)/,'complete STAFF directory is loaded from central app data');
+assert.match(html,/function staffRoster\(\)\{state\.operatorProfiles=state\.operatorProfiles\|\|\{\};return allStaffRoster\(\)\.filter\(name=>state\.operatorProfiles\[name\]\?\.status!==['"]ARCHIVED['"]\)\}/,'active operator choices exclude archived staff');
 assert.match(html,/Central USER accounts, PINs and privileges are managed in the single central database/,'local user administration is retired');
 assert.match(html,/id="centralAdminNav" class="nav central-admin-nav" href="central-bank-admin.html"/,'main tracker exposes the ADMIN/JAN-only Central Data Bank navigation entry');
 assert.doesNotMatch(html,/OPEN CENTRAL USERS & PRIVILEGES|centralUsersAdminLink/,'former duplicate Central Data Bank link is removed from USERS settings');
