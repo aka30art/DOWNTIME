@@ -421,7 +421,7 @@ async function signIn(page,pin='2468',username='DEV'){
  await page.waitForFunction(()=>document.querySelector('#yardHubSettingsBtn')?.dataset.accessChecked==='true',{timeout:5000});
  if(username.toUpperCase()==='JAN')assert.equal(await page.locator('#yardHubSettingsBtn').isVisible(),false,'ordinary USER cannot see HUB SETTINGS after access verification');
  assert.equal(await page.locator('#launchDowntimeBtn').isEnabled(),true,'DOWNTIME is the available application');
- assert.equal(await page.locator('.yard-tile[data-app="floor"]').isDisabled(),true,'FLOOR stays unavailable until released');
+ assert.equal(await page.locator('.yard-tile[data-app="floor"]').isEnabled(),true,'STAFF MANAGEMENT is available from the YARD HUB launcher');
  assert.equal(await page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until released');
  await page.waitForFunction(()=>{const tile=document.querySelector('.yard-tile[data-app="repair-maintenance"]');return tile&&!tile.disabled},{timeout:5000});
  assert.equal(await page.locator('.yard-tile[data-app="repair-maintenance"]').isEnabled(),true,'R&M unlocks after the existing DOWNTIME session passes its module permission check');
