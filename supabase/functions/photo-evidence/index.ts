@@ -153,6 +153,11 @@ Deno.serve(async(req)=>{
     if(bankError||!bankRow?.payload)return json({error:"Operational record state unavailable"},503);
     const associated=row.record_id?findOperationalRecord(bankRow.payload,row.record_id,null):findOperationalRecord(bankRow.payload,null,id);
     if(!associated)return json({error:"Photo is not attached to an active operational record"},404);
+    const {error:authorizationAuditError}=await admin.from("downtime_central_audit").insert({
+      username:user.username,action:"photo-evidence-delete-authorized",
+      details:{attachmentId:id,recordId:associated.recordId,department,actorDisplayName:user.displayName}
+    });
+    if(authorizationAuditError)return json({error:"Unable to record photo evidence deletion authorization"},503);
     const {error:removeError}=await admin.storage.from(bucket).remove([row.storage_path]);
     if(removeError)return json({error:removeError.message},500);
     const {error:updateError}=await admin.from("downtime_attachments").update({status:"deleted",deleted_at:new Date().toISOString()}).eq("id",id);
