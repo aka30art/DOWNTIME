@@ -235,3 +235,24 @@ body.gatelog-modal-open{overflow:hidden}
 .gatelog-admin-row-actions{display:flex;gap:6px;flex-wrap:wrap}
 .gatelog-admin-row-actions button{min-height:40px}
 @media(max-width:520px){.gatelog-admin-toolbar{flex-direction:column;align-items:stretch}.gatelog-admin-toolbar button{width:100%}.gatelog-admin-row-actions button{flex:1}}
+
+
+/* GATELOG — single DOWNTIME-style main navigation dropdown */
+.gatelog-hero{overflow:visible}
+.gatelog-hero-grid,.gatelog-hero-stripe{clip-path:inset(0 round 18px)}
+.gatelog-main-menu{position:relative;z-index:12;flex:0 0 auto}
+.gatelog-main-menu>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px}
+.gatelog-main-menu>summary::-webkit-details-marker{display:none}
+.gatelog-main-menu>summary:focus-visible{outline:3px solid #ffd21a;outline-offset:3px}
+.gatelog-main-menu[open]>summary{border-color:#ffd21a;background:#182f44;color:#ffd21a}
+.gatelog-menu-chevron{font-size:16px;line-height:1;color:#ffd21a;transition:transform .18s ease}
+.gatelog-main-menu[open]>.gatelog-main-menu-trigger .gatelog-menu-chevron{transform:rotate(180deg)}
+.gatelog-main-menu-panel{position:absolute;top:calc(100% + 8px);right:0;z-index:30;width:min(270px,calc(100vw - 54px));display:grid;gap:7px;padding:10px;border:1px solid #40596d;border-radius:13px;background:linear-gradient(180deg,#1c3345,#0a1a28);box-shadow:0 14px 34px #0009}
+.gatelog-main-menu-panel button{display:flex;align-items:center;width:100%;min-height:48px;padding:11px 13px;border:1px solid #40596d;border-radius:9px;background:linear-gradient(180deg,#263e50,#152735);color:#f3f6fa;text-align:left;font-size:12px;font-weight:900;letter-spacing:.55px}
+.gatelog-main-menu-panel button:hover,.gatelog-main-menu-panel button:focus-visible{border-color:#ffd21a;color:#ffd21a;background:#1a3447;outline:none}
+.gatelog-main-menu-panel button[hidden]{display:none!important}
+@media(max-width:600px){
+ .gatelog-hero-grid,.gatelog-hero-stripe{clip-path:inset(0 round 16px)}
+ .gatelog-main-menu-panel{width:min(260px,calc(100vw - 44px));padding:9px}
+ .gatelog-main-menu-panel button{min-height:46px;font-size:11px}
+}
