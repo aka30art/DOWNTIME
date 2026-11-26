@@ -6,10 +6,10 @@ const state=()=>window.GATELOG?.state;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let current='customers';
 function addEntryButtons(){
- const host=$('gatelogWorkspace');if(!host||host.hidden)return;
- const actions=host.querySelector('.gatelog-hero-actions');if(!actions)return;const permissions=state();if(!permissions)return;
- if(!$('gatelogOpenSettings')){const b=document.createElement('button');b.id='gatelogOpenSettings';b.type='button';b.className='gatelog-hero-icon gatelog-admin-icon';b.title='GATELOG Settings';b.setAttribute('aria-label','GATELOG Settings');b.textContent='⚙';b.onclick=()=>openSettings('customers');b.hidden=!permissions.canManageGateman;actions.insertBefore(b,actions.querySelector('#gatelogBack'));}else $('gatelogOpenSettings').hidden=!permissions.canManageGateman;
- if(!$('gatelogOpenReports')){const b=document.createElement('button');b.id='gatelogOpenReports';b.type='button';b.className='gatelog-hero-icon gatelog-admin-icon';b.title='Report Archive';b.setAttribute('aria-label','Report Archive');b.textContent='▤';b.onclick=openReports;b.hidden=!permissions.canExportReports;actions.insertBefore(b,actions.querySelector('#gatelogBack'));}else $('gatelogOpenReports').hidden=!permissions.canExportReports;
+ const menu=$('gatelogMainMenu'),permissions=state();if(!menu||!permissions)return;
+ const settings=$('gatelogOpenSettings'),reports=$('gatelogOpenReports');
+ if(settings){settings.hidden=!permissions.canManageGateman;settings.onclick=()=>{menu.open=false;openSettings('customers')}}
+ if(reports){reports.hidden=!permissions.canExportReports;reports.onclick=()=>{menu.open=false;openReports()}}
 }
 function openSettings(tab='customers'){current=tab;const modal=$('gatelogModal');if(!modal)return;modal.hidden=false;document.body.classList.add('gatelog-modal-open');$('gatelogModalTitle').textContent='GATELOG SETTINGS';renderSettings().catch(e=>window.GATELOG.message(e.message,true));}
 async function renderSettings(){
