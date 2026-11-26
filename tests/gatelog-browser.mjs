@@ -12,9 +12,9 @@ try{
  <main id="yardHub" class="yard-hub"><div class="yard-hub-inner"><header class="yard-hero">YARD HUB</header><div class="yard-modules-heading">APPLICATIONS</div><div class="yard-grid"><button id="launchGatelogBtn">GATELOG</button></div><footer class="yard-hub-footer">FOOTER</footer></div></main>
  <div class="rm-module-root" style="position:absolute;left:-9999px;width:390px;visibility:hidden"><header class="hero"><div class="hero-top"><div><div class="downtime-mark">DOWNTIME®</div><div class="mark-rule"></div></div><div class="hero-actions"><div class="session-label">HUB AUTHENTICATED AS<strong>USER</strong></div><button class="icon-button">▤</button><a class="icon-button" href="#">⌂</a></div></div><div class="hero-word">/R&amp;M</div><p class="hero-tag">REPAIRS &amp; MAINTENANCE</p></header></div>
  <script>
- window.DowntimeCentral={session:{token:'test-session'}};window.DOWNTIME_CENTRAL_API_KEY='test-key';window.GATELOG_API='/gatelog-api';window.__calls=[];window.__active=[];
+ window.DowntimeCentral={session:{token:'test-session'}};window.DOWNTIME_CENTRAL_API_KEY='test-key';window.GATELOG_API='/gatelog-api';window.__calls=[];window.__active=[];window.__period='daily';
  window.fetch=async(_url,options)=>{const b=JSON.parse(options.body);window.__calls.push(b.action);
- if(b.action==='bootstrap')return {ok:true,json:async()=>({customers:[{id:'c1',customer_name:'Example Ltd'}],vehicles:[{id:'v1',customer_id:'c1',registration:'AB12 CDE'}],activeVisits:window.__active,register:window.__active.map(v=>({...v,customer_name:'Example Ltd',waste_types:['General Waste']})),wasteTypes:[{id:'w1',label:'General Waste'}],arrivalsToday:window.__active.length,customerStats:{c1:{totalVisits:4,todayVisits:1}},statistics:{overallVisits:12,mostCommonWasteType:'General Waste',averageMinutes:42,completedVisits:9}})};
+ if(b.action==='bootstrap')return {ok:true,json:async()=>({customers:[{id:'c1',customer_name:'Example Ltd'}],vehicles:[{id:'v1',customer_id:'c1',registration:'AB12 CDE'}],activeVisits:window.__active,register:window.__active.map(v=>({...v,customer_name:'Example Ltd',waste_types:['General Waste']})),wasteTypes:[{id:'w1',label:'General Waste'}],arrivalsToday:window.__active.length,customerStats:{c1:{totalVisits:4,todayVisits:1}},statistics:{overallVisits:12,mostCommonWasteType:'General Waste',averageMinutes:42,completedVisits:9},periodStatistics:{daily:{totalVisits:2,mostCommonWasteType:'General Waste',averageMinutes:30,completedVisits:1},weekly:{totalVisits:8,mostCommonWasteType:'General Waste',averageMinutes:35,completedVisits:6},monthly:{totalVisits:21,mostCommonWasteType:'Mixed',averageMinutes:38,completedVisits:17},all_time:{totalVisits:12,mostCommonWasteType:'General Waste',averageMinutes:42,completedVisits:9}},dailyOperators:[{duty_date:'2026-11-23',operator_name:'Jan'},{duty_date:'2026-11-24',operator_name:'Mick'},{duty_date:'2026-11-25',operator_name:'Gigi'}]})};
  if(b.action==='customer-arrival'){window.__active=[{id:'visit-new',customer_id:'c2',customer_name:b.customerName,vehicle_registration_snapshot:b.registration,time_in:'2026-11-25T17:00:00Z',visit_date:'2026-11-25',waste_types:b.wasteTypes,status:'ON_SITE'}];return {ok:true,json:async()=>({customer:{id:'c2',customer_name:b.customerName},visit:{id:'visit-new'}})}}
  if(b.action==='arrival'){window.__active=[{id:'visit-1',customer_id:'c1',customer_name:'Example Ltd',vehicle_registration_snapshot:b.registration,time_in:'2026-11-25T17:00:00Z',visit_date:'2026-11-25',waste_types:b.wasteTypes,status:'ON_SITE'}];return {ok:true,json:async()=>({visit:{id:'visit-1'}})}}
  if(b.action==='departure'){window.__active=[];return {ok:true,json:async()=>({visit:{id:'visit-1',status:'DEPARTED'}})}}
@@ -51,7 +51,15 @@ try{
  assert.ok(narrowOverflow.html<=narrowOverflow.width,'GATELOG must not overflow at 320px: '+JSON.stringify(narrowOverflow));
  assert.equal(await page.locator('.gatelog-toolbar-spacer').evaluate(el=>getComputedStyle(el).display),'none');
  assert.match(await page.locator('#gatelogRegister').innerText(),/TIME IN|No visits/);
- assert.match(await page.locator('.gatelog-statistics').innerText(),/MOST COMMON WASTE TYPE[\s\S]*OVERALL VISITS[\s\S]*AVERAGE TIME ON SITE/);
+ assert.equal(await page.locator('.gatelog-collapsible').count(),2);
+ assert.equal(await page.locator('.gatelog-day-panel').evaluate(el=>el.open),false,'Day-to-Day panel must start collapsed');
+ assert.equal(await page.locator('.gatelog-statistics-panel').evaluate(el=>el.open),false,'Visit Statistics panel must start collapsed');
+ await page.locator('.gatelog-day-panel summary').click();
+ assert.match(await page.locator('.gatelog-day-panel').innerText(),/Monday[\s\S]*Jan[\s\S]*Tuesday[\s\S]*Mick[\s\S]*Wednesday[\s\S]*Gigi/);
+ await page.locator('.gatelog-statistics-panel summary').click();
+ assert.match(await page.locator('#gatelogPeriodStatistics').innerText(),/DAILY[\s\S]*WEEKLY[\s\S]*MONTHLY[\s\S]*ALL TIME/);
+ await page.locator('[data-period="weekly"]').click();
+ assert.match(await page.locator('#gatelogPeriodStatistics').innerText(),/VISITS[\s\S]*8/);
  await page.locator('#gatelogNewVisit').click();
  assert.equal(await page.locator('#gatelogModal').isVisible(),true);
  await page.getByRole('button',{name:/NEW CUSTOMER/}).click();
@@ -74,7 +82,7 @@ try{
  });
  assert.deepEqual(desktopHeaderComparison.g,desktopHeaderComparison.r,'GATELOG and R&M desktop headers must share identical geometry and icon sizing');
  const stats=await page.locator('.gatelog-kpis').boundingBox(),actions=await page.locator('.gatelog-toolbar-actions').boundingBox();
- assert.ok(stats.x+stats.width<actions.x);
+ assert.ok(actions.y>stats.y,'New Visit action must follow the Day-to-Day panel and sit below the live counters');
  await page.getByRole('button',{name:'Close'}).click();
 }finally{await browser.close()}
 console.log('GATELOG browser workflow: PASS');
