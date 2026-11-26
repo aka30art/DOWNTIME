@@ -378,6 +378,8 @@ const yardHubUi = await readFile("yard-hub-settings.js", "utf8");
 const html = await readFile("index.html", "utf8");
 const provisioningMigration = await readFile("supabase/migrations/20261126233000_canonical_yard_role_registry.sql", "utf8");
 const resolverSource = await readFile("supabase/functions/_shared/yard-role-resolver.mjs", "utf8");
+const repairMaintenanceApi = await readFile("supabase/functions/repair-maintenance-api/index.ts", "utf8");
+const gatelogApi = await readFile("supabase/functions/gatelog-api/index.ts", "utf8");
 
 assert.match(centralApi, /import \{ resolveYardRolePermissions \} from ["']\.\.\/_shared\/yard-role-resolver\.mjs["']/);
 assert.match(centralApi, /import \{ activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning, renameLinkedStaffDisplayName \} from ["']\.\.\/_shared\/user-staff-identity\.mjs["']/);
@@ -440,6 +442,8 @@ assert.match(provisioningMigration, /enable row level security/);
 assert.doesNotMatch(provisioningMigration, /insert into public\.yard_roles/i, "no unapproved YARD ROLE catalogue entries are seeded");
 
 assert.match(resolverSource, /OFF.*READ_ONLY.*INPUT.*MANAGE/);
+assert.match(repairMaintenanceApi, /if \(user\.yardRoleId\) return json\(\{ error: "Canonical YARD ROLE authorization is not yet enabled for R&M/);
+assert.match(gatelogApi, /if\(user\.yardRoleId\)return json\(\{error:"Canonical YARD ROLE authorization is not yet enabled for GATELOG/);
 assert.match(centralApi, /DOWNTIME_IDENTITY_FINGERPRINT_SECRET/, "provisioning fingerprints require a server-only secret");
 assert.match(centralApi, /hmacDigest\(fingerprintSecret,JSON\.stringify\(\{username,displayName,pin,staff:staffFields,requestedYardRoleId\}\)\)/, "low-entropy PIN is protected by HMAC in the idempotency fingerprint");
 assert.match(centralApi, /const userId=String\(body\.userId\|\|""\)/, "activation targets immutable USER ID");
