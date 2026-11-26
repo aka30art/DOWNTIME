@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 const html=await readFile('index.html','utf8');
 const client=await readFile('central-bank-client.js','utf8');
 const api=await readFile('supabase/functions/central-bank/index.ts','utf8');
+const atomicMigration=await readFile('supabase/migrations/20261126110247_central_bank_atomic_state_audit.sql','utf8');
 
 // USERS and STAFF are deliberately separate central collections.
 assert.match(html,/DowntimeCentral\.listUsers\(\)/,'login choices come from central USERS');
@@ -38,5 +39,12 @@ assert.match(api,/rosterMap\.size>250/,'combined retained and incoming staff ros
 assert.match(api,/nextAppData\.staffRoster=\[\.\.\.rosterMap\.values\(\)\]/,'validated roster is persisted without truncating slices');
 assert.match(api,/staff-archived|staff-restored|staff-created|staff-updated/,'staff lifecycle changes generate structured audit events');
 assert.match(api,/staff-roles-updated/,'on-site role changes generate an audit event');
+const settingsSave=api.slice(api.indexOf('if(action==="save-settings")'),api.indexOf('if(action==="users")'));
+assert.match(settingsSave,/db\.rpc\("downtime_commit_central_bank"/,'settings and staff audit writes use the atomic database transaction');
+assert.doesNotMatch(settingsSave,/from\("downtime_central_bank"\)\.update/,'settings no longer commit central state separately from audit');
+assert.doesNotMatch(settingsSave,/from\("downtime_central_audit"\)\.insert/,'settings no longer insert audit events after the state commit');
+assert.match(atomicMigration,/security definer\s+set search_path = ''/,'atomic transaction pins the security-definer search path');
+assert.match(atomicMigration,/revoke all on function public\.downtime_commit_central_bank[\s\S]*from public/,'atomic RPC is not executable by PUBLIC');
+assert.match(atomicMigration,/grant execute on function public\.downtime_commit_central_bank[\s\S]*to service_role/,'atomic RPC is restricted to the service role');
 assert.doesNotMatch(api,/staff_account_links|link-account|unlink-account/,'the central staff directory has no account-linking feature');
 console.log('PASS: central USERS/STAFF separation, retired local PIN auth and central versioned sync contracts.');
