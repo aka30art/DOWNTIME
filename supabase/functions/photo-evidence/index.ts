@@ -13,6 +13,7 @@ const bucket="downtime-evidence";
 const department="DOWNTIME";
 const maxBytes=5*1024*1024;
 const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const recordIdPattern=/^[A-Za-z0-9._:-]{1,180}$/;
 
 async function authorize(req:Request,admin:any,url:string,serviceKey:string){
   const token=(req.headers.get("x-downtime-session")||"").trim();
@@ -90,7 +91,7 @@ Deno.serve(async(req)=>{
     if(permissions.canEditTracker!==true||permissions.canViewDashboards!==true)return json({error:"DOWNTIME input permission required"},403);
     const entryKey=body?.entryKey,recordId=body?.recordId,mime=body?.mimeType,size=Number(body?.size);
     if(!uuidPattern.test(entryKey||""))return json({error:"Invalid photo entry key"},400);
-    if(!uuidPattern.test(recordId||""))return json({error:"A valid operational record ID is required"},400);
+    if(!recordIdPattern.test(recordId||""))return json({error:"A valid operational record ID is required"},400);
     if(!["image/jpeg","image/webp"].includes(mime))return json({error:"Unsupported image type"},415);
     if(!Number.isInteger(size)||size<1||size>maxBytes)return json({error:"File size must be 5MB or less"},413);
     const {data:existing,error:existingError}=await admin.from("downtime_attachments").select("id,storage_path,expires_at,status,record_id").eq("downtime_entry_key",entryKey).maybeSingle();
