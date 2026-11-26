@@ -32,6 +32,10 @@ assert.match(api,/nextAppData\.staffRoles=nextStaffRoles/,'on-site role definiti
 assert.match(api,/Reassign staff using a role before removing it/,'server rejects removal of roles still assigned to staff');
 assert.match(api,/const newProfiles=structuredClone\(currentProfiles\|\|\{\}\)/,'staff profile updates retain existing records rather than replacing the directory');
 assert.match(api,/\[\.\.\.retainedRoster,\.\.\.incomingRoster\]/,'staff roster updates retain archived and historical roster entries');
+assert.match(api,/validateStaffRoster=\(value:any,label:string\)/,'staff roster input is validated without filtering malformed entries silently');
+assert.match(api,/value\.length>250/,'incoming and retained rosters above the supported limit are rejected');
+assert.match(api,/rosterMap\.size>250/,'combined retained and incoming staff roster above the limit is rejected');
+assert.match(api,/nextAppData\.staffRoster=\[\.\.\.rosterMap\.values\(\)\]/,'validated roster is persisted without truncating slices');
 assert.match(api,/staff-archived|staff-restored|staff-created|staff-updated/,'staff lifecycle changes generate structured audit events');
 assert.match(api,/staff-roles-updated/,'on-site role changes generate an audit event');
 assert.doesNotMatch(api,/staff_account_links|link-account|unlink-account/,'the central staff directory has no account-linking feature');
