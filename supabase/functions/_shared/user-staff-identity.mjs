@@ -638,3 +638,48 @@ export function activatePendingUserStaffProvisioning(bank, roleAssignment, actor
   // part of the same Central Bank compare-and-swap commit.
   return { payload: next, replayed: false, user, auditEvent };
 }
+
+
+/** Rename the STAFF presentation key without changing immutable USER/STAFF links. */
+export function renameLinkedStaffDisplayName(bank, userId, staffId, nextDisplayName) {
+  if (!isObject(bank) || !isUuid(userId) || !isUuid(staffId)) {
+    throw new Error("A valid Central Bank payload and immutable USER/STAFF IDs are required.");
+  }
+  const name = String(nextDisplayName ?? "").trim();
+  if (!name || name.length > 80) throw new Error("STAFF display name must contain 1–80 characters.");
+  const user = (Array.isArray(bank.users) ? bank.users : [])
+    .find((item) => item?.userId?.toLowerCase() === userId.toLowerCase());
+  if (!user || user.staffId?.toLowerCase() !== staffId.toLowerCase()) {
+    throw new Error("USER/STAFF identity pair does not match.");
+  }
+  const profiles = isObject(bank.staff?.profiles) ? bank.staff.profiles : {};
+  const matches = Object.entries(profiles)
+    .filter(([, profile]) => profile?.staffId?.toLowerCase() === staffId.toLowerCase());
+  if (matches.length !== 1) throw new Error("Exactly one linked STAFF profile is required for a name change.");
+  const [oldName, existingProfile] = matches[0];
+  if (oldName === name) return { payload: bank, changed: false, oldName, newName: name };
+  const collision = Object.keys(profiles).some((key) =>
+    key !== oldName && normaliseUsername(key) === normaliseUsername(name)
+  );
+  if (collision) throw new Error("STAFF display name already exists.");
+  const roster = Array.isArray(bank.staff?.roster) ? bank.staff.roster : [];
+  if (roster.some((entry) => normaliseUsername(entry) === normaliseUsername(name))) {
+    throw new Error("STAFF roster display name already exists.");
+  }
+
+  const next = structuredClone(bank);
+  const profile = { ...existingProfile, name, displayName: name };
+  delete next.staff.profiles[oldName];
+  next.staff.profiles[name] = profile;
+  next.staff.roster = (Array.isArray(next.staff.roster) ? next.staff.roster : [])
+    .map((entry) => entry === oldName ? name : entry);
+  next.appData = isObject(next.appData) ? next.appData : {};
+  if (isObject(next.appData.operatorProfiles)) {
+    delete next.appData.operatorProfiles[oldName];
+    next.appData.operatorProfiles[name] = structuredClone(profile);
+  }
+  if (Array.isArray(next.appData.staffRoster)) {
+    next.appData.staffRoster = next.appData.staffRoster.map((entry) => entry === oldName ? name : entry);
+  }
+  return { payload: next, changed: true, oldName, newName: name };
+}
