@@ -419,6 +419,10 @@ begin
   update public.yard_hub_staff_roles
      set is_active=false, archived_at=now(), updated_by=p_actor, updated_at=now()
    where id=p_role_id returning * into v_role;
+  -- End active assignments without deleting role history from personnel records.
+  update public.yard_hub_staff_role_assignments
+     set ended_at=now(), ended_by=p_actor
+   where role_id=p_role_id and ended_at is null;
   insert into public.yard_hub_staff_audit(entity_type,entity_id,action,actor,before_data,after_data)
   values('ROLE',p_role_id,'ARCHIVED',p_actor,v_before,to_jsonb(v_role));
   return to_jsonb(v_role);
