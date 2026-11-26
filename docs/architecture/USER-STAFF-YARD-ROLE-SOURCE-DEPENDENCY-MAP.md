@@ -167,3 +167,80 @@ The following work is not yet verified exhaustively:
 7. Exact API compatibility/version strategy and the point at which legacy routes become reject-only.
 
 No implementation should begin until this census is complete, the canonical schema/API contract is documented, and the Phase 1 exit review is accepted.
+
+
+## 10. Expanded repository tree inventory and additional confirmed consumers
+
+Reviewed feature-branch tree: `0ba5368295bc20a2bd74e48e5a7d06693071d045`. The recursive Git tree contains 163 tracked files. The inventory below identifies additional files that must be included in the source census; tree presence alone does not imply a runtime dependency.
+
+### Additional server-side authorization surfaces
+
+- `supabase/functions/central-config-admin/index.ts`: independently resolves the current Central USER and gates the configuration control plane using DEV + OWNER and DEVACC legacy semantics. This is a separate server-side root check and must be reconciled with the new ROOTS authority without broadening the control plane accidentally.
+- `supabase/functions/repair-maintenance-api/index.ts`: separate R&M API and authorization surface. Its permission resolution and all write/delete/export actions must be mapped to the unified department model. The YARDHUB API currently also carries R&M section permission fields, so the migration must establish one authoritative resolution path.
+- `supabase/functions/gatelog-api/index.ts`: separate operational API. Its authorization and actor attribution need explicit review to confirm whether it consumes Central USER/tier state or a separate gate-log assignment model.
+- `supabase/functions/photo-evidence/index.ts`: photo evidence API and storage access boundary. Confirm whether STAFF identity, uploader identity or session claims are used for authorization and metadata attribution.
+- `supabase/functions/spectator-read/index.ts`: separate read-only state route. Confirm its session/role assumptions and preserve the spectator security boundary during role migration.
+
+### Additional browser/runtime consumers
+
+- `index.html`: primary application shell and broad runtime. Confirmed legacy tier permission defaults, locked role profiles, permission resolver, Central Bank access checks, Access and Rights rendering, settings-section access, daily operator management and STAFF profile/roster compatibility reads. This file contains a large concentration of client-side presentation checks; each corresponding server action remains the security authority.
+- `central-bank-admin.html`: Central Bank administration UI. It currently describes the separate Central and YARDHUB tier authorities and exposes legacy OWNER/DEVACC language. This control-plane UI must be reconciled with the target architecture, while preserving its distinct configuration-registry purpose and DEV-only security boundary.
+- `yard-hub-settings.js`: YARDHUB USERS, TIERS, per-user tier assignment and permission editor.
+- `yard-hub-structure.js`: YARDHUB structure/menu client; review for role-based menu visibility or cached access assumptions.
+- `repair-maintenance-app.js`: R&M browser module; review every capability check and action for a second permission source.
+- `central-bank-client.js`: shared session and Central Bank API adapter.
+- `assets/staff/staff-image-library.js`, `assets/staff/staff-images.json`, `assets/staff/README.md` and `assets/staff/originals/**/README.md`: static STAFF image library and source documentation. These are distinct from private bucket objects and must be classified separately in the reset/media manifest.
+
+### Additional database and automation inventory
+
+The recursive tree contains migrations for:
+- Central Bank storage/auth/audit and configuration control plane.
+- YARDHUB access control.
+- Daily operator register.
+- R&M module, machinery registry, presets, catalogue and PDF archive.
+- GateLog customer/site entry, arrival/statistics, daily gateman assignment, atomic actions, visit management, report archive and waste-type activation.
+- Spectator read-only state and secure Edge Function access.
+
+Relevant current files include `supabase/schema.sql`, `supabase/config.toml`, `supabase/migrations/20261123212500_yard_hub_access_control.sql`, `supabase/migrations/20261125010000_daily_operator_register.sql` and `supabase/migrations/20261126114151_central_bank_atomic_state_audit.sql`. Each SQL function, policy, grant and trigger still requires a direct dependency check; the tree inventory is not proof of their absence or independence.
+
+Scheduled automation present in the repository includes `.github/workflows/photo-evidence-cleanup.yml`. Review its service credentials, storage bucket scope and deletion criteria before defining the STAFF reset media procedure. Do not repurpose or broaden this cleanup workflow as part of the identity reset without separate approval.
+
+### Expanded regression-test register
+
+In addition to the initial contracts, the tree includes these tests that must be reviewed and retained or deliberately migrated:
+- `tests/access-rights-live-contract.mjs`
+- `tests/admin-access-rights-delegation.mjs`
+- `tests/central-bank-admin-contract.mjs`
+- `tests/central-bank-api-contract.mjs`
+- `tests/central-bank-client-contract.mjs`
+- `tests/central-bank-menu-access-contract.mjs`
+- `tests/central-config-admin-api-contract.mjs`
+- `tests/central-config-admin-ui.mjs`
+- `tests/daily-operator-register-contract.mjs`
+- `tests/devacc-security-contract.mjs`
+- `tests/root-account-split-contract.mjs`
+- `tests/roster-regression.mjs`
+- `tests/staff-modal-upgrade-contract.mjs`
+- `tests/staff-originals-upload-contract.mjs`
+- `tests/station-manager-contract.mjs`
+- `tests/yard-hub-settings-contract.mjs`
+- `tests/yard-hub-contract.mjs`
+- `tests/repair-maintenance-contract.mjs`
+- `tests/photo-evidence.mjs`
+
+These test filenames identify likely contracts, not their complete assertions. Their source must be read before finalizing the test migration matrix.
+
+## 11. Census status after expanded tree review
+
+The recursive feature-branch tree has now been enumerated (163 tracked files), and the additional server, browser, database, automation and regression-test surfaces above have been added to the review register.
+
+**The repository-wide source census is still open.** A complete line-level scan of every candidate source file and a full SQL/RPC/policy/trigger review have not yet been completed. The GitHub code-search index returned no usable results for the attempted identifier queries, and the connector imposed a tool-call limit during the attempted bulk file scan. No absence claim is therefore made for files not directly inspected.
+
+Phase 1 remains incomplete. Next source-review pass must:
+1. Inspect the additional Edge Functions and browser modules listed above, including all authorization and actor attribution branches.
+2. Read every relevant test listed above and map each assertion to the new role model or a preserved non-role boundary.
+3. Enumerate all SQL function definitions, RLS policies, grants, triggers and scheduled workflows in the migrations.
+4. Build a permission-consumer matrix: action/API route → current permission source → target department → required OFF/Read Only/Input/Manage behaviour → ROOTS override/isolation → negative tests.
+5. Build the identity-reset dependency manifest: USER IDs, STAFF IDs, sessions, profile/roster copies, photo objects, actor references, audit/history and shared operational records.
+
+No application implementation, data reset, migration, merge or deployment is authorized by this documentation update.
