@@ -142,14 +142,28 @@ Deno.serve(async (req: Request) => {
   if (!isAdmin) return json({ error: "YARD HUB SETTINGS is restricted to DEV, DEVACC and ADMIN." }, 403);
 
   if (action === "settings-state") {
+    const [{ data: yardRoles, error: yardRolesError }, { data: roleAssignments, error: roleAssignmentsError }] = await Promise.all([
+      db.from("yard_roles").select("id,name,description,status").eq("status", "ACTIVE").order("name"),
+      db.from("yard_role_assignments").select("user_id,staff_id,yard_role_id,status,version,verified_at"),
+    ]);
+    if (yardRolesError || roleAssignmentsError) return json({ error: "Canonical YARD ROLE registry is unavailable." }, 503);
+    const roleByUser = new Map((roleAssignments || []).map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));
     return json({
       user: { ...safeUser(user), legacyTier, hubTier },
-      users: (Array.isArray(bank.users) ? bank.users : []).map((account: any) => ({
-        ...safeUser(account),
-        legacyTier: String(account.tier || "USER").toUpperCase(),
-        hubTier: assignedHubTier(configRow.payload, account.username),
-        provisioningState: account.provisioning?.stage || null,
-      })).sort((a: any, b: any) => a.username.localeCompare(b.username)),
+      users: (Array.isArray(bank.users) ? bank.users : []).map((account: any) => {
+        const assignment: any = roleByUser.get(String(account.userId || "").toLowerCase());
+        return {
+          ...safeUser(account),
+          legacyTier: String(account.tier || "USER").toUpperCase(),
+          hubTier: assignedHubTier(configRow.payload, account.username),
+          provisioningState: account.provisioning?.stage || null,
+          userId: account.userId || null,
+          staffId: account.staffId || null,
+          requestedYardRoleId: account.provisioning?.requestedYardRoleId || null,
+          yardRoleId: assignment?.yard_role_id || account.yardRoleId || null,
+        };
+      }).sort((a: any, b: any) => a.username.localeCompare(b.username)),
+      yardRoles: yardRoles || [],
       userTiers: configRow.payload?.userTiers || {},
       centralVersion: Number(bankRow.version || 0),
       tierPermissions: normalizeTierPermissions(configRow.payload, configRow.payload, [...tierNames.filter(name => !(configRow.payload.retiredTiers || []).includes(name)), ...(Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [])]),
@@ -159,6 +173,28 @@ Deno.serve(async (req: Request) => {
       editableTiers: isRootAdmin(user, hubTier, legacyTier) ? [...tierNames.filter(name => !(configRow.payload.retiredTiers || []).includes(name)), ...(configRow.payload.customTiers || [])] : [...editableByAdmin],
       canManageCentralUsers,
     });
+  }
+
+  if (action === "assign-user-role") {
+    if (!isRootDev(user, legacyTier)) return json({ error: "Only immutable DEV may assign a YARD ROLE during new USER provisioning." }, 403);
+    const targetUsername = String(body.username || "").trim();
+    const yardRoleId = String(body.yardRoleId || "");
+    if (!targetUsername || targetUsername.length > 32 || !/^[A-Za-z0-9_.-]{2,32}$/.test(targetUsername)) return json({ error: "Valid username required." }, 400);
+    if (!/^[0-9a-f-]{36}$/i.test(yardRoleId)) return json({ error: "A canonical YARD ROLE ID is required." }, 400);
+    const target = (Array.isArray(bank.users) ? bank.users : []).find((account: any) =>
+      String(account.username || "").toLowerCase() === targetUsername.toLowerCase()
+    );
+    if (!target) return json({ error: "Central USER account not found." }, 404);
+    if (target.provisioning?.stage !== "YARD_ROLE_PENDING") return json({ error: "USER is not awaiting canonical YARD ROLE assignment." }, 409);
+    if (target.provisioning.requestedYardRoleId !== yardRoleId) return json({ error: "Selected YARD ROLE does not match the provisioned request." }, 409);
+    const { data: assignment, error: assignmentError } = await db.rpc("yard_role_assign_user", {
+      p_user_id: target.userId,
+      p_staff_id: target.staffId,
+      p_yard_role_id: yardRoleId,
+      p_actor: String(user.username),
+    });
+    if (assignmentError || !assignment) return json({ error: assignmentError?.message || "Canonical YARD ROLE assignment failed." }, 409);
+    return json({ ok: true, assignment });
   }
 
   if (action === "save-user-tier") {
