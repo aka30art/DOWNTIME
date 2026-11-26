@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { buildIdentityMigrationPreview } from "../_shared/user-staff-identity.mjs";
+import { activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning } from "../_shared/user-staff-identity.mjs";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const allowedOrigin="https://aka30art.github.io";
@@ -160,6 +160,57 @@ Deno.serve(async(req)=>{
  const isRootAuthority=isDevRoot||isDevacc;
  const isCentralAdmin=tier==="ADMIN"||isRootAuthority;
  const isCentralBankAccess=isRootAuthority;
+ if(action==="user-staff-provision"){
+   if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);
+   const username=String(body.username||"").trim(),displayName=String(body.displayName||"").trim(),pin=String(body.pin||"");
+   const idempotencyKey=String(body.idempotencyKey||""),requestedYardRoleId=String(body.requestedYardRoleId||"");
+   const staffFields=body.staff&&typeof body.staff==="object"&&!Array.isArray(body.staff)?body.staff:{};
+   if(!/^[0-9a-f-]{36}$/i.test(idempotencyKey))return json({error:"A UUID idempotency key is required."},400);
+   if(!/^[0-9]{4,8}$/.test(pin))return json({error:"PIN must contain 4–8 digits."},400);
+   const requestFingerprint=await digest(JSON.stringify({username,displayName,pin,staff:staffFields,requestedYardRoleId}));
+   try{
+     const pinSalt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));
+     const pending=buildPendingUserStaffProvisioning(bank,{
+       userFields:{username,displayName},staffFields,idempotencyKey,requestedYardRoleId,requestFingerprint,
+       userId:crypto.randomUUID(),staffId:crypto.randomUUID(),pinSalt,pinHash:await hashPin(pin,pinSalt),actor:currentUser.username
+     });
+     if(pending.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),userId:pending.receipt.userId,staffId:pending.receipt.staffId,stage:pending.receipt.stage,requestedYardRoleId:pending.receipt.requestedYardRoleId});
+     if(!Number.isInteger(Number(body.version))||Number(body.version)!==Number(row?.version||0))return json({error:"Central USER directory changed. Refresh and retry provisioning."},409);
+     const {data:commit,error:commitError}=await db.rpc("downtime_central_commit_identity_event",{
+       p_expected_version:Number(body.version),
+       p_payload:pending.payload,
+       p_actor_username:currentUser.username,
+       p_action:pending.auditEvent.action,
+       p_details:pending.auditEvent
+     });
+     if(commitError||!commit)return json({error:commitError?.message?.includes("VERSION_CONFLICT")?"Central USER directory changed. Refresh and retry provisioning.":"USER/STAFF provisioning commit failed."},409);
+     return json({ok:true,replayed:false,version:Number(commit.version),userId:pending.receipt.userId,staffId:pending.receipt.staffId,stage:pending.receipt.stage,requestedYardRoleId},201);
+   }catch(error){return json({error:error instanceof Error?error.message:"Invalid USER/STAFF provisioning request."},400)}
+ }
+ if(action==="user-staff-activate"){
+   if(!isDevRoot)return json({error:"Only immutable DEV may activate newly provisioned USER identities."},403);
+   const username=String(body.username||"").trim();
+   const target=bank.users.find((item:any)=>String(item.username||"").trim().toLowerCase()===username.toLowerCase());
+   if(!target)return json({error:"Provisioned USER was not found."},404);
+   const {data:assignment,error:assignmentError}=await db.from("yard_role_assignments")
+     .select("user_id,staff_id,yard_role_id,status,version,verified_at")
+     .eq("user_id",target.userId).eq("status","ACTIVE").maybeSingle();
+   if(assignmentError||!assignment)return json({error:"A persisted active canonical YARD ROLE assignment is required; USER remains inactive."},409);
+   const roleAssignment={userId:assignment.user_id,staffId:assignment.staff_id,yardRoleId:assignment.yard_role_id,status:assignment.status,version:Number(assignment.version),verifiedAt:assignment.verified_at};
+   let activation;
+   try{activation=activatePendingUserStaffProvisioning(bank,roleAssignment,currentUser.username)}catch(error){return json({error:error instanceof Error?error.message:"USER provisioning activation failed."},400)}
+   if(activation.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),username:activation.user.username,enabled:true,yardRoleId:roleAssignment.yardRoleId});
+   if(!Number.isInteger(Number(body.version))||Number(body.version)!==Number(row?.version||0))return json({error:"Central USER directory changed. Refresh before activation."},409);
+   const {data:commit,error:commitError}=await db.rpc("downtime_central_commit_identity_event",{
+     p_expected_version:Number(body.version),
+     p_payload:activation.payload,
+     p_actor_username:currentUser.username,
+     p_action:activation.auditEvent.action,
+     p_details:activation.auditEvent
+   });
+   if(commitError||!commit)return json({error:commitError?.message?.includes("VERSION_CONFLICT")?"Central USER directory changed. Refresh before activation.":"USER activation commit failed."},409);
+   return json({ok:true,replayed:false,version:Number(commit.version),username,enabled:true,yardRoleId:roleAssignment.yardRoleId});
+ }
  if(action==="identity-diagnostics"){
    if(!isDevRoot)return json({error:"Identity diagnostics are restricted to immutable DEV."},403);
    const preview=buildIdentityMigrationPreview(bank);
