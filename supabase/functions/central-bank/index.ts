@@ -145,6 +145,7 @@ Deno.serve(async(req)=>{
    await db.from("downtime_central_audit").insert({username:user.username,action:"login",details:{}});
    return json({token,expiresAt:expires.toISOString(),user:safeUser(user)});
  }
+ if(action==="list-users"&&!req.headers.get("x-downtime-session"))return json({users:bank.users.filter((u:any)=>u.enabled!==false).map((u:any)=>({username:u.username}))});
  const token=req.headers.get("x-downtime-session")||"",tokenHash=await digest(token);
  const {data:session}=await db.from("downtime_central_sessions").select("username,tier,expires_at").eq("token_hash",tokenHash).gt("expires_at",new Date().toISOString()).maybeSingle();
  if(!session)return json({error:"Session expired. Sign in again."},401);
