@@ -97,7 +97,7 @@ Deno.serve(async (req: Request) => {
     if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate))return json({error:"Select a valid date."},400);
     const rows:any[]=[];for(let offset=0;offset<100000;offset+=1000){const page=await db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,time_out,status,created_by,departed_by,gatelog_customers(customer_name),gatelog_visit_waste_types(gatelog_waste_types(label))").eq("visit_date",dutyDate).order("time_in",{ascending:false}).range(offset,offset+999);if(page.error)return fail(page.error);rows.push(...(page.data||[]));if((page.data||[]).length<1000)break;}
     const visits=rows.map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)}));
-    const {data:assignment,error:assignmentError}=await db.from("gatelog_daily_gateman_assignments").select("gateman_name,is_locked").eq("duty_date",dutyDate).maybeSingle();
+    const {data:assignment,error:assignmentError}=await db.from("gatelog_daily_gateman_assignments").select("gateman_username,gateman_name,is_locked,assigned_by,assigned_at,locked_by,locked_at").eq("duty_date",dutyDate).maybeSingle();
     if(assignmentError)return fail(assignmentError);
     return json({visits,assignment:assignment||{gateman_name:"Not assigned",is_locked:false}});
   }
