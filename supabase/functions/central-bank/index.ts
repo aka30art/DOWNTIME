@@ -266,7 +266,7 @@ if(action==="roots-state"){
    if(rootsLookupError)return json({error:"Protected ROOTS registry is unavailable."},503);
    if(!/^[0-9a-f-]{36}$/i.test(String(body.userId||""))||!/^[0-9a-f-]{36}$/i.test(String(body.staffId||"")))return json({error:"Immutable USER and STAFF IDs are required."},400);
    const target=bank.users.find((account:any)=>String(account.userId||"").toLowerCase()===String(body.userId).toLowerCase());
-   if(!target||target.enabled===false||target.provisioning)return json({error:"An active, fully provisioned USER is required."},409);
+   if(!target||target.enabled!==true||target.status!=="ACTIVE"||target.provisioning||target.tier!=null||target.yardRoleId)return json({error:"An active canonical USER without legacy tier or ordinary YARD ROLE claims is required."},409);
    if(String(target.username||"").trim().toUpperCase()==="DEV"||String(target.staffId||"").toLowerCase()!==String(body.staffId).toLowerCase())return json({error:"Protected ROOTS assignments require a linked non-DEV USER and STAFF identity."},409);
    const profiles=bank.staff?.profiles&&typeof bank.staff.profiles==="object"?Object.values(bank.staff.profiles):[];
    const linkedProfile:any=profiles.find((profile:any)=>profile&&String(profile.staffId||"").toLowerCase()===String(target.staffId).toLowerCase()&&String(profile.linkedUserId||"").toLowerCase()===String(target.userId).toLowerCase());
