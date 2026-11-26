@@ -271,7 +271,9 @@ const provisioningInput = {
   },
   pinSalt: "a".repeat(32),
   pinHash: "b".repeat(64),
-  actor: "DEV",
+  actorUserId: uid2,
+  actorUsername: "DEV",
+  actorDisplayName: "DEV",
   createdAt: "2026-11-26T23:00:00.000Z",
 };
 const provisioningBankSnapshot = structuredClone(provisioningBank);
@@ -293,7 +295,9 @@ assert.deepEqual(pending.payload.appData.staffRoster, [], "pending STAFF must no
 assert.deepEqual(pending.payload.appData.operatorProfiles, {}, "pending STAFF must not appear in active operator profiles");
 assert.equal(pending.receipt.stage, "YARD_ROLE_PENDING");
 assert.equal(pending.auditEvent.action, "USER_STAFF_PROVISIONING_STARTED");
-assert.equal(pending.auditEvent.actor, "DEV");
+assert.equal(pending.auditEvent.actorUserId, uid2);
+assert.equal(pending.auditEvent.actorUsername, "DEV");
+assert.equal(pending.auditEvent.actorDisplayName, "DEV");
 assert.equal(pending.payload.identityProvisioningEvents, undefined, "mutable payload is not treated as immutable audit history");
 assert.equal(buildPendingUserStaffProvisioning(pending.payload, provisioningInput).replayed, true, "same idempotency key and fingerprint replay safely");
 assert.throws(() => buildPendingUserStaffProvisioning(pending.payload, {
@@ -319,14 +323,14 @@ const validRoleAssignment = {
 };
 assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
   ...validRoleAssignment, status: "PENDING",
-}, "DEV"), /verified active canonical YARD ROLE assignment/);
+}, { userId: uid2, username: "DEV", displayName: "DEV" }), /verified active canonical YARD ROLE assignment/);
 const prematurelyEnabled = structuredClone(pending.payload);
 prematurelyEnabled.users.find((item) => item.userId === uid1).enabled = true;
-assert.throws(() => activatePendingUserStaffProvisioning(prematurelyEnabled, validRoleAssignment, "DEV"), /must remain disabled/);
+assert.throws(() => activatePendingUserStaffProvisioning(prematurelyEnabled, validRoleAssignment, { userId: uid2, username: "DEV", displayName: "DEV" }), /must remain disabled/);
 assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
   ...validRoleAssignment, staffId: sid2,
 }, "DEV"), /does not match the USER\/STAFF identity pair/);
-const activated = activatePendingUserStaffProvisioning(pending.payload, validRoleAssignment, "DEV", "2026-11-26T23:02:00.000Z");
+const activated = activatePendingUserStaffProvisioning(pending.payload, validRoleAssignment, { userId: uid2, username: "DEV", displayName: "DEV" }, "2026-11-26T23:02:00.000Z");
 const activeUser = activated.payload.users.find((item) => item.userId === uid1);
 const activeStaff = activated.payload.staff.profiles["New Operator"];
 assert.equal(activeUser.status, "ACTIVE");
@@ -341,9 +345,11 @@ assert.equal(activated.payload.appData.operatorProfiles["New Operator"].staffId,
 assert.equal(activated.payload.identityProvisioningReceipts[idempotencyKey].stage, "ACTIVE");
 assert.equal(activated.payload.identityProvisioningReceipts[idempotencyKey].roleAssignmentVersion, 1);
 assert.equal(activated.auditEvent.action, "USER_STAFF_PROVISIONING_ACTIVATED");
-assert.equal(activated.auditEvent.actor, "DEV");
+assert.equal(activated.auditEvent.actorUserId, uid2);
+assert.equal(activated.auditEvent.actorUsername, "DEV");
+assert.equal(activated.auditEvent.actorDisplayName, "DEV");
 assert.equal(activated.payload.identityProvisioningEvents, undefined);
-assert.equal(activatePendingUserStaffProvisioning(activated.payload, validRoleAssignment, "DEV").replayed, true, "activation retries are idempotent");
+assert.equal(activatePendingUserStaffProvisioning(activated.payload, validRoleAssignment, { userId: uid2, username: "DEV", displayName: "DEV" }).replayed, true, "activation retries are idempotent");
 
 const renameSource = structuredClone(activated.payload);
 const renamedStaff = renameLinkedStaffDisplayName(renameSource, uid1, sid1, "Renamed Operator");
@@ -360,10 +366,10 @@ collisionPayload.staff.profiles["Other Staff"] = { staffId: sid2, linkedUserId: 
 assert.throws(() => renameLinkedStaffDisplayName(collisionPayload, uid1, sid1, "Other Staff"), /display name already exists/);
 const missingActiveStaff = structuredClone(activated.payload);
 delete missingActiveStaff.staff.profiles["New Operator"];
-assert.throws(() => activatePendingUserStaffProvisioning(missingActiveStaff, validRoleAssignment, "DEV"), /missing its reciprocal active STAFF profile/);
+assert.throws(() => activatePendingUserStaffProvisioning(missingActiveStaff, validRoleAssignment, { userId: uid2, username: "DEV", displayName: "DEV" }), /missing its reciprocal active STAFF profile/);
 const missingActiveRoster = structuredClone(activated.payload);
 missingActiveRoster.staff.roster = [];
-assert.throws(() => activatePendingUserStaffProvisioning(missingActiveRoster, validRoleAssignment, "DEV"), /missing from the canonical roster/);
+assert.throws(() => activatePendingUserStaffProvisioning(missingActiveRoster, validRoleAssignment, { userId: uid2, username: "DEV", displayName: "DEV" }), /missing from the canonical roster/);
 
 const centralApi = await readFile("supabase/functions/central-bank/index.ts", "utf8");
 const yardHubApi = await readFile("supabase/functions/yard-hub-settings-api/index.ts", "utf8");
