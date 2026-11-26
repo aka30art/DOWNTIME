@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import {
   buildIdentityMigrationPreview,
   diagnoseIdentityDirectory,
@@ -121,4 +122,17 @@ const noMutationSnapshot = structuredClone(linked);
 buildIdentityMigrationPreview(linked);
 assert.deepEqual(linked, noMutationSnapshot, "migration preview must be read-only");
 
-console.log("PASS: additive USER/STAFF identity contract, reciprocal links and read-only migration diagnostics.");
+const centralApi = await readFile("supabase/functions/central-bank/index.ts", "utf8");
+const browserClient = await readFile("central-bank-client.js", "utf8");
+assert.match(centralApi, /import \\{ buildIdentityMigrationPreview \\} from ["']\\.\\.\\/_shared\\/user-staff-identity\\.mjs["']/);
+const diagnosticsRoute = centralApi.slice(
+  centralApi.indexOf('if(action==="identity-diagnostics")'),
+  centralApi.indexOf('if(action==="photo-evidence-context")'),
+);
+assert.ok(diagnosticsRoute.length > 0, "DEV-only diagnostics action is registered");
+assert.match(diagnosticsRoute, /if\\(!isDevRoot\\)/, "identity diagnostics are restricted to immutable DEV");
+assert.match(diagnosticsRoute, /buildIdentityMigrationPreview\\(bank\\)/, "the route uses the read-only preview");
+assert.doesNotMatch(diagnosticsRoute, /\\.update\\(|\\.insert\\(|\\.delete\\(|\\.rpc\\(/, "the diagnostics route cannot write data");
+assert.match(browserClient, /identityDiagnostics\\(\\)\\{return call\\("identity-diagnostics"\\)\\}/, "browser adapter exposes the read-only diagnostics action");
+
+console.log("PASS: additive USER/STAFF identity contract, DEV-only read-only diagnostics and reciprocal-link validation.");
