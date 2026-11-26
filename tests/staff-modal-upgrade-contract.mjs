@@ -13,7 +13,7 @@ assert.ok(html.includes("option.textContent=stationLabel(station)"),'station pic
 assert.ok(html.includes('OFF PLANT staff stay off the tracker; their station can still be set.'),'OFF PLANT status remains distinct from the saved station assignment');
 assert.ok(html.includes('select#smStation{box-sizing:border-box;min-width:0;max-width:100%')&&html.includes('background-image:url("data:image/svg+xml,'),'station picker has a visible mobile dropdown affordance');
 assert.match(html,/manageAssign\?\{station:\$\('smStation'\)\.value,stationLocked:\$\('smLock'\)\.checked\}:\{\}/,'station and lock updates require assignment permission');
-assert.match(html,/manageStaff\?\{onSite:\$\('smOnPlant'\)\.checked\}:\{\}/,'plant status updates require staff management permission');
+assert.match(html,/manageStaff\?\{onSite:\$\('smOnPlant'\)\.checked,onSiteRole:\$\('smRole'\)\.value\}:\{\}/,'plant status and on-site role updates require staff management permission');
 assert.match(html,/signedStaffPhotoUpload\(name\)/,'existing profile photos use central signed upload');
 assert.match(html,/signedStaffPhotoUpload\(entered\)/,'new member original photos upload during profile creation');
 assert.match(html,/saveOperatorOriginalPhoto\(name,original\)/,'existing photo originals remain stored through the local-preservation flow');
