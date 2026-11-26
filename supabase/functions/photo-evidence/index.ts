@@ -22,7 +22,7 @@ async function authorize(req:Request,admin:any,url:string,serviceKey:string){
   try{
     response=await fetch(url.replace(/\/$/,"")+"/functions/v1/central-bank",{
       method:"POST",
-      headers:{"Content-Type":"application/json","apikey":serviceKey,"x-downtime-session":token},
+      headers:{"Content-Type":"application/json","apikey":serviceKey,"Authorization":"Bearer "+serviceKey,"x-downtime-session":token},
       body:JSON.stringify({action:"photo-evidence-context"}),
     });
   }catch{return {error:"Central authorization service unavailable",status:503};}
