@@ -434,12 +434,30 @@ Deno.serve(async(req)=>{
          if(oldRole&&previousStaffRoles.some((role:string)=>role.toLowerCase()===oldRole.toLowerCase())&&!nextStaffRoles.some((role:string)=>role.toLowerCase()===oldRole.toLowerCase())&&String(profile?.onSiteRole||"").toLowerCase()===oldRole.toLowerCase())return json({error:"Reassign staff using a role before removing it"},409);
        }
      }
-     const incomingRoster=cleanList(incoming.staffRoster,250,80);
-     const retainedRoster=cleanList(bank.staff.roster||bank.appData?.staffRoster||[],250,80);
+     const validateStaffRoster=(value:any,label:string)=>{
+      if(!Array.isArray(value))throw new Error(label+" must be an array");
+      if(value.length>250)throw new Error(label+" cannot contain more than 250 entries");
+      const names:string[]=[],seen=new Set<string>();
+      for(const raw of value){
+       if(typeof raw!=="string")throw new Error(label+" entries must be text");
+       const name=raw.trim();
+       if(!name)continue;
+       if(name.length>80)throw new Error(label+" entries must be 80 characters or fewer");
+       const key=name.toLocaleLowerCase();
+       if(!seen.has(key)){seen.add(key);names.push(name);}
+      }
+      return names;
+     };
+     let incomingRoster:string[],retainedRoster:string[];
+     try{
+      incomingRoster=validateStaffRoster(incoming.staffRoster,"Incoming staff roster");
+      retainedRoster=validateStaffRoster(bank.staff.roster||bank.appData?.staffRoster||[],"Existing staff roster");
+     }catch(error){return json({error:error instanceof Error?error.message:"Invalid staff roster"},400);}
      const rosterMap=new Map<string,string>();
-     [...retainedRoster,...incomingRoster].forEach((name:string)=>{const key=name.toLowerCase();if(!rosterMap.has(key))rosterMap.set(key,name)});
+     [...retainedRoster,...incomingRoster].forEach((name:string)=>{const key=name.toLocaleLowerCase();if(!rosterMap.has(key))rosterMap.set(key,name)});
+     if(rosterMap.size>250)return json({error:"The combined staff roster cannot exceed 250 entries. No entries were saved."},409);
      nextAppData.operatorProfiles=newProfiles;
-     nextAppData.staffRoster=[...rosterMap.values()].slice(0,250);
+     nextAppData.staffRoster=[...rosterMap.values()];
      nextAppData.staffRoles=nextStaffRoles;
      bank.staff.profiles=newProfiles;bank.staff.roster=nextAppData.staffRoster.slice();
      const staffSnapshot=(profile:any)=>profile?{onSiteRole:String(profile.onSiteRole||""),status:String(profile.status||"ACTIVE"),onSite:profile.onSite!==false,station:String(profile.station??profile.assignedStation??""),stationLocked:profile.stationLocked===true}:null;
