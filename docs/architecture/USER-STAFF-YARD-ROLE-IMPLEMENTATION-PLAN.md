@@ -778,3 +778,41 @@ The isolated implementation branch adds:
 - Regression tests for the identity and staged-provisioning contracts.
 
 The staged-provisioning helpers are not wired to an active API or UI yet. New USER creation through the legacy account-save path is blocked until the canonical YARD ROLE catalogue, assignment store and coordinated provisioning API are implemented. Legacy YARDHUB tiers must not be used as a substitute. No migration, persistent write, account change or production deployment is part of this increment.
+
+
+## Phase 3 implementation update — staged USER/STAFF provisioning and canonical YARD ROLE foundation (2026-11-26)
+
+This section supersedes the earlier Phase 2 note stating that provisioning was not yet wired to an API or UI.
+
+### Implemented on the isolated feature branch
+- Canonical yard_roles, yard_role_department_permissions, yard_role_assignments and assignment-audit schema.
+- Ordinary permission levels are exactly OFF, READ_ONLY, INPUT, MANAGE.
+- The permission matrix is constrained to the five existing departments: SCPL, R&M, Management, SCFL, Traffic. The resolver and assignment RPC require exactly one level for every department.
+- New role records default to DRAFT; no role definitions are seeded and no role names have been invented.
+- Service-role-only YARD ROLE assignment RPC validates an active role and complete matrix, is idempotent for the same USER/STAFF/ROLE tuple, and writes an immutable assignment audit event.
+- Shared YARD ROLE resolver implements view, add/edit and remove/delete semantics. ROOTS is deliberately separate.
+- Central Bank staged provisioning API is DEV-only, creates immutable USER/STAFF UUIDs, hashes PIN material server-side, uses an HMAC request fingerprint and idempotency receipt, and commits the pending payload plus audit event through a version-checked atomic RPC.
+- A pending USER remains disabled; its STAFF profile is not inserted into active roster/compatibility copies until activation.
+- YARDHUB assigns the requested canonical role by immutable USER ID. Central activation also uses immutable USER ID and revalidates the active role and complete matrix before enabling the account.
+- The YARDHUB user form captures STAFF operational department, position, station, station-lock and on-plant state. New account creation is disabled unless at least one active role has a complete matrix.
+- Canonical identities receive no legacy Central or YARDHUB tier claim. Legacy tier writes are rejected for canonical identities.
+- USER display-name changes update the linked STAFF presentation key while preserving immutable IDs and compatibility copies.
+- STAFF-only saves, tracker/settings reconciliation and USER deletion protect the linked identity invariants.
+- Canonical identities fail closed in existing YARDHUB, R&M and GATELOG authorization paths until the unified resolver is integrated into those application consumers. Central Bank's legacy tier permission resolution also grants no default rights to tierless canonical users.
+
+### Required configuration and outstanding gates
+- DOWNTIME_IDENTITY_FINGERPRINT_SECRET must be configured in the target Edge Function environment before the provisioning API can accept requests. It has not been configured by this branch work.
+- The canonical YARD ROLE catalogue remains empty. No role creation/approval UI exists yet; therefore the Add USER action remains disabled until an owner-approved role catalogue is populated with complete department matrices.
+- The shared resolver is used to validate role definitions and assignments, but is not yet the authorization authority for every DOWNTIME/YARDHUB/R&M/GATELOG action.
+- ROOTS DEV1/ADMIN assignment and isolation workflows remain a separate implementation phase.
+- F1–F6 from the Phase 1 review remain mandatory carry-forward requirements. In particular, photo-evidence session/ownership authorization (F1), pre-authentication directory minimization (F2), independent Supabase Auth/RLS boundary verification (F3), historical identity references (F4), full ROOTS enforcement (F5) and retirement of the R&M legacy fallback at cutover (F6) are not waived.
+- The future clean identity reset remains a destructive deployment migration requiring its own exact manifest, rehearsal, recovery plan and explicit final production approval.
+
+### Latest recorded CI status
+- Central Edge Function type-check passed on workflow run 45911781106.
+- The smoke suite failed on a test fixture that supplied a username string where the activation helper now requires an authenticated actor snapshot (userId, username and display name). The fixture has been corrected on the branch.
+- The Pages browser test failed on the same contract-test error; Pages build and deploy jobs were skipped.
+- A fresh CI run after the fixture correction and subsequent authorization fail-closed checks is still required. Do not describe the latest branch head as fully green until that run passes.
+
+### Release boundary
+This remains non-production feature-branch work. No production or staging migration, Edge Function deployment, account/session/permission/media mutation, identity reset, merge to main or production deployment has occurred or is authorised by this update.
