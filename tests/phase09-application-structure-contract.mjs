@@ -22,6 +22,9 @@ assert.match(edge, /base\?\.kind === "downtime" \? base\.title/, "Server enforce
 assert.match(edge, /base\?\.kind === "downtime" \|\| base\?\.kind === "gatelog" \|\| base\?\.kind === "hub-settings"/, "Server prevents configurable sub-menus from intercepting protected core routes");
 
 assert.match(edge, /function normalizeYardHubMenu\(/, "Server validates YARD HUB structure");
+assert.match(edge, /Protected core departments are additive defaults/, "Missing protected core launchers are restored by the YARD HUB menu normalizer");
+assert.match(edge, /title: "STAFF MANAGEMENT", description: "STAFF & YARD OPERATIONS", enabled: true, order: 1, protected: true/, "STAFF MANAGEMENT is a protected YARD HUB core department");
+assert.match(runtime, /kind==='floor'[\\s\\S]*?window\\.YardHubStaff\\?\\.open\\(\\)/, "STAFF MANAGEMENT launches its dedicated workforce directory");
 assert.match(edge, /between 1 and 100 departments/, "Server enforces department count limits");
 assert.match(edge, /no more than 30 sub-menu items/, "Server enforces sub-menu count limits");
 assert.match(edge, /yardHubMenu: normalizeYardHubMenu\(input\.yardHubMenu\)/, "Server normalizes the new config domain");
