@@ -32,7 +32,7 @@ assert.ok(tracker.includes("window.DowntimeCentral.saveUser(payload,centralVersi
 assert.ok(tracker.includes('ROOT · PROTECTED'), 'JAN root account is protected in the Settings user list');
 assert.ok(tracker.includes('lockedTierPermissions'), 'frontend locks USER/SPECTATOR/operational role permissions against stale central overrides');
 assert.ok(tracker.includes("operatorReadOnly||!permission('canDeleteRecords')"), 'MANAGER/SUPERVISOR cannot delete operational records in the UI');
-assert.ok(tracker.includes('if(previous?.recordId)item.recordId=previous.recordId'), 'editing a downtime record preserves its central identity');
+assert.ok(tracker.includes('recordId:photoRecordId||previous?.recordId||photoId()'), 'new and edited downtime records retain a stable identity for evidence association');
 assert.ok(tracker.includes("station.disabled=!permission('canManageAssignments')||department!=='SCPL'||$('smLock').checked;"), 'modal station selector is available only to SCPL staff with assignment permission and an unlocked station');
 assert.ok(overview.includes('return profile.onSite!==false&&resolveProfileStation(profile,stations)?.id===station.id'), 'OFF PLANT staff remain excluded from active station assignments in Plant Overview');
 assert.ok(tracker.includes("...(manageAssign?{station:department==='SCPL'?$('smStation').value:'',stationLocked:department==='SCPL'&&$('smLock').checked}:{})"), 'profile save gates station and lock changes by permission and clears station for non-SCPL departments');
