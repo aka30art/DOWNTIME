@@ -59,7 +59,7 @@ assert.ok(ui.includes("if(typeof saveCentralUser!=='function')throw new Error('C
 assert.ok(!ui.includes('window.DowntimeCentral.saveUser('),'Hub UI cannot bypass the serialized central-user bridge');
 assert.match(ui,/window\.DowntimeCentral\?\.session/,'Hub Settings uses the existing opaque central session');
 assert.match(ui,/tier:downtimeTier/,'editing a user preserves the legacy DOWNTIME tier');
-assert.match(ui,/const downtimeTier=existing\?\.legacyTier\|\|'USER'/,'new accounts default to restricted DOWNTIME USER while existing DOWNTIME tiers are preserved');
+assert.match(ui,/const downtimeTier=existing\?\.legacyTier\?\?null/,'canonical USERs do not receive an invented legacy DOWNTIME tier');
 assert.match(ui,/save-user-tier/,'Hub tier assignment is stored through the separate Hub API');
 assert.match(ui,/legacyTier/,'DOWNTIME tier is displayed separately from Hub tier');
 assert.match(ui,/DISABLE ACCOUNT|DISABLE/,'Hub user management supports disabling accounts');
@@ -141,10 +141,10 @@ assert.match(centralClient,/async saveTiers\(tiers,version\)/);
  assert.ok(hubApi.includes('Administrators cannot change their own YARD HUB tier.'), 'admins cannot change their own Hub tier directly');
  assert.ok(hubApi.includes('Administrators cannot remove their own YARD HUB tier assignment.'), 'admins cannot remove their own Hub tier directly');
  assert.doesNotMatch(hubApi,/\.from\("downtime_central_bank"\)\.(update|insert|delete)/,'Hub settings service cannot mutate the DOWNTIME user bank');
- assert.ok(ui.includes('const centralChanges=!existing'), 'client detects whether central account fields actually changed');
- assert.ok(ui.includes('New USER creation is paused until the canonical YARD ROLE catalogue and assignment store are implemented.'), 'new account creation stays blocked until canonical YARD ROLE provisioning is available');
+ assert.ok(ui.includes('const centralChanges=!pendingProvisioning&&(!existing'), 'client detects central changes while keeping pending provisioning idempotent');
+ assert.ok(ui.includes('requestedYardRoleId')&&ui.includes('assign-user-role')&&ui.includes('activateDowntimeCentralUserFromYardHub'), 'new USER creation uses staged canonical YARD ROLE provisioning');
  assert.ok(ui.includes('if(centralChanges){'), 'the legacy user API call is conditional on a real central account change');
- assert.ok(ui.includes('YARD HUB TIER SAVED. DOWNTIME USER DATA WAS NOT CHANGED.'), 'Hub-only tier save confirms no DOWNTIME mutation');
+ assert.ok(ui.includes('LEGACY USER AND YARD HUB SETTINGS SAVED.'), 'legacy Hub tier edits remain compatibility-only');
  assert.ok(ui.includes('state?.canManageCentralUsers!==true'), 'new user creation requires the existing Central Users right');
 assert.match(config,/\[functions\.yard-hub-settings-api\][\s\S]*?verify_jwt\s*=\s*false/,'YARD HUB API validates the existing opaque session itself');
 
