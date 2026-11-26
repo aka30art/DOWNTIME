@@ -23,7 +23,13 @@ assert.match(html,/deleteOperatorOriginalPhoto\(name\)/,'REMOVE PHOTO deletes th
 assert.match(html,/id="smCancel"/,'profile modal has an explicit cancel action');
 assert.match(html,/pendingOperatorPhotos\.modal/,'modal photo changes are staged before saving');
 assert.match(html,/data\.length>48000/,'profile thumbnail size is constrained');
-assert.match(html,/staffRoster\(\)\.filter\(n=>n!==name\)/,'staff removal only removes the roster/profile entry');
-assert.match(html,/Historical records remain preserved/,'staff removal explicitly preserves history');
+assert.match(html,/status:archived\?'ACTIVE':'ARCHIVED'/,'staff removal archives the profile instead of deleting it');
+assert.match(html,/function staffRoster\(\)\{state\.operatorProfiles=state\.operatorProfiles\|\|\{\};return allStaffRoster\(\)\.filter\(name=>state\.operatorProfiles\[name\]\?\.status!==['"]ARCHIVED['"]\)\}/,'archived staff are excluded from active operator choices while remaining in the directory');
+assert.match(html,/RESTORE STAFF/,'archived staff can be restored');
+assert.match(html,/id="manageStaffRolesBtn"/,'staff settings exposes on-site role management');
+assert.match(html,/function manageStaffRoles\(\)/,'on-site roles use a dedicated editor');
+assert.match(html,/draftRoleOrigins/,'role renames remain mapped to the original staff assignments when list items are removed');
+assert.doesNotMatch(html,/prompt\(['"]ON-SITE ROLE SETTINGS/,'role management does not rely on browser prompts');
+assert.match(html,/Historical records will be retained/,'archive action explicitly preserves historical records');
 assert.doesNotMatch(html,/id="newStaffName"/,'old inline add-name input removed');
 console.log('PASS: STAFF modal upgrade contract — cards, Add New Member, photo lifecycle, station lock, plant status and permissions');
