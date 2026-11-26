@@ -21,6 +21,7 @@
     async login(username,pin){const result=await call("login",{username,pin},null);session={token:result.token,expiresAt:result.expiresAt,user:result.user};sessionStorage.setItem(SESSION_KEY,JSON.stringify(session));return result.user},
     async logout(){try{if(session?.token)await call("logout",{},session.token)}finally{session=null;sessionStorage.removeItem(SESSION_KEY)}},
     async state(){return call("get-state")},
+    async identityDiagnostics(){return call("identity-diagnostics")},
     async dailyOperators(fromDate,toDate){return call("daily-operator-list",{fromDate,toDate})},
     async assignDailyOperator(dutyDate,operatorName,reason=""){return call("daily-operator-assign",{dutyDate,operatorName,reason})},
     async unlockDailyOperator(dutyDate,reason){return call("daily-operator-unlock",{dutyDate,reason})},
