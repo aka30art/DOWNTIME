@@ -6,7 +6,8 @@ create table if not exists public.yard_roles (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   description text not null default '',
-  status text not null default 'ACTIVE' check (status in ('ACTIVE', 'RETIRED')),
+  status text not null default 'DRAFT' check (status in ('DRAFT', 'ACTIVE', 'RETIRED')),
+  version integer not null default 1 check (version > 0),
   created_by text not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -17,7 +18,7 @@ create unique index if not exists yard_roles_name_ci_uidx
 
 create table if not exists public.yard_role_department_permissions (
   yard_role_id uuid not null references public.yard_roles(id) on delete restrict,
-  department text not null,
+  department text not null check (department in ('SCPL', 'R&M', 'Management', 'SCFL', 'Traffic')),
   access_level text not null check (access_level in ('OFF', 'READ_ONLY', 'INPUT', 'MANAGE')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -77,6 +78,7 @@ as $$
 declare
   v_role public.yard_roles%rowtype;
   v_assignment public.yard_role_assignments%rowtype;
+  v_permission_count integer := 0;
   v_inserted boolean := false;
 begin
   if p_user_id is null or p_staff_id is null or p_yard_role_id is null
@@ -147,9 +149,27 @@ comment on table public.yard_role_assignments is 'Canonical USER-to-YARD ROLE as
 comment on table public.yard_role_assignment_audit is 'Append-only audit for canonical YARD ROLE assignment changes.';
 
 
+
+-- Prevent mutation of the assignment audit trail, including by service-role callers.
+create or replace function public.prevent_yard_role_assignment_audit_mutation()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $
+begin
+  raise exception 'YARD ROLE assignment audit records are immutable';
+end;
+$;
+
+drop trigger if exists yard_role_assignment_audit_immutable on public.yard_role_assignment_audit;
+create trigger yard_role_assignment_audit_immutable
+before update or delete on public.yard_role_assignment_audit
+for each row execute function public.prevent_yard_role_assignment_audit_mutation();
+
 -- Atomically compare-and-swap the Central Bank payload and append its immutable audit event.
 create or replace function public.downtime_central_commit_identity_event(
-  p_expected_version integer,
+  p_expected_version bigint,
   p_payload jsonb,
   p_actor_username text,
   p_action text,
@@ -160,12 +180,12 @@ security definer
 set search_path = public
 as $$
 declare
-  v_current_version integer;
-  v_next_version integer;
+  v_current_version bigint;
+  v_next_version bigint;
 begin
   if p_expected_version is null or p_payload is null or jsonb_typeof(p_payload) <> 'object'
      or coalesce(trim(p_actor_username), '') = ''
-     or p_action not in ('user-staff-provision', 'user-staff-provision-activate') then
+     or p_action not in ('USER_STAFF_PROVISIONING_STARTED', 'USER_STAFF_PROVISIONING_ACTIVATED') then
     raise exception 'Invalid Central identity commit request';
   end if;
 
@@ -188,5 +208,5 @@ begin
 end;
 $$;
 
-revoke all on function public.downtime_central_commit_identity_event(integer, jsonb, text, text, jsonb) from public, anon, authenticated;
-grant execute on function public.downtime_central_commit_identity_event(integer, jsonb, text, text, jsonb) to service_role;
+revoke all on function public.downtime_central_commit_identity_event(bigint, jsonb, text, text, jsonb) from public, anon, authenticated;
+grant execute on function public.downtime_central_commit_identity_event(bigint, jsonb, text, text, jsonb) to service_role;
