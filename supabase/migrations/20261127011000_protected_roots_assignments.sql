@@ -18,7 +18,7 @@ create table if not exists public.downtime_roots_assignment_audit (
   user_id uuid not null,
   staff_id uuid not null,
   roots_class text not null check (roots_class in ('DEV1', 'ADMIN')),
-  actor_user_id uuid not null,
+  actor_user_id uuid,
   actor_username text not null,
   actor_display_name text not null,
   action text not null check (action in ('ROOTS_DEV1_ASSIGNED', 'ROOTS_ADMIN_ASSIGNED')),
@@ -62,7 +62,6 @@ declare
 begin
   if p_user_id is null or p_staff_id is null or p_user_id = p_staff_id
      or p_roots_class not in ('DEV1', 'ADMIN')
-     or p_actor_user_id is null
      or coalesce(trim(p_actor_username), '') = ''
      or coalesce(trim(p_actor_display_name), '') = '' then
     raise exception 'Invalid protected ROOTS assignment request';
