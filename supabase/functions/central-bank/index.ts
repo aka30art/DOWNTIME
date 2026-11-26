@@ -128,7 +128,6 @@ Deno.serve(async(req)=>{
    await db.from("downtime_central_audit").insert({username,action:"bootstrap",details:{}});
    return json({ok:true,message:"Owner account initialized. Sign in."});
  }
- if(action==="list-users"){return json({users:bank.users.filter((u:any)=>u.enabled!==false).map((u:any)=>({username:u.username,displayName:u.displayName||u.username,tier:u.tier}))});}
  if(action==="login"){
    const username=String(body.username||"").trim(),pin=String(body.pin||""),rateKey=username.toLowerCase();
    if(pin.length>8||!username||!/^[0-9]{4,8}$/.test(pin))return json({error:"Invalid credentials"},401);
@@ -137,13 +136,16 @@ Deno.serve(async(req)=>{
    if(rateError)return json({error:"Login service temporarily unavailable"},503);
    if((failedCount||0)>=5)return json({error:"Too many failed attempts. Try again in five minutes."},429);
    const user=bank.users.find((u:any)=>u.username.toLowerCase()===rateKey&&u.enabled!==false);
-   if(!user||!await verifyPin(pin,user)){await db.from("downtime_central_audit").insert({username:rateKey,action:"login-failed",details:{}});return json({error:"Invalid username or PIN"},401);}
+   const pinCandidate=user?.pinSalt&&user?.pinHash?user:{pinSalt:"central-login-dummy-salt",pinHash:"0".repeat(64)};
+   const validPin=await verifyPin(pin,pinCandidate);
+   if(!user||!validPin){await db.from("downtime_central_audit").insert({username:rateKey,action:"login-failed",details:{}});return json({error:"Invalid username or PIN"},401);}
    const token=cryptoHex(crypto.getRandomValues(new Uint8Array(32))),tokenHash=await digest(token),expires=new Date(Date.now()+12*60*60*1000);
    const {error}=await db.from("downtime_central_sessions").insert({token_hash:tokenHash,username:user.username,tier:user.tier,expires_at:expires.toISOString()});
    if(error)return json({error:"Session creation failed"},500);
    await db.from("downtime_central_audit").insert({username:user.username,action:"login",details:{}});
    return json({token,expiresAt:expires.toISOString(),user:safeUser(user)});
  }
+ if(action==="list-users"&&!req.headers.get("x-downtime-session"))return json({users:bank.users.map((u:any)=>({username:u.username}))});
  const token=req.headers.get("x-downtime-session")||"",tokenHash=await digest(token);
  const {data:session}=await db.from("downtime_central_sessions").select("username,tier,expires_at").eq("token_hash",tokenHash).gt("expires_at",new Date().toISOString()).maybeSingle();
  if(!session)return json({error:"Session expired. Sign in again."},401);
@@ -157,6 +159,13 @@ Deno.serve(async(req)=>{
  const isRootAuthority=isDevRoot||isDevacc;
  const isCentralAdmin=tier==="ADMIN"||isRootAuthority;
  const isCentralBankAccess=isRootAuthority;
+ if(action==="photo-evidence-context"){
+   return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username},permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canDeleteRecords:priv.canDeleteRecords===true}});
+ }
+ if(action==="list-users"){
+   const visibleUsers=priv.canManageUsers||priv.canViewUsers?bank.users.filter((u:any)=>u.enabled!==false).map(safeUser):[safeUser(currentUser)];
+   return json({users:visibleUsers});
+ }
  if(action==="central-admin-state"){
    if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);
    return json({payload:{...bank,users:bank.users.map(safeUser)},version:row?.version||0,updatedAt:row?.updated_at||null,user:safeUser(currentUser)});

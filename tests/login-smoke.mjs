@@ -365,7 +365,7 @@ window.supabase={createClient:()=>({
   return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':origin,'vary':'Origin'},body:JSON.stringify({user:{username:'DEV',displayName:'DEV',tier:'DEV'},permissions:{canAccessYardHub:true,canAccessRepairMaintenance:true,canEditRepairMaintenance:true,canDeleteRepairMaintenance:true,canExportRepairMaintenanceReports:true}})});
  });
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
- try{await page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:8000})}catch(error){throw new Error('Central login options failed to populate. Browser errors: '+errors.slice(-10).join(' | ')+'; auth message: '+await page.locator('#authMsg').textContent().catch(()=> 'missing')+'; window adapter: '+await page.evaluate(()=>String(!!window.DowntimeCentral)).catch(()=> 'unavailable')+'; original: '+error.message)}
+ try{await page.waitForFunction(()=>document.querySelector('#centralUsername')?.tagName==='INPUT',{timeout:8000})}catch(error){throw new Error('Manual username login field failed to render. Browser errors: '+errors.slice(-10).join(' | ')+'; auth message: '+await page.locator('#authMsg').textContent().catch(()=> 'missing')+'; window adapter: '+await page.evaluate(()=>String(!!window.DowntimeCentral)).catch(()=> 'unavailable')+'; original: '+error.message)}
  if(!loginPresentationVerified){
   const desktopBox=await page.locator('#authGate .authbox-central').boundingBox();
   const desktopStyle=await page.locator('#authGate .authbox-central').evaluate(el=>({border:getComputedStyle(el).borderTopColor,brandVisible:!!el.querySelector('.auth-brand-wordmark')}));
@@ -385,7 +385,7 @@ window.supabase={createClient:()=>({
   assert.ok(mobileFit.touchTargets.pin>=64,'mobile PIN field has a 64px touch target');
   assert.ok(mobileFit.touchTargets.keypadMin>=60,'every numeric keypad key has a 60px touch target');
   assert.ok(mobileFit.touchTargets.signIn>=68,'SIGN IN has a 68px touch target');
-  assert.ok(mobileFit.touchTargets.refresh>=60,'REFRESH USER LIST has a 60px touch target');
+  assert.ok(mobileFit.touchTargets.refresh>=60,'RESET LOGIN FORM has a 60px touch target');
 
   await page.setViewportSize({width:1280,height:720});
   const desktopFit=await page.evaluate(()=>{const gate=document.querySelector('#authGate'),box=document.querySelector('#authGate .authbox-central'),controls=[...box.querySelectorAll('#centralUsername,#teamPin,.pinpad,#unlockBtn,#refreshAppBtn')];return {gateScroll:gate.scrollHeight>gate.clientHeight+1,boxScroll:box.scrollHeight>box.clientHeight+1,controlsFit:controls.every(el=>{const r=el.getBoundingClientRect(),g=gate.getBoundingClientRect();return r.top>=g.top-1&&r.bottom<=g.bottom+1})}});
@@ -397,7 +397,7 @@ window.supabase={createClient:()=>({
   assert.equal(compactFit.gateScroll,false,'compact mobile login stays within the page viewport');
   assert.equal(compactFit.needsScroll,true,'compact mobile login uses internal scrolling rather than shrinking touch targets');
   assert.equal(compactFit.scrollEnabled,true,'compact mobile login card exposes vertical scrolling');
-  assert.equal(compactFit.refreshReachable,true,'REFRESH USER LIST remains reachable at the bottom of a compact login viewport');
+  assert.equal(compactFit.refreshReachable,true,'RESET LOGIN FORM remains reachable at the bottom of a compact login viewport');
   await page.setViewportSize({width:1280,height:720});
   loginPresentationVerified=true;
  }
@@ -408,7 +408,7 @@ async function pinpad(page,pin){for(const digit of pin)await page.locator('[data
 let repairMaintenanceBootTested=false;
 let loginPresentationVerified=false;
 async function signIn(page,pin='2468',username='DEV'){
- await page.locator('#centralUsername').selectOption(username);
+ await page.locator('#centralUsername').fill(username);
  await pinpad(page,pin);
  await page.locator('#unlockBtn').click();
  await page.waitForFunction(()=>document.querySelector('#authGate').style.display==='none',{timeout:5000});
@@ -497,7 +497,7 @@ async function openSettingsHub(page){
 try{
  // Invalid credentials never unlock the tracker.
  const rejected=await openFor('OWNER');
- await rejected.page.locator('#centralUsername').selectOption('DEV');
+ await rejected.page.locator('#centralUsername').fill('DEV');
  await pinpad(rejected.page,'9999');
  await rejected.page.locator('#unlockBtn').click();
  await rejected.page.waitForFunction(()=>document.querySelector('#authMsg').textContent.includes('Invalid username or PIN'),{timeout:5000});
@@ -1127,7 +1127,7 @@ await ensureNavigationMenuOpen(owner.page);
  assert.equal(await owner.page.locator('#yardHub').isVisible(),true,'YARD HUB is available before sign-out');
  await owner.page.locator('#yardHubLogoutBtn').click();
  await owner.page.waitForFunction(()=>document.querySelector('#authGate').style.display!=='none');
- await owner.page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
+ await owner.page.waitForFunction(()=>document.querySelector('#centralUsername')?.tagName==='INPUT',{timeout:5000});
  assert.equal(await owner.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display==='none'),true,'Central Data Bank entry is hidden immediately after logout');
  assert.equal(await owner.page.locator('#authGate h2').textContent(),'DOWNTIME · CENTRAL LOGIN','Log Out returns OWNER to the central USER login screen');
  assert.ok(owner.actions.some(x=>x.action==='logout'),'Log Out calls the central logout endpoint');
@@ -1162,7 +1162,7 @@ await ensureNavigationMenuOpen(owner.page);
  assert.equal(await user.page.locator('.side #logoutBtn').isVisible(),true,'USER has Log Out in the top navigation');
  await user.page.locator('.side #logoutBtn').click();
  await user.page.waitForFunction(()=>document.querySelector('#authGate').style.display!=='none');
- await user.page.waitForFunction(()=>document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
+ await user.page.waitForFunction(()=>document.querySelector('#centralUsername')?.tagName==='INPUT',{timeout:5000});
  assert.equal(await user.page.locator('#authGate h2').textContent(),'DOWNTIME · CENTRAL LOGIN','USER is returned to the central login screen');
  assert.ok(user.actions.some(x=>x.action==='logout'),'USER sign-out invalidates the central session');
  await user.context.close();
