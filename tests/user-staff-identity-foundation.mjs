@@ -113,7 +113,7 @@ assert.equal(stalePreview.staff.compatibilityProfileCount, 1);
 const duplicateAndOrphan = {
   users: [
     { username: "Sam", userId: uid1, staffId: sid1 },
-    { username: " sam ", userId: uid1, staffId: sid2 },
+    { username: " sam ", userId: uid1, staffId: "55555555-5555-4555-8555-555555555555" },
     { username: "Orphan", userId: uid2, staffId: "55555555-5555-4555-8555-555555555555" },
   ],
   staff: {
