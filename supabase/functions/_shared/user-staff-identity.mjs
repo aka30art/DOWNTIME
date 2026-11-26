@@ -445,7 +445,7 @@ export function buildPendingUserStaffProvisioning(bank, input) {
     { ...staff, name: displayName },
     Array.isArray(source.users) ? source.users : [],
     Object.values(profiles),
-    () => input.userId,
+    (() => { const ids = [input.userId, input.staffId]; return () => ids.shift(); })(),
   );
   // The pair builder is used for contract validation; use the distinct server STAFF ID.
   user.staffId = input.staffId;
@@ -511,7 +511,6 @@ export function activatePendingUserStaffProvisioning(bank, username, yardHubTier
   }
   user.enabled = true;
   delete user.provisioning;
-  const key = user.provisioning?.idempotencyKey;
   const receipts = isObject(next.identityProvisioningReceipts) ? next.identityProvisioningReceipts : {};
   const receiptKey = Object.keys(receipts).find((id) => receipts[id]?.userId === user.userId);
   if (receiptKey) next.identityProvisioningReceipts[receiptKey] = { ...receipts[receiptKey], stage: "ACTIVE", activatedAt: now, yardHubTier: String(yardHubTier).toUpperCase() };
