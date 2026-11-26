@@ -272,6 +272,7 @@ Deno.serve(async (req: Request) => {
       String(account.username || "").toLowerCase() === targetUsername.toLowerCase()
     );
     if (!target) return json({ error: "Central user account not found." }, 404);
+    if (target.provisioning || target.yardRoleId) return json({ error: "Canonical YARD ROLE identities cannot have legacy YARD HUB tier assignments removed." }, 409);
     const root = isRootAdmin(user, hubTier, legacyTier);
     if (!root && !editableByAdmin.includes(assignedHubTier(configRow.payload, target.username) as any)) {
       return json({ error: "ADMIN cannot remove protected YARD HUB tier assignments." }, 403);
