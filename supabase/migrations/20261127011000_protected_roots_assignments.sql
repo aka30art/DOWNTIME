@@ -36,11 +36,11 @@ revoke insert, update, delete on public.downtime_roots_assignment_audit from ser
 
 create or replace function public.prevent_downtime_roots_assignment_mutation()
 returns trigger language plpgsql security definer set search_path = public
-as $
+as $roots$
 begin
   raise exception 'ROOTS assignments are immutable; use a separately reviewed lifecycle operation';
 end;
-$;
+$roots$;
 
 drop trigger if exists downtime_roots_assignment_immutable on public.downtime_roots_assignments;
 create trigger downtime_roots_assignment_immutable
