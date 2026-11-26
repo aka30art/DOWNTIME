@@ -1,0 +1,353 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import {
+  activatePendingUserStaffProvisioning,
+  buildIdentityMigrationPreview,
+  buildNewUserStaffIdentityPair,
+  buildPendingUserStaffProvisioning,
+  diagnoseIdentityDirectory,
+  normaliseIdentityDirectory,
+  validateNewUserStaffPair,
+  validateStaffOperationalProfile,
+} from "../supabase/functions/_shared/user-staff-identity.mjs";
+
+const uid1 = "11111111-1111-4111-8111-111111111111";
+const sid1 = "22222222-2222-4222-8222-222222222222";
+const uid2 = "33333333-3333-4333-8333-333333333333";
+const sid2 = "44444444-4444-4444-8444-444444444444";
+
+const legacy = {
+  users: [
+    { username: "DEV", tier: "OWNER", enabled: true },
+    { username: "Jan", tier: "DEVACC", enabled: true },
+  ],
+  staff: {
+    roster: ["Jan", "Legacy Operator"],
+    profiles: {
+      Jan: { department: "Operations", station: "Line 1", stationLocked: true, onSite: true, photoPath: "jan/photo.png" },
+      "Legacy Operator": { department: "Operations", status: "ARCHIVED", photo: "legacy-photo.png" },
+    },
+  },
+};
+
+const legacySnapshot = structuredClone(legacy);
+const normalised = normaliseIdentityDirectory(legacy);
+assert.equal(normalised.users.length, 2);
+assert.equal(normalised.staffProfiles.length, 2);
+assert.equal(normalised.staffProfiles[0].stationLocked, true, "operational station locks are preserved");
+assert.equal(normalised.staffProfiles[0].photoPath, "jan/photo.png", "photo references are preserved");
+assert.equal(normalised.staffProfiles[1].photo, "legacy-photo.png", "legacy photo fields are preserved");
+assert.deepEqual(legacy, legacySnapshot, "normalisation must not mutate the legacy payload");
+assert.equal(normalised.users[0].userId, undefined, "normalisation must not invent a USER ID");
+assert.equal(normalised.users[1].staffId, undefined, "normalisation must not invent a USER/STAFF link");
+assert.equal(normalised.staffProfiles[0].staffId, undefined, "normalisation must not invent a STAFF ID");
+assert.deepEqual(normaliseIdentityDirectory(legacy), normalised, "normalisation must be deterministic and idempotent");
+
+const preview = buildIdentityMigrationPreview(legacy);
+assert.equal(preview.mode, "read-only");
+assert.equal(preview.writesPerformed, 0);
+assert.equal(preview.users.total, 2);
+assert.equal(preview.staff.profileCount, 2);
+assert.equal(preview.staff.rosterEntryCount, 2);
+assert.equal(preview.staff.compatibilityRosterEntryCount, 0);
+assert.equal(preview.staff.compatibilityProfileCount, 0);
+assert.equal(preview.users.devRootCount, 1);
+assert.equal(preview.readyForIdentityCutover, false, "legacy missing IDs must keep the cutover readiness gate closed");
+assert.ok(preview.diagnostics.warnings >= 6);
+assert.equal(preview.users.validRecordCount, 2);
+assert.equal(preview.staff.validProfileCount, 2);
+assert.ok(preview.findings.some((item) => item.code === "legacy-name-match-unverified"), "possible name matches are reported but never linked");
+
+const generatedPair = buildNewUserStaffIdentityPair(
+  { username: "Generated.User", displayName: "Generated User" },
+  { displayName: "Generated User", department: "Operations", station: "Line 2", stationLocked: false },
+  [],
+  [],
+  (() => { const ids = [uid1, sid1]; return () => ids.shift(); })(),
+);
+assert.equal(generatedPair.user.userId, uid1);
+assert.equal(generatedPair.user.staffId, sid1);
+assert.equal(generatedPair.user.status, "PROVISIONING");
+assert.equal(generatedPair.user.enabled, false, "new USER remains unable to authenticate before role provisioning completes");
+assert.equal(generatedPair.staff.staffId, sid1);
+assert.equal(generatedPair.staff.linkedUserId, uid1);
+assert.equal(generatedPair.staff.station, "Line 2");
+assert.equal(generatedPair.staff.stationLocked, false);
+assert.throws(() => buildNewUserStaffIdentityPair(
+  { username: "Injected", displayName: "Injected", userId: uid1 },
+  { displayName: "Injected" },
+), /USER identity, tier, credential and activation fields are server-generated/);
+assert.throws(() => buildNewUserStaffIdentityPair(
+  { username: "Generated.User", displayName: "Generated User" },
+  { displayName: "Generated User", linkedUserId: uid1 },
+), /STAFF identity and ROOTS fields are server-generated/);
+assert.throws(() => buildNewUserStaffIdentityPair(
+  { username: "DEV", displayName: "DEV" },
+  { displayName: "DEV" },
+), /DEV is the immutable root identity/);
+assert.throws(() => buildNewUserStaffIdentityPair(
+  { username: "Broken", displayName: "Broken" },
+  { displayName: "Broken" },
+  [],
+  [],
+  () => uid1,
+), /two distinct UUIDs/);
+
+const validUser = { userId: uid1, staffId: sid1, username: "New.User", displayName: "New User" };
+const validStaff = { staffId: sid1, linkedUserId: uid1, displayName: "New User", department: "Operations" };
+assert.deepEqual(validateNewUserStaffPair(validUser, validStaff), {
+  valid: true, userId: uid1, staffId: sid1, linkedUserId: uid1,
+});
+
+assert.throws(() => validateNewUserStaffPair(
+  { ...validUser, staffId: sid2 }, validStaff,
+), /USER\.staffId must match/);
+assert.throws(() => validateNewUserStaffPair(
+  validUser, { ...validStaff, linkedUserId: uid2 },
+), /STAFF\.linkedUserId must match/);
+assert.throws(() => validateNewUserStaffPair(
+  { ...validUser, userId: "not-a-uuid" }, validStaff,
+), /USER userId must be a valid/);
+assert.throws(() => validateNewUserStaffPair(
+  { ...validUser, username: "dev" }, validStaff,
+), /DEV is the immutable root/);
+assert.throws(() => validateNewUserStaffPair(
+  { ...validUser, rootsClass: "ADMIN" }, validStaff,
+), /Protected ROOTS classification cannot be supplied/);
+assert.throws(() => validateNewUserStaffPair(
+  { ...validUser, tier: "ADMIN" }, validStaff,
+), /Legacy tier claims cannot be supplied/);
+assert.throws(() => validateNewUserStaffPair(
+  validUser, validStaff, [{ username: "NEW.USER" }], [],
+), /username already exists/);
+assert.throws(() => validateNewUserStaffPair(
+  validUser, validStaff, [{ username: "Other", userId: uid1 }], [],
+), /userId already exists/);
+assert.throws(() => validateNewUserStaffPair(
+  validUser, validStaff, [], [{ staffId: sid1 }],
+), /STAFF staffId already exists/);
+assert.throws(() => validateNewUserStaffPair(
+  validUser, validStaff, [], [{ linkedUserId: uid1 }],
+), /already linked to a STAFF/);
+
+const linked = {
+  users: [
+    { username: "DEV", userId: uid2 },
+    { username: "New.User", userId: uid1, staffId: sid1 },
+  ],
+  staff: {
+    profiles: {
+      "New User": { staffId: sid1, linkedUserId: uid1 },
+    },
+    roster: ["New User"],
+  },
+};
+assert.equal(diagnoseIdentityDirectory(linked).filter((item) => item.severity === "error").length, 0);
+assert.equal(diagnoseIdentityDirectory(linked).length, 0, "DEV is correctly exempt from a STAFF link");
+const cleanTarget = {
+  users: [{ username: "DEV", userId: uid2 }],
+  staff: { roster: [], profiles: {} },
+  appData: { staffRoster: [], operatorProfiles: {} },
+};
+assert.equal(buildIdentityMigrationPreview(cleanTarget).readyForIdentityCutover, true, "a valid DEV-only reset target passes readiness");
+assert.equal(buildIdentityMigrationPreview(linked).readyForIdentityCutover, false, "a linked multi-user directory is not the clean cutover target");
+const malformedRecords = {
+  users: [{ username: "DEV", userId: uid2 }, null],
+  staff: { roster: [], profiles: { Broken: null } },
+};
+const malformedPreview = buildIdentityMigrationPreview(malformedRecords);
+assert.equal(malformedPreview.users.total, 2);
+assert.equal(malformedPreview.users.validRecordCount, 1);
+assert.equal(malformedPreview.users.invalidRecordCount, 1);
+assert.equal(malformedPreview.staff.profileCount, 1);
+assert.equal(malformedPreview.staff.validProfileCount, 0);
+assert.equal(malformedPreview.staff.invalidProfileCount, 1);
+assert.equal(malformedPreview.readyForIdentityCutover, false, "malformed identity records must block readiness");
+
+const staleCompatibility = {
+  users: [{ username: "DEV", userId: uid2 }],
+  staff: { roster: [], profiles: {} },
+  appData: { staffRoster: ["Old Staff"], operatorProfiles: { "Old Staff": {} } },
+};
+const stalePreview = buildIdentityMigrationPreview(staleCompatibility);
+assert.equal(stalePreview.readyForIdentityCutover, false, "compatibility STAFF copies must also be empty at reset completion");
+assert.equal(stalePreview.staff.compatibilityRosterEntryCount, 1);
+assert.equal(stalePreview.staff.compatibilityProfileCount, 1);
+
+const duplicateAndOrphan = {
+  users: [
+    { username: "Sam", userId: uid1, staffId: sid1 },
+    { username: " sam ", userId: uid1, staffId: "55555555-5555-4555-8555-555555555555" },
+    { username: "Orphan", userId: uid2, staffId: "55555555-5555-4555-8555-555555555555" },
+  ],
+  staff: {
+    profiles: {
+      First: { staffId: sid1, linkedUserId: "66666666-6666-4666-8666-666666666666" },
+      Second: { staffId: sid1, linkedUserId: uid1 },
+      Third: { staffId: sid2, linkedUserId: uid1 },
+    },
+  },
+};
+const issues = diagnoseIdentityDirectory(duplicateAndOrphan);
+for (const code of [
+  "duplicate-username",
+  "duplicate-user-id",
+  "duplicate-staff-id",
+  "user-has-multiple-staff",
+  "orphan-user-staff-link",
+  "orphan-staff-user-link",
+]) assert.ok(issues.some((item) => item.code === code), "diagnostic " + code);
+
+const rosterMismatch = {
+  users: [{ username: "DEV", userId: uid2 }],
+  staff: { roster: ["Roster Only"], profiles: { "Different Profile": {} } },
+  appData: { staffRoster: ["Legacy Copy"], operatorProfiles: { "Legacy Copy": {} } },
+};
+const ambiguousNames = {
+  users: [{ username: "Sam", displayName: "Sam", userId: uid1 }],
+  staff: { roster: ["First", "Second"], profiles: {
+    First: { displayName: "Sam" },
+    Second: { displayName: "Sam" },
+  } },
+};
+assert.ok(diagnoseIdentityDirectory(ambiguousNames).some((item) => item.code === "ambiguous-legacy-name-match"), "ambiguous name matches block guessing");
+const mismatchCodes = diagnoseIdentityDirectory(rosterMismatch).map((item) => item.code);
+assert.ok(mismatchCodes.includes("staff-roster-profile-missing"));
+assert.ok(mismatchCodes.includes("staff-roster-compatibility-mismatch"));
+assert.ok(mismatchCodes.includes("staff-profile-compatibility-mismatch"));
+
+const noMutationSnapshot = structuredClone(linked);
+buildIdentityMigrationPreview(linked);
+assert.deepEqual(linked, noMutationSnapshot, "migration preview must be read-only");
+
+const operationalStaff = validateStaffOperationalProfile({
+  department: "SCPL",
+  onSiteRole: "Main Operator",
+  onSite: true,
+  station: "Station 1 · WOOD",
+  stationLocked: true,
+});
+assert.deepEqual(operationalStaff, {
+  department: "SCPL",
+  onSiteRole: "Main Operator",
+  station: "Station 1 · WOOD",
+  stationLocked: true,
+  onSite: true,
+});
+assert.throws(() => validateStaffOperationalProfile({
+  department: "SCPL", onSiteRole: "Mechanic", onSite: true, station: "", stationLocked: false,
+}), /operational role is invalid/);
+assert.throws(() => validateStaffOperationalProfile({
+  department: "SCPL", onSiteRole: "Main Operator", onSite: true, station: "", stationLocked: true,
+}), /locked STAFF station must have/);
+assert.throws(() => validateStaffOperationalProfile({
+  department: "R&M", onSiteRole: "Mechanic", onSite: true, station: "Station 1 · WOOD", stationLocked: false,
+}), /available only for SCPL/);
+assert.throws(() => validateStaffOperationalProfile({
+  department: "R&M", onSiteRole: "Mechanic", onSite: true, station: "", stationLocked: false, photoPath: "private/path",
+}), /photo fields are not accepted/);
+
+const requestedRoleId = "77777777-7777-4777-8777-777777777777";
+const idempotencyKey = "88888888-8888-4888-8888-888888888888";
+const provisioningBank = {
+  users: [{ username: "DEV", userId: uid2, tier: "OWNER", enabled: true }],
+  staff: { roster: [], profiles: {} },
+  appData: { staffRoster: [], operatorProfiles: {} },
+};
+const provisioningInput = {
+  idempotencyKey,
+  requestFingerprint: "c".repeat(64),
+  userId: uid1,
+  staffId: sid1,
+  requestedYardRoleId: requestedRoleId,
+  userFields: { username: "New.Operator", displayName: "New Operator" },
+  staffFields: {
+    department: "SCPL",
+    onSiteRole: "Main Operator",
+    onSite: true,
+    station: "Station 1 · WOOD",
+    stationLocked: true,
+  },
+  pinSalt: "a".repeat(32),
+  pinHash: "b".repeat(64),
+  actor: "DEV",
+  createdAt: "2026-11-26T23:00:00.000Z",
+};
+const provisioningBankSnapshot = structuredClone(provisioningBank);
+const pending = buildPendingUserStaffProvisioning(provisioningBank, provisioningInput);
+assert.deepEqual(provisioningBank, provisioningBankSnapshot, "pending provisioning must not mutate its input payload");
+const pendingUser = pending.payload.users.find((item) => item.userId === uid1);
+const pendingStaff = pending.payload.staff.profiles["New Operator"];
+assert.equal(pendingUser.status, "PROVISIONING");
+assert.equal(pendingUser.enabled, false, "pending USER cannot authenticate");
+assert.equal(pendingUser.tier, undefined, "new USER receives no legacy tier claim");
+assert.equal(pendingUser.provisioning.stage, "YARD_ROLE_PENDING");
+assert.equal(pendingUser.provisioning.requestedYardRoleId, requestedRoleId);
+assert.equal(pendingStaff.status, "PROVISIONING");
+assert.equal(pendingStaff.staffId, sid1);
+assert.equal(pendingStaff.linkedUserId, uid1);
+assert.equal(pendingStaff.station, "Station 1 · WOOD");
+assert.deepEqual(pending.payload.staff.roster, [], "pending STAFF must not appear in active roster");
+assert.deepEqual(pending.payload.appData.staffRoster, [], "pending STAFF must not appear in compatibility roster");
+assert.deepEqual(pending.payload.appData.operatorProfiles, {}, "pending STAFF must not appear in active operator profiles");
+assert.equal(pending.receipt.stage, "YARD_ROLE_PENDING");
+assert.equal(buildPendingUserStaffProvisioning(pending.payload, provisioningInput).replayed, true, "same idempotency key and fingerprint replay safely");
+assert.throws(() => buildPendingUserStaffProvisioning(pending.payload, {
+  ...provisioningInput, requestFingerprint: "d".repeat(64),
+}), /different provisioning request/);
+assert.throws(() => buildPendingUserStaffProvisioning(provisioningBank, {
+  ...provisioningInput, requestedYardRoleId: "not-a-role-id",
+}), /canonical YARD ROLE ID/);
+
+const validRoleAssignment = {
+  userId: uid1,
+  staffId: sid1,
+  yardRoleId: requestedRoleId,
+  status: "ACTIVE",
+  version: 1,
+  verifiedAt: "2026-11-26T23:01:00.000Z",
+};
+assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
+  ...validRoleAssignment, status: "PENDING",
+}), /verified active canonical YARD ROLE assignment/);
+assert.throws(() => activatePendingUserStaffProvisioning(pending.payload, {
+  ...validRoleAssignment, staffId: sid2,
+}), /does not match the USER\/STAFF identity pair/);
+const activated = activatePendingUserStaffProvisioning(pending.payload, validRoleAssignment);
+const activeUser = activated.payload.users.find((item) => item.userId === uid1);
+const activeStaff = activated.payload.staff.profiles["New Operator"];
+assert.equal(activeUser.status, "ACTIVE");
+assert.equal(activeUser.enabled, true);
+assert.equal(activeUser.yardRoleId, requestedRoleId);
+assert.equal(activeUser.tier, undefined, "activation does not restore legacy tier permissions");
+assert.equal(activeUser.provisioning, undefined);
+assert.equal(activeStaff.status, "ACTIVE");
+assert.deepEqual(activated.payload.staff.roster, ["New Operator"]);
+assert.deepEqual(activated.payload.appData.staffRoster, ["New Operator"]);
+assert.equal(activated.payload.appData.operatorProfiles["New Operator"].staffId, sid1);
+assert.equal(activated.payload.identityProvisioningReceipts[idempotencyKey].stage, "ACTIVE");
+assert.equal(activated.payload.identityProvisioningReceipts[idempotencyKey].roleAssignmentVersion, 1);
+assert.equal(activatePendingUserStaffProvisioning(activated.payload, validRoleAssignment).replayed, true, "activation retries are idempotent");
+
+const centralApi = await readFile("supabase/functions/central-bank/index.ts", "utf8");
+const browserClient = await readFile("central-bank-client.js", "utf8");
+assert.match(centralApi, /import \{ buildIdentityMigrationPreview \} from ["']\.\.\/_shared\/user-staff-identity\.mjs["']/);
+const diagnosticsRoute = centralApi.slice(
+  centralApi.indexOf('if(action==="identity-diagnostics")'),
+  centralApi.indexOf('if(action==="photo-evidence-context")'),
+);
+assert.ok(diagnosticsRoute.length > 0, "DEV-only diagnostics action is registered");
+assert.match(diagnosticsRoute, /if\(!isDevRoot\)/, "identity diagnostics are restricted to immutable DEV");
+assert.match(diagnosticsRoute, /buildIdentityMigrationPreview\(bank\)/, "the route uses the read-only preview");
+assert.doesNotMatch(diagnosticsRoute, /\.update\(|\.insert\(|\.delete\(|\.rpc\(/, "the diagnostics route cannot write data");
+assert.match(browserClient, /identityDiagnostics\(\)\{return call\("identity-diagnostics"\)\}/, "browser adapter exposes the read-only diagnostics action");
+assert.doesNotMatch(centralApi, /if\(action==="user-staff-provision"\)|if\(action==="user-staff-activate"\)/, "new account provisioning is not exposed before the canonical YARD ROLE store exists");
+const legacyUserSave = centralApi.slice(
+  centralApi.indexOf('if(action==="user-save")'),
+  centralApi.indexOf('if(action==="user-delete")'),
+);
+assert.match(legacyUserSave, /if\(!existing\)return json\(\{error:"New accounts are blocked until the canonical YARD ROLE provisioning workflow is implemented\."/,
+  "legacy account-save cannot create unlinked USER records");
+
+
+console.log("PASS: additive USER/STAFF identity contract, DEV-only read-only diagnostics and reciprocal-link validation.");
