@@ -95,7 +95,7 @@ Deno.serve(async(req)=>{
     if(!Number.isInteger(size)||size<1||size>maxBytes)return json({error:"File size must be 5MB or less"},413);
     const {data:existing,error:existingError}=await admin.from("downtime_attachments").select("id,storage_path,expires_at,status,record_id").eq("downtime_entry_key",entryKey).maybeSingle();
     if(existingError)return json({error:"Unable to check existing photo evidence"},503);
-    if(existing&&existing.record_id&&existing.record_id!==recordId)return json({error:"Photo entry key is already associated with another operational record"},409);
+    if(existing&&existing.record_id!==recordId)return json({error:"Photo entry key is already associated with another operational record"},409);
     if(existing&&existing.status==="available"&&new Date(existing.expires_at)>new Date())return json({error:"An active photo already exists for this entry"},409);
     const attachmentId=crypto.randomUUID(),path=entryKey+"/"+attachmentId+(mime==="image/webp"?".webp":".jpg");
     const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString();
