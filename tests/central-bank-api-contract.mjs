@@ -10,6 +10,7 @@ assert.ok(src.includes('login-failed'),'failed login attempts are audited');
 assert.ok(src.indexOf('if(action==="list-users")')>src.indexOf('const currentUser=bank.users.find'),'full user directory is only available after session resolution');
 assert.ok(src.indexOf('if(action==="photo-evidence-context")')>src.indexOf('const currentUser=bank.users.find'),'photo permission context is available only after session validation');
 assert.ok(src.includes('permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canDeleteRecords:priv.canDeleteRecords===true}'),'photo context returns only the three server-resolved tracker capabilities');
+assert.ok(src.includes('user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username}'),'photo context exposes only the authenticated actor snapshot');
 assert.ok(!src.includes('login-options'),'the unauthenticated account directory endpoint is removed');
 assert.ok(src.includes('return json({error:"Invalid username or PIN"},401)'),'unknown usernames and incorrect PINs share a generic login error');
 assert.ok(src.includes('priv.canManageUsers||priv.canViewUsers?bank.users.filter((u:any)=>u.enabled!==false).map(safeUser):[safeUser(currentUser)]'),'authenticated directory listing is permission-scoped');
