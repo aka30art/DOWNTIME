@@ -169,7 +169,8 @@ Deno.serve(async(req)=>{
    if(!/^[0-9]{4,8}$/.test(pin))return json({error:"PIN must contain 4–8 digits."},400);
    const requestFingerprint=await digest(JSON.stringify({username,displayName,pin,staff:staffFields}));
    try{
-     const pending=buildPendingUserStaffProvisioning(bank,{userFields:{username,displayName},staffFields,idempotencyKey,requestFingerprint,userId:crypto.randomUUID(),staffId:crypto.randomUUID(),pinSalt:cryptoHex(crypto.getRandomValues(new Uint8Array(16))),pinHash:await hashPin(pin,cryptoHex(crypto.getRandomValues(new Uint8Array(16)))),actor:currentUser.username});
+     const pinSalt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));
+     const pending=buildPendingUserStaffProvisioning(bank,{userFields:{username,displayName},staffFields,idempotencyKey,requestFingerprint,userId:crypto.randomUUID(),staffId:crypto.randomUUID(),pinSalt,pinHash:await hashPin(pin,pinSalt),actor:currentUser.username});
      if(pending.replayed)return json({ok:true,replayed:true,version:Number(row?.version||0),userId:pending.receipt.userId,staffId:pending.receipt.staffId,stage:pending.receipt.stage});
      if(!Number.isInteger(Number(body.version))||Number(body.version)!==Number(row?.version||0))return json({error:"Central USER directory changed. Refresh and retry provisioning."},409);
      const {data:write,error}=await db.from("downtime_central_bank").update({payload:pending.payload,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
