@@ -81,10 +81,14 @@
       else if(kind!=='hub-settings')button.hidden=false;
       button.setAttribute('aria-label','Open '+entry.title+' department');
       const hasSubmenus=(entry.submenus||[]).some(item=>item.enabled!==false);
-      const status=hasSubmenus?'OPEN SUB-MENUS':undefined;
+      const status=kind==='floor'?'STAFF DIRECTORY':hasSubmenus?'OPEN SUB-MENUS':undefined;
       tileCopy(button,entry.title,entry.description,status);
       if(kind==='custom')button.disabled=false;
-      if(kind==='floor'||kind==='check-sheets'){
+      if(kind==='floor'){
+        button.disabled=false;
+        button.classList.add('yard-tile-active');
+        button.classList.remove('yard-tile-locked');
+      }else if(kind==='check-sheets'){
         button.disabled=!hasSubmenus;
         button.classList.toggle('yard-tile-active',hasSubmenus);
         button.classList.toggle('yard-tile-locked',!hasSubmenus);
@@ -159,6 +163,10 @@
     if((entry.kind||'custom')==='gatelog'){
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
       window.GATELOG?.open();return;
+    }
+    if((entry.kind||'custom')==='floor'){
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+      window.YardHubStaff?.open();return;
     }
     if((entry.kind||'custom')==='custom'||submenus.length){
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
