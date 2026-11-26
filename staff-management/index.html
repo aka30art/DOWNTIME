@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07131c">
+  <title>STAFF MANAGEMENT · YARD HUB</title>
+  <link rel="stylesheet" href="app.css">
+  <script src="app.js" defer></script>
+</head>
+<body class="staff-mgmt">
+  <main class="sm-shell">
+    <header class="sm-header">
+      <div class="sm-header-top">
+        <a class="sm-brand" href="../index.html" aria-label="Return to YARD HUB">
+          <span class="sm-brand-mark">YH</span>
+          <span><b>YARD HUB</b><small>OPERATIONS PLATFORM</small></span>
+        </a>
+        <div class="sm-session">
+          <span id="sessionLabel">STAGING · NOT SIGNED IN</span>
+          <button id="signInButton" class="sm-button sm-button-primary" type="button">Sign in</button>
+          <button id="signOutButton" class="sm-button sm-button-secondary" type="button" hidden>Sign out</button>
+        </div>
+      </div>
+      <div class="sm-heading-row">
+        <div>
+          <p class="sm-eyebrow">YARD HUB / PEOPLE DIRECTORY</p>
+          <h1>STAFF <em>MANAGEMENT</em></h1>
+          <p class="sm-subtitle">ON-SITE PERSONNEL · OPERATIONAL ROLES · RECORD HISTORY</p>
+        </div>
+        <div class="sm-header-accent" aria-hidden="true"></div>
+      </div>
+    </header>
+
+    <section id="stagingNotice" class="sm-notice" role="status">
+      <strong>STAGING ENVIRONMENT</strong>
+      <span>This development screen connects only to DOWNTIME-staging. It does not use or replace your production sign-in.</span>
+    </section>
+
+    <section id="accessGate" class="sm-gate">
+      <div class="sm-gate-icon">↗</div>
+      <h2>Staging access required</h2>
+      <p>Sign in through the existing YARD HUB Central Bank on the staging project. No separate STAFF MANAGEMENT account is created.</p>
+      <p id="gateDetail" class="sm-muted">The staging account directory is currently empty. A staging test account is required before authenticated testing can begin.</p>
+      <button id="gateSignInButton" class="sm-button sm-button-primary" type="button">Staging sign in</button>
+    </section>
+
+    <section id="workspace" hidden>
+      <div class="sm-toolbar">
+        <div class="sm-tabs" role="tablist" aria-label="Staff management sections">
+          <button class="sm-tab is-active" data-tab="staff" role="tab" aria-selected="true">Staff directory</button>
+          <button class="sm-tab" data-tab="roles" role="tab" aria-selected="false">On-site roles</button>
+          <button class="sm-tab" data-tab="activity" role="tab" aria-selected="false" id="activityTab" hidden>Activity log</button>
+        </div>
+        <button id="addStaffButton" class="sm-button sm-button-primary" type="button">＋ Add staff member</button>
+      </div>
+
+      <section id="staffPanel" class="sm-panel">
+        <div class="sm-panel-heading">
+          <div><p class="sm-eyebrow">PERSONNEL REGISTER</p><h2>Staff directory</h2></div>
+          <div class="sm-stats">
+            <div><b id="activeCount">0</b><span>ACTIVE</span></div>
+            <div><b id="archivedCount">0</b><span>ARCHIVED</span></div>
+          </div>
+        </div>
+        <div class="sm-filters">
+          <label class="sm-search"><span>⌕</span><input id="searchInput" type="search" placeholder="Search staff by name or role" autocomplete="off"></label>
+          <select id="statusFilter" aria-label="Filter staff status">
+            <option value="ALL">All records</option>
+            <option value="ACTIVE">Active</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+        </div>
+        <div id="staffList" class="sm-staff-list"></div>
+        <p id="staffEmpty" class="sm-empty" hidden>No staff records match this view.</p>
+      </section>
+
+      <section id="rolesPanel" class="sm-panel" hidden>
+        <div class="sm-panel-heading">
+          <div><p class="sm-eyebrow">OPERATIONAL CLASSIFICATION</p><h2>On-site roles</h2><p class="sm-muted">These describe work performed on site. They do not grant YARD HUB app permissions.</p></div>
+          <button id="addRoleButton" class="sm-button sm-button-primary" type="button">＋ Add role</button>
+        </div>
+        <div id="rolesList" class="sm-role-list"></div>
+      </section>
+
+      <section id="activityPanel" class="sm-panel" hidden>
+        <div class="sm-panel-heading"><div><p class="sm-eyebrow">CHANGE HISTORY</p><h2>Activity log</h2><p class="sm-muted">Append-only record of staff directory and role changes.</p></div></div>
+        <div id="auditList" class="sm-audit-list"></div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="staffDialog" class="sm-dialog">
+    <form id="staffForm" method="dialog">
+      <div class="sm-dialog-heading"><div><p class="sm-eyebrow">PERSONNEL RECORD</p><h2 id="staffDialogTitle">Add staff member</h2></div><button class="sm-icon-button" type="button" data-close="staffDialog" aria-label="Close">×</button></div>
+      <label class="sm-field"><span>Display name</span><input id="staffName" name="display_name" maxlength="120" required placeholder="Enter staff name"></label>
+      <label class="sm-field"><span>On-site role</span><select id="staffRole" name="site_role_id" required></select></label>
+      <p class="sm-muted">No email, phone number or employment dates are collected in this directory.</p>
+      <div class="sm-dialog-actions"><button class="sm-button sm-button-secondary" type="button" data-close="staffDialog">Cancel</button><button id="saveStaffButton" class="sm-button sm-button-primary" type="submit">Save record</button></div>
+      <p id="staffFormError" class="sm-error" role="alert"></p>
+    </form>
+  </dialog>
+
+  <dialog id="roleDialog" class="sm-dialog">
+    <form id="roleForm" method="dialog">
+      <div class="sm-dialog-heading"><div><p class="sm-eyebrow">ROLE DIRECTORY</p><h2 id="roleDialogTitle">Add on-site role</h2></div><button class="sm-icon-button" type="button" data-close="roleDialog" aria-label="Close">×</button></div>
+      <label class="sm-field"><span>Role name</span><input id="roleName" maxlength="80" required placeholder="e.g. Plant Operator"></label>
+      <label class="sm-field"><span>System key</span><input id="roleKey" maxlength="40" required pattern="[a-z][a-z0-9_]{1,39}" placeholder="e.g. plant_operator"></label>
+      <label class="sm-field"><span>Display order</span><input id="roleOrder" type="number" min="0" max="9999" value="100"></label>
+      <div class="sm-dialog-actions"><button class="sm-button sm-button-secondary" type="button" data-close="roleDialog">Cancel</button><button class="sm-button sm-button-primary" type="submit">Save role</button></div>
+      <p id="roleFormError" class="sm-error" role="alert"></p>
+    </form>
+  </dialog>
+
+  <dialog id="loginDialog" class="sm-dialog">
+    <form id="loginForm" method="dialog">
+      <div class="sm-dialog-heading"><div><p class="sm-eyebrow">EXISTING YARD HUB AUTHENTICATION</p><h2>Staging sign in</h2></div><button class="sm-icon-button" type="button" data-close="loginDialog" aria-label="Close">×</button></div>
+      <label class="sm-field"><span>Username</span><input id="loginUsername" autocomplete="username" required maxlength="32"></label>
+      <label class="sm-field"><span>PIN</span><input id="loginPin" type="password" inputmode="numeric" autocomplete="current-password" required maxlength="32"></label>
+      <p class="sm-muted">This signs in against the staging Central Bank only. Your production session remains separate.</p>
+      <div class="sm-dialog-actions"><button class="sm-button sm-button-secondary" type="button" data-close="loginDialog">Cancel</button><button id="loginSubmit" class="sm-button sm-button-primary" type="submit">Sign in</button></div>
+      <p id="loginError" class="sm-error" role="alert"></p>
+    </form>
+  </dialog>
+
+  <div id="toast" class="sm-toast" role="status" aria-live="polite"></div>
+</body>
+</html>
