@@ -2086,7 +2086,9 @@ window.saveDowntimeCentralUserFromYardHub=function(userData){
    if(cloudSyncFailed)throw new Error('A DOWNTIME change is still unsynced. Resolve the DOWNTIME sync warning before changing central users.');
    const freshVersion=await window.refreshDowntimeCentralDirectory();
    if(!freshVersion)throw new Error('Unable to refresh the Central User directory.');
-   const saved=await window.DowntimeCentral.saveUser(userData,centralVersion);
+   const saved=userData.staff
+    ?await window.DowntimeCentral.provisionUserStaff({username:userData.username,displayName:userData.displayName,pin:userData.pin,staff:userData.staff,requestedYardRoleId:userData.requestedYardRoleId},centralVersion,userData.idempotencyKey)
+    :await window.DowntimeCentral.saveUser(userData,centralVersion);
    let verifiedVersion;
    try{verifiedVersion=await window.refreshDowntimeCentralDirectory()}
    catch(error){error.centralUserSaved=true;throw error}
@@ -2094,6 +2096,31 @@ window.saveDowntimeCentralUserFromYardHub=function(userData){
     const error=new Error('Central User save could not be verified after refresh.');
     error.centralUserSaved=true;
     throw error;
+   }
+   notifyOverviewFrame(centralVersion,saved.updatedAt||null);
+   cloudStatus('CENTRAL · synced');
+   return {...saved,version:Number(verifiedVersion)};
+  }finally{
+   cloudBusy=false;centralPendingWrites=Math.max(0,centralPendingWrites-1);flushCentralRealtimeRefresh();
+  }
+ });
+ cloudWrite=task.then(()=>undefined,()=>undefined);
+ return task;
+};
+window.activateDowntimeCentralUserFromYardHub=function(username){
+ const task=cloudWrite.then(async()=>{
+  centralPendingWrites++;cloudBusy=true;
+  try{
+   if(!centralReady||!window.DowntimeCentral?.session?.token)throw new Error('DOWNTIME Central session is not ready.');
+   if(cloudSyncFailed)throw new Error('A DOWNTIME change is still unsynced. Resolve the DOWNTIME sync warning before activating the account.');
+   const freshVersion=await window.refreshDowntimeCentralDirectory();
+   if(!freshVersion)throw new Error('Unable to refresh the Central USER directory.');
+   const saved=await window.DowntimeCentral.activateProvisionedUser(username,centralVersion);
+   let verifiedVersion;
+   try{verifiedVersion=await window.refreshDowntimeCentralDirectory()}
+   catch(error){error.centralUserSaved=true;throw error}
+   if(!verifiedVersion||Number(verifiedVersion)<Number(saved.version||0)){
+    const error=new Error('USER activation could not be verified after refresh.');error.centralUserSaved=true;throw error;
    }
    notifyOverviewFrame(centralVersion,saved.updatedAt||null);
    cloudStatus('CENTRAL · synced');
