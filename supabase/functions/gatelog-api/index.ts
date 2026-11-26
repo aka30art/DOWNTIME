@@ -31,6 +31,7 @@ Deno.serve(async (req: Request) => {
   if(bankError||!bank?.payload)return json({error:"Central user directory unavailable."},503);
   const user=(Array.isArray(bank.payload.users)?bank.payload.users:[]).find((item:any)=>String(item.username).toLowerCase()===String(session.username).toLowerCase()&&item.enabled!==false);
   if(!user)return json({error:"Account disabled or unavailable."},401);
+  if(user.yardRoleId)return json({error:"Canonical YARD ROLE authorization is not yet enabled for GATELOG. Access is denied until the unified resolver is integrated."},403);
   const legacyTier=String(user.tier||"USER").toUpperCase();
   const canAccess=bank.payload.tiers?.[legacyTier]?.canAccessYardHub!==false||String(user.username).toUpperCase()==="DEV"&&legacyTier==="OWNER";
   if(!canAccess)return json({error:"YARD HUB access is disabled for this account."},403);
