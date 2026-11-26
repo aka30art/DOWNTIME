@@ -136,7 +136,9 @@ Deno.serve(async(req)=>{
    if(rateError)return json({error:"Login service temporarily unavailable"},503);
    if((failedCount||0)>=5)return json({error:"Too many failed attempts. Try again in five minutes."},429);
    const user=bank.users.find((u:any)=>u.username.toLowerCase()===rateKey&&u.enabled!==false);
-   if(!user||!await verifyPin(pin,user)){await db.from("downtime_central_audit").insert({username:rateKey,action:"login-failed",details:{}});return json({error:"Invalid username or PIN"},401);}
+   const pinCandidate=user?.pinSalt&&user?.pinHash?user:{pinSalt:"central-login-dummy-salt",pinHash:"0".repeat(64)};
+   const validPin=await verifyPin(pin,pinCandidate);
+   if(!user||!validPin){await db.from("downtime_central_audit").insert({username:rateKey,action:"login-failed",details:{}});return json({error:"Invalid username or PIN"},401);}
    const token=cryptoHex(crypto.getRandomValues(new Uint8Array(32))),tokenHash=await digest(token),expires=new Date(Date.now()+12*60*60*1000);
    const {error}=await db.from("downtime_central_sessions").insert({token_hash:tokenHash,username:user.username,tier:user.tier,expires_at:expires.toISOString()});
    if(error)return json({error:"Session creation failed"},500);
