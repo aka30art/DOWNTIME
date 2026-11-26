@@ -343,8 +343,8 @@ window.supabase={createClient:()=>({
   const req=route.request().postDataJSON();
   if(req.action==='yard-hub-menu')return route.fulfill({status:200,contentType:'application/json',headers:cors,body:JSON.stringify({publishedVersion:1,yardHubMenu:{departments:[
    {id:'downtime',kind:'downtime',title:'DOWNTIME',description:'PLANT DOWNTIME & OPERATIONS',enabled:true,order:0,protected:true,submenus:[]},
-   {id:'floor',kind:'floor',title:'FLOOR',description:'FLOOR & YARD OPERATIONS',enabled:true,order:1,protected:false,submenus:[]},
-   {id:'check-sheets',kind:'check-sheets',title:'CHECK SHEETS',description:'INSPECTIONS & COMPLIANCE',enabled:true,order:2,protected:false,submenus:[]},
+   {id:'floor',kind:'floor',title:'STAFF MANAGEMENT',description:'STAFF & YARD OPERATIONS',enabled:true,order:1,protected:true,submenus:[]},
+   {id:'check-sheets',kind:'check-sheets',title:'DAILY',description:'INSPECTIONS & COMPLIANCE',enabled:true,order:2,protected:false,submenus:[]},
    {id:'repairs-maintenance',kind:'repairs-maintenance',title:'R&M',description:'REPAIRS & MAINTENANCE',enabled:true,order:3,protected:false,submenus:[]},
    {id:'hub-settings',kind:'hub-settings',title:'HUB SETTINGS',description:'YARD HUB CONFIGURATION & ACCESS CONTROL',enabled:true,order:4,protected:true,submenus:[]}
   ]},repairMaintenanceCategories:{categories:[
@@ -550,7 +550,7 @@ try{
  await owner.page.locator('#yardHubSettingsBack').click();
  await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:3000});
  assert.equal(await owner.page.locator('#launchDowntimeBtn').isEnabled(),true,'DOWNTIME remains available after Hub Settings changes');
- assert.equal(await owner.page.locator('.yard-tile[data-app="floor"]').isDisabled(),true,'FLOOR stays unavailable until the application is released');
+ assert.equal(await owner.page.locator('.yard-tile[data-app="floor"]').isEnabled(),true,'STAFF MANAGEMENT stays available as a protected YARD HUB core module');
  assert.equal(await owner.page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until the application is released');
  assert.equal(await owner.page.locator('#yardHubSettingsBtn').isVisible(),true,'DEV root retains YARD HUB Settings access');
  await owner.page.locator('#launchDowntimeBtn').click();
