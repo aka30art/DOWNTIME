@@ -165,6 +165,7 @@
     toolbar.appendChild(title);
     const actions=node('div','yard-staff-actions');
     if(canInput())actions.appendChild(button('＋ ADD PERSON','primary',()=>openPersonModal(null)));
+    if(canManageAccounts())actions.appendChild(button('MANAGE USER ACCOUNTS','secondary',openAccountManager));
     actions.appendChild(button('↻ REFRESH','secondary',()=>loadState().catch(()=>{})));
     toolbar.appendChild(actions);host.appendChild(toolbar);
 
@@ -298,9 +299,7 @@
     }
     const accountBox=node('div','yard-staff-account-box');accountBox.id='yardStaffAccountBox';
     const accountHint=node('p','yard-staff-note');accountHint.id='yardStaffAccountHint';
-    const accountActions=node('div','yard-staff-inline-actions');
-    if(canManageAccounts())accountActions.appendChild(button('OPEN ACCOUNT MANAGER','secondary',openAccountManager));
-    accountBox.append(field('LINKED ACCOUNT',account),accountHint,accountActions);
+    accountBox.append(field('LINKED ACCOUNT',account),accountHint);
     const grid=node('div','yard-staff-form-grid');
     grid.append(field('FULL NAME',name),field('DISPLAY NAME',display),field('CLASSIFICATION',type,'USER = linked YARD HUB account. STAFF = no account.'),field('EMPLOYMENT STATUS',status),field('COMPANY / AGENCY',company),field('START DATE',start),field('PRIMARY YARD ROLE',primaryRole),field('ADDITIONAL YARD ROLES',secondary,'Select multiple roles with your device’s multi-select gesture.'),field('NOTES',notes));
     form.appendChild(grid);form.appendChild(accountBox);
