@@ -27,4 +27,11 @@ assert.match(client,/sessionStorage/,'opaque sessions are held in tab-scoped sto
 assert.match(api,/action==="save-state"/,'central API supports tracker saves');
 assert.match(api,/eq\("version",Number\(body\.version\)\)\.select\("id"\)\.maybeSingle\(\)/,'tracker writes use compare-and-swap and confirm a returned row');
 assert.match(api,/if\(!priv\.canManageStaff\)/,'tracker saves preserve STAFF data for non-managers');
+assert.match(api,/nextAppData\.staffRoles=nextStaffRoles/,'on-site role definitions persist in the existing Central Data Bank payload');
+assert.match(api,/Reassign staff using a role before removing it/,'server rejects removal of roles still assigned to staff');
+assert.match(api,/const newProfiles=structuredClone\(currentProfiles\|\|\{\}\)/,'staff profile updates retain existing records rather than replacing the directory');
+assert.match(api,/\[\.\.\.retainedRoster,\.\.\.incomingRoster\]/,'staff roster updates retain archived and historical roster entries');
+assert.match(api,/staff-archived|staff-restored|staff-created|staff-updated/,'staff lifecycle changes generate structured audit events');
+assert.match(api,/staff-roles-updated/,'on-site role changes generate an audit event');
+assert.doesNotMatch(api,/staff_account_links|link-account|unlink-account/,'the central staff directory has no account-linking feature');
 console.log('PASS: central USERS/STAFF separation, retired local PIN auth and central versioned sync contracts.');
