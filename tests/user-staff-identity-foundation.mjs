@@ -119,6 +119,7 @@ const duplicateAndOrphan = {
     profiles: {
       First: { staffId: sid1, linkedUserId: uid2 },
       Second: { staffId: sid1, linkedUserId: uid1 },
+      Third: { staffId: sid2, linkedUserId: uid1 },
     },
   },
 };
@@ -127,6 +128,7 @@ for (const code of [
   "duplicate-username",
   "duplicate-user-id",
   "duplicate-staff-id",
+  "user-has-multiple-staff",
   "orphan-user-staff-link",
   "orphan-staff-user-link",
 ]) assert.ok(issues.some((item) => item.code === code), "diagnostic " + code);
