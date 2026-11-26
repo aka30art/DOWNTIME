@@ -4,6 +4,13 @@ const html=await readFile('index.html','utf8');
 assert.match(html,/id="staffRosterList" class="staff-roster-grid"/,'STAFF uses compact profile cards');
 assert.match(html,/STAFF PROFILE/,'modal is a dedicated profile editor');
 assert.match(html,/function staffModalOpen\(name=null\)/,'existing member and blank new-member flows share the modal');
+assert.match(html,/label>DEPARTMENT<\/label><select id="smDepartment"/,'staff profile includes a separate department selector');
+assert.match(html,/label>YARD ROLE<\/label><select id="smRole"/,'staff profile labels the operational role as YARD ROLE');
+assert.match(html,/STAFF_DEPARTMENT_RULES=\{'SCPL':\{roles:\['Main Operator','Picking Line Crew'\],fixed:false\},'R&M':\{role:'Mechanic',fixed:true\},'Management':\{role:'Manager',fixed:true\},'SCFL':\{role:'Floor Crew',fixed:true\},'Traffic':\{role:'Gateman',fixed:true\}\}/,'department-to-role rules match the approved mapping');
+assert.match(html,/STAFF_YARD_ROLES=\['Manager','Mechanic','Picking Line Crew','Floor Crew','Gateman','Main Operator'\]/,'YARD ROLE choices use the six approved roles');
+assert.match(html,/station-[1-6]/,'SCPL station choices are limited to Stations 1–6');
+assert.match(html,/department!=='SCPL'/,'station assignment is only exposed for SCPL');
+
 assert.match(html,/if\(!manageStaff&&!manageAssign\)return;if\(!name&&!manageStaff\)return/,'only staff admins can create, assignment managers may open profile settings');
 assert.match(html,/staffModalOpen\(\);/,'Add New Member opens a blank modal');
 assert.match(html,/\$\('smName'\)\.readOnly=!isNew/,'existing names are protected to preserve historical records');
