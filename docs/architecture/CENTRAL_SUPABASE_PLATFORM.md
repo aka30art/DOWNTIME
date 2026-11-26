@@ -88,9 +88,11 @@ PR #187 extends the existing Central Bank STAFF directory and changes GATELOG's 
 
 Its atomic settings migration adds `public.downtime_commit_central_bank`. This function performs the Central Bank state update and the associated audit writes in one transaction, with optimistic version checking. Its SECURITY DEFINER search path is fixed; execution is revoked from PUBLIC, `anon` and `authenticated`, and granted only to `service_role`.
 
-The production inventory confirmed this RPC is not yet installed. The branch's migration is additive: it creates the missing function and does not copy, rewrite, delete or seed any existing production data. Apply it only as part of the controlled production release, before deploying the Edge Function version that calls it.
+The production inventory confirmed this RPC was not installed. The branch's migration is additive: it creates the missing function and does not copy, rewrite, delete or seed any existing production data.
 
-Do not deploy a function that calls this RPC until the migration is present and its signature and grants have been verified in DOWNTIME.
+**Production migration checkpoint — 26 November 2026:** the migration was applied to DOWNTIME as `20261126114151_central_bank_atomic_state_audit`. The resulting function was verified with signature `downtime_commit_central_bank(bigint,jsonb,text,jsonb,jsonb)`, SECURITY DEFINER enabled, an empty search_path, and EXECUTE granted only to `service_role`. `anon` and `authenticated` cannot execute it. The Central Bank version and row count, audit count, session count, and GATELOG customer, vehicle, visit, assignment and audit counts were identical before and after the migration.
+
+The dependent Edge Functions are not yet deployed at this checkpoint. Do not deploy a function that calls this RPC until its production signature and grants have been verified.
 
 ## 8. Security and data integrity
 
