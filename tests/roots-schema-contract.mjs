@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 const migration=await readFile("supabase/migrations/20261127011000_protected_roots_assignments.sql","utf8");
+const lifecycle=await readFile("supabase/migrations/20261127050000_roots_assignment_lifecycle.sql","utf8");
 const api=await readFile("supabase/functions/central-bank/index.ts","utf8");
 const helper=await readFile("supabase/functions/_shared/roots-authority.mjs","utf8");
 assert.match(migration,/create table if not exists public\.downtime_roots_assignments/);
@@ -16,7 +17,7 @@ assert.doesNotMatch(migration,/insert into public\.downtime_roots_assignments\s*
 assert.match(migration,/revoke insert, update, delete on public.downtime_roots_assignments from service_role/);
 assert.match(migration,/downtime_roots_assign_identity/);
 assert.match(migration,/on conflict do nothing/);
-assert.match(api,/resolveRootsAuthority\(currentUser,rootsAssignment\)/);
+assert.match(api,/resolveRootsAuthority\\(currentUser,rootsAssignment,rootsBootstrap\\.user_id\\)/);
 assert.match(api,/if\(action==="roots-state"\)[\s\S]*rootsAuthority!=="DEV"/);
 assert.match(api,/requestedClass==="DEV1"&&rootsAuthority!=="DEV"/);
 assert.match(api,/action==="roots-assign-admin"&&requestedClass!=="ADMIN"/);
@@ -24,4 +25,11 @@ assert.match(api,/profiles\.find\(\(profile:any\)=>profile&&String\(profile\.sta
 assert.match(api,/downtime_roots_assign_identity/);
 assert.match(helper,/Legacy tier strings are deliberately not authority evidence/);
 assert.match(helper,/assignment\.roots_class/);
+assert.match(lifecycle,/downtime_roots_effective_assignments/);
+assert.match(lifecycle,/downtime_roots_revoke_identity/);
+assert.match(lifecycle,/downtime_roots_reclassify_identity/);
+assert.match(lifecycle,/ROOTS_REVOKED/);
+assert.match(lifecycle,/ROOTS_RECLASSIFIED/);
+assert.match(lifecycle,/ROOTS_RESTORED/);
+assert.match(lifecycle,/latest\.created_at desc,event\.id desc/);
 console.log("Protected ROOTS schema and API contracts passed.");
