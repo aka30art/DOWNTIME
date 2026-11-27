@@ -13,7 +13,10 @@ assert.ok(api.includes('const isDevRoot=rootsAuthority==="DEV";'),'only canonica
 assert.ok(api.includes('const isCentralBankAccess=isDevRoot;'),'Central Data Bank access is immutable DEV-only');
 assert.ok(api.includes('if(action==="tiers-save"){'),'legacy tier permission save route is explicitly retired');
 assert.ok(api.includes('Legacy account-tier permissions are retired. Configure department access through canonical YARD ROLE.'),'legacy tier permission writes are rejected in favour of canonical YARD ROLE');
-assert.ok(api.includes('if(newTier==="DEVACC"')&&api.includes('Only root DEV can assign DEVacc.'),'only immutable DEV may assign DEVACC');
+assert.ok(api.includes('if(newTier==="DEVACC"')&&api.includes('Only immutable DEV can assign DEVACC.'),'only immutable DEV may assign DEVACC');
+assert.ok(api.includes('Only immutable DEV can create accounts or assign user tiers.'),'only immutable DEV may create accounts or assign tiers');
+assert.ok(api.includes('Only immutable DEV can modify DEVACC accounts.'),'only immutable DEV may modify DEVACC accounts');
+assert.ok(api.includes('Only immutable DEV can remove DEVACC accounts.'),'only immutable DEV may remove DEVACC accounts');
 assert.ok(api.includes('if(existing?.tier==="DEVACC"&&!isCentralBankAccess'),'DEVACC account modification remains inside the DEV-only control plane');
 assert.ok(!api.includes('isAccessRightsAdmin'),'no delegated ADMIN Access and Rights bypass remains');
 assert.ok(pkg.scripts['test:central-bank'].includes('tests/admin-access-rights-delegation.mjs'),'retirement contract remains in CI');
