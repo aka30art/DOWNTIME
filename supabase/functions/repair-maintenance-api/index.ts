@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { resolveRootsAuthority } from "../_shared/roots-authority.mjs";
+import { canYardRolePerform, resolveYardRolePermissions } from "../_shared/yard-role-resolver.mjs";
 import { buildRepairMaintenancePdf } from "./pdf.ts";
 import { RM_FAULT_PRIORITIES, isFaultUpdateValid } from "./update-contract.js";
 
@@ -75,68 +76,102 @@ Deno.serve(async (req: Request) => {
     rootsAssignment = rootsLookup.data;
   }
   const rootsAuthority = resolveRootsAuthority(user, rootsAssignment);
-  if (user.yardRoleId && !["DEV1", "ADMIN"].includes(rootsAuthority || "")) return json({ error: "Canonical YARD ROLE authorization is not yet enabled for R&M. Access is denied until the unified resolver is integrated." }, 403);
+  const isProtectedRoot = ["DEV", "DEV1", "ADMIN"].includes(rootsAuthority || "");
+  let resolvedYardRole: any = null;
+  if (user.yardRoleId && !isProtectedRoot) {
+    if (!user.userId || !user.staffId) return json({ error: "Canonical USER/STAFF identity is incomplete." }, 403);
+    const { data: assignment, error: assignmentError } = await db.from("yard_role_assignments")
+      .select("user_id,staff_id,yard_role_id,status")
+      .eq("user_id", user.userId).eq("status", "ACTIVE").maybeSingle();
+    if (assignmentError) return json({ error: "Canonical YARD ROLE assignment is unavailable." }, 503);
+    if (!assignment || String(assignment.staff_id).toLowerCase() !== String(user.staffId).toLowerCase() ||
+        String(assignment.yard_role_id).toLowerCase() !== String(user.yardRoleId).toLowerCase()) {
+      return json({ error: "An active linked canonical YARD ROLE assignment is required." }, 403);
+    }
+    const [{ data: role, error: roleError }, { data: rolePermissions, error: rolePermissionsError }] = await Promise.all([
+      db.from("yard_roles").select("id,name,description,status").eq("id", user.yardRoleId).eq("status", "ACTIVE").maybeSingle(),
+      db.from("yard_role_department_permissions").select("yard_role_id,department,access_level").eq("yard_role_id", user.yardRoleId),
+    ]);
+    if (roleError || rolePermissionsError || !role) return json({ error: "Canonical YARD ROLE permission profile is unavailable." }, 503);
+    try { resolvedYardRole = resolveYardRolePermissions(role, rolePermissions || []); }
+    catch { return json({ error: "Canonical YARD ROLE permission profile is invalid." }, 503); }
+  }
   const tier = String(user.tier || "USER").toUpperCase();
   const stored = bank.tiers?.[tier] || {};
   const permissions = { ...(tierDefault[tier] || tierDefault.USER), ...stored };
   if (tier === "OWNER" || tier === "DEVACC") Object.assign(permissions, tierDefault[tier]);
 
-  // R&M section permissions use the separate YARD HUB tier assignment and matrix.
-  // Before migration, retain the exact previous R&M behaviour. Other database errors
-  // fail closed, rather than accidentally granting access.
-  const { data: hubAccessRow, error: hubAccessError } = await db.from("yard_hub_tier_config")
-    .select("payload").eq("id", 1).maybeSingle();
-  const missingHubTable = hubAccessError?.code === "42P01" || hubAccessError?.code === "PGRST205";
-  if (hubAccessError && !missingHubTable) {
-    return json({ error: "YARD HUB permissions are temporarily unavailable." }, 503);
-  }
-  // Only the pre-migration missing-table case may use legacy R&M rights.
-  // A present table with a missing seed row is a configuration failure and must deny access.
-  if (!hubAccessError && !hubAccessRow?.payload) {
-    return json({ error: "YARD HUB permissions are temporarily unavailable." }, 503);
-  }
-  const hubTier = String(
-    hubAccessRow?.payload?.userTiers?.[String(user.username).toLowerCase()] ||
-    (tier === "OWNER" ? "OWNER" : tier)
-  ).toUpperCase();
-  if (!hubAccessError && hubAccessRow?.payload) {
-    const profile = hubAccessRow.payload?.tiers?.[hubTier] || {};
-    const mode = profile.repairMaintenance;
-    if (!["NONE", "READ", "INPUT", "EDIT"].includes(mode)) {
-      return json({ error: "YARD HUB R&M permission profile is invalid." }, 503);
+  let hubTier = "USER";
+  if (!resolvedYardRole && !isProtectedRoot) {
+    // Legacy YARD HUB matrix remains a bounded compatibility path for accounts
+    // that do not yet carry a canonical YARD ROLE assignment.
+    const { data: hubAccessRow, error: hubAccessError } = await db.from("yard_hub_tier_config")
+      .select("payload").eq("id", 1).maybeSingle();
+    const missingHubTable = hubAccessError?.code === "42P01" || hubAccessError?.code === "PGRST205";
+    if (hubAccessError && !missingHubTable) return json({ error: "YARD HUB permissions are temporarily unavailable." }, 503);
+    if (!hubAccessError && !hubAccessRow?.payload) return json({ error: "YARD HUB permissions are temporarily unavailable." }, 503);
+    hubTier = String(
+      hubAccessRow?.payload?.userTiers?.[String(user.username).toLowerCase()] ||
+      (tier === "OWNER" ? "OWNER" : tier)
+    ).toUpperCase();
+    if (!hubAccessError && hubAccessRow?.payload) {
+      const profile = hubAccessRow.payload?.tiers?.[hubTier] || {};
+      const mode = profile.repairMaintenance;
+      if (!["NONE", "READ", "INPUT", "EDIT"].includes(mode)) return json({ error: "YARD HUB R&M permission profile is invalid." }, 503);
+      const machineryMode = profile.repairMaintenanceMachinery ?? mode;
+      if (!["NONE", "READ", "INPUT", "EDIT"].includes(machineryMode)) return json({ error: "YARD HUB R&M Machinery permission profile is invalid." }, 503);
+      permissions.canAccessRepairMaintenance = mode !== "NONE";
+      permissions.canCreateRepairMaintenance = mode === "INPUT" || mode === "EDIT";
+      permissions.canEditRepairMaintenance = mode === "EDIT";
+      permissions.canDeleteRepairMaintenance = mode === "EDIT";
+      permissions.canExportRepairMaintenanceReports = mode === "READ" || mode === "EDIT";
+      permissions.canReadRepairMaintenanceMachinery = machineryMode !== "NONE";
+      permissions.canAddRepairMaintenanceMachinery = machineryMode === "INPUT" || machineryMode === "EDIT";
+      permissions.canManageRepairMaintenanceMachinery = machineryMode === "EDIT";
+    } else {
+      // Only the pre-migration missing-table case may use legacy R&M rights.
+      permissions.canReadRepairMaintenanceMachinery = permissions.canAccessRepairMaintenance === true;
+      permissions.canManageRepairMaintenanceMachinery = permissions.canEditRepairMaintenance === true;
     }
-    const machineryMode = profile.repairMaintenanceMachinery ?? mode;
-    if (!["NONE", "READ", "INPUT", "EDIT"].includes(machineryMode)) {
-      return json({ error: "YARD HUB R&M Machinery permission profile is invalid." }, 503);
-    }
-    permissions.canAccessRepairMaintenance = mode !== "NONE";
-    permissions.canCreateRepairMaintenance = mode === "INPUT" || mode === "EDIT";
-    permissions.canEditRepairMaintenance = mode === "EDIT";
-    permissions.canDeleteRepairMaintenance = mode === "EDIT";
-    permissions.canExportRepairMaintenanceReports = mode === "READ" || mode === "EDIT";
-    permissions.canReadRepairMaintenanceMachinery = machineryMode !== "NONE";
-    permissions.canAddRepairMaintenanceMachinery = machineryMode === "INPUT" || machineryMode === "EDIT";
-    permissions.canManageRepairMaintenanceMachinery = machineryMode === "EDIT";
-  } else {
-    // Preserve all legacy R&M capabilities until the YARD HUB matrix is available.
-    permissions.canReadRepairMaintenanceMachinery = permissions.canAccessRepairMaintenance === true;
-    permissions.canManageRepairMaintenanceMachinery = permissions.canEditRepairMaintenance === true;
   }
-  const rootOperator = (String(user.username).trim().toUpperCase() === "DEV" && tier === "OWNER") || tier === "DEVACC" || hubTier === "DEVACC" || ["DEV", "DEV1", "ADMIN"].includes(rootsAuthority || "");
+
+  if (resolvedYardRole) {
+    const canRead = canYardRolePerform(resolvedYardRole, "R&M", "VIEW");
+    const canInput = canYardRolePerform(resolvedYardRole, "R&M", "ADD");
+    const canEdit = canYardRolePerform(resolvedYardRole, "R&M", "EDIT");
+    const canManage = canYardRolePerform(resolvedYardRole, "R&M", "DELETE");
+    Object.assign(permissions, {
+      canAccessRepairMaintenance: canRead,
+      canCreateRepairMaintenance: canInput,
+      canEditRepairMaintenance: canEdit,
+      canDeleteRepairMaintenance: canManage,
+      canExportRepairMaintenanceReports: canRead,
+      canReadRepairMaintenanceMachinery: canRead,
+      canAddRepairMaintenanceMachinery: canInput,
+      canManageRepairMaintenanceMachinery: canManage,
+    });
+  }
+
+  const legacyRootOperator = (String(user.username).trim().toUpperCase() === "DEV" && tier === "OWNER") || tier === "DEVACC" || hubTier === "DEVACC";
+  const rootOperator = isProtectedRoot || legacyRootOperator;
   if (rootOperator) {
     Object.assign(permissions, {
       canAccessYardHub: true,
       canAccessRepairMaintenance: true,
+      canCreateRepairMaintenance: true,
       canEditRepairMaintenance: true,
       canDeleteRepairMaintenance: true,
       canExportRepairMaintenanceReports: true,
       canReadRepairMaintenanceMachinery: true,
+      canAddRepairMaintenanceMachinery: true,
       canManageRepairMaintenanceMachinery: true,
     });
   }
   permissions.canCreateRepairMaintenance = permissions.canCreateRepairMaintenance === true || permissions.canEditRepairMaintenance === true;
   permissions.canAddRepairMaintenanceMachinery = permissions.canAddRepairMaintenanceMachinery === true || permissions.canManageRepairMaintenanceMachinery === true;
-  permissions.canManageRepairMaintenancePresets = permissions.canEditRepairMaintenance === true;
+  permissions.canManageRepairMaintenancePresets = resolvedYardRole
+    ? canYardRolePerform(resolvedYardRole, "R&M", "DELETE")
+    : permissions.canEditRepairMaintenance === true;
   if (!permissions.canAccessYardHub) return json({ error: "YARD HUB access is not enabled for this account." }, 403);
   if (!permissions.canAccessRepairMaintenance) return json({ error: "R&M access is not enabled for this account." }, 403);
 
