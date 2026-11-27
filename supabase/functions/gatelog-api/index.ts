@@ -1,5 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { canYardRolePerform, resolveYardRolePermissions } from "../_shared/yard-role-resolver.mjs";
+import { resolveRootsAuthority } from "../_shared/roots-authority.mjs";
 
 const allowedOrigin = "https://aka30art.github.io";
 const headers = {
@@ -31,15 +33,58 @@ Deno.serve(async (req: Request) => {
   if(bankError||!bank?.payload)return json({error:"Central user directory unavailable."},503);
   const user=(Array.isArray(bank.payload.users)?bank.payload.users:[]).find((item:any)=>String(item.username).toLowerCase()===String(session.username).toLowerCase()&&item.enabled!==false);
   if(!user)return json({error:"Account disabled or unavailable."},401);
-  if(user.yardRoleId)return json({error:"Canonical YARD ROLE authorization is not yet enabled for GATELOG. Access is denied until the unified resolver is integrated."},403);
+  const rootsLookup=user.userId
+    ? await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status").eq("user_id",user.userId).maybeSingle()
+    : {data:null,error:null};
+  const {data:rootsBootstrap,error:rootsBootstrapError}=await db.from("downtime_roots_bootstrap").select("user_id").eq("singleton",true).maybeSingle();
+  if(rootsLookup.error||rootsBootstrapError||!rootsBootstrap?.user_id)return json({error:"Protected ROOTS identity registry is unavailable."},503);
+  const rootsAuthority=resolveRootsAuthority(user,rootsLookup.data,rootsBootstrap.user_id);
+  const isProtectedRoot=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"");
+  let protectedStaffIds=new Set<string>();
+  if(rootsAuthority!=="DEV"){
+    const protectedStaff=await db.from("downtime_roots_assignments").select("staff_id").eq("status","ACTIVE");
+    if(protectedStaff.error)return json({error:"Protected identity registry is unavailable."},503);
+    protectedStaffIds=new Set((protectedStaff.data||[]).map((assignment:any)=>String(assignment.staff_id).toLowerCase()));
+  }
   const legacyTier=String(user.tier||"USER").toUpperCase();
-  const canAccess=bank.payload.tiers?.[legacyTier]?.canAccessYardHub!==false||String(user.username).toUpperCase()==="DEV"&&legacyTier==="OWNER";
+  let resolvedYardRole:any=null;
+  if(user.yardRoleId&&!isProtectedRoot){
+    if(user.enabled!==true||user.status!=="ACTIVE")return json({error:"Canonical USER identity is not active."},403);
+    if(!user.userId||!user.staffId)return json({error:"Canonical USER/STAFF identity is incomplete."},403);
+    const {data:assignment,error:assignmentError}=await db.from("yard_role_assignments")
+      .select("user_id,staff_id,yard_role_id,status").eq("user_id",user.userId).eq("status","ACTIVE").maybeSingle();
+    if(assignmentError)return json({error:"Canonical YARD ROLE assignment is unavailable."},503);
+    if(!assignment||String(assignment.staff_id).toLowerCase()!==String(user.staffId).toLowerCase()||
+       String(assignment.yard_role_id).toLowerCase()!==String(user.yardRoleId).toLowerCase())return json({error:"An active linked canonical YARD ROLE assignment is required."},403);
+    const [{data:role,error:roleError},{data:rolePermissions,error:rolePermissionsError}]=await Promise.all([
+      db.from("yard_roles").select("id,name,description,status").eq("id",user.yardRoleId).eq("status","ACTIVE").maybeSingle(),
+      db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage").eq("yard_role_id",user.yardRoleId)
+    ]);
+    if(roleError||rolePermissionsError||!role)return json({error:"Canonical YARD ROLE permission profile is unavailable."},503);
+    try{resolvedYardRole=resolveYardRolePermissions(role,rolePermissions||[])}catch{return json({error:"Canonical YARD ROLE permission profile is invalid."},503)}
+  }
+  if((user.userId||user.staffId)&&!isProtectedRoot&&!resolvedYardRole)return json({error:"An active canonical YARD ROLE assignment is required."},403);
+  const canTrafficView=!!resolvedYardRole&&canYardRolePerform(resolvedYardRole,"Traffic","VIEW");
+  const canTrafficInput=!!resolvedYardRole&&canYardRolePerform(resolvedYardRole,"Traffic","ENTER");
+  const canTrafficEdit=!!resolvedYardRole&&canYardRolePerform(resolvedYardRole,"Traffic","EDIT");
+  const canTrafficManage=!!resolvedYardRole&&canYardRolePerform(resolvedYardRole,"Traffic","MANAGE");
+  const legacyCanAccess=bank.payload.tiers?.[legacyTier]?.canAccessYardHub!==false;
+  const canAccess=isProtectedRoot||(resolvedYardRole?(canTrafficView||canTrafficInput||canTrafficEdit||canTrafficManage):legacyCanAccess);
   if(!canAccess)return json({error:"YARD HUB access is disabled for this account."},403);
   const actor=clean(user.displayName||user.username,80), action=String(body.action||"");
-  const canManageGateman=bank.payload.tiers?.[legacyTier]?.canManageAssignments===true;
-  // Gateman duty is assigned to operational STAFF, never to a USER account.
-  const staffRoster=Array.isArray(bank.payload.staff?.roster)?bank.payload.staff.roster:(Array.isArray(bank.payload.appData?.staffRoster)?bank.payload.appData.staffRoster:[]);
+  const canManageGateman=isProtectedRoot||(resolvedYardRole?canTrafficManage:bank.payload.tiers?.[legacyTier]?.canManageAssignments===true);
+  const canExportReports=isProtectedRoot||(resolvedYardRole?canTrafficView:bank.payload.tiers?.[legacyTier]?.canExportReports===true);
+  const canInputTraffic=isProtectedRoot||(resolvedYardRole?canTrafficInput:true);
+  const canEditTraffic=isProtectedRoot||(resolvedYardRole?canTrafficEdit:true);
+  if(resolvedYardRole){
+    if(["customer-arrival","customer-save","vehicle-save","arrival"].includes(action)&&!canInputTraffic)return json({error:"Traffic ENTER permission is required."},403);
+    if(["departure","visit-update"].includes(action)&&!canEditTraffic)return json({error:"Traffic EDIT permission is required."},403);
+    if(["gateman-save","gateman-lock","report-save","customer-update","customer-archive","waste-type-create","waste-type-update","visit-delete"].includes(action)&&!canManageGateman)return json({error:"Traffic MANAGE permission is required."},403);
+  }
+    // Gateman duty is assigned to operational STAFF, never to a USER account.
+  const rawStaffRoster=Array.isArray(bank.payload.staff?.roster)?bank.payload.staff.roster:(Array.isArray(bank.payload.appData?.staffRoster)?bank.payload.appData.staffRoster:[]);
   const staffProfiles=bank.payload.staff?.profiles||bank.payload.appData?.operatorProfiles||{};
+  const staffRoster=rootsAuthority==="DEV"?rawStaffRoster:rawStaffRoster.filter((name:string)=>!protectedStaffIds.has(String(staffProfiles[name]?.staffId||"").toLowerCase()));
   // Compatibility fields username/tier keep the previous GATELOG client rendering, but their values are derived only from STAFF records.
   const gatemen=staffRoster.filter((name:any)=>typeof name==="string"&&name.trim()).map((name:string)=>({staffName:clean(name,80),username:clean(name,80),displayName:clean(name,120),onSiteRole:clean(staffProfiles[name]?.onSiteRole||"ROLE NOT SET",60),tier:clean(staffProfiles[name]?.onSiteRole||"ROLE NOT SET",60),status:clean(staffProfiles[name]?.status||"ACTIVE",20),onSite:staffProfiles[name]?.onSite!==false})).filter((item:any)=>item.status!=="ARCHIVED"&&item.onSite).sort((a:any,b:any)=>a.displayName.localeCompare(b.displayName));
   const fail=(error:any)=>json({error:error?.message||"GATELOG request failed."},400);
