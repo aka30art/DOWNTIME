@@ -18,7 +18,8 @@
   function currentUser(){return currentSession()?.user||null}
   function legacyTier(){return String(currentUser()?.tier||'USER').toUpperCase()}
   function rootDev(){return String(currentUser()?.username||'').trim().toUpperCase()==='DEV'&&legacyTier()==='OWNER'}
-  function isRootsAuthority(){return ['DEV','DEV1','ADMIN'].includes(String(state?.user?.rootsAuthority||''))}\n  function isRootAdmin(){return rootDev()||myHubTier==='DEVACC'}
+  function isRootsAuthority(){return ['DEV','DEV1','ADMIN'].includes(String(state?.user?.rootsAuthority||''))}
+  function isRootAdmin(){return rootDev()||myHubTier==='DEVACC'}
   function isSettingsAdmin(){return isRootsAuthority()||rootDev()||myHubTier==='DEVACC'||myHubTier==='ADMIN'}
   function syncStaffRoleOptions(){
     const department=$('yardHubStaffDepartment')?.value||'SCPL',select=$('yardHubStaffRole');
