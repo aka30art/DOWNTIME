@@ -372,7 +372,7 @@
       pin.length>0||
       enabled!==(existing.enabled!==false));
     if(centralChanges&&state.canManageUserAccounts!==true){
-      setStatus('Central account details are controlled by the existing Central Users permission. YARD HUB tier assignment remains separate.','error');return;
+      setStatus('Staff Management MANAGE is required to maintain ordinary USER account details. Protected accounts remain DEV-controlled.','error');return;
     }
     if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username)){setStatus('Username must be 2–32 letters, numbers, dots, underscores or hyphens.','error');return}
     if(!displayName||displayName.length>80){setStatus('Enter a display name of up to 80 characters.','error');return}
@@ -434,7 +434,7 @@
         :yardRoleChanged?'CANONICAL YARD ROLE REASSIGNED.':canonicalIdentity?'CANONICAL USER AND LINKED STAFF DETAILS SAVED.':'LEGACY USER AND YARD HUB SETTINGS SAVED.','ok');
     }catch(error){
       const detail=centralSaved||error?.centralUserSaved
-        ?'Central USER + STAFF record was saved, but canonical YARD ROLE assignment or activation did not complete. The account remains inactive. Refresh the user list before retrying. '
+        ?'Central USER + STAFF record was saved, but YARD ROLE assignment or activation did not complete. Refresh the user list before retrying. '
         :'';
       setStatus(detail+(error.message||'Unable to save the user account.'),'error');
       try{await loadState()}catch{}
