@@ -411,6 +411,13 @@ assert.match(legacyUserSave, /New accounts must use the canonical USER \+ STAFF 
 
 assert.match(yardHubApi, /action === "assign-user-role"/);
 assert.match(yardHubApi, /yard_role_assign_user/);
+assert.match(yardHubApi, /yard_role_save_definition/, "YARD ROLE definitions use the audited service-role save RPC");
+assert.match(yardHubApi, /yard_role_reassign_user/, "existing USERs can receive version-checked YARD ROLE reassignment");
+assert.match(yardHubApi, /linkedProfile/, "YARD ROLE assignment verifies reciprocal USER/STAFF identity");
+assert.match(yardHubUi, /yardRoleChanged/, "YARD HUB supports reassignment of an existing canonical USER");
+assert.match(yardHubUi, /yardHubRolePermissions/, "YARD HUB renders the independent YARD ROLE permission editor");
+assert.match(yardHubUi, /isRootsAuthority/, "DEV and protected ROOTS can manage YARD ROLE definitions");
+
 assert.match(yardHubApi, /const targetUserId = String\(body\.userId \|\| ""\)/, "YARD ROLE assignment addresses the immutable USER ID rather than a username");
 assert.match(yardHubApi, /yardRoles/);
 assert.match(yardHubApi, /yard_role_assignments/);
@@ -441,7 +448,7 @@ assert.match(provisioningMigration, /downtime_central_commit_identity_event/);
 assert.match(provisioningMigration, /enable row level security/);
 assert.doesNotMatch(provisioningMigration, /insert into public\.yard_roles/i, "no unapproved YARD ROLE catalogue entries are seeded");
 
-assert.match(resolverSource, /OFF.*READ_ONLY.*INPUT.*MANAGE/);
+assert.match(resolverSource, /YARD_ROLE_PERMISSION_KEYS.*view.*enter.*edit.*manage/s, "resolver exposes independent View, Enter, Edit and Manage permissions");
 assert.match(repairMaintenanceApi, /resolveYardRolePermissions/);
 assert.match(repairMaintenanceApi, /canYardRolePerform\(resolvedYardRole, "R&M", "VIEW"\)/);
 assert.doesNotMatch(repairMaintenanceApi, /Canonical YARD ROLE authorization is not yet enabled for R&M/);
