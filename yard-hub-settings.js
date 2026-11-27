@@ -734,7 +734,7 @@
     try{
       if(!window.DowntimeCentral?.resetIdentities)throw new Error('Central identity reset action is unavailable. Refresh the application.');
       const result=await window.DowntimeCentral.resetIdentities({confirmation,currentDevPin});
-      window.alert('RESET COMPLETE.\n\nExisting DEV identity retained: '+(result.devUserId||currentUser()?.userId||'verified')+'\nRemoved USER accounts: '+(result.removedUserCount??'verified')+'\nRemoved STAFF profiles: '+(result.removedStaffProfileCount??'verified')+'\nRemoved STAFF roster entries: '+(result.removedStaffRosterCount??'verified')+'\nDeleted STAFF photo objects: '+(result.staffPhotoObjectsRemoved??'verified')+'\n\nDEV credentials and this session remain unchanged. DEV1 and ADMIN are protected ROOTED role definitions only.');
+      window.alert('RESET COMPLETE.\n\nExisting DEV identity retained: '+(result.devUserId||currentUser()?.userId||'verified')+'\nRemoved USER accounts: '+(result.removedUserCount??'verified')+'\nRemoved STAFF profiles: '+(result.removedStaffProfileCount??'verified')+'\nRemoved STAFF roster entries: '+(result.removedStaffRosterCount??'verified')+'\nDeleted STAFF photo objects: '+(result.staffPhotoObjectsRemoved??'verified')+'\nDeleted GitHub STAFF originals: '+(result.staffOriginalsDeleted??'verified')+'\n\nDEV credentials and this session remain unchanged. DEV1 and ADMIN are protected ROOTED role definitions only.');
       window.location.reload();
     }catch(error){
       setStatus(error.message||'Identity reset failed. Verify the server response before retrying.','error');
