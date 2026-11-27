@@ -222,3 +222,5 @@ assert.ok(ui.includes("callApi('roots-manage',{userId,staffId,lifecycleAction:'A
 assert.ok(ui.includes("if(rootAuthority()!=='DEV1'||saving)return"),'the DEV1 UI action is unavailable to other identities');
 assert.ok(ui.includes("filter(role=>role.status==='ACTIVE')"),'USER assignment selector exposes only ACTIVE canonical YARD ROLEs');
 assert.ok(ui.includes("some(role=>role.status==='ACTIVE')"),'USER creation remains disabled until at least one ACTIVE canonical YARD ROLE exists');
+
+assert.ok(hubApi.includes('const canManageCentralUsers = rootsAuthority === "DEV";'),'only immutable DEV ROOTS authority can create or manage Central Bank USER accounts');
