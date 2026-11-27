@@ -1204,7 +1204,8 @@ function permission(name){
  if(name==='canManageUsers'||name==='canViewUsers')return root==='DEV';
  if(['DEV','DEV1','ADMIN'].includes(root)){
   if(name==='canAccessYardHub'||name==='canAccessRepairMaintenance')return true;
-  if(['canManageUsers','canViewUsers','canManageSettings','canManageAccessRights'].includes(name))return root==='DEV';
+  if(['canManageUsers','canViewUsers','canManageAccessRights'].includes(name))return root==='DEV';
+  if(name==='canManageSettings')return true;
   if(['canManageStaff','canViewStaff','canManageAssignments','canViewAssignments'].includes(name))return true;
   if(['canEditTracker','canDeleteRecords','canExportReports','canViewPlantOverview','canViewDashboards','canViewReports','canControlPlantPower'].includes(name))return true;
  }
@@ -1220,7 +1221,9 @@ function permission(name){
    case 'canEditRepairMaintenance':return departments['R&M']?.edit===true||departments['R&M']?.enter===true;
    case 'canDeleteRepairMaintenance':return departments['R&M']?.manage===true;
    case 'canExportRepairMaintenanceReports':return departments['R&M']?.view===true;
-   case 'canManageUsers':case 'canViewUsers':case 'canManageStaff':case 'canViewStaff':case 'canManageAssignments':case 'canViewAssignments':case 'canManageSettings':case 'canManageAccessRights':return false;
+   case 'canViewStations':case 'canViewAreaPresets':case 'canViewReasonPresets':case 'canViewShiftSchedule':case 'canViewDailyTasks':return hasAnyDepartmentPermission('Management');
+   case 'canManageSettings':case 'canManageAreaPresets':case 'canManageReasonPresets':case 'canManageShiftSchedule':case 'canManageDailyTasks':return management?.manage===true;
+   case 'canManageUsers':case 'canViewUsers':case 'canManageStaff':case 'canViewStaff':case 'canManageAssignments':case 'canViewAssignments':case 'canManageAccessRights':return false;
    default:return false;
   }
  }
@@ -1518,12 +1521,12 @@ function settingsAccess(section){
  if(section==='users')return false;
  if(section==='staff'&&isStaffModuleAutoAccess())return true;
  if(section==='accessRights')return canManageAccessRights();
- if(section==='stations')return permission('canManageSettings');
+ if(section==='stations')return permission('canViewStations')||permission('canManageSettings');
  const view={users:'canViewUsers',areas:'canViewAreaPresets',reasons:'canViewReasonPresets',schedule:'canViewShiftSchedule',dailyTasks:'canViewDailyTasks',staff:'canViewStaff'};
  return !!view[section]&&(permission(view[section])||canManageSettingsSection(section))||(section==='reasons'&&permission('canAddDowntimeReasons'));
 }
-function anySettingsAccess(){return ['areas','stations','reasons','schedule','dailyTasks','staff','accessRights'].some(settingsAccess)}
-function renderSettingsHub(){const access={users:settingsAccess('users'),areas:settingsAccess('areas'),stations:settingsAccess('stations'),reasons:settingsAccess('reasons'),schedule:settingsAccess('schedule'),dailyTasks:settingsAccess('dailyTasks'),staff:settingsAccess('staff'),accessRights:settingsAccess('accessRights')};document.querySelectorAll('[data-settings-open]').forEach(button=>{const key=button.dataset.settingsOpen;button.hidden=!access[key]});const ownerAccess=$('settingsOwnerAccess');if(ownerAccess)ownerAccess.hidden=!access.accessRights;const areasControls=$('settingsAreasAdminControls');if(areasControls)areasControls.style.display=settingsAccess('areas')?'block':'none';const empty=$('settingsHubEmpty');if(empty)empty.hidden=Object.values(access).some(Boolean);const openPanel=document.querySelector('.settings-panel:not([hidden])');if(openPanel){const section=({settingsPanelUsers:'users',settingsPanelAreas:'areas',settingsPanelStations:'stations',settingsPanelReasons:'reasons',settingsPanelSchedule:'schedule',settingsPanelDailyTasks:'dailyTasks',settingsPanelStaff:'staff',settingsPanelAccessRights:'accessRights'})[openPanel.id];if(!section||!settingsAccess(section))showSettingsHub()}}
+function anySettingsAccess(){return ['areas','stations','reasons','schedule','dailyTasks','accessRights'].some(settingsAccess)}
+function renderSettingsHub(){const access={users:settingsAccess('users'),areas:settingsAccess('areas'),stations:settingsAccess('stations'),reasons:settingsAccess('reasons'),schedule:settingsAccess('schedule'),dailyTasks:settingsAccess('dailyTasks'),staff:settingsAccess('staff'),accessRights:settingsAccess('accessRights')};document.querySelectorAll('[data-settings-open]').forEach(button=>{const key=button.dataset.settingsOpen;button.hidden=!access[key]});const ownerAccess=$('settingsOwnerAccess');if(ownerAccess)ownerAccess.hidden=!access.accessRights;const areasControls=$('settingsAreasAdminControls');if(areasControls)areasControls.style.display=settingsAccess('areas')?'block':'none';const empty=$('settingsHubEmpty');if(empty)empty.hidden=['areas','stations','reasons','schedule','dailyTasks','accessRights'].some(key=>access[key]);const openPanel=document.querySelector('.settings-panel:not([hidden])');if(openPanel){const section=({settingsPanelUsers:'users',settingsPanelAreas:'areas',settingsPanelStations:'stations',settingsPanelReasons:'reasons',settingsPanelSchedule:'schedule',settingsPanelDailyTasks:'dailyTasks',settingsPanelStaff:'staff',settingsPanelAccessRights:'accessRights'})[openPanel.id];if(!section||!settingsAccess(section))showSettingsHub()}}
 function setStaffWorkspaceNavigation(hidden){const menu=document.querySelector('.shell .nav-menu');if(!menu)return;if(hidden)menu.open=false;menu.hidden=Boolean(hidden)}
 function showSettingsHub(){setStaffWorkspaceNavigation(false);const hub=$('settingsHub');if(hub)hub.hidden=false;document.querySelectorAll('.settings-panel').forEach(panel=>panel.hidden=true);document.querySelectorAll('[data-settings-open]').forEach(button=>button.setAttribute('aria-expanded','false'));$('subtitle').textContent='Settings hub · Administration and configuration';renderSettingsHub()}
 function openSettingsPanel(section){if(!settingsAccess(section))return;const ids={users:'settingsPanelUsers',areas:'settingsPanelAreas',stations:'settingsPanelStations',reasons:'settingsPanelReasons',schedule:'settingsPanelSchedule',dailyTasks:'settingsPanelDailyTasks',staff:'settingsPanelStaff',accessRights:'settingsPanelAccessRights'};const titles={users:'Users',areas:'Area Presets',stations:'Station Manager',reasons:'Reason Presets',schedule:'Shift & Breaktime Schedule',dailyTasks:'Daily Tasks',staff:'Staff',accessRights:'Access and Rights'};const panel=$(ids[section]);if(!panel)return;setStaffWorkspaceNavigation(section==='staff');const hub=$('settingsHub');if(hub)hub.hidden=true;document.querySelectorAll('.settings-panel').forEach(item=>item.hidden=item!==panel);document.querySelectorAll('[data-settings-open]').forEach(button=>button.setAttribute('aria-expanded',String(button.dataset.settingsOpen===section)));$('subtitle').textContent='Settings · '+titles[section];if(section==='areas')renderAreaPresetSettings();if(section==='stations')renderStationManager();if(section==='accessRights')renderAccessRights();}
@@ -1923,17 +1926,18 @@ function addReasonPreset(key,inputId){
 $("addDowntimeReasonBtn").onclick=()=>addReasonPreset("reasons","newDowntimeReason");
 let stationManagerDraft=[];
 function renderStationManager(reset=true){
- if(!permission('canManageSettings'))return;
+ const canManage=permission('canManageSettings');
+ if(!settingsAccess('stations'))return;
  if(reset)stationManagerDraft=JSON.parse(JSON.stringify(Array.isArray(state.stationConfig)?state.stationConfig:defaultStationConfig()));
  const list=$('stationManagerList');if(!list)return;list.replaceChildren();
  stationManagerDraft.forEach((station,index)=>{
   const row=document.createElement('div');row.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;border:1px solid #334b5c;border-radius:10px;background:#0b1a24';
-  const name=document.createElement('input');name.type='text';name.maxLength=40;name.value=station.name||'';name.placeholder='Station name';name.setAttribute('aria-label','Station name');name.style.flex='1 1 130px';name.oninput=()=>{stationManagerDraft[index].name=name.value;$('stationManagerStatus').textContent='Unsaved station changes.'};
-  const category=document.createElement('input');category.type='text';category.maxLength=24;category.value=station.category||'GENERAL';category.placeholder='Category';category.setAttribute('aria-label','Station category');category.style.flex='1 1 100px';category.oninput=()=>{stationManagerDraft[index].category=category.value;$('stationManagerStatus').textContent='Unsaved station changes.'};
-  const status=document.createElement('label');status.style.cssText='display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px';const active=document.createElement('input');active.type='checkbox';active.checked=station.active!==false;active.setAttribute('aria-label','Station active');active.onchange=()=>{stationManagerDraft[index].active=active.checked;$('stationManagerStatus').textContent='Unsaved station changes.'};status.append(active,document.createTextNode('ACTIVE'));
+  const name=document.createElement('input');name.type='text';name.maxLength=40;name.value=station.name||'';name.placeholder='Station name';name.setAttribute('aria-label','Station name');name.style.flex='1 1 130px';name.readOnly=!canManage;name.oninput=()=>{stationManagerDraft[index].name=name.value;$('stationManagerStatus').textContent='Unsaved station changes.'};
+  const category=document.createElement('input');category.type='text';category.maxLength=24;category.value=station.category||'GENERAL';category.placeholder='Category';category.setAttribute('aria-label','Station category');category.style.flex='1 1 100px';category.readOnly=!canManage;category.oninput=()=>{stationManagerDraft[index].category=category.value;$('stationManagerStatus').textContent='Unsaved station changes.'};
+  const status=document.createElement('label');status.style.cssText='display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px';const active=document.createElement('input');active.type='checkbox';active.checked=station.active!==false;active.disabled=!canManage;active.setAttribute('aria-label','Station active');active.onchange=()=>{stationManagerDraft[index].active=active.checked;$('stationManagerStatus').textContent='Unsaved station changes.'};status.append(active,document.createTextNode('ACTIVE'));
   row.append(name,category,status);list.appendChild(row);
  });
- const add=$('addStationBtn'),save=$('saveStationsBtn');if(add)add.disabled=!permission('canManageSettings');if(save)save.disabled=!permission('canManageSettings');
+ const add=$('addStationBtn'),save=$('saveStationsBtn');if(add)add.disabled=!canManage;if(save)save.disabled=!canManage;const status=$('stationManagerStatus');if(status&&!canManage)status.textContent='READ ONLY · Station configuration is managed by a Settings administrator.';
 }
 async function saveStationManager(){
  if(!permission('canManageSettings'))return;

@@ -6,7 +6,10 @@ const api=fs.readFileSync('supabase/functions/central-bank/index.ts','utf8');
 const overview=fs.readFileSync('plant-overview-preview.html','utf8');
 
 assert.ok(ui.includes('data-settings-open="stations"')&&ui.includes('id="settingsPanelStations"'),'Station Manager is available as a Settings panel');
-assert.ok(ui.includes("if(section==='stations')return permission('canManageSettings')"),'Station Manager is restricted to existing central settings administrators');
+assert.ok(ui.includes("if(section==='stations')return permission('canViewStations')||permission('canManageSettings')"),'Station Manager is visible to Management READ ONLY/INPUT roles and settings managers');
+assert.ok(ui.includes("const canManage=permission('canManageSettings');")&&ui.includes("if(!settingsAccess('stations'))return;"),'Station Manager renders for view-authorised users without granting edit rights');
+assert.ok(ui.includes('name.readOnly=!canManage')&&ui.includes('category.readOnly=!canManage')&&ui.includes('active.disabled=!canManage'),'Station Manager fields are read-only unless settings management is granted');
+assert.ok(ui.includes("const add=$('addStationBtn'),save=$('saveStationsBtn');if(add)add.disabled=!canManage;if(save)save.disabled=!canManage;"),'Station Manager write controls are disabled for read-only users');
 assert.ok(ui.includes('function defaultStationConfig()')&&ui.includes("category:'WOOD'")&&ui.includes("category:'SCRAP'")&&ui.includes("category:'GENERAL'"),'the six current plant stations remain the migration defaults');
 assert.ok(ui.includes('function renderStationManager(reset=true)')&&ui.includes('function saveStationManager()'),'station configuration can be added, renamed, activated and saved');
 assert.ok(ui.includes('Deactivated stations remain in the data bank'),'station deactivation is non-destructive');
@@ -22,6 +25,7 @@ assert.ok(api.includes('Object.prototype.hasOwnProperty.call(incoming,"stationCo
 assert.ok(api.includes('!stations.some((station:any)=>station.active)'),'the API rejects a configuration with no active stations');
 assert.ok(api.includes('aliases:Array.isArray(station?.aliases)'),'station aliases are persisted for renamed assignments');
 assert.ok(api.includes('delete restrictedData.stationConfig'),'station configuration is not exposed to users without assignment visibility');
+assert.ok(api.includes('priv.canViewStations||priv.canViewAssignments'),'read-only Management Settings users may receive station configuration without permission to edit STAFF assignments');
 assert.ok(api.includes('nextAppData.stationConfig=bank.appData.stationConfig'),'ordinary tracker saves cannot overwrite station configuration');
 assert.ok(overview.includes('function stationConfigFor(payload)')&&overview.includes('function resolveProfileStation(profile,stations)'),'Plant Overview resolves operator assignments from central station configuration and retained aliases');
 assert.ok(overview.includes('function renderStationBlueprint(stations,names,profiles)'),'Plant Overview renders the configured station list, including added stations');

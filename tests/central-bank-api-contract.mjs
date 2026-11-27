@@ -89,6 +89,17 @@ assert.ok(src.includes('const isDevRoot=rootsAuthority==="DEV";'), 'DEV authorit
 assert.ok(src.includes('yardRolePermissions:u.yardRolePermissions||null'), 'safe current-user contract can carry canonical rights');
 assert.ok(src.includes('yardRolePermissions:resolvedYardRole?.departments||null'), 'Central Bank returns the complete five-department permission matrix to the client');
 assert.ok(src.includes('const management=resolvedYardRole.departments.Management'), 'DOWNTIME enforcement separately resolves the Management department');
+assert.ok(src.includes('canManageSettings:management.manage===true'),'canonical Management MANAGE can edit operational Settings; lower levels cannot');
+assert.ok(src.includes('canViewStations:hasManagementAccess'),'canonical Management VIEW/INPUT/MANAGE can read Station Manager configuration');
+for(const section of ['AreaPresets','ReasonPresets','ShiftSchedule','DailyTasks']){
+ assert.ok(src.includes('canView'+section+':hasManagementAccess'),'Management department access grants read access to '+section);
+ assert.ok(src.includes('canManage'+section+':management.manage===true'),'only Management MANAGE may edit '+section);
+}
+assert.ok(src.includes('canManageSettings:true,canManageAccessRights:false'),'protected DEV1/ADMIN ROOTS can manage operational Settings without opening the legacy tier rights editor');
+const rootsSettingsBlock=src.slice(src.indexOf('if(isRootAuthority){'),src.indexOf('// Central Bank USER directory access'));
+assert.ok(rootsSettingsBlock.includes('canManageUsers:false,canViewUsers:false'),'DEV1/ADMIN remain denied Central USER directory access');
+assert.ok(src.includes('if(!(priv.canViewStations||priv.canViewAssignments||priv.canManageAssignments||priv.canManageSettings))delete restrictedData.stationConfig'),'read-authorised Management roles receive Station Manager data without assignment edit rights');
+
 assert.ok(src.includes('managementRights?.enter===true')&&src.includes('managementRights?.edit===true')&&src.includes('managementRights?.manage===true'),
   'Management Enter, Edit and Manage are independently evaluated');
 assert.ok(src.includes('Management ENTER permission is required to add operational records.')&&src.includes('Management EDIT permission is required to change operational records.')&&src.includes('Management MANAGE permission is required to remove operational records.'),
