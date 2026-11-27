@@ -502,13 +502,20 @@ async function ensureNavigationMenuOpen(page){
 async function openStaffSettings(page){
  await ensureMainMenu(page);
  await dismissPlantTransitionAlerts(page);
- await page.evaluate(()=>{
-  document.querySelectorAll('.view').forEach(view=>view.classList.toggle('active',view.id==='settings'));
-  document.querySelector('#settings').style.display='block';
-  document.querySelector('#settingsHub').hidden=true;
-  let node=document.querySelector('#staffRosterList');while(node&&node!==document.body){node.hidden=false;node.style.setProperty('display','block','important');node.style.setProperty('visibility','visible','important');node=node.parentElement;}document.querySelector('#staffRosterList').style.setProperty('display','grid','important');
- });
- await page.locator('#staffRosterList').waitFor({state:'visible'});
+ // Follow the supported YARD HUB route. Do not expose the removed legacy STAFF card
+ // or force-render its hidden Settings panel in the browser regression.
+ const yardHub=page.locator('#yardHub');
+ if(!await yardHub.isVisible()){
+  const backToHub=page.locator('#backToYardHub');
+  await backToHub.waitFor({state:'visible',timeout:5000});
+  await backToHub.click();
+  await yardHub.waitFor({state:'visible',timeout:5000});
+ }
+ await page.locator('#launchStaffManagementBtn').waitFor({state:'visible',timeout:5000});
+ await page.locator('#launchStaffManagementBtn').click();
+ await page.locator('#yardHubSettingsScreen').waitFor({state:'visible',timeout:5000});
+ await page.locator('#yardHubSettingsStaff').click();
+ await page.locator('#staffRosterList').waitFor({state:'visible',timeout:5000});
 }
 
 async function openSettingsHub(page){
@@ -1038,7 +1045,7 @@ await ensureNavigationMenuOpen(owner.page);
   await owner.page.frameLocator('#overviewFrame').locator('#exitOverview').click();
   await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
   await openStaffSettings(owner.page);
-  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click({force:true});
+  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
   assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'locked station is disabled when profile reopens');
   await owner.page.locator('#smLock').uncheck();
   assert.equal(await owner.page.locator('#smStation').isEnabled(),true,'manual unlock in Staff Settings enables reassignment');
