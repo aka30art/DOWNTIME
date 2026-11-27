@@ -281,37 +281,53 @@ Deno.serve(async(req)=>{
  }
  if(action==="identity-reset"){
    if(!isDevRoot)return json({error:"Only the currently authenticated immutable DEV may perform the one-time identity reset."},403);
-   if(String(body.confirmation||"")!=="RESET ALL IDENTITIES")return json({error:"Type RESET ALL IDENTITIES to confirm the permanent reset."},400);
-   const currentDevPin=String(body.currentDevPin||""),devPin=String(body.devPin||""),dev1Pin=String(body.dev1Pin||""),adminPin=String(body.adminPin||"");
+   if(String(body.confirmation||"")!=="KEEP DEV - CLEAR USERS STAFF PHOTOS")return json({error:"Type KEEP DEV - CLEAR USERS STAFF PHOTOS exactly to confirm the permanent reset."},400);
+   const currentDevPin=String(body.currentDevPin||"");
    if(!/^[0-9]{4,8}$/.test(currentDevPin)||!await verifyPin(currentDevPin,currentUser))return json({error:"Current DEV PIN verification failed."},401);
-   if(![devPin,dev1Pin,adminPin].every(pin=>/^[0-9]{4,8}$/.test(pin)))return json({error:"New DEV, DEV1 and ADMIN PINs must each contain 4–8 digits."},400);
    if(!row||!Number.isInteger(Number(row.version)))return json({error:"Central USER directory version is unavailable."},503);
-   const makeCredentials=async(username:string,staffId:string|null)=>{
-     const pinSalt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));
-     const pinHash=await hashPin(username==="DEV"?devPin:username==="DEV1"?dev1Pin:adminPin,pinSalt);
-     return {username,displayName:username,enabled:true,status:"ACTIVE",userId:crypto.randomUUID(),staffId,pinSalt,pinHash};
+
+   // Staff profile photographs live in this dedicated bucket. Operational evidence and report buckets are not touched.
+   const listAllStaffPhotoPaths=async(prefix=""):Promise<string[]>=>{
+     const paths:string[]=[];
+     let offset=0;
+     for(;;){
+       const {data,error}=await db.storage.from("downtime-staff-photos").list(prefix,{limit:1000,offset});
+       if(error)throw error;
+       const entries=Array.isArray(data)?data:[];
+       for(const entry of entries){
+         const name=String(entry?.name||"");
+         if(!name)continue;
+         const path=prefix?prefix+"/"+name:name;
+         if(entry.id==null&&entry.metadata==null)paths.push(...await listAllStaffPhotoPaths(path));
+         else paths.push(path);
+       }
+       if(entries.length<1000)break;
+       offset+=entries.length;
+     }
+     return paths;
    };
-   const dev=await makeCredentials("DEV",null);
-   const dev1StaffId=crypto.randomUUID(),adminStaffId=crypto.randomUUID();
-   const dev1=await makeCredentials("DEV1",dev1StaffId);
-   const admin=await makeCredentials("ADMIN",adminStaffId);
-   const makeRootStaff=(name:string,staffId:string,userId:string)=>({
-     name,displayName:name,staffId,linkedUserId:userId,department:"Management",onSiteRole:"Manager",
-     station:"",stationLocked:false,onSite:false,status:"ACTIVE",isSystemIdentity:true
-   });
-   const {data:reset,error:resetError}=await db.rpc("downtime_identity_reset_cutover",{
+   let staffPhotoPaths:string[];
+   try{
+     staffPhotoPaths=await listAllStaffPhotoPaths();
+     for(let offset=0;offset<staffPhotoPaths.length;offset+=100){
+       const {error}=await db.storage.from("downtime-staff-photos").remove(staffPhotoPaths.slice(offset,offset+100));
+       if(error)throw error;
+     }
+     const remaining=await listAllStaffPhotoPaths();
+     if(remaining.length)throw new Error("STAFF photo bucket is not empty after deletion.");
+   }catch(error){
+     return json({error:error instanceof Error?error.message:"STAFF photo deletion could not be verified. Identity reset was not committed."},503);
+   }
+
+   const {data:reset,error:resetError}=await db.rpc("downtime_identity_reset_preserve_dev",{
      p_expected_version:Number(row.version),
      p_actor_user_id:currentUser.userId,
      p_actor_username:currentUser.username,
      p_actor_display_name:currentUser.displayName||currentUser.username,
-     p_new_dev_user:dev,
-     p_new_dev1_user:dev1,
-     p_new_admin_user:admin,
-     p_dev1_staff:makeRootStaff("DEV1",dev1StaffId,dev1.userId),
-     p_admin_staff:makeRootStaff("ADMIN",adminStaffId,admin.userId)
+     p_actor_session_hash:tokenHash
    });
-   if(resetError||!reset?.ok)return json({error:resetError?.message?.includes("already been completed")?"The one-time identity reset has already been completed.":resetError?.message?.includes("VERSION_CONFLICT")?"The USER directory changed. Refresh and retry the reset.":resetError?.message||"The atomic identity reset failed."},409);
-   return json(reset);
+   if(resetError||!reset?.ok)return json({error:resetError?.message?.includes("already been completed")?"The one-time identity reset has already been completed.":resetError?.message?.includes("VERSION_CONFLICT")?"The USER directory changed. Refresh and retry the reset.":resetError?.message||"The identity reset could not be committed. STAFF photos were removed; retry after checking the current state."},409);
+   return json({...reset,staffPhotoObjectsRemoved:staffPhotoPaths.length,rootedRoleDefinitions:["DEV1","ADMIN"],devUserIdPreserved:currentUser.userId});
  }
  if(action==="identity-diagnostics"){
    if(!isDevRoot)return json({error:"Identity diagnostics are restricted to immutable DEV."},403);
