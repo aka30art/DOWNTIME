@@ -23,7 +23,7 @@ assert.match(structure,/window\.syncDowntimeModuleAccess\?\.\(\)/,'published men
 assert.match(html, /function launchStaffManagement\(\)[\s\S]*?window\.openYardHubStaffManagement\(\)/, 'YARD HUB Staff Management tile opens its dedicated submenu');
 assert.match(html,/window\.launchStaffWorkspace=launchStaffWorkspace/,'STAFF subtile opens the existing central STAFF workspace');
 assert.match(html,/window\.syncStaffModuleAccess=syncStaffModuleAccess/,'Staff Management tile synchronises from server-resolved ROOTS authority');
-assert.match(html,/function returnToYardHub\(\)\{setStaffWorkspaceNavigation\(false\);window\.closeYardHubStaffManagement\?\.\(\)/,'STAFF workspace return restores navigation and uses the dedicated YARD HUB close path');
+assert.match(html,/function returnToYardHub\(\)\{const shell=document\.querySelector\('\.shell'\);if\(shell\)shell\.classList\.remove\('staff-workspace-active'\);setStaffWorkspaceNavigation\(false\);window\.closeYardHubStaffManagement\?\.\(\)/,'STAFF workspace return clears the workspace class, restores navigation and uses the dedicated YARD HUB close path');
 assert.match(html,/window\.returnToYardHub=returnToYardHub/,'STAFF return handler is exposed outside the application script closure');
 assert.match(html,/id="settingsPanelStaff" class="settings-panel" hidden><div class="settings-detail-head"><button id="staffManagementBackBtn" class="settings-back" type="button">‹ <span>BACK TO STAFF MANAGEMENT<\/span><\/button><\/div>/,'STAFF workspace has a dedicated return to STAFF AND MANAGEMENT');
 assert.doesNotMatch(html,/id="settingsPanelStaff"[\s\S]*?onclick="window\.returnToYardHub\(\)"/,'STAFF panel has no duplicate YARD HUB return control');
@@ -32,7 +32,7 @@ assert.match(html,/function openSettingsPanel\(section\)[^]*?setStaffWorkspaceNa
 assert.match(html,/\.shell\.staff-workspace-active #backToYardHub\{position:fixed/,'YARD HUB return remains visible while STAFF navigation rail is hidden');
 assert.match(yardHubSettings,/\$\('staffManagementBackBtn'\)\?\.addEventListener\('click',returnToStaffManagementHome\)/,'STAFF submenu back button returns to STAFF AND MANAGEMENT');
 assert.match(html,/function showSettingsHub\(\)\{setStaffWorkspaceNavigation\(false\)/,'returning to the Settings hub restores the main menu');
-assert.match(html,/function launchDowntime\(\)\{if\(!centralUser\?\.username\|\|!canAccessDowntimeModule\(\)\)return;setStaffWorkspaceNavigation\(false\)/,'launching DOWNTIME requires SCPL access and restores the main menu');
+assert.match(html,/function launchDowntime\(\)\{if\(!centralUser\?\.username\|\|!canAccessDowntimeModule\(\)\)return;document\.querySelector\('\.shell'\)\?\.classList\.remove\('staff-workspace-active'\);setStaffWorkspaceNavigation\(false\)/,'launching DOWNTIME requires SCPL access and clears STAFF navigation state before restoring the main menu');
 assert.match(html,/function returnToYardHub\(\)\{setStaffWorkspaceNavigation\(false\)/,'returning to YARD HUB resets STAFF-only navigation state');
 assert.match(html, /launchStaffManagementBtn'\)\?\.addEventListener\('click',launchStaffManagement\)/, 'Staff Management launcher has a click handler');
 assert.match(html, /if\(section==='staff'\)return isStaffModuleAutoAccess\(\)\|\|permission\('canViewStaff'\)\|\|permission\('canEnterStaff'\)/, 'Staff panel access follows the Management module, not DOWNTIME Settings rights');
