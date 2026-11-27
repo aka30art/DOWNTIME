@@ -160,7 +160,7 @@ Deno.serve(async(req)=>{
  if(!currentUser)return json({error:"Account disabled"},401);
  let rootsAssignment:any=null,rootsLookupError:any=null;
  if(currentUser.userId){
-   const rootsLookup=await db.from("downtime_roots_effective_assignments").select("user_id,staff_id,roots_class").eq("user_id",currentUser.userId).maybeSingle();
+   const rootsLookup=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status,version,revoked_at").eq("status","ACTIVE").eq("user_id",currentUser.userId).maybeSingle();
    rootsAssignment=rootsLookup.data;rootsLookupError=rootsLookup.error;
  }
  const {data:rootsBootstrap,error:rootsBootstrapError}=await db.from("downtime_roots_bootstrap").select("user_id").eq("singleton",true).maybeSingle();
@@ -175,7 +175,7 @@ Deno.serve(async(req)=>{
  const isCentralAdmin=tier==="ADMIN"||isRootAuthority;
  const isCentralBankAccess=isRootAuthority;
  const loadProtectedRootUserIds=async()=>{
-   const result=await db.from("downtime_roots_effective_assignments").select("user_id,staff_id");
+   const result=await db.from("downtime_roots_assignments").select("user_id,staff_id").eq("status","ACTIVE");
    return {
      ids:new Set((result.data||[]).map((assignment:any)=>String(assignment.user_id).toLowerCase())),
      staffIds:new Set((result.data||[]).map((assignment:any)=>String(assignment.staff_id).toLowerCase())),
@@ -198,7 +198,7 @@ Deno.serve(async(req)=>{
  };
  const lookupProtectedStaff=async(profile:any)=>{
    if(!profile?.staffId)return {protected:false,error:null};
-   const result=await db.from("downtime_roots_effective_assignments").select("staff_id").eq("staff_id",profile.staffId).maybeSingle();
+   const result=await db.from("downtime_roots_assignments").select("staff_id").eq("status","ACTIVE").eq("staff_id",profile.staffId).maybeSingle();
    return {protected:!!result.data,error:result.error};
  };
  const findStaffProfileBySlug=(slug:string)=>{
@@ -287,7 +287,7 @@ if(action==="roots-state"){
    if(rootsAuthority!=="DEV")return json({error:"ROOTS directory is restricted to immutable DEV."},403);
    if(rootsLookupError)return json({error:"Protected ROOTS registry is unavailable."},503);
    const [{data:assignments,error:assignmentsError},{data:history,error:historyError}]=await Promise.all([
-     db.from("downtime_roots_effective_assignments").select("user_id,staff_id,roots_class,assigned_by_username,created_at,changed_at").order("created_at"),
+     db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status,version,revoked_at,assigned_by_username,created_at,updated_at").order("created_at"),
      db.from("downtime_roots_assignment_audit").select("user_id,staff_id,roots_class,actor_username,action,created_at").order("created_at",{ascending:false})
    ]);
    if(assignmentsError||historyError)return json({error:"Protected ROOTS registry is unavailable."},503);
@@ -342,7 +342,7 @@ if(action==="roots-state"){
    const profiles=bank.staff?.profiles&&typeof bank.staff.profiles==="object"?Object.values(bank.staff.profiles):[];
    const linkedProfile:any=profiles.find((profile:any)=>profile&&String(profile.staffId||"").toLowerCase()===String(target.staffId).toLowerCase()&&String(profile.linkedUserId||"").toLowerCase()===String(target.userId).toLowerCase());
    if(!linkedProfile||String(linkedProfile.status||"").toUpperCase()!=="ACTIVE")return json({error:"The USER and STAFF identities must have an active reciprocal link."},409);
-   const {data:existingAssignment,error:existingError}=await db.from("downtime_roots_effective_assignments").select("user_id,staff_id,roots_class").or("user_id.eq."+target.userId+",staff_id.eq."+target.staffId).maybeSingle();
+   const {data:existingAssignment,error:existingError}=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status,version").or("user_id.eq."+target.userId+",staff_id.eq."+target.staffId).maybeSingle();
    if(existingError)return json({error:"Protected ROOTS registry is unavailable."},503);
    if(existingAssignment&&(String(existingAssignment.user_id).toLowerCase()!==String(target.userId).toLowerCase()||String(existingAssignment.staff_id).toLowerCase()!==String(target.staffId).toLowerCase()||existingAssignment.roots_class!==requestedClass))return json({error:"This USER or STAFF identity already has a different protected ROOTS assignment."},409);
    const {data:assignment,error:assignmentError}=await db.rpc("downtime_roots_assign_identity",{
@@ -793,7 +793,7 @@ if(action==="roots-state"){
    const existing=idx>=0?bank.users[idx]:null;
    if(!existing)return json({error:"New accounts must use the canonical USER + STAFF + YARD ROLE provisioning workflow."},409);
    if(existing.userId){
-     const {data:protectedTarget,error:protectedTargetError}=await db.from("downtime_roots_effective_assignments").select("user_id").eq("user_id",existing.userId).maybeSingle();
+     const {data:protectedTarget,error:protectedTargetError}=await db.from("downtime_roots_assignments").select("user_id").eq("status","ACTIVE").eq("user_id",existing.userId).maybeSingle();
      if(protectedTargetError)return json({error:"Protected identity registry is unavailable."},503);
      if(protectedTarget&&rootsAuthority!=="DEV")return json({error:"Only immutable DEV may modify a protected ROOTS identity."},403);
    }
@@ -835,7 +835,7 @@ if(action==="roots-state"){
    if(target.toLowerCase()===currentUser.username.toLowerCase())return json({error:"Cannot delete your own account"},400);
    const linkedTarget=bank.users.find((u:any)=>u.username.toLowerCase()===target.toLowerCase());
    if(linkedTarget?.userId){
-     const {data:protectedTarget,error:protectedTargetError}=await db.from("downtime_roots_effective_assignments").select("user_id").eq("user_id",linkedTarget.userId).maybeSingle();
+     const {data:protectedTarget,error:protectedTargetError}=await db.from("downtime_roots_assignments").select("user_id").eq("status","ACTIVE").eq("user_id",linkedTarget.userId).maybeSingle();
      if(protectedTargetError)return json({error:"Protected identity registry is unavailable."},503);
      if(protectedTarget)return json({error:"Protected ROOTS identities cannot be deleted through ordinary account management."},403);
    }
@@ -853,7 +853,7 @@ if(action==="roots-state"){
    bank.staff.profiles=bank.staff.profiles||{};bank.staff.roster=bank.staff.roster||[];
    const existingProfile=bank.staff.profiles[name]||bank.appData?.operatorProfiles?.[name]||{};
    if(existingProfile.staffId){
-     const {data:protectedTarget,error:protectedTargetError}=await db.from("downtime_roots_effective_assignments").select("staff_id").eq("staff_id",existingProfile.staffId).maybeSingle();
+     const {data:protectedTarget,error:protectedTargetError}=await db.from("downtime_roots_assignments").select("staff_id").eq("status","ACTIVE").eq("staff_id",existingProfile.staffId).maybeSingle();
      if(protectedTargetError)return json({error:"Protected identity registry is unavailable."},503);
      if(protectedTarget&&rootsAuthority!=="DEV")return json({error:"Only immutable DEV may modify a protected ROOTS STAFF identity."},403);
    }
