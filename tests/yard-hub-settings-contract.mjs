@@ -18,6 +18,14 @@ const rmStructure=fs.readFileSync('repair-maintenance-structure.js','utf8');
 
 // YARD HUB Settings is an additive surface inside the Hub, not inside the DOWNTIME application shell.
 assert.match(html,/id="yardHubSettingsBtn" data-app="settings" type="button"[^>]*hidden/,'Settings must be the fifth, access-gated application tile');
+assert.ok(html.includes('id="yardHubSettingsRoles"'), 'Settings exposes the canonical YARD ROLES view');
+assert.ok(html.includes('id="yardHubRolesView"') && html.includes('id="yardHubRoleModal"'), 'YARD ROLE catalogue and editor are present');
+assert.ok(html.includes('id="yardHubRolePermissions"'), 'YARD ROLE editor exposes the department permission matrix');
+assert.ok(ui.includes("yardPermissionFields=[{key:'can_view',label:'VIEW'},{key:'can_enter',label:'ENTER'},{key:'can_edit',label:'EDIT'},{key:'can_manage',label:'MANAGE'}]"), 'YARD ROLE editor uses four independent permission checkboxes');
+assert.ok(ui.includes("callApi('yard-role-save'"), 'YARD ROLE definitions are saved through the authenticated server API');
+assert.ok(hubApi.includes('yard_role_save_definition'), 'YARD ROLE definition changes are persisted through the audited service-role RPC');
+assert.ok(hubApi.includes('isRootDev(user, legacyTier) ? (yardRoles || []).map'), 'YARD ROLE catalogue details are returned only to DEV pending ROOTS integration');
+
 assert.match(html,/\.yard-tile\[hidden\][^{]*\{display:none!important\}/,'the Settings tile must remain hidden until access is verified');
 assert.doesNotMatch(html,/yard-logout yard-hub-settings-trigger/,'Settings must not remain in the authenticated-user header');
 assert.match(ui,/const hero=hub\.querySelector\('\.yard-hero'\)/,'opening Settings must hide the HUB hero as well as the application menu');
