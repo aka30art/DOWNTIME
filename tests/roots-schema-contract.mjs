@@ -16,6 +16,10 @@ assert.match(base, /prevent_downtime_roots_audit_mutation/);
 assert.doesNotMatch(base, /insert into public\.downtime_roots_assignments\s*\([^)]*\)\s*values\s*\(/i, "ROOTS classifications are not seeded");
 
 assert.match(lifecycle, /create table if not exists public\.downtime_roots_bootstrap/);
+assert.match(lifecycle, /candidate_record jsonb/);
+assert.match(lifecycle, /candidate_user_id := gen_random_uuid\(\)/, 'legacy DEV without a UUID receives a temporary transition identity');
+assert.match(lifecycle, /roots-bootstrap-transition-id-assigned/);
+assert.match(lifecycle, /Temporary immutable identity required to authorise the one-time identity reset/);
 assert.match(lifecycle, /upper\(trim\(coalesce\(user_record->>'username',''\)\)\) = 'DEV'/);
 assert.match(lifecycle, /Existing immutable DEV bootstrap identity does not match/);
 assert.match(lifecycle, /status text not null default 'ACTIVE'/);
