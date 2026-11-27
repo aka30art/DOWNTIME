@@ -332,7 +332,8 @@
           const activated=await activate(provisionedUserId);
           state.centralVersion=Number(activated.version||state.centralVersion+1);
         }
-      }else if(canonicalLinkedIdentity&&yardRoleChanged){\n        await callApi('assign-user-role',{userId:existing.userId,yardRoleId:requestedYardRoleId,assignmentVersion:existing.yardRoleVersion});\n      }else if(!canonicalIdentity){
+      }else if(canonicalLinkedIdentity&&yardRoleChanged){
+        await callApi('assign-user-role',{userId:existing.userId,yardRoleId:requestedYardRoleId,assignmentVersion:existing.yardRoleVersion});\n      }else if(!canonicalIdentity){
         const assigned=await callApi('save-user-tier',{username,tier:hubTier,version:state.permissionVersion});
         state.permissionVersion=Number(assigned.version||state.permissionVersion+1);
       }
