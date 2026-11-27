@@ -515,7 +515,7 @@ async function openStaffSettings(page){
  await page.waitForFunction(()=>{
   const hubScreen=document.querySelector('#yardHubSettingsScreen');
   const staffPanel=document.querySelector('#settingsPanelStaff');
-  const visible=node=>!!node&&!node.hidden&&getComputedStyle(node).display!=='none';
+  const visible=node=>!!node&&!node.hidden&&getComputedStyle(node).display!=='none'&&node.getClientRects().length>0;
   return visible(hubScreen)||visible(staffPanel);
  },{timeout:5000});
  if(await staffManagementHome.isVisible())await page.locator('#yardHubSettingsStaff').click();
