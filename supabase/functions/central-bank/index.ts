@@ -295,7 +295,7 @@ if(action==="roots-state"){
    return json({
      assignments:(assignments||[]).map((assignment:any)=>{
        const target:any=usersById.get(String(assignment.user_id).toLowerCase());
-       return {userId:assignment.user_id,staffId:assignment.staff_id,rootsClass:assignment.roots_class,username:target?.username||null,displayName:target?.displayName||target?.username||null,assignedBy:assignment.assigned_by_username,createdAt:assignment.created_at,changedAt:assignment.changed_at};
+       return {userId:assignment.user_id,staffId:assignment.staff_id,rootsClass:assignment.roots_class,username:target?.username||null,displayName:target?.displayName||target?.username||null,assignedBy:assignment.assigned_by_username,createdAt:assignment.created_at,status:assignment.status,version:assignment.version,revokedAt:assignment.revoked_at,changedAt:assignment.updated_at};
      }),
      history:(history||[]).map((event:any)=>{
        const target:any=usersById.get(String(event.user_id).toLowerCase());
@@ -305,26 +305,32 @@ if(action==="roots-state"){
  }
  if(action==="roots-revoke"){
    if(rootsAuthority!=="DEV")return json({error:"Only immutable DEV may revoke ROOTS assignments."},403);
-   const userId=String(body.userId||"");
-   if(!/^[0-9a-f-]{36}$/i.test(userId))return json({error:"Immutable USER ID required."},400);
-   const {data:revoked,error:revokeError}=await db.rpc("downtime_roots_revoke_identity",{
-     p_user_id:userId,p_actor_user_id:currentUser.userId,p_actor_username:String(currentUser.username),
+   const userId=String(body.userId||""),version=Number(body.version);
+   if(!/^[0-9a-f-]{36}$/i.test(userId)||!Number.isInteger(version)||version<1)return json({error:"Immutable USER ID and current ROOTS version are required."},400);
+   const {data:existing,error:lookupError}=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status,version").eq("user_id",userId).maybeSingle();
+   if(lookupError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   if(!existing||existing.status!=="ACTIVE")return json({error:"An active ROOTS assignment is required for revocation."},409);
+   const {data:revoked,error:revokeError}=await db.rpc("downtime_roots_manage_identity",{
+     p_user_id:userId,p_staff_id:existing.staff_id,p_roots_class:existing.roots_class,p_action:"REVOKE",
+     p_expected_version:version,p_actor_user_id:currentUser.userId,p_actor_username:String(currentUser.username),
      p_actor_display_name:String(currentUser.displayName||currentUser.username)
    });
    if(revokeError||!revoked)return json({error:revokeError?.message||"ROOTS revocation failed."},409);
-   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"roots-assignment-revoked",details:{targetUserId:userId,previousRootsClass:revoked.previous_roots_class}});
    return json({ok:true,revocation:revoked});
  }
  if(action==="roots-reclassify"){
    if(rootsAuthority!=="DEV")return json({error:"Only immutable DEV may reclassify ROOTS assignments."},403);
-   const userId=String(body.userId||""),rootsClass=String(body.rootsClass||"").toUpperCase();
-   if(!/^[0-9a-f-]{36}$/i.test(userId)||!["DEV1","ADMIN"].includes(rootsClass))return json({error:"A valid immutable USER ID and ROOTS class are required."},400);
-   const {data:changed,error:changeError}=await db.rpc("downtime_roots_reclassify_identity",{
-     p_user_id:userId,p_roots_class:rootsClass,p_actor_user_id:currentUser.userId,
-     p_actor_username:String(currentUser.username),p_actor_display_name:String(currentUser.displayName||currentUser.username)
+   const userId=String(body.userId||""),rootsClass=String(body.rootsClass||"").toUpperCase(),version=Number(body.version);
+   if(!/^[0-9a-f-]{36}$/i.test(userId)||!["DEV1","ADMIN"].includes(rootsClass)||!Number.isInteger(version)||version<1)return json({error:"Immutable USER ID, ROOTS class and current assignment version are required."},400);
+   const {data:existing,error:lookupError}=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status,version").eq("user_id",userId).maybeSingle();
+   if(lookupError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   if(!existing||existing.status!=="ACTIVE")return json({error:"An active ROOTS assignment is required for reclassification."},409);
+   const {data:changed,error:changeError}=await db.rpc("downtime_roots_manage_identity",{
+     p_user_id:userId,p_staff_id:existing.staff_id,p_roots_class:rootsClass,p_action:"RECLASSIFY",
+     p_expected_version:version,p_actor_user_id:currentUser.userId,p_actor_username:String(currentUser.username),
+     p_actor_display_name:String(currentUser.displayName||currentUser.username)
    });
    if(changeError||!changed)return json({error:changeError?.message||"ROOTS reclassification failed."},409);
-   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"roots-assignment-reclassified",details:{targetUserId:userId,rootsClass}});
    return json({ok:true,assignment:changed});
  }
  if(action==="roots-assign"||action==="roots-assign-admin"){
@@ -344,7 +350,7 @@ if(action==="roots-state"){
    if(!linkedProfile||String(linkedProfile.status||"").toUpperCase()!=="ACTIVE")return json({error:"The USER and STAFF identities must have an active reciprocal link."},409);
    const {data:existingAssignment,error:existingError}=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status,version").or("user_id.eq."+target.userId+",staff_id.eq."+target.staffId).maybeSingle();
    if(existingError)return json({error:"Protected ROOTS registry is unavailable."},503);
-   if(existingAssignment&&(String(existingAssignment.user_id).toLowerCase()!==String(target.userId).toLowerCase()||String(existingAssignment.staff_id).toLowerCase()!==String(target.staffId).toLowerCase()||existingAssignment.roots_class!==requestedClass))return json({error:"This USER or STAFF identity already has a different protected ROOTS assignment."},409);
+   if(existingAssignment&&(String(existingAssignment.user_id).toLowerCase()!==String(target.userId).toLowerCase()||String(existingAssignment.staff_id).toLowerCase()!==String(target.staffId).toLowerCase()||(existingAssignment.status==="ACTIVE"&&existingAssignment.roots_class!==requestedClass)))return json({error:"This USER or STAFF identity already has a different protected ROOTS assignment."},409);
    const {data:assignment,error:assignmentError}=await db.rpc("downtime_roots_assign_identity",{
      p_user_id:target.userId,p_staff_id:target.staffId,p_roots_class:requestedClass,
      p_actor_user_id:currentUser.userId||null,p_actor_username:String(currentUser.username),
