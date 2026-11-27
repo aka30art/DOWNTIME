@@ -440,7 +440,7 @@ async function signIn(page,pin='2468',username='DEV'){
  const authenticatedIdentity=await page.evaluate(()=>window.DowntimeCentral?.session?.user||null);
  const authenticatedUsername=String(authenticatedIdentity?.username||'').trim().toUpperCase();
  const authenticatedTier=String(authenticatedIdentity?.tier||'').trim().toUpperCase();
- const expectsStaffAutoAccess=(authenticatedUsername==='DEV'&&authenticatedTier==='OWNER')||authenticatedTier==='DEVACC'||authenticatedTier==='ADMIN';
+ const expectsStaffAutoAccess=authenticatedIdentity?.rootsAuthority==='DEV'||authenticatedTier==='DEVACC'||authenticatedTier==='ADMIN';
  assert.equal(await page.locator('.yard-tile[data-app="staff-management"]').isEnabled(),expectsStaffAutoAccess,authenticatedUsername+'/'+authenticatedTier+' receives only the configured automatic Staff Management access');
  assert.equal(await page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until released');
  await page.waitForFunction(()=>{const tile=document.querySelector('.yard-tile[data-app="repair-maintenance"]');return tile&&!tile.disabled},{timeout:5000});
