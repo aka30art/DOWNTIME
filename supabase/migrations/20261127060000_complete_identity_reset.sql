@@ -36,6 +36,9 @@ declare
   v_dev1_staff_id uuid;
   v_admin_staff_id uuid;
   v_assignment record;
+  v_yard_assignment record;
+  v_hub_payload jsonb;
+  v_hub_version bigint;
   v_dev1_assignment_id uuid;
   v_admin_assignment_id uuid;
 begin
@@ -128,6 +131,37 @@ begin
   v_app_data := jsonb_set(v_app_data,'{staffRoster}',jsonb_build_array('DEV1','ADMIN'),true);
   v_app_data := jsonb_set(v_app_data,'{operatorProfiles}',jsonb_build_object('DEV1',p_dev1_staff,'ADMIN',p_admin_staff),true);
   v_next_payload := jsonb_set(v_next_payload,'{appData}',v_app_data,true);
+
+  -- Revoke every existing ordinary USER-to-YARD ROLE assignment and retain its audit reference.
+  for v_yard_assignment in
+    update public.yard_role_assignments
+       set status='REVOKED',version=version+1,updated_at=now()
+     where status='ACTIVE'
+     returning id,user_id,staff_id,yard_role_id
+  loop
+    insert into public.yard_role_assignment_audit
+      (assignment_id,user_id,staff_id,yard_role_id,actor_user_id,actor_username,actor_display_name,action,details)
+    values
+      (v_yard_assignment.id,v_yard_assignment.user_id,v_yard_assignment.staff_id,v_yard_assignment.yard_role_id,
+       p_actor_user_id,'DEV',trim(p_actor_display_name),'USER_YARD_ROLE_REVOKED_BY_IDENTITY_RESET',
+       jsonb_build_object('reason','Complete identity reset','newDevUserId',v_dev_user_id));
+  end loop;
+
+  -- Clear username-based legacy YARD HUB assignments so reused account names inherit no old access.
+  select payload,version into v_hub_payload,v_hub_version
+    from public.yard_hub_tier_config
+   where id=1
+   for update;
+  if found then
+    update public.yard_hub_tier_config
+       set payload=jsonb_set(coalesce(v_hub_payload,'{}'::jsonb),'{userTiers}','{}'::jsonb,true),
+           version=v_hub_version+1,updated_by='DEV',updated_at=now()
+     where id=1 and version=v_hub_version;
+    if not found then raise exception 'YARD HUB access configuration changed during identity reset'; end if;
+    insert into public.yard_hub_access_audit(actor,action,previous_payload,new_payload)
+    values('DEV','identity-reset-clear-user-tiers',v_hub_payload,
+      jsonb_set(coalesce(v_hub_payload,'{}'::jsonb),'{userTiers}','{}'::jsonb,true));
+  end if;
 
   -- Revoke existing protected identities but retain their immutable audit references.
   for v_assignment in

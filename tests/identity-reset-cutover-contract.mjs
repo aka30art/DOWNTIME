@@ -15,6 +15,10 @@ assert.match(migration,/jsonb_build_array\(p_new_dev_user,p_new_dev1_user,p_new_
 assert.match(migration,/jsonb_build_object\([\s\S]*'roster',jsonb_build_array\('DEV1','ADMIN'\)/);
 assert.match(migration,/update public\.downtime_roots_bootstrap[\s\S]*set user_id=v_dev_user_id/);
 assert.match(migration,/delete from public\.downtime_central_sessions/);
+assert.match(migration,/update public\.yard_role_assignments[\s\S]*status='REVOKED'/);
+assert.match(migration,/USER_YARD_ROLE_REVOKED_BY_IDENTITY_RESET/);
+assert.match(migration,/update public\.yard_hub_tier_config[\s\S]*'userTiers','\{\}'/);
+assert.match(migration,/identity-reset-clear-user-tiers/);
 assert.match(migration,/update public\.downtime_roots_assignments[\s\S]*status='REVOKED'/);
 assert.match(migration,/insert into public\.downtime_roots_assignments[\s\S]*'DEV1'[\s\S]*'ADMIN'/);
 assert.match(migration,/downtime_identity_reset_runs/);
