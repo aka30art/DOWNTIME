@@ -874,8 +874,15 @@ try{
  await owner.page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
  assert.equal(await owner.page.locator('#settingsPanelStaff').isVisible(),true,'OWNER opens STAFF management through YARD HUB Staff Management');
  assert.equal(await owner.page.locator('#addStaffBtn').isEnabled(),true,'OWNER retains STAFF management privileges');
- await ensureMainMenu(owner.page);
- assert.equal(await owner.page.locator('.nav[data-view="reports"]').isVisible(),true,'OWNER can view reports');
+ assert.equal(await owner.page.locator('.nav-menu').isVisible(),false,'STAFF workspace hides the MAIN MENU dropdown while the focused page is open');
+ assert.equal(await owner.page.locator('#backToYardHub').isVisible(),true,'STAFF workspace retains the dedicated BACK TO YARD HUB route');
+ await owner.page.locator('#backToYardHub').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
+ await owner.page.locator('#launchDowntimeBtn').click();
+ await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
+ await owner.page.locator('.nav-menu > summary').click();
+ await owner.page.locator('.nav[data-view="reports"]').waitFor({state:'visible',timeout:3000});
+ assert.equal(await owner.page.locator('.nav[data-view="reports"]').isVisible(),true,'OWNER can view reports after returning from STAFF to DOWNTIME');
  assert.equal(await owner.page.locator('.overview-link').isVisible(),true,'OWNER can view Plant Overview');
  assert.equal(await owner.page.locator('#addEntry').isDisabled(),false,'OWNER can edit tracker');
  await clickOverview(owner.page);
