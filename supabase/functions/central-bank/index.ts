@@ -147,14 +147,14 @@ Deno.serve(async(req)=>{
    const validPin=await verifyPin(pin,pinCandidate);
    if(!user||!validPin){await db.from("downtime_central_audit").insert({username:rateKey,action:"login-failed",details:{}});return json({error:"Invalid username or PIN"},401);}
    const token=cryptoHex(crypto.getRandomValues(new Uint8Array(32))),tokenHash=await digest(token),expires=new Date(Date.now()+12*60*60*1000);
-   const {error}=await db.from("downtime_central_sessions").insert({token_hash:tokenHash,username:user.username,tier:user.tier,expires_at:expires.toISOString()});
+   const {error}=await db.from("downtime_central_sessions").insert({token_hash:tokenHash,username:user.username,expires_at:expires.toISOString()});
    if(error)return json({error:"Session creation failed"},500);
    await db.from("downtime_central_audit").insert({username:user.username,action:"login",details:{}});
    return json({token,expiresAt:expires.toISOString(),user:safeUser(user)});
  }
  if(action==="list-users"&&!req.headers.get("x-downtime-session"))return json({users:bank.users.map((u:any)=>({username:u.username}))});
  const token=req.headers.get("x-downtime-session")||"",tokenHash=await digest(token);
- const {data:session}=await db.from("downtime_central_sessions").select("username,tier,expires_at").eq("token_hash",tokenHash).gt("expires_at",new Date().toISOString()).maybeSingle();
+ const {data:session}=await db.from("downtime_central_sessions").select("username,expires_at").eq("token_hash",tokenHash).gt("expires_at",new Date().toISOString()).maybeSingle();
  if(!session)return json({error:"Session expired. Sign in again."},401);
  const currentUser=bank.users.find((u:any)=>u.username===session.username&&u.enabled!==false);
  if(!currentUser)return json({error:"Account disabled"},401);
