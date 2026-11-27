@@ -18,3 +18,6 @@ verify_jwt = false
 
 [functions.photo-evidence]
 verify_jwt = false
+
+[functions.downtime-reports-api]
+verify_jwt = false

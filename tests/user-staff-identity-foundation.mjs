@@ -413,8 +413,14 @@ assert.match(yardHubApi, /action === "assign-user-role"/);
 assert.match(yardHubApi, /yard_role_assign_user/);
 assert.match(yardHubApi, /yard_role_save_definition/, "YARD ROLE definitions use the audited service-role save RPC");
 assert.match(yardHubApi, /yard_role_reassign_user/, "existing USERs can receive version-checked YARD ROLE reassignment");
-assert.match(yardHubApi, /linkedProfile/, "YARD ROLE assignment verifies the reciprocal USER/STAFF profile");
-assert.match(yardHubUi, /yardRoleChanged/, "YARD HUB user editor supports changing an existing canonical USER's role");
+assert.match(yardHubApi, /yard_role_assign_existing_user/, "first active USER role assignment uses the atomic Central Bank RPC");
+assert.match(yardHubApi, /p_expected_bank_version: expectedBankVersion/);
+assert.match(yardHubApi, /p_next_payload: nextPayload/);
+
+assert.match(yardHubApi, /linkedProfile/, "YARD ROLE assignment verifies reciprocal USER/STAFF identity");
+assert.match(yardHubUi, /yardRoleChanged/, "YARD HUB supports reassignment of an existing canonical USER");
+assert.match(yardHubUi, /yardHubRolePermissions/, "YARD HUB renders the independent YARD ROLE permission editor");
+assert.match(yardHubUi, /isRootsAuthority/, "DEV and protected ROOTS can manage YARD ROLE definitions");
 
 assert.match(yardHubApi, /const targetUserId = String\(body\.userId \|\| ""\)/, "YARD ROLE assignment addresses the immutable USER ID rather than a username");
 assert.match(yardHubApi, /yardRoles/);
@@ -422,7 +428,7 @@ assert.match(yardHubApi, /yard_role_assignments/);
 assert.match(yardHubApi, /resolveYardRolePermissions/);
 assert.match(yardHubApi, /assignableYardRoles/, "only roles with a valid permission matrix are offered for assignment");
 assert.match(yardHubApi, /Canonical YARD ROLE identities cannot be assigned legacy YARD HUB tiers/);
-assert.match(yardHubApi, /const canAccessYardHub = !hasCanonicalYardRole/, "canonical identities fail closed until unified authorization is active");
+assert.match(yardHubApi, /const canAccessYardHub = isProtectedRoot[\s\S]*!hasCanonicalYardRole/, "ordinary canonical identities cannot access YARD HUB settings through legacy tiers, while protected ROOTS is resolved separately");
 assert.match(yardHubApi, /legacyTier: account\.tier \? String\(account\.tier\)\.toUpperCase\(\) : null/, "no legacy tier is fabricated for canonical USERs");
 
 assert.match(yardHubUi, /yardHubUserYardRole/);
@@ -447,8 +453,12 @@ assert.match(provisioningMigration, /enable row level security/);
 assert.doesNotMatch(provisioningMigration, /insert into public\.yard_roles/i, "no unapproved YARD ROLE catalogue entries are seeded");
 
 assert.match(resolverSource, /YARD_ROLE_PERMISSION_KEYS.*view.*enter.*edit.*manage/s, "resolver exposes independent View, Enter, Edit and Manage permissions");
-assert.match(repairMaintenanceApi, /if \(user\.yardRoleId\) return json\(\{ error: "Canonical YARD ROLE authorization is not yet enabled for R&M/);
-assert.match(gatelogApi, /if\(user\.yardRoleId\)return json\(\{error:"Canonical YARD ROLE authorization is not yet enabled for GATELOG/);
+assert.match(repairMaintenanceApi, /resolveYardRolePermissions/);
+assert.match(repairMaintenanceApi, /canYardRolePerform\(resolvedYardRole, "R&M", "VIEW"\)/);
+assert.doesNotMatch(repairMaintenanceApi, /Canonical YARD ROLE authorization is not yet enabled for R&M/);
+assert.match(gatelogApi, /resolveYardRolePermissions/);
+assert.match(gatelogApi, /canYardRolePerform\(resolvedYardRole,"Traffic","VIEW"\)/);
+assert.doesNotMatch(gatelogApi, /Canonical YARD ROLE authorization is not yet enabled for GATELOG/);
 assert.match(centralApi, /DOWNTIME_IDENTITY_FINGERPRINT_SECRET/, "provisioning fingerprints require a server-only secret");
 assert.match(centralApi, /hmacDigest\(fingerprintSecret,JSON\.stringify\(\{username,displayName,pin,staff:staffFields,requestedYardRoleId\}\)\)/, "low-entropy PIN is protected by HMAC in the idempotency fingerprint");
 assert.match(centralApi, /const userId=String\(body\.userId\|\|""\)/, "activation targets immutable USER ID");

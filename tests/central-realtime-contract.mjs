@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 const indexHtml=await readFile(resolve('index.html'),'utf8');
 const overviewHtml=await readFile(resolve('plant-overview-preview.html'),'utf8');
 const migration=await readFile(resolve('supabase/migrations/20261121050415_central_state_realtime_broadcast.sql'),'utf8');
+const accessMigration=await readFile(resolve('supabase/migrations/20261127013000_central_session_report_archive_boundary.sql'),'utf8');
 
 assert.match(migration,/create policy "downtime_central_state_broadcast_read"/i,'Realtime read policy must be created');
 assert.match(migration,/for select\s+to authenticated/i,'Only authenticated app sessions may receive the channel broadcast');
@@ -14,6 +15,9 @@ assert.match(migration,/jsonb_build_object\(\s*'version', new\.version,\s*'updat
 assert.doesNotMatch(migration,/new\.payload/i,'Central payload must never be broadcast');
 assert.match(migration,/revoke all on function public\.notify_downtime_central_state_change\(\) from public, anon, authenticated/i,'Trigger function must not be directly callable by browser roles');
 assert.match(migration,/when \(old\.version is distinct from new\.version\)/i,'Broadcast must only occur on an actual central version change');
+assert.match(accessMigration,/drop policy if exists "Authenticated users can read downtime state"/,'Direct Supabase Auth shared-state read policy is removed');
+assert.match(accessMigration,/revoke all on table public\.downtime_shared_state from anon, authenticated/,'Direct Supabase Auth shared-state privileges are revoked');
+assert.match(accessMigration,/grant select on table public\.downtime_shared_state to service_role/,'Spectator Edge Function retains service-role-only shared-state reads');
 
 assert.match(indexHtml,/client\.channel\('downtime-central-state',\{config:\{private:true\}\}\)/,'Main app must subscribe to the private central-state topic');
 assert.match(indexHtml,/event:'central_state_changed'/,'Main app must handle central-state broadcast events');

@@ -20,8 +20,12 @@ assert.notEqual(end, -1, 'cloud report display function must end before archive 
 const display = html.slice(start, end);
 assert.match(display, /permission\('canViewReports'\)/,
   'preview access must enforce the existing report-view permission');
-assert.match(display, /storage\.from\('downtime-pdfs'\)\.download\(report\.storage_path\)/,
-  'preview must fetch the selected stored PDF rather than regenerate the current week');
+assert.match(display, /downtimeReportsApi\('download',\{reportId:report\.id\}\)/,
+  'preview must request a server-authorized signed URL for the selected stored PDF');
+assert.match(display, /fetch\(url\)/,
+  'preview downloads only the short-lived signed URL returned by the report API');
+assert.doesNotMatch(display, /storage\.from\(/,
+  'preview cannot access the PDF Storage bucket directly through Supabase Auth');
 assert.match(display, /URL\.createObjectURL\(data\)/,
   'preview must present the downloaded PDF as a browser object URL');
 assert.match(display, /frame\.src=reportPreviewObjectUrl/,

@@ -216,6 +216,43 @@ Deno.serve(async(req)=>{
  }
  const isCentralAdmin=isDevRoot;
  const isCentralBankAccess=isDevRoot;
+ const loadProtectedRootUserIds=async()=>{
+   const result=await db.from("downtime_roots_assignments").select("user_id,staff_id").eq("status","ACTIVE");
+   return {
+     ids:new Set((result.data||[]).map((assignment:any)=>String(assignment.user_id).toLowerCase())),
+     staffIds:new Set((result.data||[]).map((assignment:any)=>String(assignment.staff_id).toLowerCase())),
+     error:result.error
+   };
+ };
+ const getProtectedRootStaffNames=(payload:any,staffIds:Set<string>)=>{
+   const profiles={...(payload.appData?.operatorProfiles||{}),...(payload.staff?.profiles||{})};
+   return new Set(Object.entries(profiles).filter(([,profile]:any)=>profile?.staffId&&staffIds.has(String(profile.staffId).toLowerCase())).map(([name])=>name));
+ };
+ const hideProtectedRootStaff=(payload:any,staffIds:Set<string>)=>{
+   const protectedNames=getProtectedRootStaffNames(payload,staffIds);
+   payload.staff=payload.staff||{roster:[],profiles:{}};
+   payload.staff.roster=(payload.staff.roster||[]).filter((name:string)=>!protectedNames.has(name));
+   payload.staff.profiles=Object.fromEntries(Object.entries(payload.staff.profiles||{}).filter(([name])=>!protectedNames.has(name)));
+   payload.appData=payload.appData||{};
+   payload.appData.staffRoster=(payload.appData.staffRoster||[]).filter((name:string)=>!protectedNames.has(name));
+   payload.appData.operatorProfiles=Object.fromEntries(Object.entries(payload.appData.operatorProfiles||{}).filter(([name])=>!protectedNames.has(name)));
+   return payload;
+ };
+ const lookupProtectedStaff=async(profile:any)=>{
+   if(!profile?.staffId)return {protected:false,error:null};
+   const result=await db.from("downtime_roots_assignments").select("staff_id").eq("status","ACTIVE").eq("staff_id",profile.staffId).maybeSingle();
+   return {protected:!!result.data,error:result.error};
+ };
+ const findStaffProfileBySlug=(slug:string)=>{
+   const profiles=bank.staff?.profiles&&typeof bank.staff.profiles==="object"?bank.staff.profiles:bank.appData?.operatorProfiles||{};
+   const matches=Object.entries(profiles).filter(([name])=>{
+     const value=String(name).toLowerCase();
+     const photoSlug=value.replace(/[^a-z0-9_-]/g,"-");
+     const originalSlug=value.replace(/[^a-z0-9]/g,"");
+     return photoSlug===slug||originalSlug===slug;
+   });
+   return matches.length===1?matches[0][1] as any:null;
+ };
  if(action==="user-staff-provision"){
    if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);
    const username=String(body.username||"").trim(),displayName=String(body.displayName||"").trim(),pin=String(body.pin||"");
@@ -283,15 +320,104 @@ Deno.serve(async(req)=>{
    return json({contractVersion:1,centralVersion:Number(row?.version||0),preview});
  }
  if(action==="photo-evidence-context"){
-   return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username},permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canDeleteRecords:priv.canDeleteRecords===true}});
+   return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username,userId:currentUser.userId||null,staffId:currentUser.staffId||null},permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canDeleteRecords:priv.canDeleteRecords===true}});
  }
- if(action==="list-users"){
-   const visibleUsers=priv.canManageUsers||priv.canViewUsers?bank.users.filter((u:any)=>u.enabled!==false).map(safeUser):[safeUser(currentUser)];
+ if(action==="reports-context"){
+   return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username,userId:currentUser.userId||null,staffId:currentUser.staffId||null},permissions:{canViewReports:priv.canViewReports===true,canExportReports:priv.canExportReports===true,canDeleteRecords:priv.canDeleteRecords===true}});
+ }
+if(action==="roots-state"){
+   if(rootsAuthority!=="DEV")return json({error:"ROOTS directory is restricted to immutable DEV."},403);
+   if(rootsLookupError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   const [{data:assignments,error:assignmentsError},{data:history,error:historyError}]=await Promise.all([
+     db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status,version,revoked_at,assigned_by_username,created_at,updated_at").order("created_at"),
+     db.from("downtime_roots_assignment_audit").select("user_id,staff_id,roots_class,actor_username,action,created_at").order("created_at",{ascending:false})
+   ]);
+   if(assignmentsError||historyError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   const usersById=new Map(bank.users.filter((account:any)=>account.userId).map((account:any)=>[String(account.userId).toLowerCase(),account]));
+   return json({
+     assignments:(assignments||[]).map((assignment:any)=>{
+       const target:any=usersById.get(String(assignment.user_id).toLowerCase());
+       return {userId:assignment.user_id,staffId:assignment.staff_id,rootsClass:assignment.roots_class,username:target?.username||null,displayName:target?.displayName||target?.username||null,assignedBy:assignment.assigned_by_username,createdAt:assignment.created_at,status:assignment.status,version:assignment.version,revokedAt:assignment.revoked_at,changedAt:assignment.updated_at};
+     }),
+     history:(history||[]).map((event:any)=>{
+       const target:any=usersById.get(String(event.user_id).toLowerCase());
+       return {userId:event.user_id,staffId:event.staff_id,rootsClass:event.roots_class,username:target?.username||null,action:event.action,actor:event.actor_username,createdAt:event.created_at};
+     })
+   });
+ }
+ if(action==="roots-revoke"){
+   if(rootsAuthority!=="DEV")return json({error:"Only immutable DEV may revoke ROOTS assignments."},403);
+   const userId=String(body.userId||""),version=Number(body.version);
+   if(!/^[0-9a-f-]{36}$/i.test(userId)||!Number.isInteger(version)||version<1)return json({error:"Immutable USER ID and current ROOTS version are required."},400);
+   const {data:existing,error:lookupError}=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status,version").eq("user_id",userId).maybeSingle();
+   if(lookupError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   if(!existing||existing.status!=="ACTIVE")return json({error:"An active ROOTS assignment is required for revocation."},409);
+   const {data:revoked,error:revokeError}=await db.rpc("downtime_roots_manage_identity",{
+     p_user_id:userId,p_staff_id:existing.staff_id,p_roots_class:existing.roots_class,p_action:"REVOKE",
+     p_expected_version:version,p_actor_user_id:currentUser.userId,p_actor_username:String(currentUser.username),
+     p_actor_display_name:String(currentUser.displayName||currentUser.username)
+   });
+   if(revokeError||!revoked)return json({error:revokeError?.message||"ROOTS revocation failed."},409);
+   return json({ok:true,revocation:revoked});
+ }
+ if(action==="roots-reclassify"){
+   if(rootsAuthority!=="DEV")return json({error:"Only immutable DEV may reclassify ROOTS assignments."},403);
+   const userId=String(body.userId||""),rootsClass=String(body.rootsClass||"").toUpperCase(),version=Number(body.version);
+   if(!/^[0-9a-f-]{36}$/i.test(userId)||!["DEV1","ADMIN"].includes(rootsClass)||!Number.isInteger(version)||version<1)return json({error:"Immutable USER ID, ROOTS class and current assignment version are required."},400);
+   const {data:existing,error:lookupError}=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status,version").eq("user_id",userId).maybeSingle();
+   if(lookupError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   if(!existing||existing.status!=="ACTIVE")return json({error:"An active ROOTS assignment is required for reclassification."},409);
+   const {data:changed,error:changeError}=await db.rpc("downtime_roots_manage_identity",{
+     p_user_id:userId,p_staff_id:existing.staff_id,p_roots_class:rootsClass,p_action:"RECLASSIFY",
+     p_expected_version:version,p_actor_user_id:currentUser.userId,p_actor_username:String(currentUser.username),
+     p_actor_display_name:String(currentUser.displayName||currentUser.username)
+   });
+   if(changeError||!changed)return json({error:changeError?.message||"ROOTS reclassification failed."},409);
+   return json({ok:true,assignment:changed});
+ }
+ if(action==="roots-assign"||action==="roots-assign-admin"){
+   const requestedClass=String(body.rootsClass||"").toUpperCase();
+   if(action==="roots-assign"&&rootsAuthority!=="DEV")return json({error:"Only immutable DEV may assign DEV1 or protected ADMIN."},403);
+   if(action==="roots-assign-admin"&&!(rootsAuthority==="DEV"||rootsAuthority==="DEV1"))return json({error:"Only DEV or protected DEV1 may assign protected ADMIN."},403);
+   if(action==="roots-assign-admin"&&requestedClass!=="ADMIN")return json({error:"The scoped DEV1 action can assign ADMIN only."},403);
+   if(!["DEV1","ADMIN"].includes(requestedClass))return json({error:"A protected DEV1 or ADMIN classification is required."},400);
+   if(requestedClass==="DEV1"&&rootsAuthority!=="DEV")return json({error:"Only immutable DEV may assign DEV1."},403);
+   if(rootsLookupError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   if(!/^[0-9a-f-]{36}$/i.test(String(body.userId||""))||!/^[0-9a-f-]{36}$/i.test(String(body.staffId||"")))return json({error:"Immutable USER and STAFF IDs are required."},400);
+   const target=bank.users.find((account:any)=>String(account.userId||"").toLowerCase()===String(body.userId).toLowerCase());
+   if(!target||target.enabled!==true||target.status!=="ACTIVE"||target.provisioning||target.tier!=null)return json({error:"An active canonical USER without a legacy tier claim is required."},409);
+   if(String(target.username||"").trim().toUpperCase()==="DEV"||target.yardRoleId||String(target.staffId||"").toLowerCase()!==String(body.staffId).toLowerCase())return json({error:"Protected ROOTS assignments require a linked non-DEV USER and STAFF identity."},409);
+   const profiles=bank.staff?.profiles&&typeof bank.staff.profiles==="object"?Object.values(bank.staff.profiles):[];
+   const linkedProfile:any=profiles.find((profile:any)=>profile&&String(profile.staffId||"").toLowerCase()===String(target.staffId).toLowerCase()&&String(profile.linkedUserId||"").toLowerCase()===String(target.userId).toLowerCase());
+   if(!linkedProfile||String(linkedProfile.status||"").toUpperCase()!=="ACTIVE")return json({error:"The USER and STAFF identities must have an active reciprocal link."},409);
+   const {data:existingAssignment,error:existingError}=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status,version").or("user_id.eq."+target.userId+",staff_id.eq."+target.staffId).maybeSingle();
+   if(existingError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   if(existingAssignment&&(String(existingAssignment.user_id).toLowerCase()!==String(target.userId).toLowerCase()||String(existingAssignment.staff_id).toLowerCase()!==String(target.staffId).toLowerCase()||(existingAssignment.status==="ACTIVE"&&existingAssignment.roots_class!==requestedClass)))return json({error:"This USER or STAFF identity already has a different protected ROOTS assignment."},409);
+   const {data:assignment,error:assignmentError}=await db.rpc("downtime_roots_manage_identity",{
+     p_user_id:target.userId,p_staff_id:target.staffId,p_roots_class:requestedClass,p_action:"ASSIGN",
+     p_expected_version:existingAssignment?.status==="REVOKED"?Number(body.version):null,
+     p_actor_user_id:currentUser.userId||null,p_actor_username:String(currentUser.username),
+     p_actor_display_name:String(currentUser.displayName||currentUser.username)
+   });
+   if(assignmentError||!assignment)return json({error:assignmentError?.message||"Protected ROOTS assignment failed."},409);
+   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"roots-assignment-created",details:{targetUserId:target.userId,targetStaffId:target.staffId,rootsClass:requestedClass}});
+   if(action==="roots-assign-admin"&&rootsAuthority==="DEV1")return json({ok:true});
+   return json({ok:true,assignment:{userId:assignment.user_id,staffId:assignment.staff_id,rootsClass:assignment.roots_class}});
+ }
+  if(action==="list-users"){
+   const rootDirectory=await loadProtectedRootUserIds();
+   if(rootDirectory.error&&rootsAuthority!=="DEV")return json({error:"Protected identity registry is unavailable."},503);
+   const visibleUsers=priv.canManageUsers||priv.canViewUsers?(rootsAuthority==="DEV"?bank.users:bank.users.filter((u:any)=>String(u.username||"").toUpperCase()!=="DEV"&&!rootDirectory.ids.has(String(u.userId||"").toLowerCase())).filter((u:any)=>u.enabled!==false)).map(safeUser):[safeUser(currentUser)];
    return json({users:visibleUsers});
  }
  if(action==="central-admin-state"){
    if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);
-   return json({payload:{...bank,users:bank.users.map(safeUser)},version:row?.version||0,updatedAt:row?.updated_at||null,user:safeUser(currentUser)});
+   const rootDirectory=await loadProtectedRootUserIds();
+   if(rootDirectory.error&&rootsAuthority!=="DEV")return json({error:"Protected identity registry is unavailable."},503);
+   const visibleAccounts=rootsAuthority==="DEV"?bank.users:bank.users.filter((u:any)=>String(u.username||"").toUpperCase()!=="DEV"&&!rootDirectory.ids.has(String(u.userId||"").toLowerCase()));
+   const payload=structuredClone(bank);payload.users=visibleAccounts.map(safeUser);
+   if(rootsAuthority!=="DEV")hideProtectedRootStaff(payload,rootDirectory.staffIds);
+   return json({payload,version:row?.version||0,updatedAt:row?.updated_at||null,user:safeUser(currentUser)});
  }
   if(typeof action==="string"&&action.startsWith("central-config-")&&!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);
   if(action==="central-config-state"){
@@ -361,14 +487,24 @@ Deno.serve(async(req)=>{
    if(error)return json({error:"Daily operator register is unavailable"},503);
    const {data:history,error:historyError}=await db.from("downtime_daily_operator_audit").select("duty_date,action,operator_name,previous_operator,actor,reason,created_at").gte("duty_date",fromDate).lte("duty_date",toDate).order("created_at",{ascending:false});
    if(historyError)return json({error:"Daily operator audit history is unavailable"},503);
-   return json({records:records||[],history:history||[]});
+   const rootDirectory=await loadProtectedRootUserIds();
+   if(rootDirectory.error&&rootsAuthority!=="DEV")return json({error:"Protected identity registry is unavailable."},503);
+   const protectedNames=rootsAuthority==="DEV"?new Set<string>():getProtectedRootStaffNames(bank,rootDirectory.staffIds);
+   return json({
+     records:(records||[]).filter((record:any)=>rootsAuthority==="DEV"||!protectedNames.has(record.operator_name)),
+     history:(history||[]).filter((event:any)=>rootsAuthority==="DEV"||(!protectedNames.has(event.operator_name)&&!protectedNames.has(event.previous_operator||"")))
+   });
  }
  if(action==="daily-operator-assign"){
    if(!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"Supervisor permission is required to assign or change the daily operator"},403);
    const dutyDate=String(body.dutyDate||""),requested=String(body.operatorName||"").trim();
    if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate)||!Number.isFinite(Date.parse(dutyDate+"T00:00:00Z")))return json({error:"A valid calendar date is required"},400);
+   const rootDirectory=await loadProtectedRootUserIds();
+   if(rootDirectory.error&&rootsAuthority!=="DEV")return json({error:"Protected identity registry is unavailable."},503);
+   const protectedNames=rootsAuthority==="DEV"?new Set<string>():getProtectedRootStaffNames(bank,rootDirectory.staffIds);
    const roster=Array.isArray(bank.staff?.roster)?bank.staff.roster:["Jan","Mick","Gigi","Daz","Shayne"];
-   const operator=roster.find((name:any)=>String(name).toLocaleLowerCase()===requested.toLocaleLowerCase());
+   const visibleRoster=rootsAuthority==="DEV"?roster:roster.filter((name:any)=>!protectedNames.has(name));
+   const operator=visibleRoster.find((name:any)=>String(name).toLocaleLowerCase()===requested.toLocaleLowerCase());
    if(!operator)return json({error:"Select an operator from the current STAFF roster"},400);
    const {data:existing,error:readError}=await db.from("downtime_daily_operator_assignments").select("*").eq("duty_date",dutyDate).maybeSingle();
    if(readError)return json({error:"Unable to read the daily operator record"},503);
@@ -399,6 +535,9 @@ Deno.serve(async(req)=>{
    const {data:existing,error:readError}=await db.from("downtime_daily_operator_assignments").select("*").eq("duty_date",dutyDate).maybeSingle();
    if(readError)return json({error:"Unable to read the daily operator record"},503);
    if(!existing||existing.is_locked!==true)return json({error:"There is no locked operator assignment for this date"},409);
+   const rootDirectory=await loadProtectedRootUserIds();
+   if(rootDirectory.error&&rootsAuthority!=="DEV")return json({error:"Protected identity registry is unavailable."},503);
+   if(rootsAuthority!=="DEV"&&getProtectedRootStaffNames(bank,rootDirectory.staffIds).has(existing.operator_name))return json({error:"Only immutable DEV may change a protected ROOTS daily operator assignment."},403);
    const now=new Date().toISOString();
    const {data:write,error}=await db.from("downtime_daily_operator_assignments").update({is_locked:false,updated_by:currentUser.username,updated_at:now}).eq("duty_date",dutyDate).eq("is_locked",true).select("duty_date").maybeSingle();
    if(error||!write)return json({error:"The daily operator record changed in another session. Refresh and retry."},409);
@@ -408,7 +547,7 @@ Deno.serve(async(req)=>{
    const centralVersion=await bumpCentralVersion();
    return json({ok:true,dutyDate,isLocked:false,updatedBy:currentUser.username,updatedAt:now,centralVersion});
  }
- if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers||priv.canViewUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canDeleteRecords&&priv.canViewDashboards)restrictedData.weeks=addStableRecordIds(restrictedData.weeks||{});if(!priv.canViewStaff&&!priv.canManageStaff&&!priv.canManageAssignments){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}else if(!priv.canViewStaff&&!priv.canManageStaff&&priv.canManageAssignments){const assignmentProfiles=publicBank.staff?.profiles||{};const minimalProfiles=Object.fromEntries(Object.entries(assignmentProfiles).map(([name,profile]:any)=>[name,{name,onSite:profile?.onSite!==false,station:String(profile?.station||profile?.assignedStation||"").slice(0,100)}]));publicBank.staff={roster:publicBank.staff?.roster||[],profiles:minimalProfiles};restrictedData.staffRoster=publicBank.staff.roster;restrictedData.operatorProfiles=minimalProfiles;}if(!priv.canViewAssignments&&!priv.canManageAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff||priv.canManageStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!(priv.canViewAreaPresets||priv.canManageAreaPresets||priv.canManageSettings))delete restrictedData.areas;if(!(priv.canViewReasonPresets||priv.canManageReasonPresets||priv.canAddDowntimeReasons||priv.canManageSettings))delete restrictedData.reasons;if(!(priv.canViewShiftSchedule||priv.canManageShiftSchedule||priv.canManageSettings)){delete restrictedData.shiftSchedule;delete restrictedData.shiftPresets;}if(!(priv.canViewDailyTasks||priv.canManageDailyTasks||priv.canManageSettings))delete restrictedData.dailyTaskPresets;if(!(priv.canViewAssignments||priv.canManageAssignments||priv.canManageSettings))delete restrictedData.stationConfig;if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};const {data:dailyOperators,error:dailyOperatorError}=await db.from("downtime_daily_operator_assignments").select("duty_date,operator_name,is_locked,assigned_by,assigned_at,locked_by,locked_at,updated_by,updated_at").order("duty_date",{ascending:false}).limit(400);if(dailyOperatorError)return json({error:"Daily operator register is unavailable"},503);publicBank.dailyOperators=dailyOperators||[];return json({payload:publicBank,dailyOperators:dailyOperators||[],user:safeUser({...currentUser,rootsAuthority,yardRolePermissions:resolvedYardRole?.departments?.Management||null}),version:row?.version||0,updatedAt:row?.updated_at});}
+ if(action==="get-state"){const rootDirectory=await loadProtectedRootUserIds();if(rootDirectory.error&&rootsAuthority!=="DEV")return json({error:"Protected identity registry is unavailable."},503);const directoryUsers=rootsAuthority==="DEV"?bank.users:bank.users.filter((u:any)=>String(u.username||"").toUpperCase()!=="DEV"&&!rootDirectory.ids.has(String(u.userId||"").toLowerCase()));const publicBank=structuredClone(bank);publicBank.users=priv.canManageUsers||priv.canViewUsers?directoryUsers.map(safeUser):[safeUser(currentUser)];if(rootsAuthority!=="DEV")hideProtectedRootStaff(publicBank,rootDirectory.staffIds);const restrictedData={...(publicBank.appData||{})};if(!priv.canDeleteRecords&&priv.canViewDashboards)restrictedData.weeks=addStableRecordIds(restrictedData.weeks||{});if(!priv.canViewStaff&&!priv.canManageStaff&&!priv.canManageAssignments){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}else if(!priv.canViewStaff&&!priv.canManageStaff&&priv.canManageAssignments){const assignmentProfiles=publicBank.staff?.profiles||{};const minimalProfiles=Object.fromEntries(Object.entries(assignmentProfiles).map(([name,profile]:any)=>[name,{name,onSite:profile?.onSite!==false,station:String(profile?.station||profile?.assignedStation||"").slice(0,100)}]));publicBank.staff={roster:publicBank.staff?.roster||[],profiles:minimalProfiles};restrictedData.staffRoster=publicBank.staff.roster;restrictedData.operatorProfiles=minimalProfiles;}if(!priv.canViewAssignments&&!priv.canManageAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff||priv.canManageStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!(priv.canViewAreaPresets||priv.canManageAreaPresets||priv.canManageSettings))delete restrictedData.areas;if(!(priv.canViewReasonPresets||priv.canManageReasonPresets||priv.canAddDowntimeReasons||priv.canManageSettings))delete restrictedData.reasons;if(!(priv.canViewShiftSchedule||priv.canManageShiftSchedule||priv.canManageSettings)){delete restrictedData.shiftSchedule;delete restrictedData.shiftPresets;}if(!(priv.canViewDailyTasks||priv.canManageDailyTasks||priv.canManageSettings))delete restrictedData.dailyTaskPresets;if(!(priv.canViewAssignments||priv.canManageAssignments||priv.canManageSettings))delete restrictedData.stationConfig;if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};const {data:dailyOperators,error:dailyOperatorError}=await db.from("downtime_daily_operator_assignments").select("duty_date,operator_name,is_locked,assigned_by,assigned_at,locked_by,locked_at,updated_by,updated_at").order("duty_date",{ascending:false}).limit(400);if(dailyOperatorError)return json({error:"Daily operator register is unavailable"},503);const protectedNames=rootsAuthority==="DEV"?new Set<string>():getProtectedRootStaffNames(bank,rootDirectory.staffIds);publicBank.dailyOperators=(dailyOperators||[]).filter((record:any)=>rootsAuthority==="DEV"||!protectedNames.has(record.operator_name));return json({payload:publicBank,dailyOperators:publicBank.dailyOperators,user:safeUser({...currentUser,rootsAuthority,yardRolePermissions:resolvedYardRole?.departments?.Management||null}),version:row?.version||0,updatedAt:row?.updated_at});}
  if(action==="save-state"){
    if(!priv.canEditTracker)return json({error:"Permission denied"},403);
    const incoming=body?.appData;if(!incoming||typeof incoming!=="object"||Array.isArray(incoming))return json({error:"appData required"},400);
@@ -476,6 +615,13 @@ Deno.serve(async(req)=>{
        }
        if("stationLocked" in existing)merged.stationLocked=existing.stationLocked===true;else delete merged.stationLocked;
        savedProfiles[name]=merged;
+     }
+     if(!isDevRoot){
+       for(const [name,profile] of Object.entries(currentProfiles) as [string,any][]){
+         const protectedStaff=await lookupProtectedStaff(profile);
+         if(protectedStaff.error)return json({error:"Protected identity registry is unavailable."},503);
+         if(protectedStaff.protected)savedProfiles[name]=structuredClone(profile);
+       }
      }
      nextAppData.operatorProfiles=savedProfiles;
      if(priv.canManageStaff){
@@ -628,6 +774,13 @@ Deno.serve(async(req)=>{
      const rosterMap=new Map<string,string>();
      [...retainedRoster,...incomingRoster].forEach((name:string)=>{const key=name.toLocaleLowerCase();if(!rosterMap.has(key))rosterMap.set(key,name)});
      if(rosterMap.size>250)return json({error:"The combined staff roster cannot exceed 250 entries. No entries were saved."},409);
+     if(!isDevRoot){
+       for(const [name,profile] of Object.entries(currentProfiles) as [string,any][]){
+         const protectedStaff=await lookupProtectedStaff(profile);
+         if(protectedStaff.error)return json({error:"Protected identity registry is unavailable."},503);
+         if(protectedStaff.protected)newProfiles[name]=structuredClone(profile);
+       }
+     }
      nextAppData.operatorProfiles=newProfiles;
      nextAppData.staffRoster=[...rosterMap.values()];
      nextAppData.staffRoles=nextStaffRoles;
@@ -676,7 +829,10 @@ Deno.serve(async(req)=>{
  }
  if(action==="users"){
    if(!priv.canViewUsers&&!priv.canManageUsers)return json({error:"Permission denied"},403);
-   return json({users:bank.users.map(safeUser),tiers:bank.tiers});
+   const rootDirectory=await loadProtectedRootUserIds();
+   if(rootDirectory.error&&rootsAuthority!=="DEV")return json({error:"Protected identity registry is unavailable."},503);
+   const visibleAccounts=rootsAuthority==="DEV"?bank.users:bank.users.filter((u:any)=>String(u.username||"").toUpperCase()!=="DEV"&&!rootDirectory.ids.has(String(u.userId||"").toLowerCase()));
+   return json({users:visibleAccounts.map(safeUser),tiers:bank.tiers});
  }
  if(action==="user-save"){
    if(!priv.canManageUsers)return json({error:"Permission denied"},403);
@@ -685,6 +841,11 @@ Deno.serve(async(req)=>{
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
    const existing=idx>=0?bank.users[idx]:null;
    if(!existing)return json({error:"New accounts must use the canonical USER + STAFF + YARD ROLE provisioning workflow."},409);
+   if(existing.userId){
+     const {data:protectedTarget,error:protectedTargetError}=await db.from("downtime_roots_assignments").select("user_id").eq("status","ACTIVE").eq("user_id",existing.userId).maybeSingle();
+     if(protectedTargetError)return json({error:"Protected identity registry is unavailable."},503);
+     if(protectedTarget&&rootsAuthority!=="DEV")return json({error:"Only immutable DEV may modify a protected ROOTS identity."},403);
+   }
    const canonicalIdentity=!!existing.userId&&!!existing.staffId;
    if(canonicalIdentity&&body.tier!=null)return json({error:"Canonical YARD ROLE identities cannot receive legacy tier claims."},400);
    const newTier=canonicalIdentity?undefined:String(body.tier||existing.tier||"USER");
@@ -722,6 +883,11 @@ Deno.serve(async(req)=>{
    if(bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="DEVACC")&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can remove DEVacc."},403);
    if(target.toLowerCase()===currentUser.username.toLowerCase())return json({error:"Cannot delete your own account"},400);
    const linkedTarget=bank.users.find((u:any)=>u.username.toLowerCase()===target.toLowerCase());
+   if(linkedTarget?.userId){
+     const {data:protectedTarget,error:protectedTargetError}=await db.from("downtime_roots_assignments").select("user_id").eq("status","ACTIVE").eq("user_id",linkedTarget.userId).maybeSingle();
+     if(protectedTargetError)return json({error:"Protected identity registry is unavailable."},503);
+     if(protectedTarget)return json({error:"Protected ROOTS identities cannot be deleted through ordinary account management."},403);
+   }
    if(linkedTarget?.staffId)return json({error:"This USER has a linked STAFF identity. Disable the USER; permanent identity deletion requires the separately approved lifecycle policy."},409);
    bank.users=bank.users.filter((u:any)=>u.username!==target);
    const {data:write,error}=await db.from("downtime_central_bank").update({payload:bank,version:(row?.version||0)+1,updated_at:new Date().toISOString()}).eq("id",1).eq("version",Number(body.version)).select("id").maybeSingle();
@@ -735,6 +901,11 @@ Deno.serve(async(req)=>{
    const name=String(body.name||"").trim();if(!name||name.length>80)return json({error:"Staff name required"},400);
    bank.staff.profiles=bank.staff.profiles||{};bank.staff.roster=bank.staff.roster||[];
    const existingProfile=bank.staff.profiles[name]||bank.appData?.operatorProfiles?.[name]||{};
+   if(existingProfile.staffId){
+     const {data:protectedTarget,error:protectedTargetError}=await db.from("downtime_roots_assignments").select("staff_id").eq("status","ACTIVE").eq("staff_id",existingProfile.staffId).maybeSingle();
+     if(protectedTargetError)return json({error:"Protected identity registry is unavailable."},503);
+     if(protectedTarget&&rootsAuthority!=="DEV")return json({error:"Only immutable DEV may modify a protected ROOTS STAFF identity."},403);
+   }
    const proposedProfile=body.profile&&typeof body.profile==="object"&&!Array.isArray(body.profile)?body.profile:{};
    if(("staffId" in proposedProfile&&proposedProfile.staffId!==existingProfile.staffId)||("linkedUserId" in proposedProfile&&proposedProfile.linkedUserId!==existingProfile.linkedUserId)||"userId" in proposedProfile)return json({error:"STAFF-only saves cannot create or alter authenticated USER identity links."},400);
    const nextProfile={...existingProfile,...proposedProfile,name};
@@ -768,6 +939,11 @@ Deno.serve(async(req)=>{
    if(!priv.canManageStaff)return json({error:"Permission denied"},403);
    const slug=String(body.staffKey||"").trim().toLowerCase();
    if(!/^[a-z0-9]{1,30}$/.test(slug))return json({error:"Invalid STAFF destination"},400);
+   const originalProfile=findStaffProfileBySlug(slug);
+   if(!originalProfile)return json({error:"STAFF destination not found"},404);
+   const protectedOriginal=await lookupProtectedStaff(originalProfile);
+   if(protectedOriginal.error)return json({error:"Protected identity registry is unavailable."},503);
+   if(protectedOriginal.protected&&!isDevRoot)return json({error:"Only immutable DEV may access protected ROOTS STAFF originals."},403);
    if(body.mimeType!=="image/png")return json({error:"Only PNG originals are accepted"},415);
    const encoded=String(body.base64||"");
    if(!encoded||encoded.length>7_000_000||!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded))return json({error:"PNG upload is missing or exceeds the 5 MB limit"},413);
@@ -788,6 +964,11 @@ Deno.serve(async(req)=>{
  if(action==="staff-photo-url"){
    if(!priv.canManageStaff)return json({error:"Permission denied"},403);
    const name=String(body.name||"").trim();if(!name)return json({error:"Staff name required"},400);
+   const profile=bank.staff?.profiles?.[name]||bank.appData?.operatorProfiles?.[name];
+   if(!profile)return json({error:"STAFF profile not found"},404);
+   const protectedStaff=await lookupProtectedStaff(profile);
+   if(protectedStaff.error)return json({error:"Protected identity registry is unavailable."},503);
+   if(protectedStaff.protected&&!isDevRoot)return json({error:"Only immutable DEV may change protected ROOTS STAFF photos."},403);
    const path=name.toLowerCase().replace(/[^a-z0-9_-]/g,"-")+"/"+crypto.randomUUID();
    const {data,error}=await db.storage.from("downtime-staff-photos").createSignedUploadUrl(path);
    if(error)return json({error:error.message},500);
@@ -796,6 +977,13 @@ Deno.serve(async(req)=>{
  if(action==="staff-photo-read"){
    const path=String(body.path||"");if(!path||path.length>300)return json({error:"Invalid path"},400);
    if(!priv.canViewStaff&&!priv.canManageStaff)return json({error:"Permission denied"},403);
+   const pathParts=path.split("/");
+   if(pathParts.length!==2||!/^[a-z0-9_-]{1,80}$/i.test(pathParts[0])||!/^[0-9a-f-]{36}$/i.test(pathParts[1]))return json({error:"Invalid path"},400);
+   const profile=findStaffProfileBySlug(pathParts[0]);
+   if(!profile)return json({error:"STAFF profile not found"},404);
+   const protectedStaff=await lookupProtectedStaff(profile);
+   if(protectedStaff.error)return json({error:"Protected identity registry is unavailable."},503);
+   if(protectedStaff.protected&&!isDevRoot)return json({error:"Only immutable DEV may view protected ROOTS STAFF photos."},403);
    const {data,error}=await db.storage.from("downtime-staff-photos").createSignedUrl(path,120);
    if(error)return json({error:error.message},404);
    return json({url:data.signedUrl});
@@ -804,6 +992,11 @@ Deno.serve(async(req)=>{
    if(!priv.canManageStaff)return json({error:"Permission denied"},403);
    const path=String(body.path||"").trim(),parts=path.split("/");
    if(parts.length!==2||!/^[a-z0-9_-]{1,80}$/i.test(parts[0])||!/^[0-9a-f-]{36}$/i.test(parts[1]))return json({error:"Invalid staff photo path"},400);
+   const profile=findStaffProfileBySlug(parts[0]);
+   if(!profile)return json({error:"STAFF profile not found"},404);
+   const protectedStaff=await lookupProtectedStaff(profile);
+   if(protectedStaff.error)return json({error:"Protected identity registry is unavailable."},503);
+   if(protectedStaff.protected&&!isDevRoot)return json({error:"Only immutable DEV may remove protected ROOTS STAFF photos."},403);
    const {error}=await db.storage.from("downtime-staff-photos").remove([path]);
    if(error)return json({error:error.message},500);
    await db.from("downtime_central_audit").insert({username:currentUser.username,action:"staff-photo-remove",details:{path}});
