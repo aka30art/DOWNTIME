@@ -214,6 +214,8 @@ Deno.serve(async(req)=>{
        canManageAssignments:false,canViewAssignments:false,canManageSettings:false,canManageAccessRights:false});
    }
  }
+ // Central Bank USER directory access is an immutable DEV-only control-plane capability.
+ priv.canManageUsers=rootsAuthority==="DEV";priv.canViewUsers=rootsAuthority==="DEV";
  const isCentralAdmin=isDevRoot;
  const isCentralBankAccess=isDevRoot;
  if(action==="user-staff-provision"){
