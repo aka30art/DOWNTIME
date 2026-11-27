@@ -86,5 +86,11 @@ assert.match(api,/const isProtectedRoot=\["DEV","DEV1","ADMIN"\]/,'DEV, DEV1 and
 assert.match(api,/user.yardRoleId&&!\["DEV1","ADMIN"\]/,'ROOTS authority overrides ordinary YARD ROLE gating without deriving authority from the matrix');
 assert.match(api,/const canManageGateman=isProtectedRoot/,'ROOTS identities receive GATELOG Manage authority');
 assert.match(api,/const canExportReports=isProtectedRoot/,'ROOTS identities receive GATELOG report authority');
+assert.match(api,/resolveYardRolePermissions/,'GATELOG validates canonical YARD ROLE permission matrices');
+assert.match(api,/yard_role_assignments/,'GATELOG verifies the active immutable USER/STAFF role assignment');
+assert.match(api,/canYardRolePerform\(resolvedYardRole,"Traffic","VIEW"\)/,'GATELOG Traffic READ access uses the canonical resolver');
+assert.match(api,/Traffic INPUT permission is required/,'GATELOG creation actions require Traffic INPUT or MANAGE');
+assert.match(api,/Traffic MANAGE permission is required/,'GATELOG administrative actions require Traffic MANAGE');
+assert.doesNotMatch(api,/Canonical YARD ROLE authorization is not yet enabled/,'canonical YARD ROLE identities no longer receive a blanket denial');
 assert.match(api,/protectedStaffIds\.has/,'non-DEV users cannot inspect protected ROOTS STAFF entries in GATELOG rosters');
 console.log('GATELOG module contract: PASS');
