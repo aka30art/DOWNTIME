@@ -719,10 +719,16 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
           <small>Manage central accounts, status and separate YARD HUB tier assignments</small>
           <span class="yard-hub-settings-card-arrow">›</span>
         </button>
-        <button id="yardHubSettingsTiers" type="button" class="yard-hub-settings-card">
+        <button id="yardHubSettingsRoles" type="button" class="yard-hub-settings-card">
           <span class="yard-hub-settings-card-icon">▦</span>
-          <strong>TIERS</strong>
-          <small>Configure READ, INPUT, EDIT or disabled access for each YARD HUB section</small>
+          <strong>YARD ROLES</strong>
+          <small>Create roles and configure independent View, Enter, Edit and Manage permissions across all five departments</small>
+          <span class="yard-hub-settings-card-arrow">›</span>
+        </button>
+        <button id="yardHubSettingsTiers" type="button" class="yard-hub-settings-card" hidden>
+          <span class="yard-hub-settings-card-icon">▤</span>
+          <strong>LEGACY TIERS</strong>
+          <small>Compatibility-only legacy YARD HUB permission profiles</small>
           <span class="yard-hub-settings-card-arrow">›</span>
         </button>
       </div>
@@ -733,6 +739,29 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
         </div>
         <div class="yard-hub-user-columns"><span>ACCOUNT</span><span>ASSIGNED TIERS</span><span>STATUS / ACTIONS</span></div>
         <div id="yardHubUsersList" class="yard-hub-users-list"></div>
+      </div>
+      <div id="yardHubRolesView" class="yard-hub-settings-view" hidden>
+        <div class="yard-hub-view-toolbar">
+          <div><h2>YARD ROLES</h2><p>Configure the four independent permissions for each operational department. Users inherit the exact permissions of their assigned YARD ROLE.</p></div>
+          <div class="yard-hub-tier-actions"><button type="button" data-yard-settings-home class="yard-hub-secondary">‹ BACK TO SETTINGS</button><button id="yardHubRoleAdd" type="button" class="yard-hub-primary">＋ CREATE YARD ROLE</button></div>
+        </div>
+        <div id="yardHubRoleCards" class="yard-hub-role-grid"></div>
+      </div>
+      <div id="yardHubRoleModal" class="yard-hub-user-modal" hidden role="dialog" aria-modal="true" aria-labelledby="yardHubRoleModalTitle">
+        <form id="yardHubRoleForm" class="yard-hub-user-form yard-hub-role-form">
+          <header class="yard-hub-user-modal-head">
+            <div><span>CANONICAL PERMISSION PROFILE</span><h2 id="yardHubRoleModalTitle">CREATE YARD ROLE</h2></div>
+            <button id="yardHubRoleCancel" type="button" class="yard-hub-modal-close" aria-label="Close YARD ROLE editor">×</button>
+          </header>
+          <label>YARD ROLE NAME<input id="yardHubRoleName" required maxlength="80" autocomplete="off"></label>
+          <label>DESCRIPTION<textarea id="yardHubRoleDescription" maxlength="500" rows="2"></textarea></label>
+          <label>STATUS<select id="yardHubRoleStatus"><option value="DRAFT">DRAFT</option><option value="ACTIVE">ACTIVE</option><option value="RETIRED">RETIRED</option></select></label>
+          <div class="yard-hub-role-permission-head"><strong>OPERATIONAL RECORDS</strong><span>Each permission is independent. No checkbox implies another.</span></div>
+          <div id="yardHubRolePermissions" class="yard-hub-role-permissions"></div>
+          <div class="yard-hub-user-modal-actions">
+            <button id="yardHubRoleSave" type="submit" class="yard-hub-primary">SAVE YARD ROLE</button>
+          </div>
+        </form>
       </div>
       <div id="yardHubTiersView" class="yard-hub-settings-view" hidden>
         <div class="yard-hub-view-toolbar">
