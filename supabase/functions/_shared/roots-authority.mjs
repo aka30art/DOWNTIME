@@ -12,6 +12,7 @@ export function resolveRootsAuthority(user, assignment = null) {
   if (!user || typeof user !== "object") return null;
   if (String(user.username || "").trim().toUpperCase() === "DEV" &&
       String(user.tier || "").toUpperCase() === "OWNER") return "DEV";
+  if (user.enabled !== true || String(user.status || "").toUpperCase() !== "ACTIVE") return null;
   if (!UUID.test(String(user.userId || "")) || !UUID.test(String(user.staffId || ""))) return null;
   if (!assignment || !["DEV1", "ADMIN"].includes(String(assignment.roots_class || ""))) return null;
   if (norm(assignment.user_id) !== norm(user.userId) ||
