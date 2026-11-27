@@ -703,6 +703,8 @@ try{
  assert.equal(savedStations[1].active,false,'station deactivation is stored centrally without deleting its record');
  assert.equal(savedStations[6].name,'Station 7','the newly-added station is available centrally');
  await owner.page.locator('#settingsPanelStations [data-settings-back]').click();
+ await owner.page.locator('#backToYardHub').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
  await owner.page.locator('#launchStaffManagementBtn').click();
  await owner.page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
@@ -717,6 +719,10 @@ try{
  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:5000});
  assert.equal(owner.getBank().staff.profiles.Jan.station,'Station 3 · SCRAP','SCPL STAFF station reassignment is confirmed in the central data bank');
  await owner.page.locator('#settingsPanelStaff [data-settings-back]').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
+ await owner.page.locator('#launchDowntimeBtn').click();
+ await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
+ await openSettingsHub(owner.page);
  await owner.page.locator('[data-settings-open="stations"]').click();
  assert.equal(await owner.page.locator('#stationManagerList > div').count(),7,'saved station configuration is reloaded in Station Manager');
  await owner.page.locator('#settingsPanelStations [data-settings-back]').click();
