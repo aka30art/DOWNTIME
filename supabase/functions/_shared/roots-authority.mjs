@@ -44,6 +44,7 @@ export function rootsCapabilities(authority) {
 }
 
 export function canInteractWithRootsTarget(actorAuthority, targetAuthority) {
+  if (!["DEV", "DEV1", "ADMIN"].includes(actorAuthority)) return false;
   if (!targetAuthority) return true;
   if (targetAuthority === "DEV") return actorAuthority === "DEV";
   if (targetAuthority === "DEV1" && actorAuthority !== "DEV") return false;
