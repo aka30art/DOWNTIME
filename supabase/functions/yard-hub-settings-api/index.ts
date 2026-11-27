@@ -294,6 +294,10 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  if (["save-user-tier", "remove-user-tier", "save-tier-settings"].includes(String(action))) {
+    return json({ error: "Legacy YARD HUB tiers are retired. Configure canonical department permissions through YARD ROLE." }, 410);
+  }
+
   if (action === "yard-role-save") {
     if (!rootCapabilities.canManageYardRoles) return json({ error: "Only protected ROOTS identities may create or change canonical YARD ROLE definitions." }, 403);
     if (!/^[0-9a-f-]{36}$/i.test(String(user.userId || ""))) return json({ error: "Authenticated actor has no immutable USER ID." }, 409);
