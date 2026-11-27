@@ -86,4 +86,5 @@ assert.match(api,/const isProtectedRoot=\["DEV","DEV1","ADMIN"\]/,'DEV, DEV1 and
 assert.match(api,/user.yardRoleId&&!\["DEV1","ADMIN"\]/,'ROOTS authority overrides ordinary YARD ROLE gating without deriving authority from the matrix');
 assert.match(api,/const canManageGateman=isProtectedRoot/,'ROOTS identities receive GATELOG Manage authority');
 assert.match(api,/const canExportReports=isProtectedRoot/,'ROOTS identities receive GATELOG report authority');
+assert.match(api,/protectedStaffIds\.has/,'non-DEV users cannot inspect protected ROOTS STAFF entries in GATELOG rosters');
 console.log('GATELOG module contract: PASS');
