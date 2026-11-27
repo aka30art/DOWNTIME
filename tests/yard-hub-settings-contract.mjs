@@ -217,7 +217,7 @@ assert.ok(hubApi.includes('removedBuiltInTiers'), 'backend validates built-in ti
 assert.ok(hubApi.includes('activeTierNames.filter(name => ![\"OWNER\", \"DEVACC\"].includes(name))'), 'backend prevents root admins from modifying protected OWNER and DEVACC permission profiles');
 
 assert.ok(html.includes('id="yardHubDev1AdminAssignment"')&&html.includes('id="yardHubDev1UserId"')&&html.includes('id="yardHubDev1StaffId"'),'DEV1 has a narrow manual USER/STAFF ID form for ADMIN assignment');
-assert.ok(ui.includes("rootsHome.hidden=!(rootDev()||rootAuthority()==='DEV1')"),'DEV1 can open the restricted ROOTS assignment surface');
+assert.ok(ui.includes("accessRoots.hidden=!(rootDev()||rootAuthority()==='DEV1')"),'DEV1 can open the restricted ROOTS assignment surface from Access and Rights');
 assert.ok(ui.includes("const dev1=rootAuthority()==='DEV1'"),'ROOTS UI selects the DEV1 restricted mode without loading the directory');
 assert.ok(ui.includes("if(dev1Form)dev1Form.hidden=false")&&ui.includes("if(directorySection)directorySection.hidden=true"),'DEV1 receives no ROOTS directory data or browsing controls');
 assert.ok(ui.includes("callApi('roots-manage',{userId,staffId,lifecycleAction:'ASSIGN',rootsClass:'ADMIN'})"),'DEV1 can assign ADMIN only through the narrow server-authorized lifecycle action');

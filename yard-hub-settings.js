@@ -108,6 +108,7 @@
     const addRole=$('yardHubRoleAdd');if(addRole)addRole.hidden=!isProtectedRoot();
     const roleHome=$('yardHubSettingsRoles');if(roleHome)roleHome.hidden=!isProtectedRoot();
     const rootsHome=$('yardHubSettingsRoots');if(rootsHome)rootsHome.hidden=true;
+    const tiersHome=$('yardHubSettingsTiers');if(tiersHome)tiersHome.hidden=true;
     const accessRoots=$('yardHubAccessRoots');if(accessRoots)accessRoots.hidden=!(rootDev()||rootAuthority()==='DEV1');
     const resetPanel=$('yardHubIdentityReset');if(resetPanel)resetPanel.hidden=!rootDev();
     const addTier=$('yardHubCustomTierAdd');

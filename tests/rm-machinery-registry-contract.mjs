@@ -48,8 +48,8 @@ assert.match(api,/\.eq\("asset_id", assetId\)/);
 assert.match(api,/\.is\("asset_id", null\)/);
 assert.match(api,/asset_id: assetId/);
 assert.match(api,/status !== "ACTIVE"/);
-assert.match(api,/hubTier === "DEVACC"/);
-assert.match(api,/tier === "DEVACC" \|\| hubTier === "DEVACC"/,'legacy and Hub DEVACC accounts retain root machinery access');
+assert.match(api,/const isProtectedRoot = \["DEV", "DEV1", "ADMIN"\]\.includes\(rootsAuthority \|\| ""\)/);
+assert.match(api,/if \(isProtectedRoot\)/,'all protected ROOTS identities retain automatic machinery access');
 
 for(const id of ['machineAssetControls','machineAssetSelect','settingsMachinerySection','machineModelItems','settingsAddMachineryButton','saveModelDropdownSettings','assetSelectorEnabled','saveAssetSelectorSettings','assetOverlay','assetForm','assetCode','assetMakeModel','registrationEnabled','saveRegistrationSettings','assetSaveButton','archiveAssetButton','reportAssetId','pdfExportsAssetId'])assert.ok(html.includes('id="'+id+'"'),'missing asset UI element '+id);
 assert.match(app,/api\('asset-list'/);

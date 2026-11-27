@@ -25,7 +25,7 @@ assert.ok(api.includes('const isCentralBankAccess=isDevRoot;'),'Central Data Ban
 assert.ok(api.includes('priv.canManageUsers=rootsAuthority==="DEV";priv.canViewUsers=rootsAuthority==="DEV";'),'Central Bank USER directory is immutable-DEV only');
 assert.ok(api.includes('if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);'),'USER and STAFF provisioning is immutable-DEV only');
 assert.ok(api.includes('if(!isDevRoot)return json({error:"Only immutable DEV may maintain existing USER identities."},403);'),'USER identity maintenance is immutable-DEV only');
-assert.ok(api.includes('if(!isDevRoot)return json({error:"Only immutable DEV may maintain STAFF identities."},403);'),'STAFF identity maintenance is immutable-DEV only');
+assert.ok(api.includes('if(!isRootAuthority)return json({error:"Only protected ROOTS identities may maintain STAFF identities."},403);'),'protected ROOTS identities may maintain STAFF profiles');
 assert.ok(api.includes('if(!isDevRoot)return json({error:"Only immutable DEV may perform USER lifecycle operations."},403);'),'USER lifecycle is immutable-DEV only');
 assert.ok(api.includes('if(!isDevRoot)return json({error:"Only root DEV can update root credentials."},403);'),'only immutable DEV may change root credentials');
 assert.ok(api.includes('if(!isDevRoot)return json({error:"Identity diagnostics are restricted to immutable DEV."},403);'),'identity diagnostics are immutable-DEV only');
