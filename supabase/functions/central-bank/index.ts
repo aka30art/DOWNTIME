@@ -284,7 +284,7 @@ Deno.serve(async(req)=>{
    if(String(body.confirmation||"")!=="RESET ALL IDENTITIES")return json({error:"Type RESET ALL IDENTITIES to confirm the permanent reset."},400);
    const devPin=String(body.devPin||""),dev1Pin=String(body.dev1Pin||""),adminPin=String(body.adminPin||"");
    if(![devPin,dev1Pin,adminPin].every(pin=>/^[0-9]{4,8}$/.test(pin)))return json({error:"New DEV, DEV1 and ADMIN PINs must each contain 4–8 digits."},400);
-   if(!Number.isInteger(Number(row?.version)))return json({error:"Central USER directory version is unavailable."},503);
+   if(!row||!Number.isInteger(Number(row.version)))return json({error:"Central USER directory version is unavailable."},503);
    const makeCredentials=async(username:string,staffId:string|null)=>{
      const pinSalt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));
      const pinHash=await hashPin(username==="DEV"?devPin:username==="DEV1"?dev1Pin:adminPin,pinSalt);
