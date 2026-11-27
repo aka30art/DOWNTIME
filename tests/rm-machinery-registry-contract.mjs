@@ -163,7 +163,7 @@ assert.ok(api.includes('linked fault history and cannot be permanently deleted')
 assert.ok(api.includes('audit("rm-machinery-delete"'),'permanent machinery deletion is audited');
 assert.ok(app.includes("remove.textContent='DELETE'")&&app.includes('deleteRegisteredMachine(asset)'),'every registered machine row exposes a DELETE action');
 assert.ok(app.includes("api('asset-delete'"),'DELETE uses the protected API endpoint');
-assert.match(app,/function canOpenMachineryConfiguration\(\)[\s\S]*canAddRepairMaintenanceMachinery===true\|\|access\?\.canManageRepairMaintenanceMachinery===true\|\|access\?\.canManageRepairMaintenancePresets===true/,'machinery INPUT and EDIT users can enter configuration independently of preset permissions');
+assert.match(app,/function canOpenMachineryConfiguration\(\)[\s\S]*canReadRepairMaintenanceMachinery===true\|\|access\?\.canAddRepairMaintenanceMachinery===true\|\|access\?\.canEditRepairMaintenance===true\|\|access\?\.canManageRepairMaintenanceMachinery===true\|\|access\?\.canManageRepairMaintenancePresets===true/,'machinery READ, INPUT, EDIT and MANAGE rights open the relevant configuration independently of preset permissions');
 assert.match(app,/openRmsSettingsShortcut'\)\.hidden=!canOpenMachineryConfiguration\(\)/,'configuration navigation follows the dedicated machinery permission');
 assert.match(app,/async function openMachineSettings\(key\)[\s\S]*if\(!canOpenMachineryConfiguration\(\)\)/,'category settings route accepts machinery managers without granting preset rights');
 assert.match(app,/function setRmsSettingsTab\(tab='machinery'\)[\s\S]*tab==='area-parts'&&canManageRmsPresets\(\)/,'Area & Parts remains restricted to preset managers');
