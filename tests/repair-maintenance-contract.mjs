@@ -161,6 +161,12 @@ assert.match(api,/resolveYardRolePermissions/,'R&M validates canonical YARD ROLE
 assert.match(api,/yard_role_assignments/,'R&M verifies the active immutable USER/STAFF role assignment');
 assert.match(api,/canYardRolePerform\(resolvedYardRole, "R&M", "VIEW"\)/,'R&M READ access uses the canonical department resolver');
 assert.match(api,/canYardRolePerform\(resolvedYardRole, "R&M", "DELETE"\)/,'R&M Manage-only actions require canonical MANAGE access');
+assert.match(api,/canAccessRepairMaintenance: canRead \|\| canInput \|\| canEdit \|\| canManage/,'any independently enabled R&M permission grants module entry');
+assert.match(api,/if \(!resolvedYardRole\) \{[\s\S]*permissions\.canCreateRepairMaintenance = permissions\.canCreateRepairMaintenance === true \|\| permissions\.canEditRepairMaintenance === true/,'legacy INPUT/EDIT compatibility does not imply permissions for canonical YARD ROLEs');
+assert.match(api,/action === "asset-list"[\s\S]*canReadRepairMaintenanceMachinery !== true && permissions\.canAddRepairMaintenanceMachinery !== true/,'ENTER can load the machinery reference list without VIEW access to operational records');
+assert.match(api,/action === "create"[\s\S]*canCreateRepairMaintenance !== true[\s\S]*!isOneOf/,'fault creation requires ENTER without requiring VIEW');
+assert.match(api,/const loadFault = async \(faultId: unknown\) => \{\s*const id/,'Edit and Manage actions can load their target record without inheriting VIEW');
+
 assert.match(api,/!resolvedYardRole && !isProtectedRoot/,'legacy R&M fallback is isolated to identities without canonical YARD ROLE or ROOTS authority');
 assert.doesNotMatch(api,/Canonical YARD ROLE authorization is not yet enabled for R&M/,'canonical YARD ROLE identities no longer receive a blanket denial');
 assert.match(api,/downtime_roots_assignments/,'R&M reads server-side protected ROOTS assignments');
