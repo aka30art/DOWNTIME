@@ -774,7 +774,16 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
           <div><h2>PROTECTED ROOTS</h2><p>DEV controls the ROOTS directory. DEV1 can assign ADMIN only. ROOTS authority is separate from ordinary YARD ROLE permissions.</p></div>
           <div class="yard-hub-tier-actions"><button type="button" data-yard-settings-home class="yard-hub-secondary">‹ BACK TO SETTINGS</button></div>
         </div>
-        <section class="yard-hub-roots-assignment" aria-labelledby="yardHubRootsAssignHeading">
+        <section id="yardHubDev1AdminAssignment" class="yard-hub-roots-assignment" hidden aria-labelledby="yardHubDev1AdminHeading">
+          <h3 id="yardHubDev1AdminHeading">ASSIGN PROTECTED ADMIN</h3>
+          <p>DEV1 may assign ADMIN only. ROOTS directory browsing, DEV1 assignment, reclassification and revocation remain DEV-only.</p>
+          <div class="yard-hub-roots-form">
+            <label>IMMUTABLE USER ID<input id="yardHubDev1UserId" type="text" maxlength="36" autocomplete="off" spellcheck="false" placeholder="USER UUID"></label>
+            <label>LINKED STAFF ID<input id="yardHubDev1StaffId" type="text" maxlength="36" autocomplete="off" spellcheck="false" placeholder="STAFF UUID"></label>
+            <button id="yardHubDev1AssignAdmin" type="button" class="yard-hub-primary">ASSIGN ADMIN</button>
+          </div>
+        </section>
+        <section id="yardHubRootsAssignment" class="yard-hub-roots-assignment" aria-labelledby="yardHubRootsAssignHeading">
           <h3 id="yardHubRootsAssignHeading">ASSIGN PROTECTED AUTHORITY</h3>
           <div class="yard-hub-roots-form">
             <label>CANONICAL USER<select id="yardHubRootUser"><option value="">SELECT USER</option></select></label>
@@ -782,7 +791,7 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
             <button id="yardHubRootAssign" type="button" class="yard-hub-primary">ASSIGN ROOTS</button>
           </div>
         </section>
-        <section class="yard-hub-roots-directory" aria-labelledby="yardHubRootsDirectoryHeading">
+        <section id="yardHubRootsDirectory" class="yard-hub-roots-directory" aria-labelledby="yardHubRootsDirectoryHeading">
           <h3 id="yardHubRootsDirectoryHeading">ROOTS DIRECTORY</h3>
           <div id="yardHubRootAssignments" class="yard-hub-roots-list"></div>
         </section>
