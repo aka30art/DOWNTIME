@@ -1560,11 +1560,59 @@ async function exportDailyPDF(){
  finally{button.disabled=!permission('canExportReports');button.textContent='⇩ Export Daily PDF'}
 }
 $('exportDailyBtn').onclick=exportDailyPDF;
-async function saveCloudReport(){if(!permission('canExportReports'))return;if(!cloudReady){alert('Central data is not connected.');return}if(!sb)await legacyCloudClient();if(!sb){alert('PDF archive service is unavailable.');return}const btn=$('exportBtn');btn.disabled=true;btn.textContent='SAVING PDF…';try{const reportWeekStart=parseWeek(key()),reportWeekEnd=plus(reportWeekStart,6);await loadDailyOperatorRange(iso(reportWeekStart),iso(reportWeekEnd));const data=reportData(),blob=await buildReportPDF(data),fileName='Downtime_'+data.week+'_Weekly.pdf',path=data.week+'/'+Date.now()+'_'+fileName;const {error:uploadError}=await sb.storage.from('downtime-pdfs').upload(path,blob,{contentType:'application/pdf',upsert:false});if(uploadError)throw uploadError;const operators=Object.fromEntries(data.days.map(d=>[d.name,d.operator||'Not assigned']));const {error:insertError}=await sb.from('downtime_reports').insert({week_start:data.week,operators,file_name:fileName,storage_path:path,file_size_bytes:blob.size});if(insertError){await sb.storage.from('downtime-pdfs').remove([path]);throw insertError}await enforceArchiveLimit();await renderArchive();alert('Weekly PDF saved to the shared cloud archive.')}catch(e){console.error(e);alert('PDF archive save failed: '+(e.message||e))}finally{btn.disabled=false;btn.textContent='⇩ SAVE WEEKLY PDF TO CLOUD';}}
+async function downtimeReportsApi(action,options={}){
+ const token=window.DowntimeCentral?.session?.token;
+ if(!token)throw new Error('Your DOWNTIME session has expired. Sign in again.');
+ const headers={'apikey':SB_KEY,'x-downtime-session':token};
+ let body;
+ if(options.file){
+  const form=new FormData();
+  form.set('action',action);
+  form.set('weekStart',options.weekStart);
+  form.set('fileName',options.fileName);
+  form.set('operators',JSON.stringify(options.operators||{}));
+  form.set('file',new File([options.file],options.fileName,{type:'application/pdf'}));
+  body=form;
+ }else{
+  headers['Content-Type']='application/json';
+  body=JSON.stringify({action,...options});
+ }
+ const response=await fetch(SB_URL.replace(/\/$/,'')+'/functions/v1/downtime-reports-api',{method:'POST',headers,body});
+ let result={};try{result=await response.json()}catch{}
+ if(!response.ok)throw new Error(result.error||'Weekly report archive request failed.');
+ return result;
+}
+async function saveCloudReport(){
+ if(!permission('canExportReports'))return;
+ if(!cloudReady){alert('Central data is not connected.');return}
+ const btn=$('exportBtn');btn.disabled=true;btn.textContent='SAVING PDF…';
+ try{
+  const reportWeekStart=parseWeek(key()),reportWeekEnd=plus(reportWeekStart,6);
+  await loadDailyOperatorRange(iso(reportWeekStart),iso(reportWeekEnd));
+  const data=reportData(),blob=await buildReportPDF(data),fileName='Downtime_'+data.week+'_Weekly.pdf';
+  const operators=Object.fromEntries(data.days.map(d=>[d.name,d.operator||'Not assigned']));
+  await downtimeReportsApi('upload',{weekStart:data.week,operators,fileName,file:blob});
+  await renderArchive();alert('Weekly PDF saved to the shared cloud archive.');
+ }catch(e){console.error(e);alert('PDF archive save failed: '+(e.message||e))}
+ finally{btn.disabled=false;btn.textContent='⇩ SAVE WEEKLY PDF TO CLOUD';}
+}
 $('exportBtn').onclick=saveCloudReport;
-async function enforceArchiveLimit(){const limit=12;const {data,error}=await sb.from('downtime_reports').select('id,storage_path').order('created_at',{ascending:false});if(error)throw error;if(data.length<=limit)return;const old=data.slice(limit),paths=old.map(x=>x.storage_path);const {error:removeError}=await sb.storage.from('downtime-pdfs').remove(paths);if(removeError)throw removeError;const ids=old.map(x=>x.id);const {error:deleteError}=await sb.from('downtime_reports').delete().in('id',ids);if(deleteError)throw deleteError;}
-async function downloadCloudReport(path,name){const {data,error}=await sb.storage.from('downtime-pdfs').download(path);if(error){alert('Download failed: '+error.message);return}const url=URL.createObjectURL(data),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)}
-async function deleteCloudReport(id,path){if(!permission('canDeleteRecords'))return;if(!confirm('Delete this PDF report from the cloud archive?'))return;const {error:removeError}=await sb.storage.from('downtime-pdfs').remove([path]);if(removeError){alert('File delete failed: '+removeError.message);return}const {error}=await sb.from('downtime_reports').delete().eq('id',id);if(error){alert('Archive record delete failed: '+error.message);return}await renderArchive()}
+async function downloadCloudReport(reportId,name){
+ try{
+  const {url,fileName}=await downtimeReportsApi('download',{reportId});
+  const response=await fetch(url);if(!response.ok)throw new Error('Temporary report download failed.');
+  const data=await response.blob();
+  const objectUrl=URL.createObjectURL(data),a=document.createElement('a');
+  a.href=objectUrl;a.download=fileName||name||'weekly-report.pdf';a.click();
+  setTimeout(()=>URL.revokeObjectURL(objectUrl),10000);
+ }catch(error){alert('Download failed: '+(error?.message||error))}
+}
+async function deleteCloudReport(id){
+ if(!permission('canDeleteRecords'))return;
+ if(!confirm('Delete this PDF report from the cloud archive?'))return;
+ try{await downtimeReportsApi('delete',{reportId:id});await renderArchive()}
+ catch(error){alert('Report delete failed: '+(error?.message||error))}
+}
 let reportPreviewObjectUrl=null,reportPreviewTrigger=null,reportPreviewRequest=0;
 function closeReportPreview(){
  ++reportPreviewRequest;
@@ -1578,9 +1626,7 @@ function closeReportPreview(){
  reportPreviewTrigger=null;
 }
 async function displayCloudReport(report,trigger){
- if(!permission('canViewReports')||!report?.storage_path)return;
- if(!sb)await legacyCloudClient();
- if(!sb){alert('Weekly report service is unavailable.');return}
+ if(!permission('canViewReports')||!report?.id)return;
  const modal=$('reportPreviewModal'),frame=$('reportPreviewFrame'),status=$('reportPreviewStatus');
  const request=++reportPreviewRequest;
  const title='WEEK OF '+prettyDate(report.week_start);
@@ -1590,14 +1636,15 @@ async function displayCloudReport(report,trigger){
  modal.classList.add('show');modal.setAttribute('aria-hidden','false');$('closeReportPreview').focus();
  if(trigger)trigger.disabled=true;
  try{
-  const {data,error}=await sb.storage.from('downtime-pdfs').download(report.storage_path);
-  if(error)throw error;
+  const {url,fileName}=await downtimeReportsApi('download',{reportId:report.id});
+  const response=await fetch(url);if(!response.ok)throw new Error('Temporary report download failed.');
+  const data=await response.blob();
   if(request!==reportPreviewRequest||!modal.classList.contains('show'))return;
   if(!(data instanceof Blob))throw new Error('The stored report could not be read as a PDF file.');
   if(reportPreviewObjectUrl)URL.revokeObjectURL(reportPreviewObjectUrl);
   reportPreviewObjectUrl=URL.createObjectURL(data);
   frame.src=reportPreviewObjectUrl;frame.hidden=false;
-  status.textContent=report.file_name||title;
+  status.textContent=fileName||report.file_name||title;
  }catch(error){
   if(request!==reportPreviewRequest||!modal.classList.contains('show'))return;
   console.error('Weekly report preview failed.',error);
@@ -1610,15 +1657,14 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('reportPr
 async function renderArchive(){
  const el=$('reportsList');el.innerHTML='Loading cloud archive…';
  if(!cloudReady){renderLocalArchive();return}
- if(!sb)await legacyCloudClient();
- if(!sb){el.textContent='Shared weekly reports are currently unavailable.';return}
- const {data,error}=await sb.from('downtime_reports').select('*').order('created_at',{ascending:false});
- if(error){el.textContent='Cloud archive error: '+error.message;return}
- if(!data.length){el.innerHTML='<div class="empty">No weekly reports saved yet.</div>';return}
- el.innerHTML=data.map(r=>'<div class="reportitem"><div><b>Week of '+prettyDate(r.week_start)+'</b><div class="muted">'+safe(r.file_name)+' · '+Math.round((r.file_size_bytes||0)/1024)+' KB · '+safe(Object.values(r.operators||{}).filter(x=>x!=='Not assigned').join(', ')||'No operators listed')+'</div></div><div class="reportactions"><button type="button" class="secondary reportdisplay" data-report-display="'+safe(r.id)+'" aria-label="Display weekly report for week of '+safe(prettyDate(r.week_start))+'">DISPLAY</button><button class="primary" data-report-download="'+safe(r.id)+'">DOWNLOAD</button><button class="danger reportdelete" data-report-delete="'+safe(r.id)+'">DELETE</button></div></div>').join('');
- el.querySelectorAll('[data-report-display]').forEach(button=>button.onclick=()=>{const report=data.find(item=>String(item.id)===button.dataset.reportDisplay);if(report)displayCloudReport(report,button)});
- el.querySelectorAll('[data-report-download]').forEach(button=>button.onclick=()=>{if(!permission('canExportReports'))return;const report=data.find(item=>String(item.id)===button.dataset.reportDownload);if(report)downloadCloudReport(report.storage_path,report.file_name)});
- el.querySelectorAll('[data-report-delete]').forEach(button=>button.onclick=()=>{if(!permission('canDeleteRecords'))return;const report=data.find(item=>String(item.id)===button.dataset.reportDelete);if(report)deleteCloudReport(report.id,report.storage_path)});
+ let reports;
+ try{({reports}=await downtimeReportsApi('list'))}
+ catch(error){el.textContent='Cloud archive error: '+(error?.message||error);return}
+ if(!reports?.length){el.innerHTML='<div class="empty">No weekly reports saved yet.</div>';return}
+ el.innerHTML=reports.map(r=>'<div class="reportitem"><div><b>Week of '+prettyDate(r.week_start)+'</b><div class="muted">'+safe(r.file_name)+' · '+Math.round((r.file_size_bytes||0)/1024)+' KB · '+safe(Object.values(r.operators||{}).filter(x=>x!=='Not assigned').join(', ')||'No operators listed')+'</div></div><div class="reportactions"><button type="button" class="secondary reportdisplay" data-report-display="'+safe(r.id)+'" aria-label="Display weekly report for week of '+safe(prettyDate(r.week_start))+'">DISPLAY</button><button class="primary" data-report-download="'+safe(r.id)+'">DOWNLOAD</button><button class="danger reportdelete" data-report-delete="'+safe(r.id)+'">DELETE</button></div></div>').join('');
+ el.querySelectorAll('[data-report-display]').forEach(button=>button.onclick=()=>{const report=reports.find(item=>String(item.id)===button.dataset.reportDisplay);if(report)displayCloudReport(report,button)});
+ el.querySelectorAll('[data-report-download]').forEach(button=>button.onclick=()=>{if(!permission('canExportReports'))return;const report=reports.find(item=>String(item.id)===button.dataset.reportDownload);if(report)downloadCloudReport(report.id,report.file_name)});
+ el.querySelectorAll('[data-report-delete]').forEach(button=>button.onclick=()=>{if(!permission('canDeleteRecords'))return;const report=reports.find(item=>String(item.id)===button.dataset.reportDelete);if(report)deleteCloudReport(report.id)});
  if(!permission('canDeleteRecords'))el.querySelectorAll('.reportdelete').forEach(button=>button.style.display='none');
  if(!permission('canExportReports'))el.querySelectorAll('[data-report-download]').forEach(button=>button.style.display='none');
 }
