@@ -20,7 +20,7 @@ assert.match(html, /function syncStaffModuleAccess\(\)[\s\S]*?tile\.disabled=!al
 assert.match(html, /function launchStaffManagement\(\)[\s\S]*?window\.openYardHubStaffManagement\(\)/, 'YARD HUB Staff Management tile opens its dedicated submenu');
 assert.match(html,/window\.launchStaffWorkspace=launchStaffWorkspace/,'STAFF subtile opens the existing central STAFF workspace');
 assert.match(html,/window\.syncStaffModuleAccess=syncStaffModuleAccess/,'Staff Management tile synchronises from server-resolved ROOTS authority');
-assert.match(html,/function returnToYardHub\(\)\{window\.closeYardHubStaffManagement\?\.\(\)/,'STAFF workspace return uses the dedicated YARD HUB close path');
+assert.match(html,/function returnToYardHub\(\)\{setStaffWorkspaceNavigation\(false\);window\.closeYardHubStaffManagement\?\.\(\)/,'STAFF workspace return restores navigation and uses the dedicated YARD HUB close path');
 assert.match(html,/window\.returnToYardHub=returnToYardHub/,'STAFF return handler is exposed outside the application script closure');
 assert.match(html,/id="settingsPanelStaff" class="settings-panel" hidden><div class="settings-detail-head"><div class="settings-back" aria-current="page">STAFF MANAGEMENT<\/div><\/div>/,'STAFF workspace header displays STAFF MANAGEMENT instead of a duplicate YARD HUB return control');
 assert.doesNotMatch(html,/id="settingsPanelStaff"[\s\S]*?onclick="window\.returnToYardHub\(\)"/,'STAFF panel has no duplicate YARD HUB return control');
