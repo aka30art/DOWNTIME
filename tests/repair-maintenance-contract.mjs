@@ -157,6 +157,12 @@ assert.ok(api.includes('permissions.canManageRepairMaintenanceMachinery'),'regis
 assert.ok(api.includes('permissions.canReadRepairMaintenanceMachinery'),'registry reads are server-authorized');
 
 assert.match(api,/resolveRootsAuthority/,'R&M resolves protected ROOTS separately from legacy tiers');
+assert.match(api,/resolveYardRolePermissions/,'R&M validates canonical YARD ROLE permission matrices');
+assert.match(api,/yard_role_assignments/,'R&M verifies the active immutable USER/STAFF role assignment');
+assert.match(api,/canYardRolePerform\(resolvedYardRole, "R&M", "VIEW"\)/,'R&M READ access uses the canonical department resolver');
+assert.match(api,/canYardRolePerform\(resolvedYardRole, "R&M", "DELETE"\)/,'R&M Manage-only actions require canonical MANAGE access');
+assert.match(api,/!resolvedYardRole && !isProtectedRoot/,'legacy R&M fallback is isolated to identities without canonical YARD ROLE or ROOTS authority');
+assert.doesNotMatch(api,/Canonical YARD ROLE authorization is not yet enabled for R&M/,'canonical YARD ROLE identities no longer receive a blanket denial');
 assert.match(api,/downtime_roots_assignments/,'R&M reads server-side protected ROOTS assignments');
 assert.match(api,/includes\(rootsAuthority \|\| ""\)/,'protected DEV, DEV1 and ADMIN receive automatic R&M Manage authority');
 assert.match(api,/user.yardRoleId && !\["DEV1", "ADMIN"\]/,'ROOTS authority is a separate override for ordinary YARD ROLE gating');
