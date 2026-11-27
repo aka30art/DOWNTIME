@@ -157,7 +157,9 @@ assert.match(hubApi,/if \(action === "remove-user-tier"\)[\s\S]*?if \(target\.pr
  assert.ok(ui.includes('requestedYardRoleId')&&ui.includes('assign-user-role')&&ui.includes('activateDowntimeCentralUserFromYardHub'), 'new USER creation uses staged canonical YARD ROLE provisioning');
  assert.ok(ui.includes('if(centralChanges){'), 'the legacy user API call is conditional on a real central account change');
  assert.ok(ui.includes('LEGACY USER AND YARD HUB SETTINGS SAVED.'), 'legacy Hub tier edits remain compatibility-only');
- assert.ok(ui.includes('state?.canManageCentralUsers!==true'), 'new user creation requires the existing Central Users right');
+ assert.ok(ui.includes('state?.canManageStaffUsers!==true'), 'new user creation requires Staff Management MANAGE');
+assert.ok(ui.includes('state?.canAssignUserRoles!==true'), 'ordinary managers may assign existing YARD ROLES but cannot create role definitions');
+assert.ok(ui.includes('openStaffUserManagement'), 'USER management is reachable from the Staff Management workspace');
 assert.match(config,/\[functions\.yard-hub-settings-api\][\s\S]*?verify_jwt\s*=\s*false/,'YARD HUB API validates the existing opaque session itself');
 
 assert.ok(html.includes('window.refreshDowntimeCentralDirectory=async function()'), 'DOWNTIME exposes a central-user-only refresh hook for Hub account changes');
@@ -226,7 +228,8 @@ assert.ok(ui.includes("if(rootAuthority()!=='DEV1'||saving)return"),'the DEV1 UI
 assert.ok(ui.includes("filter(role=>role.status==='ACTIVE')"),'USER assignment selector exposes only ACTIVE canonical YARD ROLEs');
 assert.ok(ui.includes("some(role=>role.status==='ACTIVE')"),'USER creation remains disabled until at least one ACTIVE canonical YARD ROLE exists');
 
-assert.ok(hubApi.includes('const canManageCentralUsers = rootsAuthority === "DEV";'),'only immutable DEV ROOTS authority can create or manage Central Bank USER accounts');
+assert.ok(hubApi.includes('const canManageCentralUsers = rootsAuthority === "DEV";'),'only immutable DEV ROOTS authority can manage protected Central Bank controls');
+assert.ok(hubApi.includes('canManageStaffDirectory = rootCapabilities.hasAutomaticDepartmentManage || staffRights.manage === true'),'Staff Management MANAGE can administer ordinary USER accounts');
 
 assert.ok(hubApi.includes('const canManageCentralUsers = rootsAuthority === "DEV";'),'only immutable DEV ROOTS authority can create or manage Central Bank USER accounts');
 
