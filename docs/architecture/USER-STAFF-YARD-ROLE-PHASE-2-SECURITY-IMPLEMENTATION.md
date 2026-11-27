@@ -36,8 +36,6 @@ Implemented in this branch:
 - Legacy OWNER, DEVACC and ordinary ADMIN tier labels do not imply ROOTS authority.
 - DEV alone can browse the ROOTS directory and assign DEV1. DEV and DEV1 can assign ADMIN; DEV1 receives no ROOTS directory data. ADMIN cannot assign ROOTS.
 - ROOTS assignments are separate from ordinary YARD ROLE permissions. Assignment, reclassification, revocation and restoration use a version-checked service-role lifecycle RPC; audit events remain append-only.
-- DEV is recognised only by the immutable bootstrap USER ID. DEV1 and protected ADMIN require matching immutable USER/STAFF assignments. Legacy OWNER, DEVACC and ordinary ADMIN tier labels never imply ROOTS.
-- DEV alone can browse the ROOTS directory and assign DEV1. DEV and DEV1 can assign ADMIN. DEV1 receives no ROOTS directory data; protected ADMIN cannot assign ROOTS.
 - Non-DEV account listings, Central Bank STAFF payloads, daily-operator views and GATELOG STAFF rosters hide protected ROOTS identities. Ordinary account/tier/STAFF/photo paths cannot modify or inspect protected ROOTS identities.
 - ROOTS authority is resolved independently and grants protected Manage capabilities to the current Central Bank Management, GATELOG Traffic, R&M and YARD HUB ROOTS consumers. It does not grant the separate DEV-only configuration control plane.
 - Central Bank USER directory access and provisioning are restricted to immutable DEV ROOTS authority; legacy OWNER, DEVACC and ADMIN tier labels do not grant this control-plane access.
