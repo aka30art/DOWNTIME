@@ -266,7 +266,8 @@ Deno.serve(async (req: Request) => {
     const roleByUser = new Map((roleAssignments || []).map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));
     return json({
       user: { ...safeUser(user), legacyTier, hubTier },
-      users: (Array.isArray(bank.users) ? bank.users : []).filter((account: any) => rootsAuthority === "DEV" || !activeRootUserIds.has(String(account.userId || "").toLowerCase())).map((account: any) => {
+      // DEV1 and ADMIN are ROOTS role classifications on real USER/STAFF accounts, not separate identities. Keep them in the canonical USER directory; rootsClass marks their protected row and the existing edit guards remain in force.
+      users: (Array.isArray(bank.users) ? bank.users : []).map((account: any) => {
         const assignment: any = roleByUser.get(String(account.userId || "").toLowerCase());
         return {
           ...safeUser(account),
