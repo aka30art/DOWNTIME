@@ -122,7 +122,7 @@
         else{
           try{
             const identityStatus=await window.DowntimeCentral.identityDiagnostics();
-            resetPanel.hidden=identityStatus.resetCompleted===true||identityStatus.resetStatusAvailable===false;
+            resetPanel.hidden=identityStatus.resetCompleted===true||identityStatus.resetStatusAvailable!==true;
           }catch{resetPanel.hidden=true}
         }
       }
