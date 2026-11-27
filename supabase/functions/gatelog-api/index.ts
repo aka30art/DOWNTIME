@@ -39,6 +39,12 @@ Deno.serve(async (req: Request) => {
     rootsAssignment=rootsLookup.data;
   }
   const rootsAuthority=resolveRootsAuthority(user,rootsAssignment);
+  let protectedStaffIds=new Set<string>();
+  if(rootsAuthority!=="DEV"){
+    const protectedStaff=await db.from("downtime_roots_assignments").select("staff_id");
+    if(protectedStaff.error)return json({error:"Protected identity registry is unavailable."},503);
+    protectedStaffIds=new Set((protectedStaff.data||[]).map((assignment:any)=>String(assignment.staff_id).toLowerCase()));
+  }
   if(user.yardRoleId&&!["DEV1","ADMIN"].includes(rootsAuthority||""))return json({error:"Canonical YARD ROLE authorization is not yet enabled for GATELOG. Access is denied until the unified resolver is integrated."},403);
   const legacyTier=String(user.tier||"USER").toUpperCase();
   const isProtectedRoot=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"");
@@ -48,8 +54,9 @@ Deno.serve(async (req: Request) => {
   const canManageGateman=isProtectedRoot||bank.payload.tiers?.[legacyTier]?.canManageAssignments===true;
   const canExportReports=isProtectedRoot||bank.payload.tiers?.[legacyTier]?.canExportReports===true;
   // Gateman duty is assigned to operational STAFF, never to a USER account.
-  const staffRoster=Array.isArray(bank.payload.staff?.roster)?bank.payload.staff.roster:(Array.isArray(bank.payload.appData?.staffRoster)?bank.payload.appData.staffRoster:[]);
+  const rawStaffRoster=Array.isArray(bank.payload.staff?.roster)?bank.payload.staff.roster:(Array.isArray(bank.payload.appData?.staffRoster)?bank.payload.appData.staffRoster:[]);
   const staffProfiles=bank.payload.staff?.profiles||bank.payload.appData?.operatorProfiles||{};
+  const staffRoster=rootsAuthority==="DEV"?rawStaffRoster:rawStaffRoster.filter((name:string)=>!protectedStaffIds.has(String(staffProfiles[name]?.staffId||"").toLowerCase()));
   // Compatibility fields username/tier keep the previous GATELOG client rendering, but their values are derived only from STAFF records.
   const gatemen=staffRoster.filter((name:any)=>typeof name==="string"&&name.trim()).map((name:string)=>({staffName:clean(name,80),username:clean(name,80),displayName:clean(name,120),onSiteRole:clean(staffProfiles[name]?.onSiteRole||"ROLE NOT SET",60),tier:clean(staffProfiles[name]?.onSiteRole||"ROLE NOT SET",60),status:clean(staffProfiles[name]?.status||"ACTIVE",20),onSite:staffProfiles[name]?.onSite!==false})).filter((item:any)=>item.status!=="ARCHIVED"&&item.onSite).sort((a:any,b:any)=>a.displayName.localeCompare(b.displayName));
   const fail=(error:any)=>json({error:error?.message||"GATELOG request failed."},400);
