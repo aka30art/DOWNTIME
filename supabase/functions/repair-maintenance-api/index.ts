@@ -64,7 +64,10 @@ Deno.serve(async (req: Request) => {
     .select("username,expires_at").eq("token_hash", tokenHash).gt("expires_at", new Date().toISOString()).maybeSingle();
   if (sessionError || !session) return json({ error: "YARD HUB session expired. Sign in again." }, 401);
 
-  const { data: bankRow, error: bankError } = await db.from("downtime_central_bank").select("payload").eq("id", 1).maybe  const user = (Array.isArray(bank.users) ? bank.users : []).find((item: any) => String(item.username).toLowerCase() === String(session.username).toLowerCase() && item.enabled !== false);
+  const { data: bankRow, error: bankError } = await db.from("downtime_central_bank").select("payload").eq("id", 1).maybeSingle();
+  if (bankError || !bankRow?.payload) return json({ error: "Central user directory is unavailable." }, 503);
+  const bank = bankRow.payload as Record<string, any>;
+  const user = (Array.isArray(bank.users) ? bank.users : []).find((item: any) => String(item.username).toLowerCase() === String(session.username).toLowerCase() && item.enabled !== false);
   if (!user) return json({ error: "This account is disabled or no longer exists." }, 401);
 
   const [{ data: rootsBootstrap, error: rootsBootstrapError }, { data: rootsAssignment, error: rootsAssignmentError }] = await Promise.all([
@@ -171,9 +174,6 @@ Deno.serve(async (req: Request) => {
     permissions.canManageRepairMaintenancePresets = permissions.canEditRepairMaintenance === true;
   }
   if (!permissions.canAccessYardHub) return json({ error: "YARD HUB access is not enabled for this account." }, 403);
-  if (!permissions.canAccessRepairMaintenance) return json({ error: "R&M access is not enabled for this account." }, 403);
-
-cess is not enabled for this account." }, 403);
   if (!permissions.canAccessRepairMaintenance) return json({ error: "R&M access is not enabled for this account." }, 403);
 
   const actor = String(user.username);
