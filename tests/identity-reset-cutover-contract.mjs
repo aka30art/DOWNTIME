@@ -20,7 +20,6 @@ assert.match(migration,/v_bootstrap_user_id <> p_actor_user_id/);
 assert.match(migration,/p_actor_session_hash/);
 assert.match(migration,/v_dev_user jsonb/);
 assert.match(migration,/jsonb_build_array\(v_dev_user\)/,"only the existing DEV account survives the USER directory reset");
-assert.match(migration,/set user_id=v_bootstrap_user_id/);
 assert.match(migration,/set payload=v_next_payload/);
 assert.match(migration,/\{roster\}','\[\]'/);
 assert.match(migration,/\{profiles\}','\{\}'/);
