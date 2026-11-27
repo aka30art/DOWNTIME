@@ -324,6 +324,7 @@
     const isNew=!existing;
     const pendingProvisioning=existing?.provisioningState==='YARD_ROLE_PENDING';
     const canonicalIdentity=Boolean(existing?.userId&&existing?.staffId);
+    if(existing&&!canonicalIdentity){setStatus('Legacy account profiles are read-only. New access must be provisioned as a linked USER + STAFF and assigned a canonical YARD ROLE.','error');return}
     const canonicalLinkedIdentity=canonicalIdentity&&!pendingProvisioning;
     const requestedYardRoleId=String($('yardHubUserYardRole')?.value||existing?.requestedYardRoleId||existing?.yardRoleId||'');
     const yardRoleChanged=canonicalLinkedIdentity&&requestedYardRoleId!==String(existing?.yardRoleId||'');
@@ -645,7 +646,6 @@
     if(button){button.hidden=true;button.addEventListener('click',openSettings)}
     $('yardHubSettingsBack')?.addEventListener('click',closeSettings);
     $('yardHubSettingsUsers')?.addEventListener('click',()=>openSettingsView('users'));
-    $('yardHubSettingsTiers')?.addEventListener('click',()=>openSettingsView('tiers'));
     $('yardHubSettingsRoles')?.addEventListener('click',()=>openSettingsView('roles'));
     $('yardHubSettingsRoots')?.addEventListener('click',()=>openSettingsView('roots'));
     $('yardHubRootAssign')?.addEventListener('click',assignSelectedRoot);
