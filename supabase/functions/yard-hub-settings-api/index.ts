@@ -173,6 +173,10 @@ Deno.serve(async (req: Request) => {
         String(profile.status || "").toUpperCase() === "ACTIVE");
     }).map((account: any) => ({ userId: account.userId, staffId: account.staffId, username: account.username,
       displayName: account.displayName || account.username }));
+    const { data: roleDefinitions, error: roleDefinitionsError } = await db.from("downtime_roots_role_definitions")
+      .select("role_key,display_name,visibility,description,capabilities,version,updated_at")
+      .order("role_key");
+    if (roleDefinitionsError) return json({ error: "Protected ROOTED role definitions are unavailable." }, 503);
     return json({ assignments: (assignments || []).map((assignment: any) => {
       const target: any = usersById.get(String(assignment.user_id).toLowerCase());
       return { userId: assignment.user_id, staffId: assignment.staff_id, rootsClass: assignment.roots_class,
@@ -180,7 +184,7 @@ Deno.serve(async (req: Request) => {
         displayName: target?.displayName || target?.username || "Identity not found",
         assignedBy: assignment.assigned_by_username, createdAt: assignment.created_at,
         updatedAt: assignment.updated_at, revokedAt: assignment.revoked_at };
-    }), eligibleUsers });
+    }), eligibleUsers, roleDefinitions: roleDefinitions || [] });
   }
 
   if (action === "roots-manage") {
