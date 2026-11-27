@@ -88,7 +88,7 @@ assert.ok(src.includes('const isRootAuthority=["DEV","DEV1","ADMIN"].includes(ro
 assert.ok(src.includes('const isDevRoot=rootsAuthority==="DEV";'), 'DEV authority cannot be inferred from username or OWNER tier');
 assert.ok(src.includes('yardRolePermissions:u.yardRolePermissions||null'), 'safe current-user contract can carry canonical rights');
 assert.ok(src.includes('yardRolePermissions:resolvedYardRole?.departments||null'), 'Central Bank returns the complete five-department permission matrix to the client');
-assert.ok(src.includes('const moduleRights=resolveYardRoleModulePermissions(resolvedYardRole)'), 'server resolves the approved department-to-module mapping');
+assert.ok(src.includes('moduleRights=resolveYardRoleModulePermissions(resolvedYardRole);'), 'server resolves the approved department-to-module mapping');
 assert.ok(src.includes('let moduleRights:any=null;')&&src.includes('moduleRights=resolveYardRoleModulePermissions(resolvedYardRole);'),'resolved module rights remain in request scope for later route-level enforcement');
 assert.ok(src.includes('const downtime=moduleRights.DOWNTIME')&&src.includes('const staffManagement=moduleRights["Staff & Management"]'), 'Central Bank separates DOWNTIME and Staff & Management rights');
 assert.ok(src.includes('canEditTracker:downtime.enter||downtime.edit||downtime.manage'), 'SCPL INPUT / EDIT / MANAGE controls operational tracker writes');
