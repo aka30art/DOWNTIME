@@ -511,8 +511,15 @@ async function openStaffSettings(page){
  }
  await page.locator('#launchStaffManagementBtn').click();
  const staffManagementHome=page.locator('#yardHubSettingsScreen');
- if(await staffManagementHome.isVisible().catch(()=>false))await page.locator('#yardHubSettingsStaff').click();
- await page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
+ const staffWorkspace=page.locator('#settingsPanelStaff');
+ await page.waitForFunction(()=>{
+  const hubScreen=document.querySelector('#yardHubSettingsScreen');
+  const staffPanel=document.querySelector('#settingsPanelStaff');
+  const visible=node=>!!node&&!node.hidden&&getComputedStyle(node).display!=='none';
+  return visible(hubScreen)||visible(staffPanel);
+ },{timeout:5000});
+ if(await staffManagementHome.isVisible())await page.locator('#yardHubSettingsStaff').click();
+ await staffWorkspace.waitFor({state:'visible',timeout:5000});
  await page.locator('#staffRosterList .staff-settings-icon').first().waitFor({state:'visible',timeout:5000});
 }
 
