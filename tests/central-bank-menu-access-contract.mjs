@@ -14,6 +14,7 @@ assert.ok(page.includes('option.disabled=!isRootDevAccount()'),'the DEVACC tier 
 assert.ok(page.includes("protectedDevacc=user.tier==='DEVACC'&&!canAccessCentralBank()"),'DEVACC accounts are protected from all non-DEV identities');
 assert.ok(!page.includes('DEVACC shares the DEV root access allow-list')&&!page.includes('DEV / DEVACC ACCESS'),'stale DEVACC Central Bank allow-list copy is absent');
 assert.ok(page.includes('LEGACY TIER EDITOR · RETIRED')&&page.includes('Department permissions are governed by canonical YARD ROLE; ROOTS authority remains separate.'),'legacy Access and Rights surface is clearly retired');
+assert.ok(!page.includes('DEV / DEVACC · ROOT-EQUIVALENT ADMINISTRATION')&&!page.includes('EDITABLE TIERS · ADMIN / MANAGER / SUPERVISOR / USER / SPECTATOR'),'retired root-equivalent and editable-tier labels are absent');
 
 assert.ok(adminPage.includes('callConfig("central-config-state")')&&adminPage.includes('/functions/v1/central-config-admin'),'standalone configuration page uses the dedicated isolated config endpoint');
 assert.ok(!adminPage.includes('call("central-admin-state")')&&!adminPage.includes('call("get-state")'),'configuration UI does not fall back to legacy admin/tracker state');
