@@ -163,7 +163,9 @@ Deno.serve(async(req)=>{
    const rootsLookup=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class").eq("user_id",currentUser.userId).maybeSingle();
    rootsAssignment=rootsLookup.data;rootsLookupError=rootsLookup.error;
  }
- const rootsAuthority=resolveRootsAuthority(currentUser,rootsAssignment);
+ const {data:rootsBootstrap,error:rootsBootstrapError}=await db.from("downtime_roots_bootstrap").select("user_id").eq("singleton",true).maybeSingle();
+ if(rootsBootstrapError||!rootsBootstrap?.user_id)return json({error:"Immutable DEV bootstrap identity is unavailable."},503);
+ const rootsAuthority=resolveRootsAuthority(currentUser,rootsAssignment,rootsBootstrap.user_id);
  const tier=currentUser.tier,storedPrivileges=bank.tiers[tier]||{},priv={...tierDefault[tier],...storedPrivileges};
  if(lockedRolePrivileges[tier])Object.assign(priv,lockedRolePrivileges[tier]);
  const currentUsername=String(currentUser.username||"").trim().toUpperCase();
