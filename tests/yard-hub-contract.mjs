@@ -16,7 +16,8 @@ assert.match(html, /id="launchStaffManagementBtn" data-app="staff-management" ty
 assert.doesNotMatch(html, /id="launchStaffManagementBtn"[^>]*disabled/, 'STAFF MANAGEMENT is not hard-disabled in the launcher markup');
 assert.match(html, /function isStaffModuleAutoAccess\(\)\{const tier=String\(centralUser\?\.tier\|\|''\)\.trim\(\)\.toUpperCase\(\);return \['DEV','DEV1','ADMIN'\]\.includes\(rootsAuthority\(\)\)\|\|tier==='DEVACC'\|\|tier==='ADMIN'\}/, 'all three protected ROOTS identities and explicitly privileged legacy tiers may access Staff Management');
 assert.match(html, /function syncStaffModuleAccess\(\)[\s\S]*?tile\.disabled=!allowed/, 'Staff Management launcher is enabled or restricted from the authenticated central tier');
-assert.match(html, /function launchStaffManagement\(\)[\s\S]*?openSettingsPanel\('staff'\)/, 'Staff Management launcher opens the existing central STAFF workspace');
+assert.match(html, /function launchStaffManagement\(\)[\s\S]*?window\.openYardHubStaffManagement\(\)/, 'YARD HUB Staff Management tile opens its dedicated submenu');
+assert.match(html,/window\.launchStaffWorkspace=launchStaffWorkspace/,'STAFF subtile opens the existing central STAFF workspace');
 assert.match(html, /launchStaffManagementBtn'\)\?\.addEventListener\('click',launchStaffManagement\)/, 'Staff Management launcher has a click handler');
 assert.match(html, /if\(section==='staff'&&isStaffModuleAutoAccess\(\)\)return true/, 'privileged tiers can open STAFF even when granular view flags are unset');
 assert.match(html, /const canonicalIdentity=Boolean\(centralUser\?\.userId\|\|centralUser\?\.staffId\)[\s\S]*?\['DEV','DEV1','ADMIN'\]\.includes\(rootsAuthority\(\)\)[\s\S]*?canonicalIdentity\?permission\('canAccessYardHub'\)/, 'canonical identities cannot inherit YARD HUB access from legacy OWNER/DEVACC/ADMIN tiers');

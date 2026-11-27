@@ -77,7 +77,7 @@
       myHubTier=String(result.user?.hubTier||'USER').toUpperCase();
       myRootsAuthority=result.rootsAuthority||null;
       myCanManageSettings=result.canManageSettings===true;
-      if(button)button.hidden=!myCanManageSettings;
+      if(button)button.hidden=true;
       return result;
     }catch(error){
       if(button)button.hidden=true;
@@ -724,13 +724,14 @@
     const button=$('yardHubSettingsBtn');
     if(button){button.hidden=true;button.addEventListener('click',openSettings)}
     $('yardHubSettingsBack')?.addEventListener('click',closeSettings);
+    window.openYardHubStaffManagement=openSettings;
     $('yardHubSettingsUsers')?.addEventListener('click',()=>openSettingsView('users'));
     $('yardHubSettingsRoles')?.addEventListener('click',()=>openSettingsView('roles'));
     $('yardHubSettingsStaff')?.addEventListener('click',()=>{
       if(!['DEV','DEV1','ADMIN'].includes(rootAuthority()))return;
       setHomeVisible(false);
-      if(typeof window.launchStaffManagement==='function')window.launchStaffManagement();
-      else setStatus('STAFF MANAGEMENT workspace is unavailable.','error');
+      if(typeof window.launchStaffWorkspace==='function')window.launchStaffWorkspace();
+      else setStatus('STAFF directory workspace is unavailable.','error');
     });
     $('yardHubSettingsRoots')?.addEventListener('click',()=>openSettingsView('roots'));
     $('yardHubAccessRoots')?.addEventListener('click',()=>openSettingsView('roots'));
