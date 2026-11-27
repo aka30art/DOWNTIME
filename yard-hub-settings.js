@@ -217,7 +217,7 @@
     return node;
   }
   function userIsProtected(user){
-    return String(user.username||'').toUpperCase()==='DEV'||Boolean(user.rootsClass);
+    return String(user.username||'').toUpperCase()==='DEV'||Boolean(user.rootsClass||user.rootsStatus);
   }
   function renderUsers(){
     const host=$('yardHubUsersList');if(!host||!state)return;
