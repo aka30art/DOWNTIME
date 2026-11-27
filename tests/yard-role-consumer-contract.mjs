@@ -29,7 +29,7 @@ assert.match(central, /canEditStaff:staffManagement\.edit===true/);
 assert.match(central, /canManageStaff:staffManagement\.manage===true/);
 assert.match(central, /canViewStaff:staffManagement\.view===true/);
 assert.match(central, /canManageAssignments:staffManagement\.manage===true/);
-assert.match(central, /canManageUsers:false,canViewUsers:false/);
+assert.match(central, /priv\.canManageUsers=\["DEV","DEV1","ADMIN"\]\.includes\(rootsAuthority\|\|""\)\|\|\(hasCanonicalIdentity&&resolvedYardRole&&moduleRights\["Staff & Management"\]\?\.manage===true\)/);
 assert.match(central, /canManageAccessRights:false/);
 assert.match(rm, /canYardRolePerform\(resolvedYardRole, "R&M", "VIEW"\)/);
 assert.match(rm, /canYardRolePerform\(resolvedYardRole, "R&M", "ENTER"\)/);
