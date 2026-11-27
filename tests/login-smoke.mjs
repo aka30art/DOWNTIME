@@ -298,9 +298,9 @@ window.supabase={createClient:()=>({
   const ok=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
   const hubTier=String(yardHubConfig.userTiers[username.toLowerCase()]||'USER');
   const root=username.toUpperCase()==='DEV'&&tier==='OWNER';
-  const canManage=root||hubTier==='DEVACC'||hubTier==='ADMIN';
+  const canManage=root;
   const users=getMockUsers();
-  if(action==='my-access')return ok({user:{username,displayName:username,legacyTier:tier,hubTier},rootsAuthority:root?'DEV':null,canManageSettings:root,canManageYardRoles:root,canManageRoots:root,canManageCentralUsers:tiers[tier]?.canManageUsers===true,canAccessYardHub:true,sections:yardHubConfig.tiers[hubTier],permissionVersion:yardHubPermissionVersion});
+  if(action==='my-access')return ok({user:{username,displayName:username,legacyTier:tier,hubTier},rootsAuthority:root?'DEV':null,canManageSettings:root,canManageYardRoles:root,canManageRoots:root,canManageCentralUsers:root,canAccessYardHub:true,sections:yardHubConfig.tiers[hubTier],permissionVersion:yardHubPermissionVersion});
   if(action==='settings-state'){
    if(!canManage)return ok({error:'Permission denied'},403);
    return ok({
