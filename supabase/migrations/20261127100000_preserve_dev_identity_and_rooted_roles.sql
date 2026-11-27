@@ -247,6 +247,11 @@ $reset$;
 revoke all on function public.downtime_identity_reset_preserve_dev(integer,uuid,text,text,text) from public, anon, authenticated;
 grant execute on function public.downtime_identity_reset_preserve_dev(integer,uuid,text,text,text) to service_role;
 
+
+-- Disable the superseded RPC that replaced DEV and created DEV1/ADMIN login identities.
+revoke all on function public.downtime_identity_reset_cutover(integer,uuid,text,text,jsonb,jsonb,jsonb,jsonb,jsonb)
+  from public, anon, authenticated, service_role;
+
 comment on table public.downtime_roots_role_definitions is
   'DEV-only catalogue of protected ROOTED DEV1 and ADMIN role definitions. These definitions are not USER or STAFF identities.';
 comment on function public.downtime_identity_reset_preserve_dev(integer,uuid,text,text,text) is
