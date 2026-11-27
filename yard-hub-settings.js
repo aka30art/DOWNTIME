@@ -452,6 +452,23 @@
     if(assignmentSection)assignmentSection.hidden=false;
     if(directorySection)directorySection.hidden=false;
     const result=await callApi('roots-state');rootsState=result;
+    const roleSection=$('yardHubRootRoleDefinitions'),roleHost=$('yardHubRootRoleDefinitionsList');
+    if(roleSection)roleSection.hidden=!rootDev();
+    if(roleHost){
+      roleHost.replaceChildren();
+      (result.roleDefinitions||[]).forEach(role=>{
+        const card=element('article','yard-hub-root-card');
+        const identity=element('div','yard-hub-root-identity');
+        identity.append(element('strong','',role.display_name||role.role_key),element('small','',role.description||'Protected ROOTED role definition'));
+        const capabilities=role.capabilities||{};
+        const rights=element('p','yard-hub-note',
+          'Department authority: '+(capabilities.hasAutomaticDepartmentManage?'MANAGE':'NOT GRANTED')+
+          ' · YARD ROLE catalogue: '+(capabilities.canManageYardRoles?'MANAGE':'NOT GRANTED')+
+          ' · Assign ADMIN: '+(capabilities.canAssignAdmin?'YES':'NO')+
+          ' · ROOTS directory: '+(capabilities.canBrowseRoots?'YES':'DEV ONLY'));
+        card.append(identity,rights);roleHost.appendChild(card);
+      });
+    }
     const select=$('yardHubRootUser'),previous=select.value;
     select.replaceChildren();
     const placeholder=element('option','','SELECT CANONICAL USER');placeholder.value='';select.appendChild(placeholder);
@@ -703,24 +720,19 @@
   async function executeIdentityReset(){
     if(saving||!rootDev())return;
     const currentDevPin=String($('yardHubResetCurrentDevPin')?.value||'');
-    const devPin=String($('yardHubResetDevPin')?.value||'');
-    const dev1Pin=String($('yardHubResetDev1Pin')?.value||'');
-    const adminPin=String($('yardHubResetAdminPin')?.value||'');
     const confirmation=String($('yardHubResetConfirmation')?.value||'').trim();
-    if(![currentDevPin,devPin,dev1Pin,adminPin].every(pin=>/^[0-9]{4,8}$/.test(pin))){
-      setStatus('Enter the current DEV PIN and a new 4–8 digit PIN for DEV, DEV1 and ADMIN.','error');return;
+    if(!/^[0-9]{4,8}$/.test(currentDevPin)){
+      setStatus('Enter the current 4–8 digit DEV PIN to verify the retained root account.','error');return;
     }
-    if(confirmation!=='RESET ALL IDENTITIES'){
-      setStatus('Type RESET ALL IDENTITIES exactly to confirm the permanent reset.','error');return;
+    if(confirmation!=='KEEP DEV - CLEAR USERS STAFF PHOTOS'){
+      setStatus('Type KEEP DEV - CLEAR USERS STAFF PHOTOS exactly to confirm.','error');return;
     }
-    if(!window.confirm('PERMANENT IDENTITY RESET: all existing USER accounts, STAFF profiles and old DEV authority will be replaced. Operational records, audit history and shared photo evidence will remain. Continue?'))return;
-    setBusy(true);setStatus('PERFORMING THE ONE-TIME IDENTITY RESET…');
+    if(!window.confirm('PERMANENT DIRECTORY RESET: remove every USER except the existing DEV, every STAFF profile and roster entry, and every STAFF profile photo. DEV keeps the same immutable ID, PIN and current session. DEV1 and ADMIN remain role definitions only. Operational records, ordinary YARD ROLE definitions and department permissions are retained. Continue?'))return;
+    setBusy(true);setStatus('VERIFYING DEV AND CLEARING USER / STAFF DATA…');
     try{
       if(!window.DowntimeCentral?.resetIdentities)throw new Error('Central identity reset action is unavailable. Refresh the application.');
-      const result=await window.DowntimeCentral.resetIdentities({confirmation,currentDevPin,devPin,dev1Pin,adminPin});
-      const ids=result.identities||{};
-      window.alert('IDENTITY RESET COMPLETE.\n\nNew DEV USER ID: '+(ids.DEV?.userId||'created')+'\nNew DEV1 USER ID: '+(ids.DEV1?.userId||'created')+'\nNew ADMIN USER ID: '+(ids.ADMIN?.userId||'created')+'\n\nAll previous sessions have been revoked. Sign in again as DEV using the new DEV PIN you entered.');
-      await window.DowntimeCentral.logout().catch(()=>{});
+      const result=await window.DowntimeCentral.resetIdentities({confirmation,currentDevPin});
+      window.alert('RESET COMPLETE.\n\nExisting DEV identity retained: '+(result.devUserId||currentUser()?.userId||'verified')+'\nRemoved USER accounts: '+(result.removedUserCount??'verified')+'\nRemoved STAFF profiles: '+(result.removedStaffProfileCount??'verified')+'\nRemoved STAFF roster entries: '+(result.removedStaffRosterCount??'verified')+'\nDeleted STAFF photo objects: '+(result.staffPhotoObjectsRemoved??'verified')+'\n\nDEV credentials and this session remain unchanged. DEV1 and ADMIN are protected ROOTED role definitions only.');
       window.location.reload();
     }catch(error){
       setStatus(error.message||'Identity reset failed. Verify the server response before retrying.','error');
