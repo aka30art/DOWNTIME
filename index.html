@@ -522,6 +522,7 @@ body.overview-overlay-open{overflow:hidden}
 #settingsPanelStaff{width:100%;min-width:0;color:#f5f7fa}
 #settingsPanelStaff .yard-hub-settings-heading{display:grid;gap:8px;margin:4px 0 20px}
 #settingsPanelStaff .yard-hub-back{justify-self:start;width:max-content;max-width:100%;min-height:38px}
+.shell.staff-workspace-active #backToYardHub{display:none!important}
 #settingsPanelStaff .yard-hub-settings-eyebrow{margin-top:12px}
 #settingsPanelStaff .yard-hub-settings-heading h1{margin:0;color:#fff;font-size:clamp(27px,5vw,40px);font-weight:950;letter-spacing:-1px}
 #settingsPanelStaff .yard-hub-settings-heading p{margin:0;color:#9cabb9;font-size:13px;line-height:1.5}
@@ -908,6 +909,7 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
 <div class="shell">
 <aside class="side">
 <div class="brand"><b>///</b> PLANT<br>DOWNTIME<br>TRACKER</div>
+<button id="backToYardHub" class="nav yard-return-button" type="button">▦ &nbsp; BACK TO YARD HUB</button>
 
 <details class="nav-menu">
 <summary><span>MAIN MENU · OPEN TO NAVIGATE</span><span class="disclosure-chevron" aria-hidden="true">⌄</span></summary>
@@ -1148,7 +1150,7 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
 
   <div id="settingsPanelStaff" class="settings-panel" hidden>
   <header class="yard-hub-settings-heading">
-    <button id="backToYardHub" type="button" class="yard-hub-back">▦ BACK TO YARD HUB</button>
+    <button id="staffBackToYardHub" type="button" class="yard-hub-back">▦ BACK TO YARD HUB</button>
     <div class="yard-hub-settings-eyebrow">YARD OPERATIONS CORE · ADMINISTRATION</div>
     <h1>STAFF</h1>
     <p>Manage USERS, STAFF profiles and YARD ROLE access rights.</p>
@@ -2210,7 +2212,7 @@ $('logoutBtn')?.addEventListener('click',logoutCentralSession);
 $('yardHubLogoutBtn')?.addEventListener('click',logoutCentralSession);
 $('launchDowntimeBtn')?.addEventListener('click',launchDowntime);
 $('launchStaffManagementBtn')?.addEventListener('click',launchStaffManagement);
-$('backToYardHub')?.addEventListener('click',returnToYardHub);
+$('backToYardHub')?.addEventListener('click',returnToYardHub);$('staffBackToYardHub')?.addEventListener('click',returnToYardHub);
 function managementRole(){return permission('canEditTracker')||permission('canManageSettings')}
 function managementEntryKey(dayKey,entry){return dayKey+'|'+JSON.stringify({area:entry.area||'',reason:entry.reason||'',hours:Number(entry.hours)||0,minutes:Number(entry.minutes)||0})}
 function addedEntries(previous,next){const added=[];for(const [weekKey,weekData] of Object.entries(next?.weeks||{})){const oldWeek=previous?.weeks?.[weekKey];(weekData?.days||[]).forEach((d,dayIndex)=>{const oldDay=oldWeek?.days?.[dayIndex],oldCounts={};(oldDay?.entries||[]).forEach(e=>{const k=managementEntryKey(weekKey+'-'+dayIndex,e);oldCounts[k]=(oldCounts[k]||0)+1});(d.entries||[]).forEach(e=>{const k=managementEntryKey(weekKey+'-'+dayIndex,e);if(oldCounts[k])oldCounts[k]--;else added.push({weekKey,dayIndex,entry:e})})})}return added}
