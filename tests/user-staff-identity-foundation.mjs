@@ -413,6 +413,10 @@ assert.match(yardHubApi, /action === "assign-user-role"/);
 assert.match(yardHubApi, /yard_role_assign_user/);
 assert.match(yardHubApi, /yard_role_save_definition/, "YARD ROLE definitions use the audited service-role save RPC");
 assert.match(yardHubApi, /yard_role_reassign_user/, "existing USERs can receive version-checked YARD ROLE reassignment");
+assert.match(yardHubApi, /yard_role_assign_existing_user/, "first active USER role assignment uses the atomic Central Bank RPC");
+assert.match(yardHubApi, /p_expected_bank_version: expectedBankVersion/);
+assert.match(yardHubApi, /p_next_payload: nextPayload/);
+
 assert.match(yardHubApi, /linkedProfile/, "YARD ROLE assignment verifies reciprocal USER/STAFF identity");
 assert.match(yardHubUi, /yardRoleChanged/, "YARD HUB supports reassignment of an existing canonical USER");
 assert.match(yardHubUi, /yardHubRolePermissions/, "YARD HUB renders the independent YARD ROLE permission editor");
