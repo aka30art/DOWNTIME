@@ -517,7 +517,9 @@ body.overview-overlay-open{overflow:hidden}
 <style id="staff-workspace-layout-corrections">
 /* STAFF AND MANAGEMENT workspace: remove the DOWNTIME navigation rail and use the full USERS-style canvas. */
 .shell.staff-workspace-active{grid-template-columns:minmax(0,1fr)!important}
-.shell.staff-workspace-active>.side{display:none!important}
+.shell.staff-workspace-active>.side{display:contents!important}
+.shell.staff-workspace-active>.side>.brand,.shell.staff-workspace-active>.side>.nav-menu,.shell.staff-workspace-active>.side>.sidefoot{display:none!important}
+.shell.staff-workspace-active #backToYardHub{position:fixed;z-index:1000;top:12px;left:12px;min-height:36px;padding:8px 12px;border:1px solid #526a7d;border-radius:8px;background:#102638;color:#f5cb18;font-size:10px;font-weight:900;letter-spacing:.5px}
 #settingsPanelStaff .staff-roster-toolbar{justify-content:flex-end}
 #settingsPanelStaff .staff-roster-actions{justify-content:flex-end;margin-left:auto}
 @media(max-width:600px){#settingsPanelStaff .staff-roster-toolbar{align-items:flex-end}#settingsPanelStaff .staff-roster-actions{justify-content:flex-end;width:100%}}
