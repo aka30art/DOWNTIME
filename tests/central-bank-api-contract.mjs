@@ -114,7 +114,6 @@ assert.ok(src.includes('if(hasCanonicalIdentity&&!isRootAuthority&&!moduleRights
 assert.ok(src.includes('!priv.canViewDashboards'),'dashboard redaction remains enforced');
 assert.ok(src.includes('if(!priv.canViewReports)delete restrictedData.archive'),'report redaction remains enforced');
 assert.ok(src.includes('Without VIEW, treat omitted records as concealed rather than deleted.'),'users without VIEW cannot overwrite or delete concealed operational history');
-  'users without View cannot overwrite or delete concealed operational history');
 assert.ok(src.includes('if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);'),
   'only immutable DEV can provision linked USER + STAFF identities');
 assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to immutable DEV."},403);'),
