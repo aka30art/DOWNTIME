@@ -1194,7 +1194,7 @@ function permission(name){
    default:return false;
   }
  }
- const tier=privilegeFor(activeOperator),locked=lockedTierPrivileges[tier];
+ const tier=privilegeFor(activeOperator),locked=lockedTierPermissions[tier];
  if(locked&&Object.prototype.hasOwnProperty.call(locked,name))return locked[name];
  const custom=centralBankPayload?.tiers?.[tier];
  return typeof custom?.[name]==='boolean'?custom[name]:!!tierDefaults[tier]?.[name];
