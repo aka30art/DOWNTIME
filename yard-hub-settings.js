@@ -240,7 +240,7 @@
       const protectedUser=userIsProtected(user)&&!rootDev();
       const isSelf=String(user.username).toLowerCase()===me;
       const edit=element('button','yard-hub-small-button','EDIT');
-      edit.type='button';edit.disabled=saving||isSelf||protectedUser;
+      edit.type='button';edit.disabled=saving||isSelf||protectedUser||(!state.canManageCentralUsers&&state.canAssignUserRoles!==true);
       edit.title=isSelf?'Use a different administrator account to edit this account.':protectedUser?'Protected tier account.':'Edit user';
       edit.addEventListener('click',()=>openUserModal(user));
       actions.appendChild(edit);
