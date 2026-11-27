@@ -143,7 +143,7 @@ Deno.serve(async (req: Request) => {
     const canManage = canYardRolePerform(resolvedYardRole, "R&M", "DELETE");
     Object.assign(permissions, {
       canAccessYardHub: true,
-      canAccessRepairMaintenance: canRead,
+      canAccessRepairMaintenance: canRead || canInput || canEdit || canManage,
       canCreateRepairMaintenance: canInput,
       canEditRepairMaintenance: canEdit,
       canDeleteRepairMaintenance: canManage,
@@ -314,7 +314,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "settings-get") {
-      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have READ access to R&M settings." }, 403);
+      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canCreateRepairMaintenance !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You need VIEW, ENTER or MANAGE permission to read R&M settings." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
       const { data, error } = await db.from("repair_maintenance_machine_settings")
         .select("machine_type,model_dropdown_enabled,asset_selector_enabled,registration_enabled,updated_at")
