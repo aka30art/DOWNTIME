@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 const html = await readFile('index.html', 'utf8');
 const packageJson = JSON.parse(await readFile('package.json', 'utf8'));
 const loginSmoke = await readFile('tests/login-smoke.mjs', 'utf8');
+const structure = await readFile('yard-hub-structure.js', 'utf8');
 const visualSystem = await readFile('yard-hub-visual-system.css', 'utf8');
 const rmHtml = await readFile('repair-maintenance.html', 'utf8');
 
