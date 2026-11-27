@@ -39,7 +39,7 @@ begin
           and lower(coalesce(account->>'yardRoleId',''))=lower(p_yard_role_id::text)
           and coalesce(account->>'enabled','false')='true'
           and upper(coalesce(account->>'status',''))='ACTIVE'
-          and not (account ? 'provisioning')
+          and (not (account ? 'provisioning') or account->'provisioning'='null'::jsonb)
      ) then
     raise exception 'Central Bank payload must contain the active linked USER/STAFF and assigned YARD ROLE';
   end if;
@@ -117,7 +117,7 @@ begin
           and lower(coalesce(account->>'yardRoleId',''))=lower(p_yard_role_id::text)
           and coalesce(account->>'enabled','false')='true'
           and upper(coalesce(account->>'status',''))='ACTIVE'
-          and not (account ? 'provisioning')
+          and (not (account ? 'provisioning') or account->'provisioning'='null'::jsonb)
      ) then
     raise exception 'Central Bank payload must contain the active linked USER/STAFF and assigned YARD ROLE';
   end if;
