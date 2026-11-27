@@ -467,7 +467,7 @@
     if(assignmentSection)assignmentSection.hidden=false;
     if(directorySection)directorySection.hidden=false;
     const result=await callApi('roots-state');rootsState=result;
-    if(roleSection)roleSection.hidden=!rootDev();
+    if(roleSection)roleSection.hidden=!rootDev()||!Array.isArray(result.roleDefinitions);
     if(roleHost){
       roleHost.replaceChildren();
       (result.roleDefinitions||[]).forEach(role=>{
