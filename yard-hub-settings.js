@@ -439,6 +439,9 @@
   async function loadRootsState(){
     const dev1=rootAuthority()==='DEV1';
     const dev1Form=$('yardHubDev1AdminAssignment'),assignmentSection=$('yardHubRootsAssignment'),directorySection=$('yardHubRootsDirectory');
+    const roleSection=$('yardHubRootRoleDefinitions'),roleHost=$('yardHubRootRoleDefinitionsList');
+    if(roleSection)roleSection.hidden=true;
+    if(roleHost)roleHost.replaceChildren();
     if(dev1){
       if(dev1Form)dev1Form.hidden=false;
       if(assignmentSection)assignmentSection.hidden=true;
@@ -452,7 +455,6 @@
     if(assignmentSection)assignmentSection.hidden=false;
     if(directorySection)directorySection.hidden=false;
     const result=await callApi('roots-state');rootsState=result;
-    const roleSection=$('yardHubRootRoleDefinitions'),roleHost=$('yardHubRootRoleDefinitionsList');
     if(roleSection)roleSection.hidden=!rootDev();
     if(roleHost){
       roleHost.replaceChildren();
