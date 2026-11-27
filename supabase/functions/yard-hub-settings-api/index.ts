@@ -381,7 +381,10 @@ Deno.serve(async (req: Request) => {
     if (targetRootsError || devBootstrapError) return json({ error: "Protected ROOTS registry is unavailable." }, 503);
     const targetRootsAuthority = targetRoots?.status === "ACTIVE" ? String(targetRoots.roots_class || "") : null;
     const isImmutableDevTarget = String(devBootstrap?.user_id || "").toLowerCase() === targetUserId.toLowerCase();
-    const managerAssignsOrdinaryUser = canManageStaffDirectory && !targetRootsAuthority && !isImmutableDevTarget;
+    const managerAssignsOrdinaryUser = !isProtectedRoot && canManageStaffDirectory && !targetRootsAuthority && !isImmutableDevTarget;
+    if (managerAssignsOrdinaryUser && String(targetUserId).toLowerCase() === String(user.userId).toLowerCase()) {
+      return json({ error: "Management MANAGE cannot assign a YARD ROLE to its own USER identity." }, 403);
+    }
     if (!managerAssignsOrdinaryUser && !canAssignYardRoleToTarget(rootsAuthority, targetRootsAuthority, isImmutableDevTarget)) {
       return json({ error: targetRootsAuthority ? "Only DEV may assign or change a YARD ROLE for another protected ROOTS identity." : "The immutable DEV identity cannot receive an ordinary YARD ROLE." }, 403);
     }
@@ -400,8 +403,20 @@ Deno.serve(async (req: Request) => {
     const { data: role, error: roleError } = await db.from("yard_roles").select("id,name,description,status").eq("id", yardRoleId).eq("status", "ACTIVE").maybeSingle();
     const { data: permissions, error: permissionsError } = await db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage").eq("yard_role_id", yardRoleId);
     if (roleError || permissionsError || !role) return json({ error: "Selected canonical YARD ROLE is unavailable." }, 409);
-    try { resolveYardRolePermissions(role, permissions || []); }
+    let resolvedTargetRole: any;
+    try { resolvedTargetRole = resolveYardRolePermissions(role, permissions || []); }
     catch (error) { return json({ error: error instanceof Error ? error.message : "YARD ROLE permission matrix is invalid." }, 409); }
+    if (managerAssignsOrdinaryUser) {
+      const requestedModuleRights = resolveYardRoleModulePermissions(resolvedTargetRole);
+      for (const [department, requestedRights] of Object.entries(requestedModuleRights) as Array<[string, any]>) {
+        const actorRights = actorModuleRights[department] || {};
+        for (const capability of ["view", "enter", "edit", "manage"]) {
+          if (requestedRights[capability] === true && actorRights[capability] !== true) {
+            return json({ error: "Management MANAGE may only assign YARD ROLES whose department permissions do not exceed the assigning user's own authority." }, 403);
+          }
+        }
+      }
+    }
 
     let assignment: any = null, assignmentError: any = null;
     if (!isPending && Number.isInteger(Number(body.assignmentVersion)) && Number(body.assignmentVersion) > 0) {
