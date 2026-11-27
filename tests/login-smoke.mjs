@@ -27,7 +27,7 @@ assert.match(indexHtml, /class="auth-brand-wordmark"[\s\S]*?YARD[\s\S]*?HUB[\s\S
 assert.match(indexHtml, /class="auth-divider"/, 'login includes the industrial separator motif');
 assert.match(indexHtml, /#authGate \.authbox\.authbox-central\{[\s\S]*?max-width:640px!important;[\s\S]*?border:2px solid #ffd21b;/, 'login uses the wider yellow-framed desktop panel');
 assert.match(indexHtml, /#authGate #centralUsername\{[\s\S]*?min-height:64px;[\s\S]*?border:2px solid #ffd21b;/, 'user selector receives the high-contrast industrial treatment');
-assert.match(indexHtml, /<select id="centralUsername"[^>]*><option value="">SELECT USER<\\/option><\\/select>/, 'login uses a real USER directory dropdown rather than free-text username entry');
+assert.match(indexHtml, /<select id="centralUsername"[^>]*><option value="">SELECT USER<\/option><\/select>/, 'login uses a real USER directory dropdown rather than free-text username entry');
 assert.match(indexHtml, /#authGate #teamPin\{[\s\S]*?height:66px;[\s\S]*?text-align:center;/, 'PIN entry remains a large centred password field');
 assert.match(indexHtml, /#authGate \.pinpad-grid button\{[\s\S]*?min-height:62px;/, 'numeric keypad uses large touch targets');
 assert.match(indexHtml, /@media\(max-width:600px\)[\s\S]*?#authGate \.authbox\.authbox-central/, 'login layout has a dedicated mobile adaptation');
