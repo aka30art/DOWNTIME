@@ -639,7 +639,6 @@ try{
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').textContent().then(value=>value.includes('WEEKLY Reports')),true,'navigation label is renamed to WEEKLY Reports');
  await ensureMainMenu(owner.page);
  await owner.page.locator('.nav[data-view="reports"]').click();
- await owner.page.evaluate(()=>renderArchive());
  await owner.page.locator('[data-report-display="weekly-report-qa"]').waitFor({state:'visible',timeout:10000});
  assert.equal(await owner.page.locator('#reports h2').textContent(),'WEEKLY REPORTS','reports section uses the new heading');
  await owner.page.locator('[data-report-display="weekly-report-qa"]').click();
