@@ -3,8 +3,8 @@ import { resolveRootsAuthority, rootsCapabilities, canInteractWithRootsTarget } 
 
 const userId="11111111-1111-4111-8111-111111111111";
 const staffId="22222222-2222-4222-8222-222222222222";
-const dev1={username:"worker.one",tier:"USER",userId,staffId};
-const admin={username:"worker.two",tier:"ADMIN",userId,staffId};
+const dev1={username:"worker.one",tier:"USER",userId,staffId,enabled:true,status:"ACTIVE"};
+const admin={username:"worker.two",tier:"ADMIN",userId,staffId,enabled:true,status:"ACTIVE"};
 const devAssignment={user_id:userId,staff_id:staffId,roots_class:"DEV1"};
 const adminAssignment={user_id:userId,staff_id:staffId,roots_class:"ADMIN"};
 
