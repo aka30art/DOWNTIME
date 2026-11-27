@@ -9,6 +9,7 @@ Implemented in this branch:
 - New attachment rows record immutable uploader USER and optional linked STAFF IDs.
 - Database trigger prevents changing uploader identity, entry key, record ID, department or storage path after insertion.
 - Viewing and replacing an attachment require the original uploader or DOWNTIME Manage permission. Deletion remains Manage-only.
+- Original-uploader view/replacement is ownership-based and does not require Management VIEW. New-record upload requires Management ENTER; attaching to an existing record requires EDIT or MANAGE; deletion requires MANAGE.
 - Legacy attachments with no uploader ID are Manage-only; no inferred owner or historical backfill is attempted.
 - Upload/delete audit details include immutable actor IDs and owner IDs where available.
 - Scheduled expiry cleanup remains separate and unchanged.
@@ -39,6 +40,7 @@ Implemented in this branch:
 - DEV alone can browse the ROOTS directory and assign DEV1. DEV and DEV1 can assign ADMIN. DEV1 receives no ROOTS directory data; protected ADMIN cannot assign ROOTS.
 - Non-DEV account listings, Central Bank STAFF payloads, daily-operator views and GATELOG STAFF rosters hide protected ROOTS identities. Ordinary account/tier/STAFF/photo paths cannot modify or inspect protected ROOTS identities.
 - ROOTS authority is resolved independently and grants protected Manage capabilities to the current Central Bank Management, GATELOG Traffic, R&M and YARD HUB ROOTS consumers. It does not grant the separate DEV-only configuration control plane.
+- Central Bank USER directory access and provisioning are restricted to immutable DEV ROOTS authority; legacy OWNER, DEVACC and ADMIN tier labels do not grant this control-plane access.
 
 DEV1's ADMIN assignment is exposed through a restricted manual-ID form: it accepts one immutable USER ID and its linked STAFF ID, invokes only the ADMIN assignment action, and never loads or displays the ROOTS directory. DEV remains the only identity that can browse the directory, assign DEV1, reclassify or revoke ROOTS identities.
 
