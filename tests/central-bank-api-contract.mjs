@@ -15,6 +15,7 @@ assert.ok(src.includes('const loadProtectedRootUserIds=async()'),'Central Bank e
 assert.ok(src.includes('if(protectedTarget&&rootsAuthority!=="DEV")'),'ordinary account updates cannot alter protected ROOTS identities');
 assert.ok(src.includes('Protected ROOTS identities cannot be deleted through ordinary account management.'),'ordinary account deletion cannot remove protected ROOTS identities');
 assert.ok(src.includes('lookupProtectedStaff'),'generic STAFF settings saves preserve protected ROOTS profiles');
+assert.ok(src.includes('hideProtectedRootStaff')&&src.includes('rootDirectory.staffIds'),'Central Bank payloads hide protected ROOTS STAFF identities from non-DEV users');
 assert.ok(src.includes('Only immutable DEV may view protected ROOTS STAFF photos.'),'protected ROOTS STAFF photos cannot be inspected by other administrators');
 assert.ok(src.includes('if(action==="roots-state")')&&src.includes('rootsAuthority!=="DEV"'),'only immutable DEV can browse protected ROOTS assignments');
 assert.ok(src.includes('action==="roots-assign-admin"&&requestedClass!=="ADMIN"'),'DEV1 scoped action can assign ADMIN only');
