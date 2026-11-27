@@ -223,7 +223,7 @@ Deno.serve(async(req)=>{
      canControlPlantPower:true,
    });
    if(rootsAuthority!=="DEV"){
-     Object.assign(priv,{canManageUsers:false,canViewUsers:false,canManageSettings:true,canManageAccessRights:false});
+     Object.assign(priv,{canManageSettings:true,canManageAccessRights:false});
    }
    Object.assign(priv,{canManageStaff:true,canEnterStaff:true,canEditStaff:true,canViewStaff:true,canManageAssignments:true,canViewAssignments:true});
  }
@@ -878,7 +878,7 @@ Deno.serve(async(req)=>{
    return json({users:bank.users.map(safeUser),tiers:bank.tiers});
  }
  if(action==="user-save"){
-   if(!isDevRoot)return json({error:"Only immutable DEV may maintain existing USER identities."},403);
+   if(!priv.canManageUsers)return json({error:"Staff Management MANAGE or immutable DEV authority is required to maintain ordinary USER identities."},403);
    const username=String(body.username||"").trim(),displayName=String(body.displayName||username).trim(),pin=String(body.pin||"");
    if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username))return json({error:"Invalid username"},400);
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
@@ -887,9 +887,20 @@ Deno.serve(async(req)=>{
    const canonicalIdentity=!!existing.userId&&!!existing.staffId;
    if(canonicalIdentity&&body.tier!=null)return json({error:"Canonical YARD ROLE identities cannot receive legacy tier claims."},400);
    const newTier=canonicalIdentity?undefined:String(body.tier||existing.tier||"USER");
-   if(!canonicalIdentity&&(!newTier||!tiers.includes(newTier)))return json({error:"Invalid user/tier"},400);
    const isRootName=username.toUpperCase()==="DEV";
-   if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only immutable DEV can create accounts or assign user tiers."},403);
+   if(!isDevRoot){
+     if(!canonicalIdentity||!existing.userId||!existing.staffId||body.tier!=null)return json({error:"Management MANAGE can maintain only ordinary canonical USER + STAFF identities; legacy tiers and protected identities remain DEV-controlled."},403);
+     if(username.toLowerCase()===currentUser.username.toLowerCase())return json({error:"You cannot change your own USER account."},403);
+     const [{data:targetRoots,error:targetRootsError},{data:bootstrap,error:bootstrapError}]=await Promise.all([
+       db.from("downtime_roots_assignments").select("roots_class,status").eq("user_id",existing.userId).maybeSingle(),
+       db.from("downtime_roots_bootstrap").select("user_id").eq("singleton",true).maybeSingle(),
+     ]);
+     if(targetRootsError||bootstrapError)return json({error:"Protected ROOTS registry is unavailable."},503);
+     if(targetRoots||String(bootstrap?.user_id||"").toLowerCase()===String(existing.userId).toLowerCase())return json({error:"Protected ROOTS identities can only be maintained by immutable DEV."},403);
+   }else{
+     if(!canonicalIdentity&&(!newTier||!tiers.includes(newTier)))return json({error:"Invalid user/tier"},400);
+     if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only immutable DEV can create accounts or assign user tiers."},403);
+   }
    if(isRootName){
      if(!isDevRoot)return json({error:"Only root DEV can update root credentials."},403);
      if(!existing||existing.tier!=="OWNER"||newTier!=="OWNER"||body.enabled===false)return json({error:"DEV is the immutable root OWNER and cannot be created, demoted or disabled."},400);
