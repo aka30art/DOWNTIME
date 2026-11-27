@@ -752,15 +752,12 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
         <div class="yard-hub-user-columns"><span>ACCOUNT</span><span>YARD ROLE / IDENTITY</span><span>STATUS / ACTIONS</span></div>
         <div id="yardHubUsersList" class="yard-hub-users-list"></div>
         <section id="yardHubIdentityReset" class="yard-hub-roots-assignment" hidden aria-labelledby="yardHubIdentityResetHeading">
-          <h3 id="yardHubIdentityResetHeading">PHASE 1 · COMPLETE IDENTITY RESET</h3>
-          <p>This permanently replaces every existing USER account, STAFF profile and the current DEV bootstrap identity. It creates new DEV, DEV1 and ADMIN identities, revokes every existing session and removes old ROOTS authority. Operational records, audit history and shared photo evidence are preserved. This operation can run only once.</p>
+          <h3 id="yardHubIdentityResetHeading">ONE-TIME · CLEAR USER / STAFF DIRECTORY</h3>
+          <p>This permanently removes every USER account except the existing DEV account, all STAFF roster entries and profiles, and every object in the dedicated STAFF photo bucket. DEV keeps the same immutable USER ID, PIN credentials and current session. DEV1 and ADMIN are created as protected ROOTED role definitions only — not login accounts and not STAFF identities. Ordinary YARD ROLE definitions, access rights, department permission matrices, operational records and non-STAFF evidence remain intact.</p>
           <div class="yard-hub-roots-form">
             <label>CURRENT DEV PIN<input id="yardHubResetCurrentDevPin" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password" placeholder="Verify current DEV PIN"></label>
-            <label>NEW DEV PIN<input id="yardHubResetDevPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="4–8 digits"></label>
-            <label>NEW DEV1 PIN<input id="yardHubResetDev1Pin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="4–8 digits"></label>
-            <label>NEW ADMIN PIN<input id="yardHubResetAdminPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="4–8 digits"></label>
-            <label>TYPE RESET ALL IDENTITIES<input id="yardHubResetConfirmation" type="text" maxlength="32" autocomplete="off" spellcheck="false" placeholder="RESET ALL IDENTITIES"></label>
-            <button id="yardHubIdentityResetExecute" type="button" class="yard-hub-primary">PERMANENTLY RESET IDENTITIES</button>
+            <label>TYPE KEEP DEV - CLEAR USERS STAFF PHOTOS<input id="yardHubResetConfirmation" type="text" maxlength="48" autocomplete="off" spellcheck="false" placeholder="KEEP DEV - CLEAR USERS STAFF PHOTOS"></label>
+            <button id="yardHubIdentityResetExecute" type="button" class="yard-hub-primary">PERMANENTLY CLEAR USER / STAFF DATA</button>
           </div>
         </section>
       </div>
@@ -792,6 +789,11 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
           <div><h2>PROTECTED ROOTS</h2><p>DEV controls the ROOTS directory. DEV1 can assign ADMIN only. ROOTS authority is separate from ordinary YARD ROLE permissions.</p></div>
           <div class="yard-hub-tier-actions"><button type="button" data-yard-settings-home class="yard-hub-secondary">‹ BACK TO SETTINGS</button></div>
         </div>
+        <section id="yardHubRootRoleDefinitions" class="yard-hub-roots-assignment" hidden aria-labelledby="yardHubRootRoleDefinitionsHeading">
+          <h3 id="yardHubRootRoleDefinitionsHeading">DEV-ONLY ROOTED ROLE DEFINITIONS</h3>
+          <p>These are protected authority definitions, not USER accounts or STAFF profiles. They remain hidden from every account except DEV.</p>
+          <div id="yardHubRootRoleDefinitionsList" class="yard-hub-roots-list"></div>
+        </section>
         <section id="yardHubDev1AdminAssignment" class="yard-hub-roots-assignment" hidden aria-labelledby="yardHubDev1AdminHeading">
           <h3 id="yardHubDev1AdminHeading">ASSIGN PROTECTED ADMIN</h3>
           <p>DEV1 may assign ADMIN only. ROOTS directory browsing, DEV1 assignment, reclassification and revocation remain DEV-only.</p>
