@@ -421,7 +421,7 @@ window.supabase={createClient:()=>({
   loginPresentationVerified=true;
  }
 
- return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,getYardHubConfig:()=>yardHubConfig,getYardHubApiActions:()=>yardHubApiActions,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
+ return {context,page,actions,weeklyReportApiCalls,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,getYardHubConfig:()=>yardHubConfig,getYardHubApiActions:()=>yardHubApiActions,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
 let repairMaintenanceBootTested=false;
@@ -633,7 +633,7 @@ try{
  await owner.page.waitForFunction(()=>document.querySelector('#reportPreviewModal')?.classList.contains('show')&&document.querySelector('#reportPreviewFrame')?.src.startsWith('blob:'),{timeout:5000});
  await owner.page.waitForTimeout(1200); // Allow Chromium's built-in PDF renderer to paint the loaded page before screenshots.
  assert.equal(await owner.page.locator('#reportPreviewTitle').textContent(),'WEEK OF 16/11/2026','Display opens the selected report, not the current tracker week');
- assert.deepEqual(weeklyReportApiCalls.filter(call=>call.action==='download'),[{action:'download',reportId:'weekly-report-qa'}],'Display requests only the selected report through the Central Bank-session archive API');
+ assert.deepEqual(owner.weeklyReportApiCalls.filter(call=>call.action==='download'),[{action:'download',reportId:'weekly-report-qa'}],'Display requests only the selected report through the Central Bank-session archive API');
  await mkdir(resolve('artifacts/weekly-reports'),{recursive:true});
  for(const width of [320,390,600,601,768,1280]){
   await owner.page.setViewportSize({width,height:900});
