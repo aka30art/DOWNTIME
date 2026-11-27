@@ -241,7 +241,7 @@
         });
         actions.appendChild(rootButton);
       }
-      if(isProtectedRoot()&&user.userId&&user.staffId&&!user.rootsClass&&user.enabled!==false&&user.provisioningState!=='YARD_ROLE_PENDING'){
+      if(isProtectedRoot()&&user.userId&&user.staffId&&(!user.rootsClass||rootAuthority()==='DEV')&&String(user.username).toUpperCase()!=='DEV'&&user.enabled!==false&&user.provisioningState!=='YARD_ROLE_PENDING'){
         const assign=element('div','yard-hub-user-role-assignment');
         const select=document.createElement('select');select.setAttribute('aria-label','YARD ROLE for '+user.username);
         (state.yardRoles||[]).forEach(role=>{const option=element('option','',role.name);option.value=role.id;select.appendChild(option)});

@@ -51,3 +51,15 @@ export function canInteractWithRootsTarget(actorAuthority, targetAuthority) {
   if (targetAuthority === "ADMIN" && actorAuthority === "ADMIN") return false;
   return true;
 }
+
+/**
+ * YARD ROLE assignment is available to protected ROOTS actors for ordinary users.
+ * Assigning a YARD ROLE to another protected ROOTS identity is DEV-only.
+ * The immutable bootstrap DEV identity can never receive an ordinary YARD ROLE.
+ */
+export function canAssignYardRoleToTarget(actorAuthority, targetAuthority, isImmutableDevTarget = false) {
+  if (isImmutableDevTarget) return false;
+  if (!["DEV", "DEV1", "ADMIN"].includes(actorAuthority)) return false;
+  if (targetAuthority && !["DEV1", "ADMIN"].includes(targetAuthority)) return false;
+  return !targetAuthority || actorAuthority === "DEV";
+}

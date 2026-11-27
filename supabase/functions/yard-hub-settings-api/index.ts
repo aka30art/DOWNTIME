@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { resolveYardRolePermissions } from "../_shared/yard-role-resolver.mjs";
-import { canInteractWithRootsTarget, resolveRootsAuthority, rootsCapabilities } from "../_shared/roots-authority.mjs";
+import { canAssignYardRoleToTarget, canInteractWithRootsTarget, resolveRootsAuthority, rootsCapabilities } from "../_shared/roots-authority.mjs";
 
 const allowedOrigin = "https://aka30art.github.io";
 const tierNames = ["OWNER", "DEVACC", "ADMIN", "MANAGER", "SUPERVISOR", "MECHANIC", "USER", "SPECTATOR"] as const;
@@ -348,8 +348,10 @@ Deno.serve(async (req: Request) => {
       db.from("downtime_roots_bootstrap").select("user_id").eq("singleton", true).maybeSingle(),
     ]);
     if (targetRootsError || devBootstrapError) return json({ error: "Protected ROOTS registry is unavailable." }, 503);
-    if (String(devBootstrap?.user_id || "").toLowerCase() === targetUserId.toLowerCase() || targetRoots) {
-      return json({ error: "Protected ROOTS identities receive automatic department authority and cannot be assigned an ordinary YARD ROLE." }, 409);
+    const targetRootsAuthority = targetRoots?.status === "ACTIVE" ? String(targetRoots.roots_class || "") : null;
+    const isImmutableDevTarget = String(devBootstrap?.user_id || "").toLowerCase() === targetUserId.toLowerCase();
+    if (!canAssignYardRoleToTarget(rootsAuthority, targetRootsAuthority, isImmutableDevTarget)) {
+      return json({ error: targetRootsAuthority ? "Only DEV may assign or change a YARD ROLE for another protected ROOTS identity." : "The immutable DEV identity cannot receive an ordinary YARD ROLE." }, 403);
     }
     const isPending = target.provisioning?.stage === "YARD_ROLE_PENDING";
     if (isPending && target.provisioning.requestedYardRoleId !== yardRoleId) return json({ error: "Selected YARD ROLE does not match the provisioned request." }, 409);
