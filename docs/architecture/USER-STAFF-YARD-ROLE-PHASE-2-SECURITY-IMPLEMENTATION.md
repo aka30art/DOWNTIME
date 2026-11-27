@@ -33,7 +33,7 @@ Implemented in this branch:
 - ROOTS is stored in a separate service-role-only registry; no ROOTS classifications are seeded.
 - DEV is recognised only as the immutable DEV bootstrap identity. DEV1 and protected ADMIN require a matching server-loaded USER/STAFF assignment.
 - Legacy OWNER, DEVACC and ordinary ADMIN tier labels do not imply ROOTS authority.
-- DEV alone can browse the ROOTS directory and assign DEV1 or ADMIN. DEV1 can assign ADMIN only and receives no ROOTS directory data. ADMIN cannot assign ROOTS.
+- DEV alone can browse the ROOTS directory and assign DEV1. DEV and DEV1 can assign ADMIN; DEV1 receives no ROOTS directory data. ADMIN cannot assign ROOTS.
 - ROOTS assignment rows and their audit rows are append-only and written through a service-role RPC.
 - Non-DEV account listings, Central Bank STAFF payloads, daily-operator views and GATELOG STAFF rosters hide protected ROOTS identities. Ordinary account/tier/STAFF/photo paths cannot modify or inspect protected ROOTS identities.
 - Protected ROOTS authority is resolved independently and provides Manage access to the current GATELOG Traffic, R&M and YARD HUB settings consumers.
