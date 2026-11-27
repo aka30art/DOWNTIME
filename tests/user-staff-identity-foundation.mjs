@@ -441,7 +441,7 @@ assert.match(provisioningMigration, /downtime_central_commit_identity_event/);
 assert.match(provisioningMigration, /enable row level security/);
 assert.doesNotMatch(provisioningMigration, /insert into public\.yard_roles/i, "no unapproved YARD ROLE catalogue entries are seeded");
 
-assert.match(resolverSource, /OFF.*READ_ONLY.*INPUT.*MANAGE/);
+assert.match(resolverSource, /YARD_ROLE_PERMISSION_KEYS.*view.*enter.*edit.*manage/s, "resolver exposes independent View, Enter, Edit and Manage permissions");
 assert.match(repairMaintenanceApi, /if \(user\.yardRoleId\) return json\(\{ error: "Canonical YARD ROLE authorization is not yet enabled for R&M/);
 assert.match(gatelogApi, /if\(user\.yardRoleId\)return json\(\{error:"Canonical YARD ROLE authorization is not yet enabled for GATELOG/);
 assert.match(centralApi, /DOWNTIME_IDENTITY_FINGERPRINT_SECRET/, "provisioning fingerprints require a server-only secret");
