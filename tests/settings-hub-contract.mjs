@@ -92,17 +92,17 @@ assert.notEqual(manageAccessRightsStart,-1,'Access and Rights permission gate mu
 const manageAccessRightsEnd=html.indexOf('}',manageAccessRightsStart)+1;
 const manageAccessRightsSource=html.slice(manageAccessRightsStart,manageAccessRightsEnd);
 assert.ok(manageAccessRightsSource.endsWith('}'),'Access and Rights permission gate source must be complete');
-const accessRightsGate=new Function('centralUser','activeOperator','privilegeFor','canAccessCentralBank','permission','rootsAuthority',
-  manageAccessRightsSource+'; return canManageAccessRights;');
-const rightsGate=(tier,rootAuthority=null)=>accessRightsGate(
-  {tier},'contract-user',()=>tier,()=>false,()=>false,()=>rootAuthority
-)();
-assert.equal(rightsGate('ADMIN','ADMIN'),false,'protected ADMIN ROOTS cannot inherit DEV-only DOWNTIME Access and Rights control');
-assert.equal(rightsGate('DEVACC','DEVACC'),false,'legacy DEVACC tier does not grant protected ROOTS authority');
-assert.equal(rightsGate('OWNER',null),false,'legacy OWNER tier alone does not grant Access and Rights control');
-assert.equal(rightsGate('OWNER','DEV'),true,'immutable DEV ROOTS authority retains Access and Rights control');
-assert.equal(rightsGate('OWNER','DEV1'),false,'DEV1 cannot change the DEV-only DOWNTIME Access and Rights control plane');
-assert.equal(rightsGate('OWNER','ADMIN'),false,'protected ADMIN cannot change the DEV-only DOWNTIME Access and Rights control plane');
+assert.equal(accessHelpers(()=>false,()=>false,()=>false).settingsAccess('accessRights'),false,'legacy Access and Rights editing remains disabled during canonical identity cutover');
+assert.match(html,/function canManageAccessRights\(\)\{return false\}/,'legacy Access and Rights mutation remains fail-closed until a separately approved cutover');
+const centralBankGateStart=html.indexOf('function canAccessCentralBank(){');
+assert.notEqual(centralBankGateStart,-1,'Central Bank access gate must be present');
+const centralBankGateEnd=html.indexOf('}',centralBankGateStart)+1;
+const centralBankGateSource=html.slice(centralBankGateStart,centralBankGateEnd);
+const centralBankGate=new Function('rootsAuthority',centralBankGateSource+'; return canAccessCentralBank;');
+assert.equal(centralBankGate(()=> 'DEV')(),true,'immutable DEV ROOTS authority can access the Central Bank');
+assert.equal(centralBankGate(()=> 'DEV1')(),false,'DEV1 cannot access the DEV-only Central Bank');
+assert.equal(centralBankGate(()=> 'ADMIN')(),false,'protected ADMIN cannot access the DEV-only Central Bank');
+assert.equal(centralBankGate(()=> null)(),false,'legacy OWNER/DEVACC/ADMIN tiers cannot substitute for immutable DEV ROOTS authority');
 assert.ok(!html.includes('centralUsersAdminLink'),'obsolete Central Data Bank link is removed from the USERS panel');
 
 assert.match(html, /function showSettingsHub\(\)/, 'back navigation must return to the Settings hub');
