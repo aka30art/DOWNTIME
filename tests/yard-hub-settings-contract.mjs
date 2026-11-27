@@ -220,3 +220,5 @@ assert.ok(ui.includes("const dev1=rootAuthority()==='DEV1'"),'ROOTS UI selects t
 assert.ok(ui.includes("if(dev1Form)dev1Form.hidden=false")&&ui.includes("if(directorySection)directorySection.hidden=true"),'DEV1 receives no ROOTS directory data or browsing controls');
 assert.ok(ui.includes("callApi('roots-manage',{userId,staffId,lifecycleAction:'ASSIGN',rootsClass:'ADMIN'})"),'DEV1 can assign ADMIN only through the narrow server-authorized lifecycle action');
 assert.ok(ui.includes("if(rootAuthority()!=='DEV1'||saving)return"),'the DEV1 UI action is unavailable to other identities');
+assert.ok(ui.includes("filter(role=>role.status==='ACTIVE')"),'USER assignment selector exposes only ACTIVE canonical YARD ROLEs');
+assert.ok(ui.includes("some(role=>role.status==='ACTIVE')"),'USER creation remains disabled until at least one ACTIVE canonical YARD ROLE exists');
