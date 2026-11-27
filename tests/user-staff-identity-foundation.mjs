@@ -442,8 +442,12 @@ assert.match(provisioningMigration, /enable row level security/);
 assert.doesNotMatch(provisioningMigration, /insert into public\.yard_roles/i, "no unapproved YARD ROLE catalogue entries are seeded");
 
 assert.match(resolverSource, /OFF.*READ_ONLY.*INPUT.*MANAGE/);
-assert.match(repairMaintenanceApi, /if \(user\.yardRoleId\) return json\(\{ error: "Canonical YARD ROLE authorization is not yet enabled for R&M/);
-assert.match(gatelogApi, /if\(user\.yardRoleId\)return json\(\{error:"Canonical YARD ROLE authorization is not yet enabled for GATELOG/);
+assert.match(repairMaintenanceApi, /resolveYardRolePermissions/);
+assert.match(repairMaintenanceApi, /canYardRolePerform\(resolvedYardRole, "R&M", "VIEW"\)/);
+assert.doesNotMatch(repairMaintenanceApi, /Canonical YARD ROLE authorization is not yet enabled for R&M/);
+assert.match(gatelogApi, /resolveYardRolePermissions/);
+assert.match(gatelogApi, /canYardRolePerform\(resolvedYardRole,"Traffic","VIEW"\)/);
+assert.doesNotMatch(gatelogApi, /Canonical YARD ROLE authorization is not yet enabled for GATELOG/);
 assert.match(centralApi, /DOWNTIME_IDENTITY_FINGERPRINT_SECRET/, "provisioning fingerprints require a server-only secret");
 assert.match(centralApi, /hmacDigest\(fingerprintSecret,JSON\.stringify\(\{username,displayName,pin,staff:staffFields,requestedYardRoleId\}\)\)/, "low-entropy PIN is protected by HMAC in the idempotency fingerprint");
 assert.match(centralApi, /const userId=String\(body\.userId\|\|""\)/, "activation targets immutable USER ID");
