@@ -502,7 +502,11 @@ async function ensureNavigationMenuOpen(page){
 async function openStaffSettings(page){
  await ensureMainMenu(page);
  await dismissPlantTransitionAlerts(page);
- await page.evaluate(()=>{document.querySelector('#settingsHub').hidden=true;document.querySelector('#settingsPanelStaff').hidden=false});
+ await page.evaluate(()=>{
+  document.querySelectorAll('.view').forEach(view=>view.classList.toggle('active',view.id==='settings'));
+  document.querySelector('#settingsHub').hidden=true;
+  document.querySelector('#settingsPanelStaff').hidden=false;
+ });
  await page.locator('#staffRosterList').waitFor({state:'visible'});
 }
 
