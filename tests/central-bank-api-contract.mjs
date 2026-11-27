@@ -105,7 +105,7 @@ assert.ok(src.includes('canViewStaff:staffManagement.view===true')&&src.includes
 assert.ok(src.includes('SCPL INPUT permission is required to add DOWNTIME records.')&&src.includes('SCPL EDIT permission is required to change DOWNTIME records.')&&src.includes('SCPL MANAGE permission is required to remove DOWNTIME records.'),'all operational record mutations enforce SCPL rights');
 assert.ok(src.includes('scplRights?.enter===true')&&src.includes('scplRights?.edit===true')&&src.includes('scplRights?.manage===true'),'DOWNTIME save route checks each SCPL record permission');
 assert.ok(src.includes('hasCanonicalIdentity&&!isRootAuthority&&!moduleRights.DOWNTIME.view'),'daily operator register is hidden without SCPL VIEW');
-assert.ok(src.includes('canManageUsers:false,canViewUsers:false')&&src.includes('canManageAccessRights:false'),'ordinary YARD ROLE rights cannot grant account lifecycle or ROOTS control');
+assert.ok(src.includes('canManageAccessRights:false')&&src.includes('priv.canManageUsers=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"")'),'only Management MANAGE or protected ROOTS grants ordinary USER management; ordinary DOWNTIME rights cannot grant ROOTS governance');
 assert.ok(src.includes('canEnterStaff=!!priv.canEnterStaff')&&src.includes('canEditStaff=!!priv.canEditStaff'),'save-settings supports Staff INPUT and EDIT independently of MANAGE');
 assert.ok(src.includes('Management MANAGE permission is required to maintain STAFF role definitions.'),'Staff role catalogue requires Management MANAGE');
 assert.ok(src.includes('if(!priv.canManageStaff)return json({error:"Management MANAGE permission is required to maintain STAFF profiles."},403);'),'legacy staff-save path enforces Management MANAGE');
