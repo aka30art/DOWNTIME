@@ -25,7 +25,8 @@ assert.match(api,/Master hierarchy exceeds the registry limits/,"aggregate regis
 assert.match(api,/hierarchy: normalizeMasterHierarchy\(structure\.hierarchy\)/,"normalized hierarchy is persisted in the CDB payload");
 
 const operationalTables=[...api.matchAll(/\.from\(["']([^"']+)["']\)/g)].map(match=>match[1]);
-assert.ok(operationalTables.every(name=>name.startsWith("downtime_central_")),"Phase 03 endpoint only touches Central Data Bank control-plane tables");
+assert.ok(operationalTables.every(name=>name.startsWith("downtime_central_")||name==="downtime_roots_bootstrap"),"Phase 03 endpoint only touches Central configuration tables plus immutable ROOTS bootstrap");
+assert.deepEqual(operationalTables.filter(name=>!name.startsWith("downtime_central_")),["downtime_roots_bootstrap"],"ROOTS bootstrap is the only non-Central Phase 03 dependency");
 assert.ok(!/\.from\(["'](?:downtime_events|downtime_faults|downtime_users|downtime_daily_operator_assignments|downtime_equipment)/.test(api),"Phase 03 does not access operational tables");
 
 console.log("PASS: CDB Phase 03 master registry contract — hierarchy UI, parent-child constraints, backward compatibility, server validation, bounded records and control-plane isolation.");
