@@ -27,6 +27,7 @@ assert.match(indexHtml, /class="auth-brand-wordmark"[\s\S]*?YARD[\s\S]*?HUB[\s\S
 assert.match(indexHtml, /class="auth-divider"/, 'login includes the industrial separator motif');
 assert.match(indexHtml, /#authGate \.authbox\.authbox-central\{[\s\S]*?max-width:640px!important;[\s\S]*?border:2px solid #ffd21b;/, 'login uses the wider yellow-framed desktop panel');
 assert.match(indexHtml, /#authGate #centralUsername\{[\s\S]*?min-height:64px;[\s\S]*?border:2px solid #ffd21b;/, 'user selector receives the high-contrast industrial treatment');
+assert.match(indexHtml, /<select id="centralUsername"[^>]*><option value="">SELECT USER<\\/option><\\/select>/, 'login uses a real USER directory dropdown rather than free-text username entry');
 assert.match(indexHtml, /#authGate #teamPin\{[\s\S]*?height:66px;[\s\S]*?text-align:center;/, 'PIN entry remains a large centred password field');
 assert.match(indexHtml, /#authGate \.pinpad-grid button\{[\s\S]*?min-height:62px;/, 'numeric keypad uses large touch targets');
 assert.match(indexHtml, /@media\(max-width:600px\)[\s\S]*?#authGate \.authbox\.authbox-central/, 'login layout has a dedicated mobile adaptation');
@@ -157,8 +158,8 @@ window.supabase={createClient:()=>({
   actions.push({action,body:req});
   const ok=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
   if(action==='list-users'){
-   const listed=bank.users?.length?bank.users.filter(user=>user.enabled!==false).map(user=>({username:user.username,displayName:user.displayName||user.username,tier:user.tier})):[{username:'DEV',displayName:'DEV',tier:'OWNER'},{username:'Jan',displayName:'Jan',tier:'USER'},{username:'MICK',displayName:'Mick',tier:username.toUpperCase()==='MICK'?tier:'USER'}];
-   if(!listed.some(user=>user.username.toLowerCase()===username.toLowerCase()))listed.push({username,displayName:username,tier});
+   const listed=bank.users?.length?bank.users.filter(user=>user.enabled!==false).map(user=>({username:user.username})):[{username:'DEV'},{username:'Jan'},{username:'MICK'}];
+   if(!listed.some(user=>user.username.toLowerCase()===username.toLowerCase()))listed.push({username});
    return ok({users:listed});
   }
   if(action==='user-save'){
@@ -385,7 +386,10 @@ window.supabase={createClient:()=>({
   return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':origin,'vary':'Origin'},body:JSON.stringify({user:{username:'DEV',displayName:'DEV',tier:'DEV'},permissions:{canAccessYardHub:true,canAccessRepairMaintenance:true,canEditRepairMaintenance:true,canDeleteRepairMaintenance:true,canExportRepairMaintenanceReports:true}})});
  });
  await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
- try{await page.waitForFunction(()=>document.querySelector('#centralUsername')?.tagName==='INPUT',{timeout:8000})}catch(error){throw new Error('Manual username login field failed to render. Browser errors: '+errors.slice(-10).join(' | ')+'; auth message: '+await page.locator('#authMsg').textContent().catch(()=> 'missing')+'; window adapter: '+await page.evaluate(()=>String(!!window.DowntimeCentral)).catch(()=> 'unavailable')+'; original: '+error.message)}
+ try{await page.waitForFunction(()=>document.querySelector('#centralUsername')?.tagName==='SELECT'&&document.querySelector('#centralUsername')?.options.length>1,{timeout:8000})}catch(error){throw new Error('Manual username login field failed to render. Browser errors: '+errors.slice(-10).join(' | ')+'; auth message: '+await page.locator('#authMsg').textContent().catch(()=> 'missing')+'; window adapter: '+await page.evaluate(()=>String(!!window.DowntimeCentral)).catch(()=> 'unavailable')+'; original: '+error.message)}
+ assert.equal(await page.locator('#centralUsername').evaluate(el=>el.tagName),'SELECT','login username is selected from a dropdown');
+ assert.equal(await page.locator('#centralUsername').evaluate(el=>el.options[0]?.value),'','login dropdown requires an explicit USER selection');
+ assert.ok(await page.locator('#centralUsername option').evaluateAll(options=>options.some(option=>option.value===username)),'enabled account appears in the USER selection list');
  if(!loginPresentationVerified){
   const desktopBox=await page.locator('#authGate .authbox-central').boundingBox();
   const desktopStyle=await page.locator('#authGate .authbox-central').evaluate(el=>({border:getComputedStyle(el).borderTopColor,brandVisible:!!el.querySelector('.auth-brand-wordmark')}));
@@ -428,7 +432,7 @@ async function pinpad(page,pin){for(const digit of pin)await page.locator('[data
 let repairMaintenanceBootTested=false;
 let loginPresentationVerified=false;
 async function signIn(page,pin='2468',username='DEV'){
- await page.locator('#centralUsername').fill(username);
+ await page.locator('#centralUsername').selectOption(username);
  await pinpad(page,pin);
  await page.locator('#unlockBtn').click();
  await page.waitForFunction(()=>document.querySelector('#authGate').style.display==='none',{timeout:5000});
@@ -564,7 +568,7 @@ async function openSettingsHub(page){
 try{
  // Invalid credentials never unlock the tracker.
  const rejected=await openFor('OWNER');
- await rejected.page.locator('#centralUsername').fill('DEV');
+ await rejected.page.locator('#centralUsername').selectOption('DEV');
  await pinpad(rejected.page,'9999');
  await rejected.page.locator('#unlockBtn').click();
  await rejected.page.waitForFunction(()=>document.querySelector('#authMsg').textContent.includes('Invalid username or PIN'),{timeout:5000});
@@ -1171,7 +1175,7 @@ await ensureNavigationMenuOpen(owner.page);
  assert.equal(await owner.page.locator('#yardHub').isVisible(),true,'YARD HUB is available before sign-out');
  await owner.page.locator('#yardHubLogoutBtn').click();
  await owner.page.waitForFunction(()=>document.querySelector('#authGate').style.display!=='none');
- await owner.page.waitForFunction(()=>document.querySelector('#centralUsername')?.tagName==='INPUT',{timeout:5000});
+ await owner.page.waitForFunction(()=>document.querySelector('#centralUsername')?.tagName==='SELECT'&&document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
  assert.equal(await owner.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display==='none'),true,'Central Data Bank entry is hidden immediately after logout');
  assert.equal(await owner.page.locator('#authGate h2').textContent(),'DOWNTIME · CENTRAL LOGIN','Log Out returns OWNER to the central USER login screen');
  assert.ok(owner.actions.some(x=>x.action==='logout'),'Log Out calls the central logout endpoint');
@@ -1207,7 +1211,7 @@ await ensureNavigationMenuOpen(owner.page);
  assert.equal(await user.page.locator('.side #logoutBtn').isVisible(),true,'USER has Log Out in the top navigation');
  await user.page.locator('.side #logoutBtn').click();
  await user.page.waitForFunction(()=>document.querySelector('#authGate').style.display!=='none');
- await user.page.waitForFunction(()=>document.querySelector('#centralUsername')?.tagName==='INPUT',{timeout:5000});
+ await user.page.waitForFunction(()=>document.querySelector('#centralUsername')?.tagName==='SELECT'&&document.querySelector('#centralUsername')?.options.length>1,{timeout:5000});
  assert.equal(await user.page.locator('#authGate h2').textContent(),'DOWNTIME · CENTRAL LOGIN','USER is returned to the central login screen');
  assert.ok(user.actions.some(x=>x.action==='logout'),'USER sign-out invalidates the central session');
  await user.context.close();
