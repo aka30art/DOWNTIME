@@ -1,6 +1,6 @@
 /**
  * Protected ROOTS authority resolver.
- * DEV is recognised only by its immutable bootstrap USER ID.
+ * DEV is recognised only by the immutable bootstrap USER ID.
  * DEV1 and ADMIN require an active matching USER/STAFF assignment.
  * Legacy tier labels are never ROOTS authority evidence.
  */
@@ -11,10 +11,13 @@ export function resolveRootsAuthority(user, assignment = null, immutableDevUserI
   if (!user || typeof user !== "object" || user.enabled === false) return null;
   if (user.status && String(user.status).toUpperCase() !== "ACTIVE") return null;
   const userId = String(user.userId || "");
-  const staffId = String(user.staffId || "");
-  if (!UUID.test(userId) || !UUID.test(staffId) || norm(userId) === norm(staffId)) return null;
+  if (!UUID.test(userId)) return null;
 
+  // DEV is the singleton bootstrap USER; a STAFF identity is not required to preserve root access.
   if (UUID.test(String(immutableDevUserId || "")) && norm(userId) === norm(immutableDevUserId)) return "DEV";
+
+  const staffId = String(user.staffId || "");
+  if (!UUID.test(staffId) || norm(userId) === norm(staffId)) return null;
   if (!assignment || String(assignment.status || "ACTIVE").toUpperCase() !== "ACTIVE") return null;
   if (!["DEV1", "ADMIN"].includes(String(assignment.roots_class || ""))) return null;
   if (norm(assignment.user_id) !== norm(userId) || norm(assignment.staff_id) !== norm(staffId)) return null;
@@ -38,5 +41,5 @@ export function canInteractWithRootsTarget(actorAuthority, targetAuthority) {
   if (targetAuthority === "DEV") return actorAuthority === "DEV";
   if (targetAuthority === "DEV1" && actorAuthority !== "DEV") return false;
   if (targetAuthority === "ADMIN" && actorAuthority === "ADMIN") return false;
-  return actorAuthority === "DEV";
+  return true;
 }
