@@ -58,7 +58,7 @@ for (const [name, source] of [["Central Bank", central], ["R&M", rm], ["GATELOG"
     name + " must not treat SCFL as a connected application module");
 }
 
-assert.match(central, /priv\.canManageUsers=rootsAuthority==="DEV"\|\|\(hasCanonicalIdentity&&resolvedYardRole&&moduleRights\["Staff & Management"\]\?\.manage===true\)/,
+assert.match(central, /priv\.canManageUsers=\["DEV","DEV1","ADMIN"\]\.includes\(rootsAuthority\|\|""\)\|\|\(hasCanonicalIdentity&&resolvedYardRole&&moduleRights\["Staff & Management"\]\?\.manage===true\)/,
   "Management MANAGE delegates ordinary USER directory administration without granting ROOTS governance");
 assert.match(central, /if\(!priv\.canManageUsers\).*provision USER \+ STAFF identities/,
   "ordinary USER/STAFF provisioning is gated by Management MANAGE or DEV");
