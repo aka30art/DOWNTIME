@@ -109,4 +109,13 @@ assert.ok(src.includes('configState.draft_version')&&src.includes('configState.p
 assert.ok(src.includes('downtime_central_config_state')&&src.includes('downtime_central_config_history'),'configuration control plane uses isolated tables');
 assert.ok(src.includes('normalizeCentralConfig(body.config)'),'configuration is validated server-side before saving');
 assert.ok(src.includes('action:"central-config-publish"')&&src.includes('action:"central-config-restore-draft"'),'publish and restore actions are separately audited');
+// Canonical Management rights are enforced at the Central Bank API boundary, not only by UI visibility.
+assert.ok(src.includes('const management=resolvedYardRole.departments.Management'),'Central Bank resolves the Management department independently');
+assert.ok(src.includes('if(!hasManagementAccess)return json({error:"This USER has no access to the Management department."},403)'),'canonical identities without Management rights fail closed');
+assert.ok(src.includes('const canonicalManagement=hasCanonicalIdentity&&!isRootAuthority'),'canonical Management write rules are isolated from legacy identities and protected ROOTS');
+assert.ok(src.includes('Management ENTER permission is required to add operational records.'),'new operational records require Management ENTER');
+assert.ok(src.includes('Management EDIT permission is required to change operational records.'),'existing operational records require Management EDIT');
+assert.ok(src.includes('Management MANAGE permission is required to remove operational records.'),'record removal requires Management MANAGE');
+assert.ok(src.includes('if(!canEnter&&!canEdit&&!canManage)return json({error:"No Management operational-record write permission is assigned."},403)'),'without VIEW, only explicitly granted write levels may submit changes');
+assert.ok(src.includes('nextAppData.areas=bank.appData?.areas||[]')&&src.includes('nextAppData.operatorProfiles=bank.appData?.operatorProfiles||bank.staff?.profiles||{}'),'Management record rights cannot mutate global settings or STAFF identities');
 console.log('Central API security, DEVACC root equivalence, immutable DEV OWNER and configuration contracts passed (static source checks).');
