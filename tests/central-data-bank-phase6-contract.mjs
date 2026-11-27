@@ -15,5 +15,6 @@ assert.match(api, /Site code is not set/);
 assert.match(api, /return json\(\{ valid: true, counts, warnings \}\)/);
 assert.doesNotMatch(runtime, /central-config-validate|validateDraftBtn/);
 const actionTables = [...api.matchAll(/\.from\(["']([^"']+)["']\)/g)].map(match => match[1]);
-assert.ok(actionTables.every(name => name.startsWith("downtime_central_")));
+assert.ok(actionTables.every(name => name.startsWith("downtime_central_") || name === "downtime_roots_bootstrap"),"Central configuration may read only its own tables plus the immutable ROOTS bootstrap identity");
+assert.deepEqual(actionTables.filter(name => !name.startsWith("downtime_central_")),["downtime_roots_bootstrap"],"ROOTS bootstrap is the only non-Central configuration table dependency");
 console.log("CDB Phase 06 integrity validation contracts passed.");
