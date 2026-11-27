@@ -7,6 +7,7 @@
     'check-sheets':'check-sheets',
     'repairs-maintenance':'launchRepairMaintenanceBtn',
     'hub-settings':'yardHubSettingsBtn',
+    'staff-management':'launchStaffManagementBtn',
     gatelog:'launchGatelogBtn'
   };
   let menu=null,loading=null,workspace=null,workspaceHome=null;
@@ -77,7 +78,7 @@
       if(!button)return;
       button.dataset.structureId=entry.id;
       button.dataset.structureKind=kind;
-      if(entry.enabled===false)button.hidden=true;
+      if(entry.enabled===false&&kind!=='staff-management')button.hidden=true;
       else if(kind!=='hub-settings')button.hidden=false;
       button.setAttribute('aria-label','Open '+entry.title+' department');
       const hasSubmenus=(entry.submenus||[]).some(item=>item.enabled!==false);
@@ -95,9 +96,11 @@
     // but keep them out of the visible launcher when not registered in the published menu.
     current.forEach((button,app)=>{
       if(ordered.includes(button))return;
+      if(app==='staff-management'){button.hidden=false;return;}
       button.hidden=true;
     });
     ordered.forEach(button=>grid.append(button));
+    window.syncStaffModuleAccess?.();
   }
   function ensureWorkspace(){
     if(workspace)return workspace;
