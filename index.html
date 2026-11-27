@@ -797,7 +797,7 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
           </div>
         </div>
         <div id="yardHubTierCards" class="yard-hub-tier-grid"></div>
-        <p class="yard-hub-note">DOWNTIME is intentionally excluded from this permission matrix. Its existing Access &amp; Rights system remains independent and unchanged. STAFF MANAGEMENT is available to DEV OWNER, DEVACC and ADMIN accounts; staff actions remain governed by the existing STAFF permissions. DAILY remains unavailable until its application is released.</p>
+        <p class="yard-hub-note">One canonical YARD ROLE controls independent View, Enter, Edit and Manage permissions for SCPL, R&amp;M, Management, SCFL and Traffic. The DOWNTIME tracker uses Management rights, GATELOG uses Traffic rights and R&amp;M uses R&amp;M rights. SCPL and SCFL permissions are ready for their operational modules when those modules are released. ROOTS authority is separate and is never inherited from a YARD ROLE or legacy tier.</p>
       </div>
       <div id="yardHubUserModal" class="yard-hub-user-modal" hidden role="dialog" aria-modal="true" aria-labelledby="yardHubUserModalTitle">
         <form id="yardHubUserForm" class="yard-hub-user-form">
@@ -812,7 +812,7 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
             <strong id="yardHubUserDowntimeTier">USER · SAFE DEFAULT</strong>
             <small>This value is not editable here. DOWNTIME Access &amp; Rights stays independent.</small>
           </div>
-          <label id="yardHubLegacyTierField">LEGACY YARD HUB TIER<select id="yardHubUserHubTier" required></select></label>
+          <label id="yardHubLegacyTierField" hidden>LEGACY YARD HUB TIER<select id="yardHubUserHubTier" disabled></select></label>
           <label id="yardHubUserYardRoleField">CANONICAL YARD ROLE<select id="yardHubUserYardRole" required></select></label>
           <label>PIN<input id="yardHubUserPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label>
           <div id="yardHubStaffFields" class="yard-hub-staff-fields">
