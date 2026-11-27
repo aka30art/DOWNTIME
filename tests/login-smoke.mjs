@@ -120,6 +120,7 @@ async function openFor(tier,pin='2468',username='DEV',initialBank=null,initialVe
  const page=await context.newPage();
  page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{
+  window.__supabaseCalls=[];window.__testJsErrors=[];window.addEventListener('error',event=>window.__testJsErrors.push(event.message));window.addEventListener('unhandledrejection',event=>window.__testJsErrors.push(String(event.reason?.message||event.reason||'unhandled rejection')));
   const realtime={handler:null};
   window.__downtimeRealtimeMock=realtime;
   window.__downtimeEmitBroadcast=message=>realtime.handler?.(message);
@@ -133,10 +134,13 @@ window.supabase={createClient:()=>({
    realtime:{setAuth:async()=>{}},
    channel:(topic,options)=>{window.__downtimeRealtimeTopic=topic;window.__downtimeRealtimePrivate=options?.config?.private===true;return channel},
    removeChannel:async()=>({status:'ok'}),
-   from:table=>({
-    select(){return this},
-    order:async()=>({data:table==='downtime_reports'?[{id:'weekly-report-qa',week_start:'2026-11-16',file_name:'Downtime_2026-11-16_Weekly.pdf',file_size_bytes:18432,operators:{Monday:'Jan'},storage_path:'2026-11-16/weekly-report-qa.pdf'}]:[],error:null})
-   }),
+   from:table=>{
+    window.__supabaseCalls.push({stage:'from',table});
+    return {
+     select(){window.__supabaseCalls.push({stage:'select',table});return this},
+     order:async(column,options)=>{window.__supabaseCalls.push({stage:'order',table,column,options});return {data:table==='downtime_reports'?[{id:'weekly-report-qa',week_start:'2026-11-16',file_name:'Downtime_2026-11-16_Weekly.pdf',file_size_bytes:18432,operators:{Monday:'Jan'},storage_path:'2026-11-16/weekly-report-qa.pdf'}]:[],error:null}}
+    };
+   },
    storage:{from:bucket=>({
     download:async path=>{window.__weeklyReportDownloads=window.__weeklyReportDownloads||[];window.__weeklyReportDownloads.push({bucket,path});const stream='BT /F1 26 Tf 70 760 Td (WEEKLY REPORT PREVIEW QA) Tj 0 -45 Td /F1 15 Tf (Week of 16 November 2026) Tj ET\n';let pdf='%PDF-1.4\n';const offsets=[0];const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Length '+stream.length+' >>\nstream\n'+stream+'endstream'];objects.forEach((object,index)=>{offsets.push(pdf.length);pdf+=(index+1)+' 0 obj\n'+object+'\nendobj\n'});const xref=pdf.length;pdf+='xref\n0 6\n0000000000 65535 f \n'+offsets.slice(1).map(offset=>String(offset).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';return {data:new Blob([pdf],{type:'application/pdf'}),error:null}},
     uploadToSignedUrl:async(path,token,file,options)=>{window.__staffPhotoUploads=window.__staffPhotoUploads||[];window.__staffPhotoUploads.push({bucket,path,type:file?.type,size:file?.size,contentType:options?.contentType});return {data:{path},error:null}},
@@ -639,7 +643,23 @@ try{
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').textContent().then(value=>value.includes('WEEKLY Reports')),true,'navigation label is renamed to WEEKLY Reports');
  await ensureMainMenu(owner.page);
  await owner.page.locator('.nav[data-view="reports"]').click();
- await owner.page.locator('[data-report-display="weekly-report-qa"]').waitFor({state:'visible',timeout:10000});
+ try{
+  await owner.page.locator('[data-report-display="weekly-report-qa"]').waitFor({state:'visible',timeout:10000});
+ }catch(error){
+  const diagnostic=await owner.page.evaluate(()=>({
+   reportNavDisplay:document.querySelector('.nav[data-view="reports"]')?getComputedStyle(document.querySelector('.nav[data-view="reports"]')).display:null,
+   reportNavHidden:document.querySelector('.nav[data-view="reports"]')?.hidden??null,
+   reportViewActive:document.querySelector('#reports')?.classList.contains('active')??null,
+   reportList:document.querySelector('#reportsList')?.innerText??null,
+   cloudStatus:document.querySelector('#cloudStatus')?.innerText??null,
+   cloudReady:typeof cloudReady!=='undefined'?cloudReady:'unavailable',
+   centralReady:typeof centralReady!=='undefined'?centralReady:'unavailable',
+   supabaseReady:typeof sb!=='undefined'&&!!sb,
+   queryCalls:window.__supabaseCalls||[],
+   jsErrors:window.__testJsErrors||[]
+  }));
+  throw new Error('Weekly report archive did not render. Diagnostics: '+JSON.stringify(diagnostic)+'; '+error.message);
+ }
  assert.equal(await owner.page.locator('#reports h2').textContent(),'WEEKLY REPORTS','reports section uses the new heading');
  await owner.page.locator('[data-report-display="weekly-report-qa"]').click();
  await owner.page.waitForFunction(()=>document.querySelector('#reportPreviewModal')?.classList.contains('show')&&document.querySelector('#reportPreviewFrame')?.src.startsWith('blob:'),{timeout:5000});
