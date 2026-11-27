@@ -154,9 +154,9 @@ Deno.serve(async (req: Request) => {
 
   if (action === "settings-state") {
     const [{ data: yardRoles, error: yardRolesError }, { data: roleAssignments, error: roleAssignmentsError }, { data: rolePermissions, error: rolePermissionsError }, { data: rootsAssignments, error: rootsAssignmentsError }] = await Promise.all([
-      db.from("yard_roles").select("id,name,description,status").eq("status", "ACTIVE").order("name"),
+      db.from("yard_roles").select("id,name,description,status,version").order("name"),
       db.from("yard_role_assignments").select("user_id,staff_id,yard_role_id,status,version,verified_at"),
-      db.from("yard_role_department_permissions").select("yard_role_id,department,access_level"),
+      db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage"),
       db.from("downtime_roots_assignments").select("user_id,staff_id"),
     ]);
     if (yardRolesError || roleAssignmentsError || rolePermissionsError) return json({ error: "Canonical YARD ROLE registry is unavailable." }, 503);
@@ -166,7 +166,7 @@ Deno.serve(async (req: Request) => {
       try { return Object.keys(resolveYardRolePermissions(role, rolePermissions || []).departments).length > 0; }
       catch { return false; }
     });
-    const roleByUser = new Map((roleAssignments || []).map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));
+    const roleByUser = new Map((roleAssignments || []).map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));\n    const rootsByUser = new Map((rootsAssignments || []).map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));
     return json({
       user: { ...safeUser(user), legacyTier, hubTier },
       users: (Array.isArray(bank.users) ? bank.users : []).filter((account: any) => rootsAuthority === "DEV" || (String(account.username || "").trim().toUpperCase() !== "DEV" && !protectedUserIds.has(String(account.userId || "").toLowerCase()))).map((account: any) => {
@@ -179,10 +179,10 @@ Deno.serve(async (req: Request) => {
           userId: account.userId || null,
           staffId: account.staffId || null,
           requestedYardRoleId: account.provisioning?.requestedYardRoleId || null,
-          yardRoleId: assignment?.yard_role_id || account.yardRoleId || null,
+          yardRoleId: assignment?.yard_role_id || account.yardRoleId || null,\n          yardRoleVersion: assignment?.version || null,\n          rootsClass: (rootsByUser.get(String(account.userId || "").toLowerCase()) as any)?.roots_class || null,
         };
       }).sort((a: any, b: any) => a.username.localeCompare(b.username)),
-      yardRoles: assignableYardRoles,
+      yardRoles: assignableYardRoles,\n      roleCatalogue: isProtectedRoot ? (yardRoles || []).map((role: any) => ({ ...role, permissions: (rolePermissions || []).filter((row: any) => String(row.yard_role_id).toLowerCase() === String(role.id).toLowerCase()).map((row: any) => ({ department: row.department, can_view: row.can_view === true, can_enter: row.can_enter === true, can_edit: row.can_edit === true, can_manage: row.can_manage === true })) })) : [],
       userTiers: configRow.payload?.userTiers || {},
       centralVersion: Number(bankRow.version || 0),
       tierPermissions: normalizeTierPermissions(configRow.payload, configRow.payload, [...tierNames.filter(name => !(configRow.payload.retiredTiers || []).includes(name)), ...(Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [])]),
@@ -194,8 +194,37 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  if (action === "yard-role-save") {
+    if (!isProtectedRoot) return json({ error: "Only DEV or a protected ROOTS identity may create or change canonical YARD ROLE definitions." }, 403);
+    if (!/^[0-9a-f-]{36}$/i.test(String(user.userId || ""))) return json({ error: "Authenticated actor has no immutable USER ID." }, 409);
+    const roleId = String(body.roleId || crypto.randomUUID());
+    if (!/^[0-9a-f-]{36}$/i.test(roleId)) return json({ error: "Canonical YARD ROLE ID is invalid." }, 400);
+    const expectedVersion = Number(body.version ?? 0);
+    if (!Number.isInteger(expectedVersion) || expectedVersion < 0) return json({ error: "A valid YARD ROLE version is required." }, 400);
+    const name = String(body.name || "").trim();
+    const description = String(body.description || "").trim();
+    const status = String(body.status || "DRAFT").toUpperCase();
+    const permissions = Array.isArray(body.permissions) ? body.permissions : null;
+    if (!name || name.length > 80 || description.length > 500 || !["DRAFT", "ACTIVE", "RETIRED"].includes(status) || !permissions) {
+      return json({ error: "YARD ROLE name, description, status and five-department permission matrix are required." }, 400);
+    }
+    const { data: saved, error: saveError } = await db.rpc("yard_role_save_definition", {
+      p_role_id: roleId,
+      p_expected_version: expectedVersion,
+      p_name: name,
+      p_description: description,
+      p_status: status,
+      p_permissions: permissions,
+      p_actor_user_id: user.userId,
+      p_actor_username: String(user.username),
+      p_actor_display_name: String(user.displayName || user.username),
+    });
+    if (saveError || !saved) return json({ error: saveError?.message?.includes("YARD_ROLE_VERSION_CONFLICT") ? "YARD ROLE changed elsewhere. Refresh and try again." : saveError?.message || "YARD ROLE definition could not be saved." }, 409);
+    return json({ ok: true, role: saved });
+  }
+
   if (action === "assign-user-role") {
-    if (!isRootDev(user, legacyTier)) return json({ error: "Only immutable DEV may assign a YARD ROLE during new USER provisioning." }, 403);
+    if (!isProtectedRoot) return json({ error: "Only DEV or a protected ROOTS identity may assign a canonical YARD ROLE." }, 403);
     const targetUserId = String(body.userId || "");
     const yardRoleId = String(body.yardRoleId || "");
     if (!/^[0-9a-f-]{36}$/i.test(targetUserId)) return json({ error: "Immutable USER ID required." }, 400);
@@ -205,22 +234,51 @@ Deno.serve(async (req: Request) => {
       String(account.userId || "").toLowerCase() === targetUserId.toLowerCase()
     );
     if (!target) return json({ error: "Central USER account not found." }, 404);
-    if (target.provisioning?.stage !== "YARD_ROLE_PENDING") return json({ error: "USER is not awaiting canonical YARD ROLE assignment." }, 409);
-    if (target.provisioning.requestedYardRoleId !== yardRoleId) return json({ error: "Selected YARD ROLE does not match the provisioned request." }, 409);
+    const rootsTarget = await db.from("downtime_roots_assignments").select("user_id").eq("user_id", targetUserId).maybeSingle();
+    if (rootsTarget.error) return json({ error: "Protected identity registry is unavailable." }, 503);
+    if (rootsTarget.data) return json({ error: "Protected ROOTS identities receive automatic department Manage authority and cannot be assigned an ordinary YARD ROLE." }, 409);
+    const isPending = target.provisioning?.stage === "YARD_ROLE_PENDING";
+    if (isPending && target.provisioning.requestedYardRoleId !== yardRoleId) return json({ error: "Selected YARD ROLE does not match the provisioned request." }, 409);
+    if (!isPending && (target.enabled !== true || target.status !== "ACTIVE" || !target.staffId)) return json({ error: "Only an active linked USER can receive a direct YARD ROLE reassignment." }, 409);
+    const profiles = Object.values(bank.staff?.profiles || {}) as any[];
+    const linkedProfile = profiles.find((profile: any) =>
+      profile && String(profile.staffId || "").toLowerCase() === String(target.staffId || "").toLowerCase() &&
+      String(profile.linkedUserId || "").toLowerCase() === String(target.userId || "").toLowerCase()
+    );
+    const expectedStaffStatus = isPending ? "PROVISIONING" : "ACTIVE";
+    if (!linkedProfile || String(linkedProfile.status || "").toUpperCase() !== expectedStaffStatus) {
+      return json({ error: "The USER and STAFF identities must have a reciprocal linked profile in the expected lifecycle state." }, 409);
+    }
     const { data: role, error: roleError } = await db.from("yard_roles").select("id,name,description,status").eq("id", yardRoleId).eq("status", "ACTIVE").maybeSingle();
-    const { data: permissions, error: permissionsError } = await db.from("yard_role_department_permissions").select("yard_role_id,department,access_level").eq("yard_role_id", yardRoleId);
+    const { data: permissions, error: permissionsError } = await db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage").eq("yard_role_id", yardRoleId);
     if (roleError || permissionsError || !role) return json({ error: "Selected canonical YARD ROLE is unavailable." }, 409);
     try { resolveYardRolePermissions(role, permissions || []); }
     catch (error) { return json({ error: error instanceof Error ? error.message : "YARD ROLE permission matrix is invalid." }, 409); }
-    const { data: assignment, error: assignmentError } = await db.rpc("yard_role_assign_user", {
-      p_user_id: target.userId,
-      p_staff_id: target.staffId,
-      p_yard_role_id: yardRoleId,
-      p_actor_user_id: user.userId,
-      p_actor_username: String(user.username),
-      p_actor_display_name: String(user.displayName || user.username),
-    });
-    if (assignmentError || !assignment) return json({ error: assignmentError?.message || "Canonical YARD ROLE assignment failed." }, 409);
+
+    let assignment: any = null, assignmentError: any = null;
+    if (!isPending && Number.isInteger(Number(body.assignmentVersion)) && Number(body.assignmentVersion) > 0) {
+      const reassigned = await db.rpc("yard_role_reassign_user", {
+        p_user_id: target.userId,
+        p_staff_id: target.staffId,
+        p_yard_role_id: yardRoleId,
+        p_expected_version: Number(body.assignmentVersion),
+        p_actor_user_id: user.userId,
+        p_actor_username: String(user.username),
+        p_actor_display_name: String(user.displayName || user.username),
+      });
+      assignment = reassigned.data; assignmentError = reassigned.error;
+    } else {
+      const assigned = await db.rpc("yard_role_assign_user", {
+        p_user_id: target.userId,
+        p_staff_id: target.staffId,
+        p_yard_role_id: yardRoleId,
+        p_actor_user_id: user.userId,
+        p_actor_username: String(user.username),
+        p_actor_display_name: String(user.displayName || user.username),
+      });
+      assignment = assigned.data; assignmentError = assigned.error;
+    }
+    if (assignmentError || !assignment) return json({ error: assignmentError?.message?.includes("YARD_ROLE_ASSIGNMENT_VERSION_CONFLICT") ? "YARD ROLE assignment changed elsewhere. Refresh and try again." : assignmentError?.message || "Canonical YARD ROLE assignment failed." }, 409);
     return json({ ok: true, assignment });
   }
 
