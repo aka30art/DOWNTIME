@@ -33,6 +33,7 @@ assert.doesNotMatch(html,/yard-logout yard-hub-settings-trigger/,'Settings must 
 assert.match(ui,/const hero=hub\.querySelector\('\.yard-hero'\)/,'opening Settings must hide the HUB hero as well as the application menu');
 assert.match(ui,/\[hero,grid,heading,footer\]\.forEach/,'Settings must replace the HUB menu instead of appearing beneath it');
 assert.match(css,/\.yard-hub-settings-home\[hidden\],\.yard-hub-settings-view\[hidden\]\{display:none!important\}/,'settings home and subviews must honor hidden state so they never stack');
+assert.match(css,/\.yard-hub-settings-card\[hidden\]\{display:none!important\}/,'hidden legacy and ROOTS cards cannot override the three-tile Staff Management menu');
 
 for(const id of ['yardHubSettingsBtn','yardHubSettingsScreen','yardHubSettingsUsers','yardHubSettingsTiers','yardHubUsersList','yardHubTierCards','yardHubUserHubTier','yardHubUserDowntimeTier']) {
   assert.ok(html.includes('id="'+id+'"'),'missing YARD HUB Settings element '+id);

@@ -128,3 +128,5 @@
  .yard-hub-root-actions{display:grid;grid-template-columns:minmax(0,1fr) auto auto}
  .yard-hub-roots-form button{width:100%}
 }
+
+.yard-hub-settings-card[hidden]{display:none!important}
