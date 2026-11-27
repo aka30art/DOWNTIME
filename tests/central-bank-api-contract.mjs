@@ -20,7 +20,7 @@ assert.ok(src.includes('if(action==="roots-state")')&&src.includes('rootsAuthori
 assert.ok(src.includes('action==="roots-assign-admin"&&requestedClass!=="ADMIN"'),'DEV1 scoped action can assign ADMIN only');
 assert.ok(src.includes('requestedClass==="DEV1"&&rootsAuthority!=="DEV"'),'DEV1 cannot assign another DEV1');
 assert.ok(src.includes('downtime_roots_assign_identity'),'ROOTS assignments use the service-role atomic assignment RPC');
-assert.ok(src.includes('linkedProfile.linkedUserId')&&src.includes('linkedProfile.staffId'),'ROOTS assignments require reciprocal immutable USER/STAFF links');
+assert.ok(src.includes('String(profile.staffId||"").toLowerCase()===String(target.staffId).toLowerCase()&&String(profile.linkedUserId||"").toLowerCase()===String(target.userId).toLowerCase()')&&src.includes('!linkedProfile||String(linkedProfile.status||"ACTIVE").toUpperCase()==="ARCHIVED"'),'ROOTS assignments require an active reciprocal immutable USER/STAFF link');
 assert.ok(src.includes('user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username,userId:currentUser.userId||null,staffId:currentUser.staffId||null}'),'photo context exposes authenticated actor and immutable identity IDs only');
 assert.ok(!src.includes('login-options'),'no separate pre-authentication directory action exists');
 assert.ok(src.includes('if(action==="list-users"&&!req.headers.get("x-downtime-session"))return json({users:bank.users.map((u:any)=>({username:u.username}))});'),'legacy cached login clients receive usernames only, without profile or permission metadata');
