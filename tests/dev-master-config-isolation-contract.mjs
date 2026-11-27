@@ -12,7 +12,8 @@ for(const section of ['navigation','modules','controls','information']){
 assert.match(html,/does not enable, disable, install or change any live DOWNTIME module/i);
 assert.match(html,/YARD HUB \+ R&amp;M · Read-only/i);
 assert.match(html,/DOWNTIME tracker logic, records, permissions and operational workflows remain untouched/i);
-assert.match(html,/Access & Rights stays separate/i);
+assert.match(html,/YARD ROLE permissions stay separate/i);
+assert.match(html,/ROOTS authority and ordinary YARD ROLE permissions are separate/i);
 assert.match(api,/const modules=configStringList\(input\.modules\|\|\[\],"Module registry",100,80\)/);
 assert.match(api,/if\(typeof action==="string"&&action\.startsWith\("central-config-"\)&&!isCentralBankAccess\)/);
 assert.match(migration,/update public\.downtime_central_config_state/i);
