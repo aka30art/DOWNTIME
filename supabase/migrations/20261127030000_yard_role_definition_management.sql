@@ -61,8 +61,8 @@ begin
   if p_role_id is null or p_expected_version is null or p_expected_version < 0
      or coalesce(trim(p_name),'') = '' or length(trim(p_name)) > 80
      or length(coalesce(p_description,'')) > 500
-     or p_status not in ('DRAFT','ACTIVE','RETIRED')
-     or jsonb_typeof(p_permissions) <> 'array'
+     or p_status is null or p_status not in ('DRAFT','ACTIVE','RETIRED')
+     or p_permissions is null or jsonb_typeof(p_permissions) <> 'array'
      or p_actor_user_id is null
      or coalesce(trim(p_actor_username),'') = ''
      or coalesce(trim(p_actor_display_name),'') = '' then
@@ -71,14 +71,14 @@ begin
 
   select count(*), count(distinct item->>'department')
     into v_count, v_distinct
-    from jsonb_array_elements(p_permissions) item;
+    from jsonb_array_elements(p_permissions) as items(item);
   if v_count <> 5 or v_distinct <> 5 then
     raise exception 'YARD ROLE requires exactly one permission record for each approved department';
   end if;
 
   if exists (
     select 1
-      from jsonb_array_elements(p_permissions) item
+      from jsonb_array_elements(p_permissions) as items(item)
      where item->>'department' not in ('SCPL','R&M','Management','SCFL','Traffic')
         or jsonb_typeof(item->'can_view') <> 'boolean'
         or jsonb_typeof(item->'can_enter') <> 'boolean'
@@ -88,11 +88,11 @@ begin
     raise exception 'YARD ROLE permissions must use approved departments and explicit independent boolean flags';
   end if;
 
-  if not exists (select 1 from jsonb_array_elements(p_permissions) item where item->>'department'='SCPL')
-     or not exists (select 1 from jsonb_array_elements(p_permissions) item where item->>'department'='R&M')
-     or not exists (select 1 from jsonb_array_elements(p_permissions) item where item->>'department'='Management')
-     or not exists (select 1 from jsonb_array_elements(p_permissions) item where item->>'department'='SCFL')
-     or not exists (select 1 from jsonb_array_elements(p_permissions) item where item->>'department'='Traffic') then
+  if not exists (select 1 from jsonb_array_elements(p_permissions) as items(item) where item->>'department'='SCPL')
+     or not exists (select 1 from jsonb_array_elements(p_permissions) as items(item) where item->>'department'='R&M')
+     or not exists (select 1 from jsonb_array_elements(p_permissions) as items(item) where item->>'department'='Management')
+     or not exists (select 1 from jsonb_array_elements(p_permissions) as items(item) where item->>'department'='SCFL')
+     or not exists (select 1 from jsonb_array_elements(p_permissions) as items(item) where item->>'department'='Traffic') then
     raise exception 'YARD ROLE must define all five approved departments';
   end if;
 
