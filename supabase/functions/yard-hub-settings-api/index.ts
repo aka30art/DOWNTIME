@@ -262,18 +262,7 @@ Deno.serve(async (req: Request) => {
     catch (error) { return json({ error: error instanceof Error ? error.message : "YARD ROLE permission matrix is invalid." }, 409); }
 
     let assignment: any = null, assignmentError: any = null;
-    if (!isPending && Number.isInteger(Number(body.assignmentVersion)) && Number(body.assignmentVersion) > 0) {
-      const reassigned = await db.rpc("yard_role_reassign_user", {
-        p_user_id: target.userId,
-        p_staff_id: target.staffId,
-        p_yard_role_id: yardRoleId,
-        p_expected_version: Number(body.assignmentVersion),
-        p_actor_user_id: user.userId,
-        p_actor_username: String(user.username),
-        p_actor_display_name: String(user.displayName || user.username),
-      });
-      assignment = reassigned.data; assignmentError = reassigned.error;
-    } else {
+    if (isPending) {
       const assigned = await db.rpc("yard_role_assign_user", {
         p_user_id: target.userId,
         p_staff_id: target.staffId,
@@ -283,9 +272,43 @@ Deno.serve(async (req: Request) => {
         p_actor_display_name: String(user.displayName || user.username),
       });
       assignment = assigned.data; assignmentError = assigned.error;
+    } else {
+      const nextPayload = structuredClone(bank);
+      const nextTarget = (Array.isArray(nextPayload.users) ? nextPayload.users : []).find((account: any) =>
+        String(account.userId || "").toLowerCase() === targetUserId.toLowerCase()
+      );
+      if (!nextTarget) return json({ error: "Central USER account changed. Refresh and try again." }, 409);
+      nextTarget.yardRoleId = yardRoleId;
+      const expectedBankVersion = Number(bankRow.version);
+      if (!Number.isInteger(expectedBankVersion) || expectedBankVersion < 1) return json({ error: "Central Bank version is unavailable. Refresh and try again." }, 503);
+      if (Number.isInteger(Number(body.assignmentVersion)) && Number(body.assignmentVersion) > 0) {
+        const reassigned = await db.rpc("yard_role_reassign_user", {
+          p_user_id: target.userId,
+          p_staff_id: target.staffId,
+          p_yard_role_id: yardRoleId,
+          p_expected_version: Number(body.assignmentVersion),
+          p_expected_bank_version: expectedBankVersion,
+          p_next_payload: nextPayload,
+          p_actor_user_id: user.userId,
+          p_actor_username: String(user.username),
+          p_actor_display_name: String(user.displayName || user.username),
+        });
+        assignment = reassigned.data; assignmentError = reassigned.error;
+      } else {
+        const assigned = await db.rpc("yard_role_assign_existing_user", {
+          p_user_id: target.userId,
+          p_staff_id: target.staffId,
+          p_yard_role_id: yardRoleId,
+          p_expected_bank_version: expectedBankVersion,
+          p_next_payload: nextPayload,
+          p_actor_user_id: user.userId,
+          p_actor_username: String(user.username),
+          p_actor_display_name: String(user.displayName || user.username),
+        });
+        assignment = assigned.data; assignmentError = assigned.error;
+      }
     }
-    if (assignmentError || !assignment) return json({ error: assignmentError?.message?.includes("YARD_ROLE_ASSIGNMENT_VERSION_CONFLICT") ? "YARD ROLE assignment changed elsewhere. Refresh and try again." : assignmentError?.message || "Canonical YARD ROLE assignment failed." }, 409);
-    return json({ ok: true, assignment });
+    if (assignmentError || !assignment) return json({ error: assignmentError?.message?.includes("YARD_ROLE_ASSIGNMENT_VERSION_CONFLICT") || assignmentError?.message?.includes("CENTRAL_BANK_VERSION_CONFLICT") ? "YARD ROLE or Central Bank data changed elsewhere. Refresh and try again." : assignmentError?.message || "Canonical YARD ROLE assignment failed." }, 409);    return json({ ok: true, assignment });
   }
 
   if (action === "save-user-tier") {
