@@ -111,7 +111,7 @@ assert.match(rmApi,/permissions\.canEditRepairMaintenance = mode === "EDIT"/);
 assert.match(rmApi,/permissions\.canDeleteRepairMaintenance = mode === "EDIT"/);
 assert.match(rmApi,/permissions\.canExportRepairMaintenanceReports = mode === "READ" \|\| mode === "EDIT"/);
 assert.match(rmApi,/missingHubTable/,'pre-migration fallback preserves existing R&M access behaviour');
-assert.ok(rmApi.includes('permissions.canManageRepairMaintenancePresets = permissions.canEditRepairMaintenance === true'),'preset management requires R&M EDIT access');
+assert.match(rmApi,/permissions\.canManageRepairMaintenancePresets = resolvedYardRole[\s\S]*canYardRolePerform\(resolvedYardRole, "R&M", "DELETE"\)[\s\S]*permissions\.canEditRepairMaintenance === true/,'canonical YARD ROLE preset management requires R&M MANAGE while legacy R&M EDIT behaviour remains transitional');
 assert.ok(rmApi.includes('action === "preset-add"') && rmApi.includes('action === "preset-delete"'),'preset mutations are backend actions');
 assert.ok(mechanicMigration.includes("'floor','NONE','checkSheets','NONE','repairMaintenance','EDIT'"),'MECHANIC defaults to R&M EDIT only');
 assert.ok(mechanicMigration.includes('yard_hub_access_audit'),'MECHANIC tier addition is audited');
