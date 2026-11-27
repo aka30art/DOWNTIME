@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-assert.match(legacyResetGuard,/revoke all on function public\.downtime_identity_reset_cutover[\s\S]*from public, anon, authenticated, service_role/);
+const [migration,legacyResetGuard,api,yardApi,html,settings,client,packageJson] = await Promise.all([
   readFile("supabase/migrations/20261127100000_preserve_dev_identity_and_rooted_roles.sql","utf8"),
   readFile("supabase/migrations/20261127100001_disable_legacy_identity_reset_rpc.sql","utf8"),
   readFile("supabase/functions/central-bank/index.ts","utf8"),
@@ -29,7 +29,7 @@ assert.match(migration,/\{operatorProfiles\}','\{\}'/);
 assert.match(migration,/status='REVOKED'/);
 assert.match(migration,/identity-reset-clear-user-tiers/);
 assert.match(migration,/values\(true,p_actor_user_id,p_actor_user_id\)/,"reset marker records the same immutable DEV ID before and after");
-assert.match(legacyResetGuard,/revoke all on function public\\.downtime_identity_reset_cutover[\\s\\S]*from public, anon, authenticated, service_role/);
+assert.match(legacyResetGuard,/revoke all on function public\.downtime_identity_reset_cutover[\s\S]*from public, anon, authenticated, service_role/);
 assert.doesNotMatch(migration,/p_new_dev_user|p_new_dev1_user|p_new_admin_user|makeRootStaff/);
 assert.doesNotMatch(migration,/update public\.downtime_roots_bootstrap\s+set user_id=/,"the immutable DEV bootstrap ID is never replaced");
 assert.doesNotMatch(migration,/delete from public\.(downtime_tracker|gatelog_|repair_maintenance_)/i);
