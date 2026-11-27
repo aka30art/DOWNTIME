@@ -44,5 +44,6 @@ assert.match(settingsApi, /db\.rpc\("yard_role_assign_existing_user", atomicArgs
 assert.match(settingsApi, /db\.rpc\("yard_role_reassign_user", \{[\s\S]*?p_expected_bank_version: expectedBankVersion[\s\S]*?p_next_payload: nextPayload[\s\S]*?p_expected_version: Number\(body\.assignmentVersion\)/, "active reassignment uses the new atomic RPC signature and both optimistic-concurrency versions");
 assert.match(settingsApi, /if \(isPending\)[\s\S]*?db\.rpc\("yard_role_assign_user"/, "pending provisioning remains staged and does not bypass the separate DEV activation gate");
 assert.match(settingsApi, /payloadTarget\.yardRoleId = yardRoleId/, "the Central Bank USER snapshot is updated in the same transaction as active role assignment");
+assert.equal((atomicAssignmentMigration.match(/Central Bank payload must contain the active linked USER\/STAFF and assigned YARD ROLE/g) || []).length, 2, 'both atomic assignment RPCs validate the active Central Bank USER/STAFF/ROLE tuple before mutation');
 console.log("PASS: canonical YARD ROLE schema, atomic assignment, version checks, audit and service-role boundaries.");
 
