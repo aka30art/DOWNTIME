@@ -80,10 +80,10 @@ begin
     select 1
       from jsonb_array_elements(p_permissions) as items(item)
      where item->>'department' not in ('SCPL','R&M','Management','SCFL','Traffic')
-        or jsonb_typeof(item->'can_view') <> 'boolean'
-        or jsonb_typeof(item->'can_enter') <> 'boolean'
-        or jsonb_typeof(item->'can_edit') <> 'boolean'
-        or jsonb_typeof(item->'can_manage') <> 'boolean'
+        or jsonb_typeof(item->'can_view') is distinct from 'boolean'
+        or jsonb_typeof(item->'can_enter') is distinct from 'boolean'
+        or jsonb_typeof(item->'can_edit') is distinct from 'boolean'
+        or jsonb_typeof(item->'can_manage') is distinct from 'boolean'
   ) then
     raise exception 'YARD ROLE permissions must use approved departments and explicit independent boolean flags';
   end if;
