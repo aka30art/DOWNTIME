@@ -306,15 +306,49 @@ Deno.serve(async(req)=>{
      }
      return paths;
    };
-   let staffPhotoPaths:string[];
+   let staffPhotoPaths:string[]=[];
+   let staffOriginalsDeleted=0;
    try{
+     const githubToken=String(Deno.env.get("GITHUB_STAFF_IMAGE_TOKEN")||"");
+     const githubHeaders:Record<string,string>={"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"};
+     if(githubToken)githubHeaders.Authorization="Bearer "+githubToken;
+     const githubOriginalsApi="https://api.github.com/repos/aka30art/DOWNTIME/contents/assets/staff/originals";
+     const listGithubStaffOriginals=async()=>{
+       const directoryResponse=await fetch(githubOriginalsApi+"?ref=main",{headers:githubHeaders});
+       if(directoryResponse.status===404)return [];
+       if(!directoryResponse.ok)throw new Error("GitHub STAFF originals directory lookup failed.");
+       const directories=await directoryResponse.json();
+       if(!Array.isArray(directories))throw new Error("GitHub STAFF originals directory response is invalid.");
+       const originals:{slug:string;sha:string}[]=[];
+       for(const directory of directories){
+         const slug=String(directory?.name||"");
+         if(directory?.type!=="dir"||!/^[a-z0-9]{1,30}$/.test(slug))continue;
+         const folderResponse=await fetch(githubOriginalsApi+"/"+encodeURIComponent(slug)+"?ref=main",{headers:githubHeaders});
+         if(folderResponse.status===404)continue;
+         if(!folderResponse.ok)throw new Error("GitHub STAFF original lookup failed for a photo folder.");
+         const folderFiles=await folderResponse.json();
+         if(!Array.isArray(folderFiles))throw new Error("GitHub STAFF photo folder response is invalid.");
+         const original=folderFiles.find((entry:any)=>entry?.type==="file"&&entry.name==="original.png"&&entry.sha);
+         if(original)originals.push({slug,sha:String(original.sha)});
+       }
+       return originals;
+     };
+     const githubOriginals=await listGithubStaffOriginals();
+     if(githubOriginals.length&&!githubToken)throw new Error("GitHub STAFF original photos exist but the deletion token is not configured.");
      staffPhotoPaths=await listAllStaffPhotoPaths();
+     for(const original of githubOriginals){
+       const fileApi=githubOriginalsApi+"/"+encodeURIComponent(original.slug)+"/original.png";
+       const deleted=await fetch(fileApi,{method:"DELETE",headers:{...githubHeaders,"Content-Type":"application/json"},body:JSON.stringify({message:"Remove STAFF original photo during identity reset: "+original.slug,sha:original.sha,branch:"main"})});
+       if(!deleted.ok)throw new Error("GitHub STAFF original photo deletion failed for a photo folder.");
+       staffOriginalsDeleted++;
+     }
      for(let offset=0;offset<staffPhotoPaths.length;offset+=100){
        const {error}=await db.storage.from("downtime-staff-photos").remove(staffPhotoPaths.slice(offset,offset+100));
        if(error)throw error;
      }
-     const remaining=await listAllStaffPhotoPaths();
-     if(remaining.length)throw new Error("STAFF photo bucket is not empty after deletion.");
+     const remainingStorage=await listAllStaffPhotoPaths();
+     const remainingGitHub=await listGithubStaffOriginals();
+     if(remainingStorage.length||remainingGitHub.length)throw new Error("STAFF photo storage or GitHub originals are not empty after deletion.");
    }catch(error){
      return json({error:error instanceof Error?error.message:"STAFF photo deletion could not be verified. Identity reset was not committed."},503);
    }
@@ -327,7 +361,7 @@ Deno.serve(async(req)=>{
      p_actor_session_hash:tokenHash
    });
    if(resetError||!reset?.ok)return json({error:resetError?.message?.includes("already been completed")?"The one-time identity reset has already been completed.":resetError?.message?.includes("VERSION_CONFLICT")?"The USER directory changed. Refresh and retry the reset.":resetError?.message||"The identity reset could not be committed. STAFF photos were removed; retry after checking the current state."},409);
-   return json({...reset,staffPhotoObjectsRemoved:staffPhotoPaths.length,rootedRoleDefinitions:["DEV1","ADMIN"],devUserIdPreserved:currentUser.userId});
+   return json({...reset,staffPhotoObjectsRemoved:staffPhotoPaths.length,staffOriginalsDeleted,rootedRoleDefinitions:["DEV1","ADMIN"],devUserIdPreserved:currentUser.userId});
  }
  if(action==="identity-diagnostics"){
    if(!isDevRoot)return json({error:"Identity diagnostics are restricted to immutable DEV."},403);
