@@ -8,7 +8,7 @@ const migration=fs.readFileSync('supabase/migrations/20261122060000_central_conf
 
 for(const id of ['projectUrl','pubKey','loginBtn','bootstrapBtn','companyName','siteCode','sites','plants','areas','stations','areaPresets','downtimeReasons','dailyTaskPresets','equipmentCategories','eventCategories','statusCategories','weekStartsOn','breakDeductionMinutes','shiftSchedule','shiftPresets','historyList','saveDraftBtn','publishBtn','restoreVersion'])assert.ok(page.includes(id),'configuration UI element '+id);
 for(const action of ['central-config-state','central-config-save-draft','central-config-publish','central-config-restore-draft','login','bootstrap','logout'])assert.ok(page.includes(action),'configuration API action '+action);
-assert.ok(tracker.includes('Only root DEV can assign the DEVACC tier.'),'account tier selection explains the root DEV-only DEVACC grant boundary');
+assert.ok(tracker.includes('Only immutable DEV may assign, modify or remove DEVACC. Legacy tier-permission editing is retired; department access is governed by canonical YARD ROLE and protected ROOTS authority.'),'account tier selection explains DEV-only DEVACC governance and canonical YARD ROLE');
 for(const legacy of ['user-save','user-delete','staff-save','staff-photo-url','tiers-save','saveUser','saveStaff','saveTiers','centralUsersPanel','centralStaffPanel'])assert.ok(!page.includes(legacy),'new Data Bank Admin must not duplicate Access & Rights or account/staff management: '+legacy);
 assert.ok(page.includes('x-downtime-session'),'configuration requests carry the opaque central session');
 assert.ok(page.includes('"apikey":$("pubKey").value.trim()'),'configuration requests send the publishable API key');
@@ -22,7 +22,7 @@ assert.ok(page.includes('IMMUTABLE DEV ONLY'),'the Data Bank badge identifies th
 assert.ok(page.includes('window.confirm("AUTHORISE RELEASE v"+draftVersion'),'publishing requires an explicit confirmation after impact review');
 assert.ok(page.includes('RESTORE AS DRAFT'),'history restore creates a draft rather than publishing directly');
 assert.ok(page.includes('YARD HUB + R&amp;M · Read-only')&&page.includes('DOWNTIME tracker logic, records, permissions and operational workflows remain untouched'),'page documents the authenticated read-only structure integration and preserves the DOWNTIME operational boundary');
-assert.ok(page.includes('Access & Rights stays separate'),'page distinguishes configuration management from permission management');
+assert.ok(page.includes('YARD ROLE permissions stay separate')&&page.includes('Legacy account-tier permission editing is retired; operational department permissions are governed by canonical YARD ROLE.'),'page separates configuration management from canonical operational permission governance');
 for(const term of ['draft_payload','published_payload','draft_version','published_version','next_version'])assert.ok(migration.includes(term),'isolated config schema field '+term);
 assert.ok(migration.includes('downtime_central_config_history'),'append-only version history table exists');
 assert.ok(migration.includes('revoke all on public.downtime_central_config_state from public, anon, authenticated'),'config state is not exposed to browser database roles');
