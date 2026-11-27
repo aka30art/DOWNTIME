@@ -543,7 +543,7 @@ try{
  await owner.page.locator('#yardHubSettingsScreen').waitFor({state:'visible',timeout:5000});
  assert.equal(await owner.page.locator('#yardHubSettingsUsers').isVisible(),true,'YARD HUB Settings exposes USERS');
  assert.equal(await owner.page.locator('#yardHubSettingsRoles').isVisible(),true,'YARD HUB Settings exposes canonical YARD ROLES');
- assert.equal(await owner.page.locator('#yardHubSettingsTiers').isVisible(),false,'legacy tier editor remains hidden from the canonical role workflow');
+ assert.equal(await owner.page.locator('#yardHubSettingsTiers').isVisible(),true,'legacy tier compatibility remains a separate screen from the canonical YARD ROLE editor');
  await owner.page.locator('#yardHubSettingsRoles').click();
  await owner.page.locator('#yardHubRoleAdd').click();
  await owner.page.locator('#yardHubRoleName').fill('Manager QA');
