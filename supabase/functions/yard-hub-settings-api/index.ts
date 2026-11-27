@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { resolveYardRolePermissions } from "../_shared/yard-role-resolver.mjs";
-import { canAssignYardRoleToTarget, canInteractWithRootsTarget, resolveRootsAuthority, rootsCapabilities } from "../_shared/roots-authority.mjs";
+import { resolveYardRolePermissions } from "./_shared/yard-role-resolver.mjs";
+import { canAssignYardRoleToTarget, canInteractWithRootsTarget, resolveRootsAuthority, rootsCapabilities } from "./_shared/roots-authority.mjs";
 
 const allowedOrigin = "https://aka30art.github.io";
 const tierNames = ["OWNER", "DEVACC", "ADMIN", "MANAGER", "SUPERVISOR", "MECHANIC", "USER", "SPECTATOR"] as const;
