@@ -504,14 +504,18 @@ async function ensureNavigationMenuOpen(page){
  const menu=page.locator('.nav-menu');
  const yardHub=page.locator('#yardHub');
  const shell=page.locator('.shell');
- if(!await shell.isVisible()||await menu.evaluate(node=>node.hidden)){
+ // STAFF workspace hides the DOWNTIME rail; use its own YARD HUB return control.
+ if(!await shell.isVisible()||!await menu.isVisible()){
   if(!await yardHub.isVisible()){
-   await page.locator('#backToYardHub').click();
+   const staffReturn=page.locator('#staffBackToYardHub');
+   if(await staffReturn.isVisible())await staffReturn.click();
+   else await page.locator('#backToYardHub').click();
    await yardHub.waitFor({state:'visible',timeout:5000});
   }
   await page.locator('#launchDowntimeBtn').click();
   await page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:5000});
  }
+ if(!await menu.isVisible())await menu.waitFor({state:'visible',timeout:3000});
  if(!await menu.evaluate(node=>node.open))await menu.locator(':scope > summary').click();
  await page.locator('.nav[data-view]').first().waitFor({state:'visible',timeout:3000});
 }
