@@ -52,7 +52,7 @@
     saving=value;
     ['yardHubUserSave','yardHubUserStatus','yardHubTierSave','yardHubRoleSave','yardHubRoleAdd','yardHubIdentityResetExecute'].forEach(id=>{const b=$(id);if(b)b.disabled=value});
     const addUser=$('yardHubUserAdd');
-    if(addUser)addUser.disabled=value||state?.canManageCentralUsers!==true||!rootDev()||!(state?.yardRoles||[]).some(role=>role.status==='ACTIVE');
+    if(addUser)addUser.disabled=value||state?.canManageStaffUsers!==true||!(state?.yardRoles||[]).some(role=>role.status==='ACTIVE');
   }
   async function callApi(action,body={}){
     const session=currentSession();
@@ -108,7 +108,7 @@
     workingPayload=JSON.parse(JSON.stringify(result.tierPermissions));
     renderUsers();renderTierCards();renderYardRoleCards();updateTierSaveState();
     const addUser=$('yardHubUserAdd');
-    if(addUser)addUser.disabled=saving||result.canManageCentralUsers!==true||!rootDev()||!(result.yardRoles||[]).some(role=>role.status==='ACTIVE');
+    if(addUser)addUser.disabled=saving||result.canManageStaffUsers!==true||!(result.yardRoles||[]).some(role=>role.status==='ACTIVE');
     const addRole=$('yardHubRoleAdd');if(addRole)addRole.hidden=!isProtectedRoot();
     const roleHome=$('yardHubSettingsRoles');if(roleHome)roleHome.hidden=!isProtectedRoot();
     const rootsHome=$('yardHubSettingsRoots');if(rootsHome)rootsHome.hidden=true;
@@ -181,6 +181,20 @@
       setStatus(error.message||'Unable to open YARD HUB Settings.','error');
     }
   }
+  async function openStaffUserManagement(){
+    setStatus('VERIFYING STAFF MANAGEMENT ACCESS…');
+    try{
+      await loadState();
+      if(state?.canViewStaffUsers!==true)throw new Error('Management VIEW permission is required to access USER accounts.');
+      const hub=$('yardHub');if(hub){hub.hidden=false;hub.style.display='block'}
+      const shell=document.querySelector('.shell');if(shell)shell.style.display='none';
+      setHomeVisible(true);openSettingsView('users');
+      const addUser=$('yardHubUserAdd');
+      if(addUser)addUser.hidden=state?.canManageStaffUsers!==true;
+      setStatus('');
+    }catch(error){setStatus(error.message||'Unable to open USER management.','error')}
+  }
+  window.openYardHubStaffManagementUsers=openStaffUserManagement;
   function closeSettings(){
     if(hasUnsavedTierChanges()&&!window.confirm('Discard unsaved YARD HUB permission changes?'))return;
     setHomeVisible(false);showSettingsHome();setStatus('');
@@ -285,8 +299,8 @@
     const canManageCentralUsers=state?.canManageCentralUsers===true;
     const isPending=user?.provisioningState==='YARD_ROLE_PENDING';
     const isCanonical=Boolean(user?.yardRoleId);
-    if(!user&&!rootDev()){setStatus('Only immutable DEV may create new USER identities.','error');return}
-    if(user&&!canManageCentralUsers){setStatus('Your account cannot manage Central USER records.','error');return}
+    if(!user&&state?.canManageStaffUsers!==true){setStatus('Management MANAGE permission is required to create USER identities.','error');return}
+    if(user&&!canManageCentralUsers&&state?.canAssignUserRoles!==true){setStatus('Your account cannot manage this USER identity.','error');return}
     editingUsername=user?String(user.username):null;
     $('yardHubUserForm').reset();
     $('yardHubStaffFields').hidden=!!user;
@@ -296,16 +310,16 @@
     $('yardHubStaffRole').value='Main Operator';$('yardHubStaffStation').value='';
     $('yardHubStaffStationLocked').checked=false;$('yardHubStaffOnSite').checked=true;
     const hasRoles=populateYardRoles(user?.requestedYardRoleId||user?.yardRoleId||'');
-    $('yardHubUserYardRole').disabled=isPending||!rootDev();
+    $('yardHubUserYardRole').disabled=isPending||state?.canAssignUserRoles!==true;
     $('yardHubUserModal').hidden=false;
     $('yardHubUserModalTitle').textContent=user?'EDIT USER':'ADD USER';
     $('yardHubUserUsername').value=user?.username||'';
-    $('yardHubUserUsername').disabled=!!user||!canManageCentralUsers;
+    $('yardHubUserUsername').disabled=!!user||(!canManageCentralUsers&&state?.canManageStaffUsers!==true);
     $('yardHubUserDisplay').value=user?.displayName||'';
-    $('yardHubUserDisplay').disabled=!canManageCentralUsers||isPending;
+    $('yardHubUserDisplay').disabled=(!canManageCentralUsers&&state?.canManageStaffUsers!==true)||isPending;
     $('yardHubUserPin').value='';
     $('yardHubUserPin').required=!user;
-    $('yardHubUserPin').disabled=!canManageCentralUsers||isPending;
+    $('yardHubUserPin').disabled=(!canManageCentralUsers&&state?.canManageStaffUsers!==true)||isPending;
     $('yardHubUserPin').placeholder=user?'Leave blank to keep current PIN':'4–8 digit PIN';
     $('yardHubUserEnabled').checked=user?.enabled!==false;
     $('yardHubUserEnabled').disabled=!canManageCentralUsers;
@@ -357,7 +371,7 @@
       displayName!==(existing.displayName||existing.username)||
       pin.length>0||
       enabled!==(existing.enabled!==false));
-    if(centralChanges&&state.canManageCentralUsers!==true){
+    if(centralChanges&&state.canManageCentralUsers!==true&&!isNew){
       setStatus('Central account details are controlled by the existing Central Users permission. YARD HUB tier assignment remains separate.','error');return;
     }
     if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username)){setStatus('Username must be 2–32 letters, numbers, dots, underscores or hyphens.','error');return}
@@ -367,7 +381,7 @@
     if(isNew||pendingProvisioning||yardRoleChanged){
       if(!requestedYardRoleId||!(state?.yardRoles||[]).some(role=>role.id===requestedYardRoleId)){setStatus('Select an active canonical YARD ROLE.','error');return}
     }else if(!canonicalIdentity&&!allRoles().includes(hubTier)){setStatus('Select a valid legacy YARD HUB tier.','error');return}
-    if(!isRootAdmin()&&!editableByAdmin.includes(hubTier)&&(hubTier!==existing?.hubTier)){
+    if(!canonicalIdentity&&!isRootAdmin()&&!editableByAdmin.includes(hubTier)&&(hubTier!==existing?.hubTier)){
       setStatus('ADMIN may assign only MANAGER, SUPERVISOR, USER and SPECTATOR YARD HUB tiers.','error');return;
     }
     if(hubTier==='OWNER'&&username.toUpperCase()!=='DEV'){setStatus('DEV is the only OWNER account.','error');return}
@@ -764,6 +778,7 @@
     window.openYardHubStaffManagement=openSettings;
     window.closeYardHubStaffManagement=closeStaffManagementWorkspace;
     $('yardHubSettingsUsers')?.addEventListener('click',()=>openSettingsView('users'));
+    $('openStaffUserAccounts')?.addEventListener('click',()=>openStaffUserManagement());
     $('yardHubSettingsRoles')?.addEventListener('click',()=>openSettingsView('roles'));
     $('yardHubSettingsStaff')?.addEventListener('click',()=>{
       if(!['DEV','DEV1','ADMIN'].includes(rootAuthority()))return;
