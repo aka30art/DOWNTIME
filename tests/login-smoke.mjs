@@ -519,7 +519,28 @@ async function openStaffSettings(page){
   return visible(hubScreen)||visible(staffPanel);
  },{timeout:5000});
  if(await staffManagementHome.isVisible())await page.locator('#yardHubSettingsStaff').click();
- await staffWorkspace.waitFor({state:'visible',timeout:5000});
+ try{
+  await staffWorkspace.waitFor({state:'visible',timeout:5000});
+ }catch(error){
+  const diagnostic=await page.evaluate(()=>({
+   hubHidden:document.querySelector('#yardHub')?.hidden??null,
+   hubStyle:document.querySelector('#yardHub')?.getAttribute('style')??null,
+   hubSettingsHidden:document.querySelector('#yardHubSettingsScreen')?.hidden??null,
+   hubSettingsTitle:document.querySelector('#yardHubSettingsTitle')?.textContent??null,
+   hubSettingsStatus:document.querySelector('#yardHubSettingsStatus')?.textContent??null,
+   staffHubTileHidden:document.querySelector('#yardHubSettingsStaff')?.hidden??null,
+   staffHubTileDisabled:document.querySelector('#yardHubSettingsStaff')?.disabled??null,
+   staffPanelHidden:document.querySelector('#settingsPanelStaff')?.hidden??null,
+   settingsDisplay:document.querySelector('#settings')?.style.display??null,
+   settingsActive:document.querySelector('#settings')?.classList.contains('active')??null,
+   rootsAuthority:window.DOWNTIME_ROOTS_AUTHORITY??null,
+   launchStaffWorkspace:typeof window.launchStaffWorkspace,
+   staffAutoAccess:typeof window.isStaffModuleAutoAccess==='function'?window.isStaffModuleAutoAccess():null,
+   staffViewPermission:typeof window.permission==='function'?window.permission('canViewStaff'):null,
+   staffManagePermission:typeof window.permission==='function'?window.permission('canManageStaff'):null
+  }));
+  throw new Error('STAFF workspace launch timed out: '+JSON.stringify(diagnostic)+'; '+error.message);
+ }
  await page.locator('#staffRosterList .staff-settings-icon').first().waitFor({state:'visible',timeout:5000});
 }
 
