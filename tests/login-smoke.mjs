@@ -100,7 +100,7 @@ async function dismissPlantTransitionAlerts(page){
  throw new Error('Plant transition alerts did not drain after acknowledgement.');
 }
 async function clickOverview(page){
- await ensureMainMenu(page);
+ await ensureNavigationMenuOpen(page);
  const link=page.locator('.overview-link');
  for(let attempt=0;attempt<10;attempt++){
   await dismissPlantTransitionAlerts(page);
