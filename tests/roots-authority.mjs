@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { resolveRootsAuthority, rootsCapabilities, canInteractWithRootsTarget } from "../supabase/functions/_shared/roots-authority.mjs";
+import { resolveRootsAuthority, rootsCapabilities, canInteractWithRootsTarget, canAssignYardRoleToTarget } from "../supabase/functions/_shared/roots-authority.mjs";
 
 const devId = "11111111-1111-4111-8111-111111111111";
 const userId = "22222222-2222-4222-8222-222222222222";
@@ -36,4 +36,16 @@ assert.equal(canInteractWithRootsTarget("DEV1", "DEV"), false);
 assert.equal(canInteractWithRootsTarget("ADMIN", "DEV"), false);
 assert.equal(canInteractWithRootsTarget("ADMIN", "DEV1"), false);
 assert.equal(canInteractWithRootsTarget("ADMIN", "ADMIN"), false);
-console.log("PASS: immutable ROOTS bootstrap, role separation, assignment matching, capabilities and isolation.");
+
+assert.equal(canAssignYardRoleToTarget("DEV", null), true);
+assert.equal(canAssignYardRoleToTarget("DEV1", null), true);
+assert.equal(canAssignYardRoleToTarget("ADMIN", null), true);
+assert.equal(canAssignYardRoleToTarget("DEV", "DEV1"), true);
+assert.equal(canAssignYardRoleToTarget("DEV", "ADMIN"), true);
+assert.equal(canAssignYardRoleToTarget("DEV1", "ADMIN"), false);
+assert.equal(canAssignYardRoleToTarget("ADMIN", "DEV1"), false);
+assert.equal(canAssignYardRoleToTarget("ADMIN", "ADMIN"), false);
+assert.equal(canAssignYardRoleToTarget("DEV", "DEV", true), false);
+assert.equal(canAssignYardRoleToTarget(null, null), false);
+
+console.log("PASS: immutable ROOTS bootstrap, role separation, YARD ROLE assignment boundaries, capabilities and isolation.");
