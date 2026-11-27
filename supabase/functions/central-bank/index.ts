@@ -228,7 +228,7 @@ Deno.serve(async(req)=>{
    Object.assign(priv,{canManageStaff:true,canEnterStaff:true,canEditStaff:true,canViewStaff:true,canManageAssignments:true,canViewAssignments:true});
  }
  // Central Bank USER directory access is an immutable DEV-only control-plane capability.
- priv.canManageUsers=rootsAuthority==="DEV"||(hasCanonicalIdentity&&resolvedYardRole&&moduleRights["Staff & Management"]?.manage===true);priv.canViewUsers=rootsAuthority==="DEV"||(hasCanonicalIdentity&&resolvedYardRole&&(moduleRights["Staff & Management"]?.view===true||moduleRights["Staff & Management"]?.manage===true));
+ priv.canManageUsers=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"")||(hasCanonicalIdentity&&resolvedYardRole&&moduleRights["Staff & Management"]?.manage===true);priv.canViewUsers=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"")||(hasCanonicalIdentity&&resolvedYardRole&&(moduleRights["Staff & Management"]?.view===true||moduleRights["Staff & Management"]?.manage===true));
  const isCentralAdmin=isDevRoot;
  const isCentralBankAccess=isDevRoot;
  if(action==="user-staff-provision"){
