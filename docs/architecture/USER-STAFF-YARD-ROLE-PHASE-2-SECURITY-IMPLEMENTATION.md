@@ -38,7 +38,7 @@ Implemented in this branch:
 - Non-DEV account listings, Central Bank STAFF payloads, daily-operator views and GATELOG STAFF rosters hide protected ROOTS identities. Ordinary account/tier/STAFF/photo paths cannot modify or inspect protected ROOTS identities.
 - Protected ROOTS authority is resolved independently and provides Manage access to the current GATELOG Traffic, R&M and YARD HUB settings consumers.
 
-Outstanding ROOTS lifecycle decision: this first registry is intentionally append-only and has no revocation/reclassification API. A separately audited DEV-only revocation workflow must be designed before ROOTS assignments are used operationally.
+Outstanding ROOTS lifecycle and provisioning decisions: this first registry is intentionally append-only and has no revocation/reclassification API. A separately audited DEV-only revocation workflow must be designed before ROOTS assignments are used operationally. The current assignment route accepts an already-active canonical USER/STAFF pair; a dedicated ROOTS-only provisioning/activation path is still needed so DEV1 and protected ADMIN can be created without requiring an ordinary YARD ROLE assignment.
 
 ## F6 — Canonical YARD ROLE consumers and legacy fallback
 
