@@ -224,3 +224,5 @@ assert.ok(ui.includes("filter(role=>role.status==='ACTIVE')"),'USER assignment s
 assert.ok(ui.includes("some(role=>role.status==='ACTIVE')"),'USER creation remains disabled until at least one ACTIVE canonical YARD ROLE exists');
 
 assert.ok(hubApi.includes('const canManageCentralUsers = rootsAuthority === "DEV";'),'only immutable DEV ROOTS authority can create or manage Central Bank USER accounts');
+
+assert.ok(hubApi.includes('const canManageCentralUsers = rootsAuthority === "DEV";'),'only immutable DEV ROOTS authority can create or manage Central Bank USER accounts');
