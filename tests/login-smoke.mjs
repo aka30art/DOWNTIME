@@ -838,8 +838,14 @@ try{
   'ADD DOWNTIME ENTRY uses the same area presets shown in Settings');
  await owner.page.locator('#cancelEntry').click();
  await openSettingsHub(owner.page);
+ await ensureMainMenu(owner.page);
+ await owner.page.locator('#backToYardHub').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
  await owner.page.locator('#launchStaffManagementBtn').click();
- assert.equal(await owner.page.locator('#settingsPanelStaff').isVisible(),true,'OWNER can open STAFF management from YARD HUB');
+ await owner.page.locator('#yardHubSettingsScreen').waitFor({state:'visible',timeout:5000});
+ await owner.page.locator('#yardHubSettingsStaff').click();
+ await owner.page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
+ assert.equal(await owner.page.locator('#settingsPanelStaff').isVisible(),true,'OWNER opens STAFF management through YARD HUB Staff Management');
  assert.equal(await owner.page.locator('#addStaffBtn').isEnabled(),true,'OWNER retains STAFF management privileges');
  await ensureMainMenu(owner.page);
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').isVisible(),true,'OWNER can view reports');
