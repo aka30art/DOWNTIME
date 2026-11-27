@@ -506,7 +506,7 @@ async function openStaffSettings(page){
   document.querySelectorAll('.view').forEach(view=>view.classList.toggle('active',view.id==='settings'));
   document.querySelector('#settings').style.display='block';
   document.querySelector('#settingsHub').hidden=true;
-  document.querySelector('#settingsPanelStaff').hidden=false;
+  const panel=document.querySelector('#settingsPanelStaff');panel.hidden=false;panel.style.display='block';document.querySelector('#staffRosterList').style.display='grid';
  });
  await page.locator('#staffRosterList').waitFor({state:'visible'});
 }
