@@ -107,7 +107,7 @@
     if(addUser)addUser.disabled=saving||result.canManageCentralUsers!==true||!rootDev()||!(result.yardRoles||[]).length;
     const addRole=$('yardHubRoleAdd');if(addRole)addRole.hidden=!isProtectedRoot();
     const roleHome=$('yardHubSettingsRoles');if(roleHome)roleHome.hidden=!isProtectedRoot();
-    const rootsHome=$('yardHubSettingsRoots');if(rootsHome)rootsHome.hidden=!rootDev();
+    const rootsHome=$('yardHubSettingsRoots');if(rootsHome)rootsHome.hidden=!(rootDev()||rootAuthority()==='DEV1');
     const addTier=$('yardHubCustomTierAdd');
     if(addTier)addTier.hidden=!isRootAdmin();
     return result;
@@ -430,7 +430,20 @@
     finally{setBusy(false)}
   }
   async function loadRootsState(){
+    const dev1=rootAuthority()==='DEV1';
+    const dev1Form=$('yardHubDev1AdminAssignment'),assignmentSection=$('yardHubRootsAssignment'),directorySection=$('yardHubRootsDirectory');
+    if(dev1){
+      if(dev1Form)dev1Form.hidden=false;
+      if(assignmentSection)assignmentSection.hidden=true;
+      if(directorySection)directorySection.hidden=true;
+      $('yardHubRootAssignments')?.replaceChildren();
+      rootsState=null;
+      return null;
+    }
     if(!rootDev())throw new Error('The protected ROOTS directory is restricted to DEV.');
+    if(dev1Form)dev1Form.hidden=true;
+    if(assignmentSection)assignmentSection.hidden=false;
+    if(directorySection)directorySection.hidden=false;
     const result=await callApi('roots-state');rootsState=result;
     const select=$('yardHubRootUser'),previous=select.value;
     select.replaceChildren();
@@ -483,6 +496,22 @@
       await loadRootsState();await loadState();
       setStatus('PROTECTED ROOTS ASSIGNMENT UPDATED.','ok');
     }catch(error){setStatus(error.message||'ROOTS operation failed.','error')}
+    finally{setBusy(false)}
+  }
+  async function assignAdminAsDev1(){
+    if(rootAuthority()!=='DEV1'||saving)return;
+    const userId=String($('yardHubDev1UserId')?.value||'').trim(),staffId=String($('yardHubDev1StaffId')?.value||'').trim();
+    const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if(!uuid.test(userId)||!uuid.test(staffId)||userId.toLowerCase()===staffId.toLowerCase()){
+      setStatus('Enter a valid, distinct immutable USER ID and linked STAFF ID.','error');return;
+    }
+    setBusy(true);setStatus('ASSIGNING PROTECTED ADMIN…');
+    try{
+      await callApi('roots-manage',{userId,staffId,lifecycleAction:'ASSIGN',rootsClass:'ADMIN'});
+      $('yardHubDev1UserId').value='';$('yardHubDev1StaffId').value='';
+      await loadState();
+      setStatus('PROTECTED ADMIN ASSIGNMENT CREATED.','ok');
+    }catch(error){setStatus(error.message||'ADMIN assignment failed.','error')}
     finally{setBusy(false)}
   }
   function renderYardRoleCards(){
@@ -649,6 +678,7 @@
     $('yardHubSettingsRoles')?.addEventListener('click',()=>openSettingsView('roles'));
     $('yardHubSettingsRoots')?.addEventListener('click',()=>openSettingsView('roots'));
     $('yardHubRootAssign')?.addEventListener('click',assignSelectedRoot);
+    $('yardHubDev1AssignAdmin')?.addEventListener('click',assignAdminAsDev1);
     $('yardHubRoleAdd')?.addEventListener('click',()=>openYardRoleModal());
     $('yardHubRoleCancel')?.addEventListener('click',closeYardRoleModal);
     $('yardHubRoleForm')?.addEventListener('submit',saveYardRole);
