@@ -1497,6 +1497,7 @@ function canManageSettingsSection(section){
  return permission('canManageSettings')||(rights[section]||[]).some(key=>permission(key));
 }
 function settingsAccess(section){
+ if(section==='users')return rootsAuthority()==='DEV';
  if(section==='staff'&&isStaffModuleAutoAccess())return true;
  if(section==='accessRights')return canManageAccessRights();
  if(section==='stations')return permission('canManageSettings');
