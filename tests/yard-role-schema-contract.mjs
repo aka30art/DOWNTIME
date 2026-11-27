@@ -5,6 +5,7 @@ const migration = await readFile("supabase/migrations/20261126233000_canonical_y
 const definitionMigration = await readFile("supabase/migrations/20261127030000_yard_role_definition_management.sql", "utf8");
 const reassignmentMigration = await readFile("supabase/migrations/20261127040000_yard_role_assignment_reassignment.sql", "utf8");
 const atomicAssignmentMigration = await readFile("supabase/migrations/20261127060000_yard_role_assignment_atomic_central_bank.sql", "utf8");
+const settingsApi = await readFile("supabase/functions/yard-hub-settings-api/index.ts", "utf8");
 
 assert.match(migration, /status text not null default 'DRAFT'/, "new YARD ROLEs start as drafts");
 assert.match(migration, /version integer not null default 1/, "YARD ROLE definitions are versioned");
@@ -37,5 +38,11 @@ assert.match(reassignmentMigration, /actor_user_id/);
 assert.match(atomicAssignmentMigration, /yard_role_assign_existing_user/);
 assert.match(atomicAssignmentMigration, /downtime_commit_central_bank/);
 assert.match(atomicAssignmentMigration, /CENTRAL_BANK_VERSION_CONFLICT/);
-assert.match(atomicAssignmentMigration, /yard_role_reassign_user/);
-console.log("PASS: canonical YARD ROLE schema enforces approved departments, levels, audit and service-role boundaries.");
+assert.match(atomicAssignmentMigration, /drop function if exists public\.yard_role_reassign_user\(uuid,uuid,uuid,integer,uuid,text,text\)/, "old non-atomic reassignment RPC is removed");
+assert.match(atomicAssignmentMigration, /p_expected_bank_version bigint/, "atomic assignment RPC checks the Central Bank version");
+assert.match(settingsApi, /db\.rpc\("yard_role_assign_existing_user", atomicArgs\)/, "active first-time assignment uses the atomic USER/STAFF/Central Bank RPC");
+assert.match(settingsApi, /db\.rpc\("yard_role_reassign_user", \{[\s\S]*?p_expected_bank_version: expectedBankVersion[\s\S]*?p_next_payload: nextPayload[\s\S]*?p_expected_version: Number\(body\.assignmentVersion\)/, "active reassignment uses the new atomic RPC signature and both optimistic-concurrency versions");
+assert.match(settingsApi, /if \(isPending\)[\s\S]*?db\.rpc\("yard_role_assign_user"/, "pending provisioning remains staged and does not bypass the separate DEV activation gate");
+assert.match(settingsApi, /payloadTarget\.yardRoleId = yardRoleId/, "the Central Bank USER snapshot is updated in the same transaction as active role assignment");
+console.log("PASS: canonical YARD ROLE schema, atomic assignment, version checks, audit and service-role boundaries.");
+
