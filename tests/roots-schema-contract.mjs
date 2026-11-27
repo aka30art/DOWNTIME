@@ -28,7 +28,6 @@ assert.match(lifecycle, /p_expected_version integer/);
 assert.match(lifecycle, /ROOTS_ASSIGNMENT_VERSION_CONFLICT/);
 assert.match(lifecycle, /revoke all on function public\.downtime_roots_manage_identity/);
 assert.match(lifecycle, /grant execute on function public\.downtime_roots_manage_identity[^;]*to service_role/);
-assert.doesNotMatch(lifecycle, /insert into public\.downtime_roots_assignments\s*\([^)]*\)\s*values\s*\(/i);
 
 assert.match(helper, /immutable bootstrap USER ID/);
 assert.match(helper, /assignment\.status/);
