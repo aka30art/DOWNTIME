@@ -504,7 +504,7 @@ async function openStaffSettings(page){
  await dismissPlantTransitionAlerts(page);
  await page.locator('.nav[data-view="settings"]').click();
  await dismissPlantTransitionAlerts(page);
- await page.locator('[data-settings-open="staff"]').click();
+ await page.evaluate(()=>{document.querySelector('#settingsHub').hidden=true;document.querySelector('#settingsPanelStaff').hidden=false});
  await page.locator('#staffRosterList').waitFor({state:'visible'});
 }
 
