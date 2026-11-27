@@ -27,17 +27,9 @@ for(const tier of tiers){
   assert.match(roleProfile(overview.slice(overview.indexOf('const tier=user?.tier'),overview.indexOf('const rights=')),tier),/canControlPlantPower:true/,'Overview fallback grants Plant Power to '+tier);
 }
 
-// Root can see every tier; delegated ADMIN can see only the four lower tiers.
- // Root roles may edit only Plant Power; their other immutable privileges stay locked.
-assert.ok(page.includes("{key:'canControlPlantPower',label:'PLANT POWER'"),'Access & Rights contains the PLANT POWER checkbox');
-assert.ok(page.includes("const root=canAccessCentralBank(),visibleTiers=root?USER_TIERS:['MANAGER','SUPERVISOR','USER','SPECTATOR'];"),'root sees all tier profiles while delegated ADMIN is restricted to lower tiers');
-assert.ok(page.includes('visibleTiers.forEach(tier=>{'),'Access & Rights renders only the profiles allowed to the current authority');
-assert.ok(page.includes("toggle.disabled=adminLocked||(!root&&right.key==='canManageAccessRights')||!!(lockedTierPermissions[tier]&&Object.prototype.hasOwnProperty.call(lockedTierPermissions[tier],right.key))"),'ADMIN cannot edit its own profile or the delegation right, and immutable root rights remain read-only');
-assert.ok(page.includes("rootProfile.canControlPlantPower=plantPower.checked"),'the Plant Power value is saved independently for root tiers');
-for(const tier of ['OWNER','DEVACC']){
-  assert.doesNotMatch(roleProfile(pageLocked,tier),/canControlPlantPower/,'root Plant Power is not hard-locked in frontend '+tier);
-  assert.doesNotMatch(roleProfile(apiLocked,tier),/canControlPlantPower/,'root Plant Power is not hard-locked in backend '+tier);
-}
+// Legacy account-tier editing is closed while canonical YARD ROLE is authoritative.
+assert.ok(page.includes('function canManageAccessRights(){return false}'),'the retired legacy tier editor is unavailable');
+assert.ok(page.includes("if(section==='accessRights')return canManageAccessRights();"),'the Settings hub blocks the retired tier editor');
 
 // Frontend visibility and activation both use the tier right, not a username
 // allow-list or the unrelated tracker-edit permission.
@@ -53,18 +45,19 @@ assert.ok(statusRoute.includes('if(!priv.canControlPlantPower)return json({error
 assert.ok(!statusRoute.includes('priv.canEditTracker'),'read-only tier access is independent of Edit tracker');
 assert.ok(statusRoute.includes('action:"set-plant-status"'),'status changes remain audited');
 
-// Root OWNER/DEVACC rights stay protected except for this explicitly configurable
-// permission; other tiers retain the normal complete boolean permission schema.
+// Canonical department identities receive Plant Power only through protected ROOTS authority.
+// Legacy tier permission writes are rejected instead of bypassing YARD ROLE.
+const canonicalIdentityBlock=api.slice(api.indexOf('if(hasCanonicalIdentity&&!isRootAuthority)'),api.indexOf('if(isRootAuthority){'));
+const rootsAuthorityBlock=api.slice(api.indexOf('if(isRootAuthority){'),api.indexOf('// Central Bank USER directory access'));
+assert.ok(canonicalIdentityBlock.includes('canControlPlantPower:false'),'canonical non-root YARD ROLE identities cannot operate Plant Power');
+assert.ok(rootsAuthorityBlock.includes('canControlPlantPower:true'),'protected ROOTS identities retain Plant Power control');
 const saveRoute=api.slice(api.indexOf('if(action==="tiers-save")'),api.indexOf('if(action==="logout")'));
-assert.ok(saveRoute.includes('if(role==="OWNER"||role==="DEVACC")'),'root profiles receive a separate save path');
-assert.ok(saveRoute.includes('if(key==="canControlPlantPower")'),'only the Plant Power right is taken from the proposed root profile');
-assert.ok(saveRoute.includes('lockedRolePrivileges[role][key]??tierDefault[role][key]'),'other root privileges are reset to their protected values');
-assert.ok(saveRoute.includes('const permissionKeys=Object.keys(tierDefault.OWNER)'),'server validates against the mirrored tier permission whitelist');
-assert.ok(api.includes('Object.fromEntries(tiers.map(tier=>[tier,{...tierDefault[tier],...(storedTiers[tier]||{})}]))'),'existing stored tier data inherits the new true default when the new key is absent');
+assert.ok(saveRoute.includes('Legacy account-tier permissions are retired. Configure department access through canonical YARD ROLE.')&&saveRoute.includes('},410);'),'server retires legacy tier-permission writes with HTTP 410');
+assert.ok(!saveRoute.includes('if(role==="OWNER"||role==="DEVACC")'),'retired tier route cannot provide a legacy ROOTS profile mutation path');
 
 // The second status surface uses the same right, avoiding a split permission model.
 assert.ok(overview.includes('authorized=!!rights.canControlPlantPower'),'Plant Overview status control follows Plant Power');
 assert.ok(overview.includes('toggle.hidden=!authorized'),'Plant Overview hides the control when Plant Power is off');
 assert.ok(packageJson.scripts['test:central-bank'].includes('tests/plant-power-permission-contract.mjs'),'Plant Power permission contract runs in CI');
 
-console.log('PASS: PLANT POWER is configurable for all seven tiers, independently enforced by the Central Bank API and available to read-only USER/SPECTATOR tiers when enabled.');
+console.log('PASS: Plant Power is enforced by the Central Bank API, granted to protected ROOTS identities, denied to canonical non-root identities, and the retired tier editor fails closed.');
