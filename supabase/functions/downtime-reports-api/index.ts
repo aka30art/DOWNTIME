@@ -145,6 +145,11 @@ Deno.serve(async (req: Request) => {
     if (permissions.canDeleteRecords === true) {
       const { data: archive } = await admin.from("downtime_reports").select("id,storage_path").order("created_at", { ascending: false }).limit(100);
       for (const old of (archive || []).slice(12)) {
+        const { error: pruneAuditError } = await admin.from("downtime_central_audit").insert({
+          username: user.username, action: "weekly-report-auto-prune",
+          details: { reportId: old.id, actorUserId: user.userId || null, actorStaffId: user.staffId || null },
+        });
+        if (pruneAuditError) continue;
         const { error: removeError } = await admin.storage.from(bucket).remove([old.storage_path]);
         if (removeError) continue;
         const { error: deleteError } = await admin.from("downtime_reports").delete().eq("id", old.id);
