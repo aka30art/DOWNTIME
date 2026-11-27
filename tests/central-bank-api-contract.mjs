@@ -86,7 +86,8 @@ assert.ok(src.includes('action:"central-config-publish"'),'publishing is audited
 assert.ok(src.includes('action:"central-config-restore-draft"'),'restoring historical configuration is audited');
 
 
-assert.ok(src.includes('const isDevRoot=currentUsername==="DEV"&&tier==="OWNER"'),'DEV is the permanent root OWNER identity');
+assert.ok(src.includes('const isDevRoot=rootsAuthority==="DEV"'),'DEV root authority is resolved from the immutable bootstrap USER ID, not username or legacy tier');
+assert.ok(src.includes('const isRootAuthority=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"")'),'protected ROOTS authority is separate from ordinary legacy tiers');
 assert.ok(src.includes('const isDevacc=tier==="DEVACC";')&&src.includes('const isRootAuthority=isDevRoot||isDevacc;')&&src.includes('const isCentralBankAccess=isRootAuthority;'),'DEVACC is a root-equivalent Data Bank principal');
 assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);'),'whole-bank state is limited to DEV and DEVACC');
 assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),'all configuration control-plane actions share the DEV/DEVACC gate');
