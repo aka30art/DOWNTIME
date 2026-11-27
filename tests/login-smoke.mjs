@@ -503,7 +503,14 @@ async function ensureNavigationMenuOpen(page){
 async function openStaffSettings(page){
  await ensureMainMenu(page);
  await dismissPlantTransitionAlerts(page);
+ const yardHub=page.locator('#yardHub');
+ if(!await yardHub.isVisible()){
+  await page.locator('#backToYardHub').click();
+  await yardHub.waitFor({state:'visible',timeout:5000});
+ }
  await page.locator('#launchStaffManagementBtn').click();
+ const staffManagementHome=page.locator('#yardHubSettingsScreen');
+ if(await staffManagementHome.isVisible().catch(()=>false))await page.locator('#yardHubSettingsStaff').click();
  await page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
  await page.locator('#staffRosterList .staff-settings-icon').first().waitFor({state:'visible',timeout:5000});
 }
@@ -707,6 +714,8 @@ try{
  await owner.page.locator('#backToYardHub').click();
  await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
  await owner.page.locator('#launchStaffManagementBtn').click();
+ await owner.page.locator('#yardHubSettingsScreen').waitFor({state:'visible',timeout:5000});
+ await owner.page.locator('#yardHubSettingsStaff').click();
  await owner.page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
  await owner.page.locator('#smDepartment').selectOption('SCPL');
@@ -719,7 +728,7 @@ try{
  await owner.page.locator('#smSave').click();
  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:5000});
  assert.equal(owner.getBank().staff.profiles.Jan.station,'Station 3 · SCRAP','SCPL STAFF station reassignment is confirmed in the central data bank');
- await owner.page.locator('#settingsPanelStaff [data-settings-back]').click();
+ await owner.page.locator('#settingsPanelStaff .settings-back').click();
  await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
  await owner.page.locator('#launchDowntimeBtn').click();
  await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
