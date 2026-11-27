@@ -1056,7 +1056,11 @@ try{
   assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.length||0),1,'new-member original image is uploaded to private staff storage');
   assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.[0]?.bucket),'downtime-staff-photos','original photo is uploaded to the private staff photo bucket');
  assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+6,'daily tasks, completions, lock and one staff save advance central version');
- // STAFF profile administration lives in Settings; return to Home Page before exercising its Day to Day control.
+ // STAFF profile administration uses its dedicated YARD HUB return route. Relaunch DOWNTIME before exercising its menu.
+ await owner.page.locator('#staffBackToYardHub').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
+ await owner.page.locator('#launchDowntimeBtn').click();
+ await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
  await ensureMainMenu(owner.page);
  const homePageNav=owner.page.locator('.nav[data-view="weekly"]');
  if(!await homePageNav.isVisible()){
