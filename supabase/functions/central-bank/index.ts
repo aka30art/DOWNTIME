@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning, renameLinkedStaffDisplayName } from "../_shared/user-staff-identity.mjs";
-import { resolveYardRolePermissions } from "../_shared/yard-role-resolver.mjs";
+import { canYardRolePerform, resolveYardRolePermissions } from "../_shared/yard-role-resolver.mjs";
 import { resolveRootsAuthority } from "../_shared/roots-authority.mjs";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
@@ -168,10 +168,54 @@ Deno.serve(async(req)=>{
  if(lockedRolePrivileges[tier])Object.assign(priv,lockedRolePrivileges[tier]);
  const currentUsername=String(currentUser.username||"").trim().toUpperCase();
  const isDevRoot=rootsAuthority==="DEV";
- const isDevacc=tier==="DEVACC";
  const isRootAuthority=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"");
- const isCentralAdmin=tier==="ADMIN"||isRootAuthority;
- const isCentralBankAccess=isRootAuthority;
+ let resolvedYardRole:any=null;
+ const hasCanonicalIdentity=Boolean(currentUser.userId||currentUser.staffId);
+ if(hasCanonicalIdentity&&!isRootAuthority){
+   if(currentUser.enabled!==true||currentUser.status!=="ACTIVE"||!currentUser.userId||!currentUser.staffId)return json({error:"Canonical USER/STAFF identity is not active or complete."},403);
+   const {data:yardAssignment,error:yardAssignmentError}=await db.from("yard_role_assignments")
+     .select("user_id,staff_id,yard_role_id,status").eq("user_id",currentUser.userId).eq("status","ACTIVE").maybeSingle();
+   if(yardAssignmentError)return json({error:"Canonical YARD ROLE assignment is unavailable."},503);
+   if(!yardAssignment||String(yardAssignment.staff_id).toLowerCase()!==String(currentUser.staffId).toLowerCase()||
+      String(yardAssignment.yard_role_id).toLowerCase()!==String(currentUser.yardRoleId||"").toLowerCase())
+     return json({error:"An active reciprocal YARD ROLE assignment is required for this department."},403);
+   const [{data:yardRole,error:yardRoleError},{data:departmentRows,error:departmentRowsError}]=await Promise.all([
+     db.from("yard_roles").select("id,name,description,status").eq("id",yardAssignment.yard_role_id).eq("status","ACTIVE").maybeSingle(),
+     db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage").eq("yard_role_id",yardAssignment.yard_role_id),
+   ]);
+   if(yardRoleError||departmentRowsError||!yardRole)return json({error:"Canonical YARD ROLE permission profile is unavailable."},503);
+   try{resolvedYardRole=resolveYardRolePermissions(yardRole,departmentRows||[])}
+   catch(error){return json({error:error instanceof Error?error.message:"Canonical YARD ROLE permission profile is invalid."},503)}
+   const management=resolvedYardRole.departments.Management;
+   const hasManagementAccess=management.view||management.enter||management.edit||management.manage;
+   if(!hasManagementAccess)return json({error:"This USER has no access to the Management department."},403);
+   Object.assign(priv,{
+     canEditTracker:management.enter||management.edit||management.manage,
+     canDeleteRecords:management.manage,
+     canExportReports:management.view,
+     canViewPlantOverview:management.view,
+     canViewDashboards:management.view,
+     canViewReports:management.view,
+     canControlPlantPower:false,
+     canManageUsers:false,canViewUsers:false,canManageStaff:false,canViewStaff:false,
+     canManageAssignments:false,canViewAssignments:false,canManageSettings:false,canManageAccessRights:false,
+     canViewAreaPresets:false,canManageAreaPresets:false,canViewReasonPresets:false,canManageReasonPresets:false,
+     canViewShiftSchedule:false,canManageShiftSchedule:false,canViewDailyTasks:false,canManageDailyTasks:false,
+     canAddDowntimeReasons:false,
+   });
+ }
+ if(isRootAuthority){
+   Object.assign(priv,{
+     canEditTracker:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewDashboards:true,canViewReports:true,
+     canControlPlantPower:true,
+   });
+   if(rootsAuthority!=="DEV"){
+     Object.assign(priv,{canManageUsers:false,canViewUsers:false,canManageStaff:false,canViewStaff:false,
+       canManageAssignments:false,canViewAssignments:false,canManageSettings:false,canManageAccessRights:false});
+   }
+ }
+ const isCentralAdmin=isDevRoot;
+ const isCentralBankAccess=isDevRoot;
  if(action==="user-staff-provision"){
    if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);
    const username=String(body.username||"").trim(),displayName=String(body.displayName||"").trim(),pin=String(body.pin||"");
