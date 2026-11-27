@@ -327,7 +327,7 @@ Deno.serve(async(req)=>{
  }
 if(action==="roots-state"){
    if(rootsAuthority!=="DEV")return json({error:"ROOTS directory is restricted to immutable DEV."},403);
-   if(rootsLookupError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   if(rootsAssignmentError)return json({error:"Protected ROOTS registry is unavailable."},503);
    const [{data:assignments,error:assignmentsError},{data:history,error:historyError}]=await Promise.all([
      db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status,version,revoked_at,assigned_by_username,created_at,updated_at").order("created_at"),
      db.from("downtime_roots_assignment_audit").select("user_id,staff_id,roots_class,actor_username,action,created_at").order("created_at",{ascending:false})
@@ -382,7 +382,7 @@ if(action==="roots-state"){
    if(action==="roots-assign-admin"&&requestedClass!=="ADMIN")return json({error:"The scoped DEV1 action can assign ADMIN only."},403);
    if(!["DEV1","ADMIN"].includes(requestedClass))return json({error:"A protected DEV1 or ADMIN classification is required."},400);
    if(requestedClass==="DEV1"&&rootsAuthority!=="DEV")return json({error:"Only immutable DEV may assign DEV1."},403);
-   if(rootsLookupError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   if(rootsAssignmentError)return json({error:"Protected ROOTS registry is unavailable."},503);
    if(!/^[0-9a-f-]{36}$/i.test(String(body.userId||""))||!/^[0-9a-f-]{36}$/i.test(String(body.staffId||"")))return json({error:"Immutable USER and STAFF IDs are required."},400);
    const target=bank.users.find((account:any)=>String(account.userId||"").toLowerCase()===String(body.userId).toLowerCase());
    if(!target||target.enabled!==true||target.status!=="ACTIVE"||target.provisioning||target.tier!=null)return json({error:"An active canonical USER without a legacy tier claim is required."},409);
