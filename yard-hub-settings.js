@@ -729,7 +729,7 @@
     if(confirmation!=='KEEP DEV - CLEAR USERS STAFF PHOTOS'){
       setStatus('Type KEEP DEV - CLEAR USERS STAFF PHOTOS exactly to confirm.','error');return;
     }
-    if(!window.confirm('PERMANENT DIRECTORY RESET: remove every USER except the existing DEV, every STAFF profile and roster entry, and every STAFF profile photo. DEV keeps the same immutable ID, PIN and current session. DEV1 and ADMIN remain role definitions only. Operational records, ordinary YARD ROLE definitions and department permissions are retained. Continue?'))return;
+    if(!window.confirm('PERMANENT DIRECTORY RESET: remove every USER except the existing DEV, every STAFF profile and roster entry, every STAFF photo object, and all GitHub STAFF original PNGs. DEV keeps the same immutable ID, PIN and current session. DEV1 and ADMIN remain role definitions only. Operational records, ordinary YARD ROLE definitions and department permissions are retained. Continue?'))return;
     setBusy(true);setStatus('VERIFYING DEV AND CLEARING USER / STAFF DATA…');
     try{
       if(!window.DowntimeCentral?.resetIdentities)throw new Error('Central identity reset action is unavailable. Refresh the application.');
