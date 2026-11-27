@@ -698,12 +698,13 @@
   }
   async function executeIdentityReset(){
     if(saving||!rootDev())return;
+    const currentDevPin=String($('yardHubResetCurrentDevPin')?.value||'');
     const devPin=String($('yardHubResetDevPin')?.value||'');
     const dev1Pin=String($('yardHubResetDev1Pin')?.value||'');
     const adminPin=String($('yardHubResetAdminPin')?.value||'');
     const confirmation=String($('yardHubResetConfirmation')?.value||'').trim();
-    if(![devPin,dev1Pin,adminPin].every(pin=>/^[0-9]{4,8}$/.test(pin))){
-      setStatus('Enter a new 4–8 digit PIN for DEV, DEV1 and ADMIN.','error');return;
+    if(![currentDevPin,devPin,dev1Pin,adminPin].every(pin=>/^[0-9]{4,8}$/.test(pin))){
+      setStatus('Enter the current DEV PIN and a new 4–8 digit PIN for DEV, DEV1 and ADMIN.','error');return;
     }
     if(confirmation!=='RESET ALL IDENTITIES'){
       setStatus('Type RESET ALL IDENTITIES exactly to confirm the permanent reset.','error');return;
@@ -712,7 +713,7 @@
     setBusy(true);setStatus('PERFORMING THE ONE-TIME IDENTITY RESET…');
     try{
       if(!window.DowntimeCentral?.resetIdentities)throw new Error('Central identity reset action is unavailable. Refresh the application.');
-      const result=await window.DowntimeCentral.resetIdentities({confirmation,devPin,dev1Pin,adminPin});
+      const result=await window.DowntimeCentral.resetIdentities({confirmation,currentDevPin,devPin,dev1Pin,adminPin});
       const ids=result.identities||{};
       window.alert('IDENTITY RESET COMPLETE.\n\nNew DEV USER ID: '+(ids.DEV?.userId||'created')+'\nNew DEV1 USER ID: '+(ids.DEV1?.userId||'created')+'\nNew ADMIN USER ID: '+(ids.ADMIN?.userId||'created')+'\n\nAll previous sessions have been revoked. Sign in again as DEV using the new DEV PIN you entered.');
       await window.DowntimeCentral.logout().catch(()=>{});

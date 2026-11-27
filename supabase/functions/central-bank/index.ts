@@ -282,7 +282,8 @@ Deno.serve(async(req)=>{
  if(action==="identity-reset"){
    if(!isDevRoot)return json({error:"Only the currently authenticated immutable DEV may perform the one-time identity reset."},403);
    if(String(body.confirmation||"")!=="RESET ALL IDENTITIES")return json({error:"Type RESET ALL IDENTITIES to confirm the permanent reset."},400);
-   const devPin=String(body.devPin||""),dev1Pin=String(body.dev1Pin||""),adminPin=String(body.adminPin||"");
+   const currentDevPin=String(body.currentDevPin||""),devPin=String(body.devPin||""),dev1Pin=String(body.dev1Pin||""),adminPin=String(body.adminPin||"");
+   if(!/^[0-9]{4,8}$/.test(currentDevPin)||!await verifyPin(currentDevPin,currentUser))return json({error:"Current DEV PIN verification failed."},401);
    if(![devPin,dev1Pin,adminPin].every(pin=>/^[0-9]{4,8}$/.test(pin)))return json({error:"New DEV, DEV1 and ADMIN PINs must each contain 4–8 digits."},400);
    if(!row||!Number.isInteger(Number(row.version)))return json({error:"Central USER directory version is unavailable."},503);
    const makeCredentials=async(username:string,staffId:string|null)=>{

@@ -26,6 +26,7 @@ assert.doesNotMatch(migration,/delete from public\.downtime_central_audit|delete
 assert.doesNotMatch(migration,/delete from public\.(downtime_tracker|gatelog_|repair_maintenance_)/i);
 assert.match(api,/if\(action==="identity-reset"\)[\s\S]*if\(!isDevRoot\)/);
 assert.match(api,/RESET ALL IDENTITIES/);
+assert.match(api,/verifyPin\(currentDevPin,currentUser\)/);
 assert.match(api,/downtime_identity_reset_cutover/);
 assert.match(api,/makeRootStaff\("DEV1"/);
 assert.match(api,/makeRootStaff\("ADMIN"/);
@@ -34,6 +35,7 @@ assert.match(html,/id="yardHubSettingsUsers"/);
 assert.match(html,/id="yardHubSettingsStaff"/);
 assert.match(html,/<strong>ACCESS AND RIGHTS<\/strong>/);
 assert.match(html,/id="yardHubIdentityReset"/);
+assert.match(html,/id="yardHubResetCurrentDevPin"/);
 assert.match(html,/id="yardHubResetDevPin"/);
 assert.match(html,/id="yardHubResetDev1Pin"/);
 assert.match(html,/id="yardHubResetAdminPin"/);
