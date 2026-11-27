@@ -20,7 +20,9 @@ assert.match(api,/!\["OWNER","DEVACC","ADMIN","SUPERVISOR"\]\.includes\(tier\)/,
 assert.match(api,/already has a locked operator/i,'locked records cannot be overwritten');
 assert.match(api,/Enter a reason for unlocking this daily assignment/i,'unlock requires a reason');
 assert.match(api,/downtime_daily_operator_audit/,'server records an immutable audit event');
-assert.match(api,/publicBank\.dailyOperators=dailyOperators\|\|\[\]/,'live shared state carries date-specific operator assignments');
+assert.match(api,/publicBank\.dailyOperators=\(dailyOperators\|\|\[\]\)\.filter/,'live shared state carries only operator assignments visible under protected ROOTS privacy');
+assert.match(api,/visibleRoster\.find/,'daily operator assignment selection excludes protected ROOTS STAFF identities for non-DEV users');
+assert.match(api,/Only immutable DEV may change a protected ROOTS daily operator assignment/,'non-DEV users cannot unlock or replace protected ROOTS daily operator assignments');
 
 assert.match(client,/dailyOperators\(fromDate,toDate\)/);
 assert.match(client,/assignDailyOperator\(dutyDate,operatorName,reason=""/);

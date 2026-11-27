@@ -156,6 +156,22 @@ assert.ok(app.includes("api('export-create',filters"),'PDF generation supports a
 assert.ok(api.includes('permissions.canManageRepairMaintenanceMachinery'),'registry mutations are server-authorized');
 assert.ok(api.includes('permissions.canReadRepairMaintenanceMachinery'),'registry reads are server-authorized');
 
+assert.match(api,/resolveRootsAuthority/,'R&M resolves protected ROOTS separately from legacy tiers');
+assert.match(api,/resolveYardRolePermissions/,'R&M validates canonical YARD ROLE permission matrices');
+assert.match(api,/yard_role_assignments/,'R&M verifies the active immutable USER/STAFF role assignment');
+assert.match(api,/canYardRolePerform\(resolvedYardRole, "R&M", "VIEW"\)/,'R&M READ access uses the canonical department resolver');
+assert.match(api,/canYardRolePerform\(resolvedYardRole, "R&M", "DELETE"\)/,'R&M Manage-only actions require canonical MANAGE access');
+assert.match(api,/canAccessRepairMaintenance: canRead \|\| canInput \|\| canEdit \|\| canManage/,'any independently enabled R&M permission grants module entry');
+assert.match(api,/if \(!resolvedYardRole\) \{[\s\S]*permissions\.canCreateRepairMaintenance = permissions\.canCreateRepairMaintenance === true \|\| permissions\.canEditRepairMaintenance === true/,'legacy INPUT/EDIT compatibility does not imply permissions for canonical YARD ROLEs');
+assert.match(api,/action === "asset-list"[\s\S]*canReadRepairMaintenanceMachinery !== true && permissions\.canAddRepairMaintenanceMachinery !== true/,'ENTER can load the machinery reference list without VIEW access to operational records');
+assert.match(api,/action === "create"[\s\S]*canCreateRepairMaintenance !== true[\s\S]*!isOneOf/,'fault creation requires ENTER without requiring VIEW');
+assert.match(api,/const loadFault = async \(faultId: unknown\) => \{\s*const id/,'Edit and Manage actions can load their target record without inheriting VIEW');
+
+assert.match(api,/!resolvedYardRole && !isProtectedRoot/,'legacy R&M fallback is isolated to identities without canonical YARD ROLE or ROOTS authority');
+assert.doesNotMatch(api,/Canonical YARD ROLE authorization is not yet enabled for R&M/,'canonical YARD ROLE identities no longer receive a blanket denial');
+assert.match(api,/downtime_roots_assignments/,'R&M reads server-side protected ROOTS assignments');
+assert.match(api,/includes\(rootsAuthority \|\| ""\)/,'protected DEV, DEV1 and ADMIN receive automatic R&M Manage authority');
+
 console.log('R&M module contract checks passed.');
 
 assert.ok(api.includes('permissions.canCreateRepairMaintenance = mode === "INPUT" || mode === "EDIT"'),'R&M INPUT tier can create faults');

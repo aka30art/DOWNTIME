@@ -1,5 +1,5 @@
 -- DOWNTIME LIVE — Supabase schema
--- Shared state record; only authenticated Supabase users may read/write.
+-- Shared state record; browser access is mediated by the Central Bank session API.
 create table if not exists public.downtime_shared_state (
   id smallint primary key default 1 check (id = 1),
   payload jsonb not null default '{}'::jsonb,
@@ -9,17 +9,13 @@ create table if not exists public.downtime_shared_state (
 alter table public.downtime_shared_state enable row level security;
 
 drop policy if exists "Authenticated users can read downtime state" on public.downtime_shared_state;
-create policy "Authenticated users can read downtime state"
-on public.downtime_shared_state for select to authenticated using (true);
-
--- Spectator reads are served by the authenticated Edge Function; do not grant anon table access.
 drop policy if exists "Authenticated users can insert downtime state" on public.downtime_shared_state;
-create policy "Authenticated users can insert downtime state"
-on public.downtime_shared_state for insert to authenticated with check (true);
-
 drop policy if exists "Authenticated users can update downtime state" on public.downtime_shared_state;
-create policy "Authenticated users can update downtime state"
-on public.downtime_shared_state for update to authenticated using (true) with check (true);
+revoke all on table public.downtime_shared_state from anon, authenticated;
+grant select on table public.downtime_shared_state to service_role;
+
+-- Spectator reads use the protected service-role Edge Function. Realtime remains a
+-- separate, private, read-only notification channel and does not carry tracker state.
 
 -- Enable realtime for this table (safe to run repeatedly)
 do $$
