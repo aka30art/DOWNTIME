@@ -6,10 +6,13 @@
   const editableByAdmin=['MANAGER','SUPERVISOR','MECHANIC','USER','SPECTATOR'];
   const roleLabels={OWNER:'OWNER · ROOT',DEVACC:'DEVACC',ADMIN:'ADMIN',MANAGER:'MANAGER',SUPERVISOR:'SUPERVISOR',MECHANIC:'MECHANIC',USER:'USER',SPECTATOR:'SPECTATOR'};
   const sections=[{key:'floor',label:'STAFF MANAGEMENT'},{key:'checkSheets',label:'DAILY'},{key:'repairMaintenance',label:'REPAIRS & MAINTENANCE'},{key:'repairMaintenanceMachinery',label:'R&M MACHINERY'}];
-  const modes=['NONE','READ','INPUT','EDIT'];\n  const yardDepartments=['SCPL','R&M','Management','SCFL','Traffic'];\n  const yardPermissionFields=[{key:'can_view',label:'VIEW'},{key:'can_enter',label:'ENTER'},{key:'can_edit',label:'EDIT'},{key:'can_manage',label:'MANAGE'}];
+  const modes=['NONE','READ','INPUT','EDIT'];
+  const yardDepartments=['SCPL','R&M','Management','SCFL','Traffic'];
+  const yardPermissionFields=[{key:'can_view',label:'VIEW'},{key:'can_enter',label:'ENTER'},{key:'can_edit',label:'EDIT'},{key:'can_manage',label:'MANAGE'}];
   const staffDepartmentRules={SCPL:{roles:['Main Operator','Picking Line Crew']},'R&M':{role:'Mechanic'},Management:{role:'Manager'},SCFL:{role:'Floor Crew'},Traffic:{role:'Gateman'}};
   const allRoles=()=>[...roles.filter(role=>!(workingPayload?.retiredTiers||[]).includes(role)),...(Array.isArray(workingPayload?.customTiers)?workingPayload.customTiers:[])];
-  let state=null,workingPayload=null,editingUsername=null,saving=false,myHubTier=null,myCanManageSettings=false,accessRefresh=null;\n  let editingYardRoleId=null,editingYardRoleVersion=0,workingYardRolePermissions=[],yardRoleOriginal=null;
+  let state=null,workingPayload=null,editingUsername=null,saving=false,myHubTier=null,myCanManageSettings=false,accessRefresh=null;
+  let editingYardRoleId=null,editingYardRoleVersion=0,workingYardRolePermissions=[],yardRoleOriginal=null;
 
   function currentSession(){return window.DowntimeCentral?.session||null}
   function currentUser(){return currentSession()?.user||null}
@@ -97,7 +100,9 @@
     renderUsers();renderTierCards();renderYardRoleCards();updateTierSaveState();
     const addUser=$('yardHubUserAdd');
     if(addUser)addUser.disabled=saving||result.canManageCentralUsers!==true||!rootDev()||!(result.yardRoles||[]).length;
-    const addRole=$('yardHubRoleAdd');if(addRole)addRole.hidden=!rootDev();\n    const roleHome=$('yardHubSettingsRoles');if(roleHome)roleHome.hidden=!rootDev();\n    const addTier=$('yardHubCustomTierAdd');
+    const addRole=$('yardHubRoleAdd');if(addRole)addRole.hidden=!rootDev();
+    const roleHome=$('yardHubSettingsRoles');if(roleHome)roleHome.hidden=!rootDev();
+    const addTier=$('yardHubCustomTierAdd');
     if(addTier)addTier.hidden=!isRootAdmin();
     return result;
   }
@@ -130,7 +135,8 @@
     $('yardHubSettingsTitle').textContent=view==='users'?'USERS':'TIERS';
     setStatus('');
     if(view==='users')renderUsers();
-    if(view==='tiers')renderTierCards();\n    if(view==='roles')renderYardRoleCards();
+    if(view==='tiers')renderTierCards();
+    if(view==='roles')renderYardRoleCards();
   }
   async function openSettings(){
     setStatus('VERIFYING SETTINGS ACCESS…');
@@ -333,7 +339,8 @@
           state.centralVersion=Number(activated.version||state.centralVersion+1);
         }
       }else if(canonicalLinkedIdentity&&yardRoleChanged){
-        await callApi('assign-user-role',{userId:existing.userId,yardRoleId:requestedYardRoleId,assignmentVersion:existing.yardRoleVersion});\n      }else if(!canonicalIdentity){
+        await callApi('assign-user-role',{userId:existing.userId,yardRoleId:requestedYardRoleId,assignmentVersion:existing.yardRoleVersion});
+      }else if(!canonicalIdentity){
         const assigned=await callApi('save-user-tier',{username,tier:hubTier,version:state.permissionVersion});
         state.permissionVersion=Number(assigned.version||state.permissionVersion+1);
       }
@@ -539,7 +546,12 @@
     if(button){button.hidden=true;button.addEventListener('click',openSettings)}
     $('yardHubSettingsBack')?.addEventListener('click',closeSettings);
     $('yardHubSettingsUsers')?.addEventListener('click',()=>openSettingsView('users'));
-    $('yardHubSettingsTiers')?.addEventListener('click',()=>openSettingsView('tiers'));\n    $('yardHubSettingsRoles')?.addEventListener('click',()=>openSettingsView('roles'));\n    $('yardHubRoleAdd')?.addEventListener('click',()=>openYardRoleModal());\n    $('yardHubRoleCancel')?.addEventListener('click',closeYardRoleModal);\n    $('yardHubRoleForm')?.addEventListener('submit',saveYardRole);\n    $('yardHubRoleModal')?.addEventListener('click',event=>{if(event.target===$('yardHubRoleModal'))closeYardRoleModal()});
+    $('yardHubSettingsTiers')?.addEventListener('click',()=>openSettingsView('tiers'));
+    $('yardHubSettingsRoles')?.addEventListener('click',()=>openSettingsView('roles'));
+    $('yardHubRoleAdd')?.addEventListener('click',()=>openYardRoleModal());
+    $('yardHubRoleCancel')?.addEventListener('click',closeYardRoleModal);
+    $('yardHubRoleForm')?.addEventListener('submit',saveYardRole);
+    $('yardHubRoleModal')?.addEventListener('click',event=>{if(event.target===$('yardHubRoleModal'))closeYardRoleModal()});
     document.querySelectorAll('[data-yard-settings-home]').forEach(node=>node.addEventListener('click',showSettingsHome));
     $('yardHubUserAdd')?.addEventListener('click',()=>openUserModal());
     $('yardHubUserCancel')?.addEventListener('click',closeUserModal);
