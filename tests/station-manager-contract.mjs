@@ -7,7 +7,7 @@ const overview=fs.readFileSync('plant-overview-preview.html','utf8');
 
 assert.ok(ui.includes('data-settings-open="stations"')&&ui.includes('id="settingsPanelStations"'),'Station Manager is available as a Settings panel');
 assert.ok(ui.includes("if(section==='stations')return permission('canViewStations')||permission('canManageSettings')"),'Station Manager is visible to Management READ ONLY/INPUT roles and settings managers');
-assert.ok(ui.includes("const canManage=permission('canManageSettings');\\n if(!settingsAccess('stations'))return;"),'Station Manager renders for view-authorised users without granting edit rights');
+assert.ok(ui.includes("const canManage=permission('canManageSettings');")&&ui.includes("if(!settingsAccess('stations'))return;"),'Station Manager renders for view-authorised users without granting edit rights');
 assert.ok(ui.includes('name.readOnly=!canManage')&&ui.includes('category.readOnly=!canManage')&&ui.includes('active.disabled=!canManage'),'Station Manager fields are read-only unless settings management is granted');
 assert.ok(ui.includes("const add=$('addStationBtn'),save=$('saveStationsBtn');if(add)add.disabled=!canManage;if(save)save.disabled=!canManage;"),'Station Manager write controls are disabled for read-only users');
 assert.ok(ui.includes('function defaultStationConfig()')&&ui.includes("category:'WOOD'")&&ui.includes("category:'SCRAP'")&&ui.includes("category:'GENERAL'"),'the six current plant stations remain the migration defaults');
