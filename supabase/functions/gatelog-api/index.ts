@@ -35,7 +35,7 @@ Deno.serve(async (req: Request) => {
   if(!user)return json({error:"Account disabled or unavailable."},401);
   let rootsAssignment:any=null;
   if(user.userId){
-    const rootsLookup=await db.from("downtime_roots_effective_assignments").select("user_id,staff_id,roots_class").eq("user_id",user.userId).maybeSingle();
+    const rootsLookup=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status").eq("status","ACTIVE").eq("user_id",user.userId).maybeSingle();
     if(rootsLookup.error)return json({error:"Protected identity registry is unavailable."},503);
     rootsAssignment=rootsLookup.data;
   }
@@ -44,7 +44,7 @@ Deno.serve(async (req: Request) => {
   const rootsAuthority=resolveRootsAuthority(user,rootsAssignment,rootsBootstrap.user_id);
   let protectedStaffIds=new Set<string>();
   if(rootsAuthority!=="DEV"){
-    const protectedStaff=await db.from("downtime_roots_effective_assignments").select("staff_id");
+    const protectedStaff=await db.from("downtime_roots_assignments").select("staff_id").eq("status","ACTIVE");
     if(protectedStaff.error)return json({error:"Protected identity registry is unavailable."},503);
     protectedStaffIds=new Set((protectedStaff.data||[]).map((assignment:any)=>String(assignment.staff_id).toLowerCase()));
   }
