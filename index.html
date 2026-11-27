@@ -1204,7 +1204,8 @@ function permission(name){
  if(name==='canManageUsers'||name==='canViewUsers')return root==='DEV';
  if(['DEV','DEV1','ADMIN'].includes(root)){
   if(name==='canAccessYardHub'||name==='canAccessRepairMaintenance')return true;
-  if(['canManageUsers','canViewUsers','canManageStaff','canViewStaff','canManageAssignments','canViewAssignments','canManageSettings','canManageAccessRights'].includes(name))return root==='DEV';
+  if(['canManageUsers','canViewUsers','canManageSettings','canManageAccessRights'].includes(name))return root==='DEV';
+  if(['canManageStaff','canViewStaff','canManageAssignments','canViewAssignments'].includes(name))return true;
   if(['canEditTracker','canDeleteRecords','canExportReports','canViewPlantOverview','canViewDashboards','canViewReports','canControlPlantPower'].includes(name))return true;
  }
  if(centralUser?.userId||centralUser?.staffId){

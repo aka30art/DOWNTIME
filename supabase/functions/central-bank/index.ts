@@ -210,9 +210,9 @@ Deno.serve(async(req)=>{
      canControlPlantPower:true,
    });
    if(rootsAuthority!=="DEV"){
-     Object.assign(priv,{canManageUsers:false,canViewUsers:false,canManageStaff:false,canViewStaff:false,
-       canManageAssignments:false,canViewAssignments:false,canManageSettings:false,canManageAccessRights:false});
+     Object.assign(priv,{canManageUsers:false,canViewUsers:false,canManageSettings:false,canManageAccessRights:false});
    }
+   Object.assign(priv,{canManageStaff:true,canViewStaff:true,canManageAssignments:true,canViewAssignments:true});
  }
  // Central Bank USER directory access is an immutable DEV-only control-plane capability.
  priv.canManageUsers=rootsAuthority==="DEV";priv.canViewUsers=rootsAuthority==="DEV";
@@ -848,7 +848,7 @@ Deno.serve(async(req)=>{
    return json({ok:true,version:(row?.version||0)+1});
  }
  if(action==="staff-save"){
-   if(!isDevRoot)return json({error:"Only immutable DEV may maintain STAFF identities."},403);
+   if(!isRootAuthority)return json({error:"Only protected ROOTS identities may maintain STAFF identities."},403);
    const name=String(body.name||"").trim();if(!name||name.length>80)return json({error:"Staff name required"},400);
    bank.staff.profiles=bank.staff.profiles||{};bank.staff.roster=bank.staff.roster||[];
    const existingProfile=bank.staff.profiles[name]||bank.appData?.operatorProfiles?.[name]||{};

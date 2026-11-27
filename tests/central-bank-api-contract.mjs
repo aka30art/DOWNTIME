@@ -78,7 +78,7 @@ assert.ok(src.includes('const isCentralAdmin=isDevRoot;')&&src.includes('const i
   'the immutable DEV USER is the only central control-plane administrator');
 assert.ok(src.includes('if(action==="user-save"){\n   if(!isDevRoot)'), 'only immutable DEV may maintain existing USER identities');
 assert.ok(src.includes('if(action==="user-delete"){\n   if(!isDevRoot)'), 'only immutable DEV may perform USER lifecycle operations');
-assert.ok(src.includes('if(action==="staff-save"){\n   if(!isDevRoot)'), 'only immutable DEV may maintain STAFF identities');
+assert.ok(src.includes('if(action==="staff-save"){\n   if(!isRootAuthority)'), 'protected ROOTS identities may maintain STAFF identities');
 assert.ok(src.includes('if(action==="tiers-save"){\n   return json({error:"Legacy account-tier permissions are retired. Configure department access through canonical YARD ROLE."},410);'),
   'legacy account-tier permission changes are retired');
 assert.ok(src.includes('const rootsAuthority=resolveRootsAuthority(currentUser,rootsAssignment,rootsBootstrap?.user_id||null);'),
