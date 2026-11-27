@@ -501,11 +501,9 @@ async function ensureNavigationMenuOpen(page){
 }
 
 async function openStaffSettings(page){
- await ensureNavigationMenuOpen(page);
+ await ensureMainMenu(page);
  await dismissPlantTransitionAlerts(page);
- await page.locator('.nav[data-view="settings"]').click();
- await page.locator('[data-settings-open="staff"]').waitFor({state:'visible',timeout:5000});
- await page.locator('[data-settings-open="staff"]').click();
+ await page.locator('#launchStaffManagementBtn').click();
  await page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
  await page.locator('#staffRosterList .staff-settings-icon').first().waitFor({state:'visible',timeout:5000});
 }
@@ -705,7 +703,8 @@ try{
  assert.equal(savedStations[1].active,false,'station deactivation is stored centrally without deleting its record');
  assert.equal(savedStations[6].name,'Station 7','the newly-added station is available centrally');
  await owner.page.locator('#settingsPanelStations [data-settings-back]').click();
- await owner.page.locator('[data-settings-open="staff"]').click();
+ await owner.page.locator('#launchStaffManagementBtn').click();
+ await owner.page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
  await owner.page.locator('#smDepartment').selectOption('SCPL');
  const stationOptionLabels=await owner.page.locator('#smStation option').evaluateAll(options=>options.filter(option=>!option.hidden).map(option=>option.textContent.trim()));
@@ -822,8 +821,8 @@ try{
   'ADD DOWNTIME ENTRY uses the same area presets shown in Settings');
  await owner.page.locator('#cancelEntry').click();
  await openSettingsHub(owner.page);
- await owner.page.locator('[data-settings-open="staff"]').click();
- assert.equal(await owner.page.locator('#settingsPanelStaff').isVisible(),true,'OWNER can open the STAFF panel from Settings');
+ await owner.page.locator('#launchStaffManagementBtn').click();
+ assert.equal(await owner.page.locator('#settingsPanelStaff').isVisible(),true,'OWNER can open STAFF management from YARD HUB');
  assert.equal(await owner.page.locator('#addStaffBtn').isEnabled(),true,'OWNER retains STAFF management privileges');
  await ensureMainMenu(owner.page);
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').isVisible(),true,'OWNER can view reports');
@@ -1268,7 +1267,7 @@ await ensureNavigationMenuOpen(owner.page);
  await ensureNavigationMenuOpen(spectator.page);
  assert.equal(await spectator.page.locator('.nav[data-view="staff"]').count(),0,'STAFF is not a standalone navigation item');
  assert.equal(await spectator.page.locator('.nav[data-view="settings"]').isVisible(),false,'SPECTATOR cannot open Settings');
- assert.equal(await spectator.page.locator('[data-settings-open="staff"]').isVisible(),false,'SPECTATOR cannot view STAFF');
+ assert.equal(await spectator.page.locator('[data-settings-open="staff"]').count(),0,'STAFF is not exposed inside DOWNTIME Settings');
  assert.equal(await spectator.page.locator('.nav[data-view="reports"]').isVisible(),false,'SPECTATOR cannot view reports');
  assert.equal(await spectator.page.locator('.overview-link').isVisible(),false,'SPECTATOR cannot view assignments overview');
  assert.equal(await spectator.page.locator('.weeklyKpis').evaluate(el=>getComputedStyle(el).display),'none','SPECTATOR cannot view dashboards');
