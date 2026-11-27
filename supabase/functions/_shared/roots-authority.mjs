@@ -8,6 +8,12 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const norm = value => String(value ?? "").trim().toLowerCase();
 
 /** @param {any} user @param {any} [assignment] @param {string|null} [immutableDevUserId] */
+/**
+ * @param {any} user
+ * @param {any} [assignment]
+ * @param {string|null} [immutableDevUserId]
+ * @returns {string|null}
+ */
 export function resolveRootsAuthority(user, assignment = null, immutableDevUserId = null) {
   if (!user || typeof user !== "object" || user.enabled === false) return null;
   if (user.status && String(user.status).toUpperCase() !== "ACTIVE") return null;
