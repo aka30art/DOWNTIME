@@ -611,8 +611,8 @@ try{
  await janOperational.page.waitForFunction(()=>document.querySelector('#plantOperatorToggle')?.textContent==='PLANT OFF · RED',{timeout:5000});
  assert.equal(janOperational.getBank().appData.plantOn,false,'USER can operate Plant Power despite having no tracker-edit right');
  await dismissPlantTransitionAlerts(janOperational.page);
- await openSettingsHub(janOperational.page);
- assert.equal(await janOperational.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'Jan USER cannot open root-only Access and Rights');
+  assert.equal(await janOperational.page.locator('.nav[data-view="settings"]').evaluate(el=>getComputedStyle(el).display==='none'),true,'USER/STAFF-only access does not expose the legacy DOWNTIME Settings hub after USERS and STAFF move to YARD HUB');
+  assert.equal(await janOperational.page.locator('#yardHubSettingsBtn').isVisible(),false,'ordinary USER still cannot access YARD HUB Settings');
  await janOperational.context.close();
 
  // Isolated central API regression: both save-state and save-settings must reject locked station moves.
