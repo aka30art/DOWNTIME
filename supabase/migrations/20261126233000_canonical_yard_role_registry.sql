@@ -20,7 +20,10 @@ create unique index if not exists yard_roles_name_ci_uidx
 create table if not exists public.yard_role_department_permissions (
   yard_role_id uuid not null references public.yard_roles(id) on delete restrict,
   department text not null check (department in ('SCPL', 'R&M', 'Management', 'SCFL', 'Traffic')),
-  access_level text not null check (access_level in ('OFF', 'READ_ONLY', 'INPUT', 'MANAGE')),
+  can_view boolean not null default false,
+  can_enter boolean not null default false,
+  can_edit boolean not null default false,
+  can_manage boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   primary key (yard_role_id, department)
@@ -104,7 +107,7 @@ begin
     from public.yard_role_department_permissions
    where yard_role_id = p_yard_role_id;
   if v_permission_count <> 5 then
-    raise exception 'Canonical YARD ROLE requires exactly one permission for each approved department';
+    raise exception 'Canonical YARD ROLE requires exactly one permission record for each approved department';
   end if;
 
   insert into public.yard_role_assignments
@@ -152,7 +155,7 @@ revoke all on function public.yard_role_assign_user(uuid, uuid, uuid, uuid, text
 grant execute on function public.yard_role_assign_user(uuid, uuid, uuid, uuid, text, text) to service_role;
 
 comment on table public.yard_roles is 'Canonical ordinary YARD ROLE registry. ROOTS classifications are separate.';
-comment on table public.yard_role_department_permissions is 'One mutually exclusive OFF, READ_ONLY, INPUT or MANAGE level per YARD ROLE and department.';
+comment on table public.yard_role_department_permissions is 'Four independently selectable View, Enter, Edit and Manage permissions per YARD ROLE and department.';
 comment on table public.yard_role_assignments is 'Canonical USER-to-YARD ROLE assignment used by staged USER provisioning.';
 comment on table public.yard_role_assignment_audit is 'Append-only audit for canonical YARD ROLE assignment changes.';
 
