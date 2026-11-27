@@ -290,10 +290,10 @@ Deno.serve(async(req)=>{
    return json({users:visibleUsers});
  }
  if(action==="central-admin-state"){
-   if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);
+   if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to immutable DEV."},403);
    return json({payload:{...bank,users:bank.users.map(safeUser)},version:row?.version||0,updatedAt:row?.updated_at||null,user:safeUser(currentUser)});
  }
-  if(typeof action==="string"&&action.startsWith("central-config-")&&!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);
+  if(typeof action==="string"&&action.startsWith("central-config-")&&!isCentralBankAccess)return json({error:"Central configuration is restricted to immutable DEV."},403);
   if(action==="central-config-state"){
     const {data:configState,error:configError}=await db.from("downtime_central_config_state").select("*").eq("id",1).maybeSingle();
     if(configError||!configState)return json({error:"Configuration control plane is not installed. Apply the Central Data Bank configuration migration first."},503);
@@ -761,7 +761,7 @@ Deno.serve(async(req)=>{
    return json({users:bank.users.map(safeUser),tiers:bank.tiers});
  }
  if(action==="user-save"){
-   if(!priv.canManageUsers)return json({error:"Permission denied"},403);
+   if(!isDevRoot)return json({error:"Only immutable DEV may maintain existing USER identities."},403);
    const username=String(body.username||"").trim(),displayName=String(body.displayName||username).trim(),pin=String(body.pin||"");
    if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username))return json({error:"Invalid username"},400);
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
@@ -797,7 +797,7 @@ Deno.serve(async(req)=>{
    return json({ok:true,version:(row?.version||0)+1});
  }
  if(action==="user-delete"){
-   if(!priv.canManageUsers)return json({error:"Permission denied"},403);
+   if(!isDevRoot)return json({error:"Only immutable DEV may perform USER lifecycle operations."},403);
    const target=String(body.username||"").trim();
    if(!target)return json({error:"Username required"},400);
    if(target.toUpperCase()==="DEV"||bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="OWNER"))return json({error:"The DEV root OWNER account cannot be deleted or removed."},403);
@@ -813,7 +813,7 @@ Deno.serve(async(req)=>{
    return json({ok:true,version:(row?.version||0)+1});
  }
  if(action==="staff-save"){
-   if(!priv.canManageStaff)return json({error:"Permission denied"},403);
+   if(!isDevRoot)return json({error:"Only immutable DEV may maintain STAFF identities."},403);
    const name=String(body.name||"").trim();if(!name||name.length>80)return json({error:"Staff name required"},400);
    bank.staff.profiles=bank.staff.profiles||{};bank.staff.roster=bank.staff.roster||[];
    const existingProfile=bank.staff.profiles[name]||bank.appData?.operatorProfiles?.[name]||{};
@@ -902,6 +902,7 @@ Deno.serve(async(req)=>{
    return json({version:(row?.version||0)+1,updatedAt:new Date().toISOString()});
  }
  if(action==="tiers-save"){
+   return json({error:"Legacy account-tier permissions are retired. Configure department access through canonical YARD ROLE."},410);
    const isAccessRightsAdmin=tier==="ADMIN"&&priv.canManageAccessRights===true;
    if(!isCentralBankAccess&&!isAccessRightsAdmin)return json({error:"Access and Rights management permission required."},403);
    const proposed=body.tiers;if(!proposed||typeof proposed!=="object"||Array.isArray(proposed))return json({error:"Tiers required"},400);
