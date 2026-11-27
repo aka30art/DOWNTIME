@@ -240,7 +240,7 @@ Deno.serve(async (req: Request) => {
   }
 
   if (!canAccessYardHub) return json({ error: "YARD HUB access is not enabled for this account." }, 403);
-  if (!isAdmin) return json({ error: "YARD HUB SETTINGS is restricted to DEV, DEVACC and ADMIN." }, 403);
+  if (!isProtectedRoot) return json({ error: "YARD HUB SETTINGS is restricted to protected ROOTS identities." }, 403);
 
   if (action === "settings-state") {
     const [{ data: yardRoles, error: yardRolesError }, { data: roleAssignments, error: roleAssignmentsError }, { data: rolePermissions, error: rolePermissionsError }] = await Promise.all([
