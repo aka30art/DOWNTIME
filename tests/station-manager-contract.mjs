@@ -25,6 +25,7 @@ assert.ok(api.includes('Object.prototype.hasOwnProperty.call(incoming,"stationCo
 assert.ok(api.includes('!stations.some((station:any)=>station.active)'),'the API rejects a configuration with no active stations');
 assert.ok(api.includes('aliases:Array.isArray(station?.aliases)'),'station aliases are persisted for renamed assignments');
 assert.ok(api.includes('delete restrictedData.stationConfig'),'station configuration is not exposed to users without assignment visibility');
+assert.ok(api.includes('priv.canViewStations||priv.canViewAssignments'),'read-only Management Settings users may receive station configuration without permission to edit STAFF assignments');
 assert.ok(api.includes('nextAppData.stationConfig=bank.appData.stationConfig'),'ordinary tracker saves cannot overwrite station configuration');
 assert.ok(overview.includes('function stationConfigFor(payload)')&&overview.includes('function resolveProfileStation(profile,stations)'),'Plant Overview resolves operator assignments from central station configuration and retained aliases');
 assert.ok(overview.includes('function renderStationBlueprint(stations,names,profiles)'),'Plant Overview renders the configured station list, including added stations');
