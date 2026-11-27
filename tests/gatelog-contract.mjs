@@ -95,7 +95,7 @@ assert.match(api,/canYardRolePerform\(resolvedYardRole,"Traffic","VIEW"\)/,'GATE
 assert.match(api,/canTrafficInput=!!resolvedYardRole&&canYardRolePerform\(resolvedYardRole,"Traffic","ENTER"\)/,'Traffic ENTER is independent from EDIT');
 assert.match(api,/canAccess=isProtectedRoot\|\|\(resolvedYardRole\?\(canTrafficView\|\|canTrafficInput\|\|canTrafficEdit\|\|canTrafficManage\)/,'any independently enabled Traffic permission grants the module entry point');
 assert.match(api,/if\(resolvedYardRole&&!canViewTraffic\)\{[\s\S]{0,1200}activeVisits:\[\]/,'GATELOG bootstrap returns no active visits when a canonical role lacks VIEW, even if another Traffic permission grants module entry');
-assert.match(api,/day-register"[\s\S]*canTrafficView/,'the day register requires VIEW even when another permission grants module access');
+assert.match(api,/if\(action===\"day-register\"\)\{[\s\S]{0,250}if\(!canViewTraffic\)/,'the day register requires Traffic VIEW even when another permission grants module access');
 
 assert.match(api,/Traffic INPUT permission is required/,'GATELOG creation actions require Traffic INPUT or MANAGE');
 assert.match(api,/Traffic MANAGE permission is required/,'GATELOG administrative actions require Traffic MANAGE');
