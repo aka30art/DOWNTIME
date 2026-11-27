@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { resolveRootsAuthority } from "../_shared/roots-authority.mjs";
+import { canYardRolePerform, resolveYardRolePermissions } from "../_shared/yard-role-resolver.mjs";
 
 const allowedOrigin = "https://aka30art.github.io";
 const headers = {
@@ -45,14 +46,38 @@ Deno.serve(async (req: Request) => {
     if(protectedStaff.error)return json({error:"Protected identity registry is unavailable."},503);
     protectedStaffIds=new Set((protectedStaff.data||[]).map((assignment:any)=>String(assignment.staff_id).toLowerCase()));
   }
-  if(user.yardRoleId&&!["DEV1","ADMIN"].includes(rootsAuthority||""))return json({error:"Canonical YARD ROLE authorization is not yet enabled for GATELOG. Access is denied until the unified resolver is integrated."},403);
   const legacyTier=String(user.tier||"USER").toUpperCase();
   const isProtectedRoot=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"");
-  const canAccess=isProtectedRoot||bank.payload.tiers?.[legacyTier]?.canAccessYardHub!==false||String(user.username).toUpperCase()==="DEV"&&legacyTier==="OWNER";
+  let resolvedYardRole:any=null;
+  if(user.yardRoleId&&!isProtectedRoot){
+    if(!user.userId||!user.staffId)return json({error:"Canonical USER/STAFF identity is incomplete."},403);
+    const {data:assignment,error:assignmentError}=await db.from("yard_role_assignments").select("user_id,staff_id,yard_role_id,status").eq("user_id",user.userId).eq("status","ACTIVE").maybeSingle();
+    if(assignmentError)return json({error:"Canonical YARD ROLE assignment is unavailable."},503);
+    if(!assignment||String(assignment.staff_id).toLowerCase()!==String(user.staffId).toLowerCase()||String(assignment.yard_role_id).toLowerCase()!==String(user.yardRoleId).toLowerCase())return json({error:"An active linked canonical YARD ROLE assignment is required."},403);
+    const [{data:role,error:roleError},{data:rolePermissions,error:rolePermissionsError}]=await Promise.all([
+      db.from("yard_roles").select("id,name,description,status").eq("id",user.yardRoleId).eq("status","ACTIVE").maybeSingle(),
+      db.from("yard_role_department_permissions").select("yard_role_id,department,access_level").eq("yard_role_id",user.yardRoleId)
+    ]);
+    if(roleError||rolePermissionsError||!role)return json({error:"Canonical YARD ROLE permission profile is unavailable."},503);
+    try{resolvedYardRole=resolveYardRolePermissions(role,rolePermissions||[])}catch{return json({error:"Canonical YARD ROLE permission profile is invalid."},503)}
+  }
+  const canTrafficView=!!resolvedYardRole&&canYardRolePerform(resolvedYardRole,"Traffic","VIEW");
+  const canTrafficInput=!!resolvedYardRole&&(canYardRolePerform(resolvedYardRole,"Traffic","ADD")||canYardRolePerform(resolvedYardRole,"Traffic","EDIT"));
+  const canTrafficEdit=!!resolvedYardRole&&canYardRolePerform(resolvedYardRole,"Traffic","EDIT");
+  const canTrafficManage=!!resolvedYardRole&&canYardRolePerform(resolvedYardRole,"Traffic","DELETE");
+  const legacyCanAccess=bank.payload.tiers?.[legacyTier]?.canAccessYardHub!==false||String(user.username).toUpperCase()==="DEV"&&legacyTier==="OWNER";
+  const canAccess=isProtectedRoot||(resolvedYardRole?canTrafficView:legacyCanAccess);
   if(!canAccess)return json({error:"YARD HUB access is disabled for this account."},403);
   const actor=clean(user.displayName||user.username,80), action=String(body.action||"");
-  const canManageGateman=isProtectedRoot||bank.payload.tiers?.[legacyTier]?.canManageAssignments===true;
-  const canExportReports=isProtectedRoot||bank.payload.tiers?.[legacyTier]?.canExportReports===true;
+  const canManageGateman=isProtectedRoot||(resolvedYardRole?canTrafficManage:bank.payload.tiers?.[legacyTier]?.canManageAssignments===true);
+  const canExportReports=isProtectedRoot||(resolvedYardRole?canTrafficView:bank.payload.tiers?.[legacyTier]?.canExportReports===true);
+  const canInputTraffic=isProtectedRoot||(resolvedYardRole?canTrafficInput:true);
+  const canEditTraffic=isProtectedRoot||(resolvedYardRole?canTrafficEdit:true);
+  if(resolvedYardRole){
+    if(["customer-arrival","customer-save","vehicle-save","arrival"].includes(action)&&!canInputTraffic)return json({error:"Traffic INPUT permission is required."},403);
+    if(["departure","visit-update"].includes(action)&&!canEditTraffic)return json({error:"Traffic INPUT or MANAGE permission is required."},403);
+    if(["gateman-save","gateman-lock","report-save","customer-update","customer-archive","waste-type-create","waste-type-update","visit-delete"].includes(action)&&!canManageGateman)return json({error:"Traffic MANAGE permission is required."},403);
+  }
   // Gateman duty is assigned to operational STAFF, never to a USER account.
   const rawStaffRoster=Array.isArray(bank.payload.staff?.roster)?bank.payload.staff.roster:(Array.isArray(bank.payload.appData?.staffRoster)?bank.payload.appData.staffRoster:[]);
   const staffProfiles=bank.payload.staff?.profiles||bank.payload.appData?.operatorProfiles||{};
@@ -137,7 +162,7 @@ Deno.serve(async (req: Request) => {
     return json({period,from,to,visits:reportRows.map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)})),assignments:assignments||[]});
   }
   if(action==="report-save"){
-    if(bank.payload.tiers?.[legacyTier]?.canExportReports!==true)return json({error:"Your YARD HUB role cannot archive reports."},403);
+    if(!canManageGateman)return json({error:"Traffic MANAGE permission is required to archive reports."},403);
     const period=clean(body.period,10),from=clean(body.from,10),to=clean(body.to,10);
     if(!["daily","weekly","monthly"].includes(period)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(from)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(to)||!Array.isArray(body.visits)||body.visits.length>10000)return json({error:"Invalid report snapshot."},400);
     const snapshot={period,from,to,visits:body.visits,assignments:Array.isArray(body.assignments)?body.assignments:[]};
@@ -145,7 +170,7 @@ Deno.serve(async (req: Request) => {
     if(error)return fail(error);return json({report:data});
   }
   if(action==="report-archive"){
-    if(bank.payload.tiers?.[legacyTier]?.canExportReports!==true)return json({error:"Your YARD HUB role cannot view archived reports."},403);
+    if(!canExportReports)return json({error:"Traffic READ permission is required to view archived reports."},403);
     const {data,error}=await db.from("gatelog_report_archive").select("id,period,date_from,date_to,report_data,created_by,created_at").order("created_at",{ascending:false}).limit(250);
     if(error)return fail(error);return json({reports:data||[]});
   }
@@ -157,13 +182,13 @@ Deno.serve(async (req: Request) => {
     if(error)return fail(error);return json({customer:data});
   }
   if(action==="customer-archive"){
-    if(bank.payload.tiers?.[legacyTier]?.canManageAssignments!==true)return json({error:"Your YARD HUB role cannot manage customer settings."},403);
+    if(!canManageGateman)return json({error:"Traffic MANAGE permission is required to manage customer settings."},403);
     const id=clean(body.customerId,60);if(!id)return json({error:"Customer is required."},400);
     const {data,error}=await db.from("gatelog_customers").update({active:false}).eq("id",id).eq("active",true).select("id").single();
     if(error)return fail(error);return json({archived:true,customerId:data.id});
   }
   if(action==="waste-type-create"){
-    if(bank.payload.tiers?.[legacyTier]?.canManageAssignments!==true)return json({error:"Your YARD HUB role cannot manage waste types."},403);
+    if(!canManageGateman)return json({error:"Traffic MANAGE permission is required to manage waste types."},403);
     const label=clean(body.label,80);if(!label)return json({error:"Waste type label is required."},400);
     const {data,error}=await db.from("gatelog_waste_types").upsert({label,active:true},{onConflict:"label"}).select("id,label,active").single();
     if(error)return fail(error);return json({wasteType:data});
