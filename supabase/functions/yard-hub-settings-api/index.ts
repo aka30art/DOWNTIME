@@ -111,7 +111,7 @@ Deno.serve(async (req: Request) => {
   if (!user) return json({ error: "This account is disabled or no longer exists." }, 401);
   let rootsAssignment: any = null;
   if (user.userId) {
-    const rootsLookup = await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class").eq("user_id", user.userId).maybeSingle();
+    const rootsLookup = await db.from("downtime_roots_effective_assignments").select("user_id,staff_id,roots_class").eq("user_id", user.userId).maybeSingle();
     if (rootsLookup.error) return json({ error: "Protected identity registry is unavailable." }, 503);
     rootsAssignment = rootsLookup.data;
   }
@@ -159,7 +159,7 @@ Deno.serve(async (req: Request) => {
       db.from("yard_roles").select("id,name,description,status,version").order("name"),
       db.from("yard_role_assignments").select("user_id,staff_id,yard_role_id,status,version,verified_at"),
       db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage"),
-      db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class"),
+      db.from("downtime_roots_effective_assignments").select("user_id,staff_id,roots_class"),
     ]);
     if (yardRolesError || roleAssignmentsError || rolePermissionsError) return json({ error: "Canonical YARD ROLE registry is unavailable." }, 503);
     if (rootsAssignmentsError) return json({ error: "Protected identity registry is unavailable." }, 503);
@@ -240,7 +240,7 @@ Deno.serve(async (req: Request) => {
       String(account.userId || "").toLowerCase() === targetUserId.toLowerCase()
     );
     if (!target) return json({ error: "Central USER account not found." }, 404);
-    const rootsTarget = await db.from("downtime_roots_assignments").select("user_id").eq("user_id", targetUserId).maybeSingle();
+    const rootsTarget = await db.from("downtime_roots_effective_assignments").select("user_id").eq("user_id", targetUserId).maybeSingle();
     if (rootsTarget.error) return json({ error: "Protected identity registry is unavailable." }, 503);
     if (rootsTarget.data) return json({ error: "Protected ROOTS identities receive automatic department Manage authority and cannot be assigned an ordinary YARD ROLE." }, 409);
     const isPending = target.provisioning?.stage === "YARD_ROLE_PENDING";
@@ -303,7 +303,7 @@ Deno.serve(async (req: Request) => {
     );
     if (!target) return json({ error: "Central user account not found." }, 404);
     if (target.userId) {
-      const { data: protectedTarget, error: protectedTargetError } = await db.from("downtime_roots_assignments").select("user_id").eq("user_id", target.userId).maybeSingle();
+      const { data: protectedTarget, error: protectedTargetError } = await db.from("downtime_roots_effective_assignments").select("user_id").eq("user_id", target.userId).maybeSingle();
       if (protectedTargetError) return json({ error: "Protected identity registry is unavailable." }, 503);
       if (protectedTarget) return json({ error: "Protected ROOTS identities cannot receive ordinary YARD HUB tier assignments." }, 409);
     }
