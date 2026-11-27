@@ -114,7 +114,19 @@
     const rootsHome=$('yardHubSettingsRoots');if(rootsHome)rootsHome.hidden=true;
     const tiersHome=$('yardHubSettingsTiers');if(tiersHome)tiersHome.hidden=true;
     const accessRoots=$('yardHubAccessRoots');if(accessRoots)accessRoots.hidden=!(rootDev()||rootAuthority()==='DEV1');
-    const resetPanel=$('yardHubIdentityReset');if(resetPanel)resetPanel.hidden=!rootDev();
+    const resetPanel=$('yardHubIdentityReset');
+    if(resetPanel){
+      resetPanel.hidden=!rootDev();
+      if(rootDev()){
+        if(!window.DowntimeCentral?.identityDiagnostics)resetPanel.hidden=true;
+        else{
+          try{
+            const identityStatus=await window.DowntimeCentral.identityDiagnostics();
+            resetPanel.hidden=identityStatus.resetCompleted===true||identityStatus.resetStatusAvailable===false;
+          }catch{resetPanel.hidden=true}
+        }
+      }
+    }
     const addTier=$('yardHubCustomTierAdd');
     if(addTier)addTier.hidden=!isRootAdmin();
     return result;
