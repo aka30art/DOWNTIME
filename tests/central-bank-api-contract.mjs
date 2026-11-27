@@ -13,6 +13,7 @@ assert.ok(src.includes('permissions:{canEnterRecords:priv.canEnterRecords===true
 assert.ok(src.includes('user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username,userId:currentUser.userId||null,staffId:currentUser.staffId||null}'),'photo context exposes only the authenticated actor identity required for immutable ownership');
 const photoContext=src.slice(src.indexOf('if(action==="photo-evidence-context")'),src.indexOf('if(action==="reports-context")'));
 assert.doesNotMatch(photoContext,/canViewDashboards|canEditTracker/,'photo context does not expose unrelated dashboard or aggregate tracker permissions');
+assert.ok(src.includes('canEnterRecords:management.enter===true,canEditRecords:management.edit===true')&&src.includes('canDeleteRecords:management.manage'),'canonical Management ENTER, EDIT and MANAGE remain independent when resolving photo evidence capabilities');
 assert.ok(!src.includes('login-options'),'no separate pre-authentication directory action exists');
 assert.ok(src.includes('if(action==="list-users"&&!req.headers.get("x-downtime-session"))return json({users:bank.users.map((u:any)=>({username:u.username}))});'),'legacy cached login clients receive usernames only, without profile or permission metadata');
 assert.ok(src.includes('return json({error:"Invalid username or PIN"},401)'),'unknown usernames and incorrect PINs share a generic login error');
