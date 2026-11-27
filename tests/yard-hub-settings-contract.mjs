@@ -36,10 +36,10 @@ assert.ok(ui.includes("key:'floor',label:'STAFF MANAGEMENT'"),'STAFF MANAGEMENT 
 assert.match(html,/data-app="check-sheets" type="button" disabled/,'DAILY remains unavailable until its application is released');
 assert.ok(ui.includes("key:'checkSheets',label:'DAILY'"),'DAILY is the label shown in the Hub tier editor');
 assert.match(html,/id="launchDowntimeBtn" data-app="downtime" type="button"/,'DOWNTIME launcher remains present and enabled');
-assert.ok(html.includes('yard-hub-settings.js?v=20261126-1'),'YARD HUB settings client cache is refreshed');
+assert.ok(html.includes('yard-hub-settings.js?v=20261127-1'),'YARD HUB settings client cache is refreshed');
 assert.ok(pagesWorkflow.includes("if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'"),'Pages artifact build runs on PRs for pre-merge validation');
 assert.ok(pagesWorkflow.includes("if: github.ref == 'refs/heads/main'"),'Pages deployment remains restricted to main');
-assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261126-1'),'live deployment smoke test verifies the updated Hub settings asset');
+assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261127-1'),'live deployment smoke test verifies the updated Hub settings asset');
 assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261125-4'),'live deployment smoke test verifies the updated R&M app asset');
 assert.ok(pagesWorkflow.includes('yard-hub-structure.js?v=phase09-1'),'live deployment smoke test verifies the YARD HUB structure runtime');
 assert.ok(pagesWorkflow.includes('repair-maintenance-structure.js?v=phase09-1'),'live deployment smoke test verifies the R&M structure runtime');
@@ -177,6 +177,14 @@ assert.ok(html.includes('centralPendingWrites++;cloudBusy=true;'), 'YARD HUB cen
 assert.ok(html.includes('flushCentralRealtimeRefresh();'), 'realtime refresh resumes after the serialized central user mutation');
 assert.ok(html.includes('error.centralUserSaved=true'), 'partial central-user saves are reported without implying the write failed');
 
+assert.ok(html.includes('id="yardHubSettingsRoles"') && html.includes('id="yardHubRolesView"') && html.includes('id="yardHubRoleModal"'),'YARD HUB includes the canonical YARD ROLES catalogue and editor');
+assert.ok(html.includes('id="yardHubRolePermissions"'),'YARD ROLE editor renders the five-department permission matrix');
+assert.ok(ui.includes("yardPermissionFields=[{key:'can_view',label:'VIEW'},{key:'can_enter',label:'ENTER'},{key:'can_edit',label:'EDIT'},{key:'can_manage',label:'MANAGE'}]'),'YARD ROLE UI uses four independent permission checkboxes');
+assert.ok(ui.includes('function isRootsAuthority()'),'DEV and protected ROOTS can administer canonical YARD ROLES');
+assert.ok(hubApi.includes('yard_role_save_definition'),'YARD ROLE definitions are persisted through the audited service-role RPC');
+assert.ok(hubApi.includes('yard_role_reassign_user'),'existing USERs can receive version-checked YARD ROLE reassignment');
+assert.ok(hubApi.includes('roleCatalogue: isProtectedRoot'),'only protected ROOTS can read the canonical role catalogue');
+assert.ok(hubApi.includes('rootsClass:'),'ROOTS classifications are displayed separately from ordinary YARD ROLE assignments');
 assert.ok(ui.includes("const modes=['NONE','READ','INPUT','EDIT']"),'YARD HUB tier UI includes INPUT mode');
 assert.ok(ui.includes("['READ','INPUT','EDIT'].forEach(mode=>{"),'YARD HUB tier UI renders INPUT checkbox');
 assert.ok(hubApi.includes('["NONE", "READ", "INPUT", "EDIT"]'),'YARD HUB settings API validates INPUT mode');
