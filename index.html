@@ -1199,7 +1199,7 @@ function permission(name){
  const custom=centralBankPayload?.tiers?.[tier];
  return typeof custom?.[name]==='boolean'?custom[name]:!!tierDefaults[tier]?.[name];
 }
-function canManageAccessRights(){return rootsAuthority()==='DEV'}
+function canManageAccessRights(){return false}
 function canAccessCentralBank(){return rootsAuthority()==='DEV'}
 function canAssignStandardAccountTiers(){return false}
 function isRootDevAccount(){return rootsAuthority()==='DEV'}
