@@ -514,6 +514,36 @@ body.overview-overlay-open{overflow:hidden}
 <style id="staff-modal-upgrade-css">
 .staff-roster-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:12px 0 16px}.staff-roster-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:10px}.staff-roster-card{display:flex;align-items:center;gap:12px;background:linear-gradient(145deg,#192d3b,#0d1b26);border:1px solid #344d60;border-radius:12px;padding:12px;min-width:0}.staff-roster-avatar{width:52px;height:52px;border-radius:50%;object-fit:cover;background:#091721;border:1px solid #526779;flex:0 0 52px}.staff-roster-info{flex:1;min-width:0}.staff-roster-name{font-weight:900;overflow-wrap:anywhere}.staff-roster-station{font-size:12px;color:var(--muted);margin-top:3px}.staff-roster-status{font-size:10px;font-weight:900;margin-top:5px;letter-spacing:.4px}.staff-roster-status.off{color:#ff9b8e}.staff-settings-icon{width:40px;height:40px;padding:0;flex:0 0 40px;font-size:19px}.staff-modal-backdrop{position:fixed;inset:0;z-index:10000;background:#000b;display:flex;align-items:center;justify-content:center;padding:12px}.staff-modal-backdrop[hidden]{display:none}.staff-modal{width:min(520px,100%);max-height:92dvh;overflow:auto;background:linear-gradient(145deg,#142735,#0d1b26);border:1px solid #3b566a;border-radius:16px;box-shadow:0 24px 80px #0009}.staff-modal-head,.staff-modal-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid #334b5c}.staff-modal-head h2{margin:4px 0 0;font-size:20px}.staff-modal-body{padding:15px;display:grid;gap:13px}.staff-modal-photo{display:flex;align-items:center;gap:12px}.staff-modal-photo img{width:80px;height:80px;object-fit:cover;border-radius:50%;background:#091721;border:1px solid #526779}.staff-photo-tools{display:flex;gap:6px;flex-wrap:wrap}.staff-photo-tools button,.staff-file-label{font-size:11px;padding:8px}.staff-file-label{display:inline-flex;position:relative;overflow:hidden;border:1px solid #334b5c;background:#203747;border-radius:8px;font-weight:800;cursor:pointer}.staff-file-label input{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}.staff-modal-body .field{margin:0}.staff-modal-body input:not([type=file]),.staff-modal-body select{width:100%;background:#091721;border:1px solid #334b5c;border-radius:8px;color:var(--text);padding:10px}.staff-modal-body select#smStation{box-sizing:border-box;min-width:0;max-width:100%;padding-right:42px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3 6 5 5 5-5' fill='none' stroke='%23b6c6d1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:16px 16px;cursor:pointer}.staff-modal-body select#smStation:disabled{opacity:.65;cursor:not-allowed}.staff-modal-toggle{display:flex;gap:10px;align-items:flex-start;background:#0a1924;border:1px solid #30485a;border-radius:10px;padding:12px;cursor:pointer}.staff-modal-toggle input{width:18px;height:18px;margin:2px 0;flex:0 0 18px}.staff-modal-toggle strong,.staff-modal-toggle small{display:block}.staff-modal-toggle small{font-size:11px;color:var(--muted);margin-top:2px}.staff-modal-foot{border-top:1px solid #334b5c;border-bottom:0;flex-wrap:wrap}.staff-modal-foot #smRemove{margin-right:auto}@media(max-width:520px){.staff-modal-backdrop{padding:8px}.staff-modal{max-height:calc(100dvh - 16px)}.staff-modal-body{padding:12px}.staff-modal-head,.staff-modal-foot{padding:12px}.staff-photo-tools{gap:5px}.staff-photo-tools button,.staff-file-label{font-size:10px;padding:7px}.staff-modal-foot #smRemove{flex:1 1 100%;margin-right:0}.staff-modal-foot #smCancel,.staff-modal-foot #smSave{flex:1 1 calc(50% - 5px)}}
 </style>
+<style id="staff-directory-users-layout">
+/* STAFF directory follows the USERS directory layout; operational behaviour is unchanged. */
+#settingsPanelStaff .settings-content-panel{padding:0;background:transparent;border:0;box-shadow:none}
+#settingsPanelStaff .staff-directory-heading{display:grid;gap:5px;margin:3px 0 18px}
+#settingsPanelStaff .staff-directory-heading h2{margin:0;color:#fff;font-size:23px;font-weight:950;letter-spacing:-.35px}
+#settingsPanelStaff .staff-directory-heading p{margin:0;color:#9cabb9;font-size:13px;line-height:1.5}
+#settingsPanelStaff .staff-roster-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 16px}
+#settingsPanelStaff .staff-roster-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#settingsPanelStaff .staff-roster-actions button{min-height:39px;padding:9px 13px;border:1px solid #e5c326;border-radius:8px;background:#f5cb18;color:#101c26;font-size:10px;font-weight:950;letter-spacing:.6px;white-space:nowrap}
+#settingsPanelStaff .staff-roster-actions #manageStaffRolesBtn,
+#settingsPanelStaff .staff-roster-actions #openStaffUserAccounts{border-color:#52677b;background:#152b3d;color:#e8eef3}
+#settingsPanelStaff #staffAdminMsg{margin-left:auto;color:#9cabb9;font-size:11px}
+#settingsPanelStaff .staff-roster-grid{display:grid;grid-template-columns:1fr;gap:0;border-top:1px solid #344b60}
+#settingsPanelStaff .staff-roster-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;min-width:0;padding:13px 12px;border:0;border-bottom:1px solid #263d51;border-radius:0;background:transparent}
+#settingsPanelStaff .staff-roster-avatar{width:52px;height:52px;grid-column:1;grid-row:1;align-self:center}
+#settingsPanelStaff .staff-roster-info{display:grid;grid-column:1;grid-row:1;min-width:0;padding-left:64px}
+#settingsPanelStaff .staff-roster-name{overflow:hidden;color:#f5f7f9;font-size:13px;font-weight:900;text-overflow:ellipsis}
+#settingsPanelStaff .staff-roster-station{overflow:hidden;color:#91a4b5;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+#settingsPanelStaff .staff-roster-status{color:#86d6a5;font-size:9px;font-weight:950;letter-spacing:.8px}
+#settingsPanelStaff .staff-roster-status.off{color:#f09b90}
+#settingsPanelStaff .staff-settings-icon{grid-column:2;grid-row:1;width:36px;height:36px;min-height:36px;padding:0;border:1px solid #5b7185;border-radius:8px;background:#132b3e;color:#f3f6f8;font-size:17px}
+#settingsPanelStaff .staff-settings-icon:disabled{opacity:.42}
+@media(max-width:600px){
+ #settingsPanelStaff .staff-roster-toolbar{align-items:flex-start;flex-direction:column}
+ #settingsPanelStaff #staffAdminMsg{margin-left:0}
+ #settingsPanelStaff .staff-roster-actions{width:100%}
+ #settingsPanelStaff .staff-roster-actions button{flex:1 1 auto}
+ #settingsPanelStaff .staff-roster-card{padding:12px 6px}
+}
+</style>
 <style id="crew-switchboard-css">
 .crew-switchboard-trigger{right:78px}
 .crew-switchboard-trigger svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -1106,7 +1136,7 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
     </div>
   </div>
 
-  <div id="settingsPanelStaff" class="settings-panel" hidden><div class="settings-detail-head"><div class="settings-back" aria-current="page">STAFF MANAGEMENT</div></div><div class="panel settings-content-panel"><h2>STAFF</h2><p class="muted">Manage profiles, station assignments, plant availability and photos.</p><div class="staff-roster-toolbar"><button id="addStaffBtn" class="primary" type="button">＋ ADD NEW MEMBER</button><button id="manageStaffRolesBtn" type="button">VIEW YARD ROLES</button><button id="openStaffUserAccounts" type="button" hidden>USER ACCOUNTS</button><div id="staffAdminMsg" class="muted" role="status"></div></div><div id="staffRosterList" class="staff-roster-grid"></div></div></div>
+  <div id="settingsPanelStaff" class="settings-panel" hidden><div class="settings-detail-head"><div class="settings-back" aria-current="page">STAFF MANAGEMENT</div></div><div class="panel settings-content-panel"><div class="staff-directory-heading"><h2>STAFF</h2><p class="muted">Manage profiles, station assignments, plant availability and photos.</p></div><div class="staff-roster-toolbar"><div class="staff-roster-actions"><button id="addStaffBtn" class="primary" type="button">＋ ADD NEW MEMBER</button><button id="manageStaffRolesBtn" type="button">VIEW YARD ROLES</button><button id="openStaffUserAccounts" type="button" hidden>USER ACCOUNTS</button></div><div id="staffAdminMsg" class="muted" role="status" aria-live="polite"></div></div><div id="staffRosterList" class="staff-roster-grid" aria-label="Staff directory"></div></div></div>
   <div id="settingsPanelSchedule" class="settings-panel" hidden>
     <div class="settings-detail-head"><button class="settings-back" type="button" data-settings-back>‹ <span>BACK TO SETTINGS</span></button><div class="settings-detail-tag">OPERATING SCHEDULE</div></div>
     <div class="panel settings-content-panel">
