@@ -145,7 +145,7 @@ assert.match(centralClient,/async saveTiers\(tiers,version\)/);
 
  // Regression: Hub-only tier changes must never write the legacy DOWNTIME user bank or revoke sessions.
  assert.ok(hubApi.includes('const hasCanonicalYardRole = Boolean(user.yardRoleId)'), 'canonical YARD ROLE identities are distinguished from legacy tiers');
- assert.ok(hubApi.includes('const canAccessYardHub = isProtectedRoot || (!hasCanonicalYardRole && (legacyPermissions.canAccessYardHub !== false || isRootDev(user, legacyTier)))'), 'protected ROOTS retain access while canonical non-ROOTS identities never inherit legacy YARD HUB entry rights');
+ assert.ok(hubApi.includes('const canAccessYardHub = isProtectedRoot || (hasCanonicalIdentity ? hasAnyDepartmentAccess : (!hasCanonicalYardRole && (legacyPermissions.canAccessYardHub !== false || isRootDev(user, legacyTier))))'), 'canonical users receive YARD HUB access only through connected YARD ROLE departments while ROOTS retain precedence');
  assert.ok(hubApi.includes('if (!canAccessYardHub)'), 'server denies Hub settings access when Yard Hub entry access is disabled');
  assert.ok(hubApi.includes('canManageCentralUsers'), 'settings API returns the existing Central Users management capability');
  assert.ok(hubApi.includes('["DEVACC", "OWNER", "ADMIN"].includes(previousTier)'), 'non-root administrators cannot demote protected OWNER/DEVACC/ADMIN tiers');
