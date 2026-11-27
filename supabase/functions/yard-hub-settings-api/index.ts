@@ -322,6 +322,7 @@ Deno.serve(async (req: Request) => {
       canManageCentralUsers,
       canManageStaffUsers: canManageStaffDirectory,
       canViewStaffUsers: canViewStaffDirectory,
+      canManageUserAccounts: canManageStaffDirectory,
       canAssignUserRoles: canManageStaffDirectory,
     });
   }
