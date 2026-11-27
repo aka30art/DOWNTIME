@@ -135,7 +135,7 @@ assert.match(html, /@media\(max-width:1050px\)\{\.settings-card-grid\{grid-templ
 assert.match(html, /@media\(max-width:650px\)\{\.settings-card-grid\{grid-template-columns:1fr/,
   'settings cards must stack on mobile');
 assert.match(html, /settings-accent-yellow/, 'DOWNTIME yellow accent must be present');
-assert.match(html, /settings-accent-blue/, 'DOWNTIME blue accent must be present');
+assert.match(html, /settings-accent-violet/, 'DOWNTIME violet accent must be present on Shift & Breaktime / Station Manager');
 
 const settingsGridStart = html.indexOf('<div class="settings-card-grid">');
 const settingsGridEnd = html.indexOf('</div>', settingsGridStart);
