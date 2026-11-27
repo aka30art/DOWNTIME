@@ -747,7 +747,7 @@ try{
  assert.equal(await manager.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'MANAGER never gains access to ADMIN/DEV-only Access and Rights');
  assert.equal(await manager.page.locator('[data-settings-open="areas"]').isVisible(),true,'MANAGER receives ADMIN-equivalent Settings access');
  assert.equal(await manager.page.locator('[data-settings-open="users"]').isVisible().catch(()=>false),false,'legacy MANAGER cannot view the Central Bank USER directory');
- await manager.page.locator('#settingsPanelUsers [data-settings-back]').click();
+ assert.equal(await manager.page.locator('#settingsPanelUsers').isVisible(),false,'MANAGER remains on the Settings hub because USERS is restricted to immutable DEV');
  await manager.page.locator('[data-settings-open="areas"]').click();
  assert.equal(await manager.page.locator('#newAreaPreset').isEnabled(),true,'MANAGER can edit Area Presets when granted ADMIN-equivalent rights');
  await manager.page.locator('#newAreaPreset').fill('Manager QA Bay');
