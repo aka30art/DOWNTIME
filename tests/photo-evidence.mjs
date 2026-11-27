@@ -54,6 +54,8 @@ assert.match(scopeMigration,/add column if not exists department text not null d
 assert.match(ownershipMigration,/add column if not exists uploaded_by_user_id uuid/,'Photo metadata stores immutable uploader USER identity');
 assert.match(ownershipMigration,/add column if not exists uploaded_by_staff_id uuid/,'Photo metadata stores immutable uploader STAFF identity');
 assert.match(ownershipMigration,/where uploaded_by_user_id is not null/,'Uploader identity lookup is indexed without rewriting legacy rows');
+assert.match(ownershipMigration,/prevent_downtime_attachment_identity_mutation/,'Photo uploader and record identity fields are immutable at the database layer');
+assert.match(ownershipMigration,/old\.uploaded_by_user_id is distinct from new\.uploaded_by_user_id/,'Database prevents changing the authenticated photo owner');
 assert.match(html,/function photoAuthHeaders\(\)/,'Browser photo calls attach the authenticated Central Bank session');
 assert.match(html,/recordId:photoRecordId/,'Photo uploads are linked to the stable tracker record ID');
 assert.match(html,/if\(error\)\{photoEntryKey=photoId\(\);throw error\}/,'Failed signed uploads receive a fresh key for safe retry');
