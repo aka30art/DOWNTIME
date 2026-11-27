@@ -446,7 +446,7 @@ assert.match(provisioningMigration, /downtime_central_commit_identity_event/);
 assert.match(provisioningMigration, /enable row level security/);
 assert.doesNotMatch(provisioningMigration, /insert into public\.yard_roles/i, "no unapproved YARD ROLE catalogue entries are seeded");
 
-assert.match(resolverSource, /YARD_ROLE_PERMISSION_KEYS.*view.*enter.*edit.*manage/s, "resolver exposes independent View, Enter, Edit and Manage permissions");
+assert.match(resolverSource, /YARD_ROLE_ACCESS_LEVELS.*OFF.*READ ONLY.*INPUT.*MANAGE/s, "resolver enforces the four approved YARD ROLE access levels");
 assert.match(repairMaintenanceApi, /yard_role_assignments/, "R&M loads canonical YARD ROLE assignments for linked USER/STAFF identities");
 assert.match(repairMaintenanceApi, /canYardRolePerform\(resolvedYardRole, "R&M", "VIEW"\)/, "R&M authorization is resolved from canonical department permissions");
 assert.match(gatelogApi, /yard_role_assignments/, "GATELOG loads canonical YARD ROLE assignments for linked USER/STAFF identities");

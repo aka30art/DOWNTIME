@@ -71,16 +71,19 @@
     const button=$('yardHubSettingsBtn');
     if(button){button.hidden=true;button.dataset.accessChecked='false';}
     myHubTier=null;myRootsAuthority=null;myCanManageSettings=false;
+    window.DOWNTIME_ROOTS_AUTHORITY=null;window.syncStaffModuleAccess?.();
     if(!currentSession()?.token)return null;
     try{
       const result=await callApi('my-access');
       myHubTier=String(result.user?.hubTier||'USER').toUpperCase();
       myRootsAuthority=result.rootsAuthority||null;
+      window.DOWNTIME_ROOTS_AUTHORITY=myRootsAuthority;window.syncStaffModuleAccess?.();
       myCanManageSettings=result.canManageSettings===true;
       if(button)button.hidden=true;
       return result;
     }catch(error){
       if(button)button.hidden=true;
+      window.DOWNTIME_ROOTS_AUTHORITY=null;window.syncStaffModuleAccess?.();
       console.warn('YARD HUB access profile could not be refreshed.',error);
       return null;
     }
@@ -100,6 +103,7 @@
     state=result;
     myHubTier=String(result.user?.hubTier||myHubTier||'USER').toUpperCase();
     myRootsAuthority=result.rootsAuthority||myRootsAuthority||null;
+    window.DOWNTIME_ROOTS_AUTHORITY=myRootsAuthority;window.syncStaffModuleAccess?.();
     myCanManageSettings=result.canManageYardRoles===true||result.canManageRoots===true;
     workingPayload=JSON.parse(JSON.stringify(result.tierPermissions));
     renderUsers();renderTierCards();renderYardRoleCards();updateTierSaveState();
