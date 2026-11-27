@@ -771,7 +771,7 @@ try{
  await owner.page.locator('#smSave').click();
  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:5000});
  assert.equal(owner.getBank().staff.profiles.Jan.station,'Station 3 · SCRAP','SCPL STAFF station reassignment is confirmed in the central data bank');
- await owner.page.locator('#backToYardHub').click();
+ await owner.page.locator('#staffBackToYardHub').click();
  await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
  await owner.page.locator('#launchDowntimeBtn').click();
  await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
@@ -889,8 +889,8 @@ try{
  assert.equal(await owner.page.locator('#settingsPanelStaff').isVisible(),true,'OWNER opens STAFF management through YARD HUB Staff Management');
  assert.equal(await owner.page.locator('#addStaffBtn').isEnabled(),true,'OWNER retains STAFF management privileges');
  assert.equal(await owner.page.locator('.nav-menu').isVisible(),false,'STAFF workspace hides the MAIN MENU dropdown while the focused page is open');
- assert.equal(await owner.page.locator('#backToYardHub').isVisible(),true,'STAFF workspace retains the dedicated BACK TO YARD HUB route');
- await owner.page.locator('#backToYardHub').click();
+ assert.equal(await owner.page.locator('#staffBackToYardHub').isVisible(),true,'STAFF workspace exposes its compact header BACK TO YARD HUB route');
+ await owner.page.locator('#staffBackToYardHub').click();
  await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
  await owner.page.locator('#launchDowntimeBtn').click();
  await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
@@ -1171,7 +1171,7 @@ await ensureNavigationMenuOpen(owner.page);
   assert.equal(owner.getBank().staff.profiles.Rita.photoPath,undefined,'replacement original can also be removed');
   await owner.page.locator('#smCancel').click();
   await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
- await owner.page.locator('#backToYardHub').click();
+ await owner.page.locator('#staffBackToYardHub').click();
  assert.equal(await owner.page.locator('#yardHub').isVisible(),true,'YARD HUB is available before sign-out');
  await owner.page.locator('#yardHubLogoutBtn').click();
  await owner.page.waitForFunction(()=>document.querySelector('#authGate').style.display!=='none');
