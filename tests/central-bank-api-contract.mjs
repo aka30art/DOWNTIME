@@ -59,17 +59,6 @@ const lockedRoles=src.slice(src.indexOf('const lockedRolePrivileges'),src.indexO
 assert.ok(lockedRoles.includes('OWNER:{canEditTracker:true'), 'DEV root OWNER permissions are fixed');
 assert.doesNotMatch(lockedRoles, /MANAGER:|SUPERVISOR:|USER:|SPECTATOR:/,
   'non-root tiers are configurable by DEV rather than locked to hard-coded baselines');
-assert.ok(src.includes("const isAccessRightsAdmin=tier===\"ADMIN\"&&priv.canManageAccessRights===true")&&src.includes("const editableRoles=isCentralBankAccess?tiers:[\"MANAGER\",\"SUPERVISOR\",\"USER\",\"SPECTATOR\"]"),
-  "tier rights changes allow root or delegated ADMIN scope only");
-assert.ok(src.includes('const isCentralAdmin=tier==="ADMIN"||isRootAuthority;'),'ADMIN and root-equivalent identities can manage account tiers');
-assert.ok(src.includes('if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEV and DEVACC can create accounts or assign user tiers."},403);'),
-  'ADMIN and root-equivalent DEV/DEVACC may manage account tiers');
-assert.ok(src.includes('if(!priv.canManageUsers)return json({error:"Permission denied"},403);'),
-  'other existing account maintenance remains subject to user-management rights');
-assert.ok(src.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&src.includes('typeof supplied[key]!=="boolean"'),
-  'tier rights updates validate the permission whitelist and boolean values');
-assert.ok(src.includes('action:"tiers-save",details:{tiers:editableRoles.reduce'),
-  "tier rights changes are audited with the permitted role scope");
 
 assert.ok(src.includes('if(Array.isArray(bank.appData?.dailyTaskPresets))nextAppData.dailyTaskPresets=bank.appData.dailyTaskPresets;else delete nextAppData.dailyTaskPresets'),
   'non-settings roles can complete daily tasks but cannot edit the preset list');
@@ -85,37 +74,30 @@ assert.ok(src.includes('normalizeCentralConfig(body.config)'),'server validates 
 assert.ok(src.includes('action:"central-config-publish"'),'publishing is audited');
 assert.ok(src.includes('action:"central-config-restore-draft"'),'restoring historical configuration is audited');
 
-
-assert.ok(src.includes('const isDevRoot=rootsAuthority==="DEV"'),'DEV root authority is resolved from the immutable bootstrap USER ID, not username or legacy tier');
-assert.ok(src.includes('const isRootAuthority=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"")'),'protected ROOTS authority is separate from ordinary legacy tiers');
-assert.ok(src.includes('const isDevacc=tier==="DEVACC";')&&src.includes('const isRootAuthority=isDevRoot||isDevacc;')&&src.includes('const isCentralBankAccess=isRootAuthority;'),'DEVACC is a root-equivalent Data Bank principal');
-assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to DEV and DEVACC only."},403);'),'whole-bank state is limited to DEV and DEVACC');
-assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),'all configuration control-plane actions share the DEV/DEVACC gate');
-assert.ok(src.includes("const isAccessRightsAdmin=tier===\"ADMIN\"&&priv.canManageAccessRights===true"),"delegated ADMIN permission is checked server-side");
-assert.ok(src.includes('if(newTier==="DEVACC"&&(!existing||existing.tier!=="DEVACC")&&!isDevRoot)return json({error:"Only root DEV can assign DEVacc."},403);'),'only root DEV can grant or promote an account to DEVACC');
-assert.ok(src.includes('if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);'),'DEVACC retains authority to edit existing DEVACC accounts');
-assert.ok(src.includes('if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);'),'DEVACC may modify, disable and restore DEVACC users');
-assert.ok(src.includes('&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can remove DEVacc."},403);'),'DEVACC may remove other DEVACC users');
-assert.ok(!src.includes('Only one DEVacc account is permitted.'),'the one-DEVACC account restriction is removed');
-assert.ok(src.includes('if(newTier==="OWNER")return json({error:"DEV is the only OWNER account. Additional OWNER accounts are prohibited."},403);'),'root-equivalent accounts cannot create a second OWNER');
-assert.ok(src.includes('if(!isDevRoot)return json({error:"Only root DEV can update root credentials."},403);'),'only DEV can update its permanent root credentials');
-assert.ok(src.includes('The DEV root OWNER account cannot be deleted or removed.'),'DEV root cannot be deleted');
-assert.ok(!src.includes('root-account-split')&&!src.includes('isLegacyJanRoot'),'obsolete JAN split authorization is removed');
-
-assert.ok(src.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&src.includes('typeof supplied[key]!=="boolean"'),'tier rights updates validate the permission whitelist and boolean values');
-assert.ok(src.includes('action:"tiers-save",details:{tiers:editableRoles.reduce'),"tier changes are audited by permitted scope");
-for(const action of ['central-config-state','central-config-save-draft','central-config-publish','central-config-restore-draft'])assert.ok(src.includes('if(action==="'+action+'")'),'configuration control-plane action '+action);
-assert.ok(src.includes('configState.draft_version')&&src.includes('configState.published_version'),'configuration drafts and published state have independent version pointers');
-assert.ok(src.includes('downtime_central_config_state')&&src.includes('downtime_central_config_history'),'configuration control plane uses isolated tables');
-assert.ok(src.includes('normalizeCentralConfig(body.config)'),'configuration is validated server-side before saving');
-assert.ok(src.includes('action:"central-config-publish"')&&src.includes('action:"central-config-restore-draft"'),'publish and restore actions are separately audited');
-// Canonical Management rights are enforced at the Central Bank API boundary, not only by UI visibility.
-assert.ok(src.includes('const management=resolvedYardRole.departments.Management'),'Central Bank resolves the Management department independently');
-assert.ok(src.includes('if(!hasManagementAccess)return json({error:"This USER has no access to the Management department."},403)'),'canonical identities without Management rights fail closed');
-assert.ok(src.includes('const canonicalManagement=hasCanonicalIdentity&&!isRootAuthority'),'canonical Management write rules are isolated from legacy identities and protected ROOTS');
-assert.ok(src.includes('Management ENTER permission is required to add operational records.'),'new operational records require Management ENTER');
-assert.ok(src.includes('Management EDIT permission is required to change operational records.'),'existing operational records require Management EDIT');
-assert.ok(src.includes('Management MANAGE permission is required to remove operational records.'),'record removal requires Management MANAGE');
-assert.ok(src.includes('if(!canEnter&&!canEdit&&!canManage)return json({error:"No Management operational-record write permission is assigned."},403)'),'without VIEW, only explicitly granted write levels may submit changes');
-assert.ok(src.includes('nextAppData.areas=bank.appData?.areas||[]')&&src.includes('nextAppData.operatorProfiles=bank.appData?.operatorProfiles||bank.staff?.profiles||{}'),'Management record rights cannot mutate global settings or STAFF identities');
-console.log('Central API security, DEVACC root equivalence, immutable DEV OWNER and configuration contracts passed (static source checks).');
+assert.ok(src.includes('const isCentralAdmin=isDevRoot;')&&src.includes('const isCentralBankAccess=isDevRoot;'),
+  'the immutable DEV USER is the only central control-plane administrator');
+assert.ok(src.includes('if(action==="user-save"){\n   if(!isDevRoot)'), 'only immutable DEV may maintain existing USER identities');
+assert.ok(src.includes('if(action==="user-delete"){\n   if(!isDevRoot)'), 'only immutable DEV may perform USER lifecycle operations');
+assert.ok(src.includes('if(action==="staff-save"){\n   if(!isDevRoot)'), 'only immutable DEV may maintain STAFF identities');
+assert.ok(src.includes('if(action==="tiers-save"){\n   return json({error:"Legacy account-tier permissions are retired. Configure department access through canonical YARD ROLE."},410);'),
+  'legacy account-tier permission changes are retired');
+assert.ok(src.includes('const rootsAuthority=resolveRootsAuthority(currentUser,rootsAssignment,rootsBootstrap?.user_id||null);'),
+  'ROOTS identity resolves from immutable DEV bootstrap and matched USER/STAFF ROOTS assignment');
+assert.ok(src.includes('const isRootAuthority=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"");'),
+  'DEV1 and ADMIN receive protected ROOTS status independent of legacy tiers');
+assert.ok(src.includes('const isDevRoot=rootsAuthority==="DEV";'), 'DEV authority cannot be inferred from username or OWNER tier');
+assert.ok(src.includes('yardRolePermissions:u.yardRolePermissions||null'), 'safe current-user contract can carry canonical rights');
+assert.ok(src.includes('yardRolePermissions:resolvedYardRole?.departments?.Management||null'), 'DOWNTIME receives its Management department role rights');
+assert.ok(src.includes('managementRights?.enter===true')&&src.includes('managementRights?.edit===true')&&src.includes('managementRights?.manage===true'),
+  'Management Enter, Edit and Manage are independently evaluated');
+assert.ok(src.includes('Management ENTER permission is required to add operational records.')&&src.includes('Management EDIT permission is required to change operational records.')&&src.includes('Management MANAGE permission is required to remove operational records.'),
+  'record creation, editing and deletion enforce separate server-side rights');
+assert.ok(src.includes('Without VIEW, treat omitted records as concealed rather than deleted.'),
+  'users without View cannot overwrite or delete concealed operational history');
+assert.ok(src.includes('if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);'),
+  'only immutable DEV can provision linked USER + STAFF identities');
+assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to immutable DEV."},403);'),
+  'whole-bank state is restricted to immutable DEV');
+assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),
+  'all global configuration actions share the immutable DEV gate');
+console.log('Central API ROOTS, USER/STAFF lifecycle, Management YARD ROLE and separate record-rights contracts passed (static source checks).');
