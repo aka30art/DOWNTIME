@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { canYardRolePerform, resolveYardRolePermissions, YARD_ROLE_ACCESS_LEVELS, YARD_ROLE_DEPARTMENTS, YARD_ROLE_PERMISSION_KEYS } from "../supabase/functions/_shared/yard-role-resolver.mjs";
+import { canYardRolePerform, resolveYardRolePermissions, resolveYardRoleModulePermissions, YARD_ROLE_DEPARTMENT_MODULES, YARD_ROLE_ACCESS_LEVELS, YARD_ROLE_DEPARTMENTS, YARD_ROLE_PERMISSION_KEYS } from "../supabase/functions/_shared/yard-role-resolver.mjs";
 
 const role = { id: "11111111-1111-4111-8111-111111111111", name: "Test Role", status: "ACTIVE" };
 const flags = {
@@ -13,6 +13,21 @@ const rows = YARD_ROLE_DEPARTMENTS.map((department,index) => {
   return {yard_role_id:role.id,department,can_view,can_enter,can_edit,can_manage};
 });
 const resolved = resolveYardRolePermissions(role, rows);
+const moduleRights = resolveYardRoleModulePermissions(resolved);
+assert.deepEqual(YARD_ROLE_DEPARTMENT_MODULES, {
+  SCPL: "DOWNTIME",
+  "R&M": "R&M",
+  Management: "Staff & Management",
+  SCFL: null,
+  Traffic: "GATELOG",
+});
+assert.deepEqual(Object.keys(moduleRights), ["DOWNTIME", "R&M", "Staff & Management", "GATELOG"]);
+assert.equal(moduleRights.DOWNTIME, resolved.departments.SCPL);
+assert.equal(moduleRights["R&M"], resolved.departments["R&M"]);
+assert.equal(moduleRights["Staff & Management"], resolved.departments.Management);
+assert.equal(moduleRights.GATELOG, resolved.departments.Traffic);
+assert.equal(Object.prototype.hasOwnProperty.call(moduleRights, "DAILY"), false);
+assert.ok(resolved.departments.SCFL, "SCFL remains in the department catalogue");
 assert.deepEqual(YARD_ROLE_PERMISSION_KEYS, ["view","enter","edit","manage"]);
 assert.deepEqual(YARD_ROLE_ACCESS_LEVELS, ["OFF","READ ONLY","INPUT","MANAGE"]);
 assert.deepEqual(YARD_ROLE_DEPARTMENTS, ["SCPL","R&M","Management","SCFL","Traffic"]);

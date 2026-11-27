@@ -6,6 +6,30 @@
 export const YARD_ROLE_PERMISSION_KEYS = Object.freeze(["view", "enter", "edit", "manage"]);
 export const YARD_ROLE_ACCESS_LEVELS = Object.freeze(["OFF", "READ ONLY", "INPUT", "MANAGE"]);
 export const YARD_ROLE_DEPARTMENTS = Object.freeze(["SCPL", "R&M", "Management", "SCFL", "Traffic"]);
+/** Department-to-application mapping. A null value means no module is connected. */
+export const YARD_ROLE_DEPARTMENT_MODULES = Object.freeze({
+  SCPL: "DOWNTIME",
+  "R&M": "R&M",
+  Management: "Staff & Management",
+  SCFL: null,
+  Traffic: "GATELOG",
+});
+
+/** Project department permissions onto connected modules without crossing access domains. */
+export function resolveYardRoleModulePermissions(resolvedRole) {
+  if (!isObject(resolvedRole) || !isObject(resolvedRole.departments)) {
+    throw new Error("A resolved canonical YARD ROLE is required to map module permissions.");
+  }
+  const modules = Object.create(null);
+  for (const [department, module] of Object.entries(YARD_ROLE_DEPARTMENT_MODULES)) {
+    if (!module) continue;
+    const permissions = resolvedRole.departments[department];
+    if (!isObject(permissions)) throw new Error("YARD ROLE module mapping is missing its " + department + " department permissions.");
+    modules[module] = permissions;
+  }
+  return Object.freeze(modules);
+}
+
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 

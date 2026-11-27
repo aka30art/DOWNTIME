@@ -101,6 +101,7 @@
     });
     ordered.forEach(button=>grid.append(button));
     window.syncStaffModuleAccess?.();
+    window.syncDowntimeModuleAccess?.();
   }
   function ensureWorkspace(){
     if(workspace)return workspace;

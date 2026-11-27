@@ -16,7 +16,10 @@ assert.match(central,/SCPL staff may only be assigned to Stations 1-6/,'Central 
 assert.match(central,/if\(department&&department!==\"SCPL\"\)\{\s*profile\.station=\"\";\s*profile\.stationLocked=false;\s*delete profile\.assignedStation;/,'non-SCPL department changes clear stale station assignments even for staff managers without assignment permission');
 
 
-assert.match(html,/if\(!manageStaff&&!manageAssign\)return;if\(!name&&!manageStaff\)return/,'only staff admins can create, assignment managers may open profile settings');
+assert.match(html,/if\(!canViewStaff&&!editStaff&&!enterStaff&&!manageAssign\)return/,'Staff VIEW, INPUT, EDIT and MANAGE are independently represented in the profile modal');
+assert.match(html,/canEnterStaff/,'Staff INPUT permits new member creation');
+assert.match(html,/canEditStaff/,'Staff EDIT permits profile updates without granting MANAGE');
+assert.match(html,/\$\('smRemove'\)\.hidden=isNew\|\|!manageStaff/,'archiving and restoring profiles remain MANAGE-only');
 assert.match(html,/staffModalOpen\(\);/,'Add New Member opens a blank modal');
 assert.match(html,/\$\('smName'\)\.readOnly=!isNew/,'existing names are protected to preserve historical records');
 assert.match(html,/stationLocked/,'station lock state appears on roster and in profile modal');

@@ -78,7 +78,7 @@ assert.ok(src.includes('const isCentralAdmin=isDevRoot;')&&src.includes('const i
   'the immutable DEV USER is the only central control-plane administrator');
 assert.ok(src.includes('if(action==="user-save"){\n   if(!isDevRoot)'), 'only immutable DEV may maintain existing USER identities');
 assert.ok(src.includes('if(action==="user-delete"){\n   if(!isDevRoot)'), 'only immutable DEV may perform USER lifecycle operations');
-assert.ok(src.includes('if(action==="staff-save"){\n   if(!isRootAuthority)'), 'protected ROOTS identities may maintain STAFF identities');
+assert.ok(src.includes('if(action==="staff-save"){\n   if(!priv.canManageStaff)'), 'only Management MANAGE may maintain STAFF identities through the Staff module; protected ROOTS receive that capability through the separate ROOTS overlay');
 assert.ok(src.includes('if(action==="tiers-save"){\n   return json({error:"Legacy account-tier permissions are retired. Configure department access through canonical YARD ROLE."},410);'),
   'legacy account-tier permission changes are retired');
 assert.ok(src.includes('const rootsAuthority=resolveRootsAuthority(currentUser,rootsAssignment,rootsBootstrap?.user_id||null);'),
@@ -88,23 +88,31 @@ assert.ok(src.includes('const isRootAuthority=["DEV","DEV1","ADMIN"].includes(ro
 assert.ok(src.includes('const isDevRoot=rootsAuthority==="DEV";'), 'DEV authority cannot be inferred from username or OWNER tier');
 assert.ok(src.includes('yardRolePermissions:u.yardRolePermissions||null'), 'safe current-user contract can carry canonical rights');
 assert.ok(src.includes('yardRolePermissions:resolvedYardRole?.departments||null'), 'Central Bank returns the complete five-department permission matrix to the client');
-assert.ok(src.includes('const management=resolvedYardRole.departments.Management'), 'DOWNTIME enforcement separately resolves the Management department');
-assert.ok(src.includes('canManageSettings:management.manage===true'),'canonical Management MANAGE can edit operational Settings; lower levels cannot');
-assert.ok(src.includes('canViewStations:hasManagementAccess'),'canonical Management VIEW/INPUT/MANAGE can read Station Manager configuration');
-for(const section of ['AreaPresets','ReasonPresets','ShiftSchedule','DailyTasks']){
- assert.ok(src.includes('canView'+section+':hasManagementAccess'),'Management department access grants read access to '+section);
- assert.ok(src.includes('canManage'+section+':management.manage===true'),'only Management MANAGE may edit '+section);
+assert.ok(src.includes('const moduleRights=resolveYardRoleModulePermissions(resolvedYardRole)'), 'server resolves the approved department-to-module mapping');
+assert.ok(src.includes('const downtime=moduleRights.DOWNTIME')&&src.includes('const staffManagement=moduleRights["Staff & Management"]'), 'Central Bank separates DOWNTIME and Staff & Management rights');
+assert.ok(src.includes('canEditTracker:downtime.enter||downtime.edit||downtime.manage'), 'SCPL INPUT / EDIT / MANAGE controls operational tracker writes');
+assert.ok(src.includes('canDeleteRecords:downtime.manage'), 'only SCPL MANAGE can delete DOWNTIME records');
+assert.ok(src.includes('canManageSettings:downtime.manage===true'), 'only SCPL MANAGE controls DOWNTIME operational Settings');
+assert.ok(src.includes('canViewStations:staffManagement.view===true||downtime.view===true'), 'station options may be viewed inside either connected workspace');
+assert.ok(src.includes('canViewAreaPresets:downtime.view')&&src.includes('canManageAreaPresets:downtime.manage===true'), 'SCPL controls DOWNTIME area presets');
+for(const section of ['ReasonPresets','ShiftSchedule','DailyTasks']){
+ assert.ok(src.includes('canView'+section+':downtime.view'),'SCPL VIEW controls DOWNTIME '+section);
+ assert.ok(src.includes('canManage'+section+':downtime.manage===true'),'SCPL MANAGE controls DOWNTIME '+section);
 }
-assert.ok(src.includes('canManageSettings:true,canManageAccessRights:false'),'protected DEV1/ADMIN ROOTS can manage operational Settings without opening the legacy tier rights editor');
-const rootsSettingsBlock=src.slice(src.indexOf('if(isRootAuthority){'),src.indexOf('// Central Bank USER directory access'));
-assert.ok(rootsSettingsBlock.includes('canManageUsers:false,canViewUsers:false'),'DEV1/ADMIN remain denied Central USER directory access');
-assert.ok(src.includes('if(!(priv.canViewStations||priv.canViewAssignments||priv.canManageAssignments||priv.canManageSettings))delete restrictedData.stationConfig'),'read-authorised Management roles receive Station Manager data without assignment edit rights');
-
-assert.ok(src.includes('managementRights?.enter===true')&&src.includes('managementRights?.edit===true')&&src.includes('managementRights?.manage===true'),
-  'Management Enter, Edit and Manage are independently evaluated');
-assert.ok(src.includes('Management ENTER permission is required to add operational records.')&&src.includes('Management EDIT permission is required to change operational records.')&&src.includes('Management MANAGE permission is required to remove operational records.'),
-  'record creation, editing and deletion enforce separate server-side rights');
-assert.ok(src.includes('Without VIEW, treat omitted records as concealed rather than deleted.'),
+assert.ok(src.includes('canEnterStaff:staffManagement.enter===true')&&src.includes('canEditStaff:staffManagement.edit===true')&&src.includes('canManageStaff:staffManagement.manage===true'),'Management INPUT / EDIT / MANAGE control Staff & Management separately');
+assert.ok(src.includes('canViewStaff:staffManagement.view===true')&&src.includes('canManageAssignments:staffManagement.manage===true'),'Management VIEW and MANAGE control staff visibility and assignments');
+assert.ok(src.includes('SCPL INPUT permission is required to add DOWNTIME records.')&&src.includes('SCPL EDIT permission is required to change DOWNTIME records.')&&src.includes('SCPL MANAGE permission is required to remove DOWNTIME records.'),'all operational record mutations enforce SCPL rights');
+assert.ok(src.includes('scplRights?.enter===true')&&src.includes('scplRights?.edit===true')&&src.includes('scplRights?.manage===true'),'DOWNTIME save route checks each SCPL record permission');
+assert.ok(src.includes('hasCanonicalIdentity&&!isRootAuthority&&!moduleRights.DOWNTIME.view'),'daily operator register is hidden without SCPL VIEW');
+assert.ok(src.includes('canManageUsers:false,canViewUsers:false')&&src.includes('canManageAccessRights:false'),'ordinary YARD ROLE rights cannot grant account lifecycle or ROOTS control');
+assert.ok(src.includes('canEnterStaff=!!priv.canEnterStaff')&&src.includes('canEditStaff=!!priv.canEditStaff'),'save-settings supports Staff INPUT and EDIT independently of MANAGE');
+assert.ok(src.includes('Management MANAGE permission is required to maintain STAFF role definitions.'),'Staff role catalogue requires Management MANAGE');
+assert.ok(src.includes('if(!priv.canManageStaff)return json({error:"Management MANAGE permission is required to maintain STAFF profiles."},403);'),'legacy staff-save path enforces Management MANAGE');
+assert.ok(src.includes('if(!priv.canManageStaff)return json({error:"Permission denied"},403);'),'STAFF original image upload remains limited to Staff MANAGE');
+assert.ok(src.includes('if(hasCanonicalIdentity&&!isRootAuthority&&!moduleRights.DOWNTIME.view)'),'non-DOWNTIME users receive no DOWNTIME operational dataset');
+assert.ok(src.includes('!priv.canViewDashboards'),'dashboard redaction remains enforced');
+assert.ok(src.includes('if(!priv.canViewReports)delete restrictedData.archive'),'report redaction remains enforced');
+assert.ok(src.includes('Without VIEW, treat omitted records as concealed rather than deleted.'),'users without VIEW cannot overwrite or delete concealed operational history');
   'users without View cannot overwrite or delete concealed operational history');
 assert.ok(src.includes('if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);'),
   'only immutable DEV can provision linked USER + STAFF identities');
