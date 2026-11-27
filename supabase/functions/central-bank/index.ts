@@ -937,14 +937,14 @@ if(action==="roots-state"){
    const newTier=canonicalIdentity?undefined:String(body.tier||existing.tier||"USER");
    if(!canonicalIdentity&&(!newTier||!tiers.includes(newTier)))return json({error:"Invalid user/tier"},400);
    const isRootName=username.toUpperCase()==="DEV";
-   if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only ADMIN, DEV and DEVACC can create accounts or assign user tiers."},403);
+   if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only immutable DEV can create accounts or assign user tiers."},403);
    if(isRootName){
      if(!isDevRoot)return json({error:"Only root DEV can update root credentials."},403);
      if(!existing||existing.tier!=="OWNER"||newTier!=="OWNER"||body.enabled===false)return json({error:"DEV is the immutable root OWNER and cannot be created, demoted or disabled."},400);
    }else{
      if(newTier==="OWNER")return json({error:"DEV is the only OWNER account. Additional OWNER accounts are prohibited."},403);
-     if(newTier==="DEVACC"&&(!existing||existing.tier!=="DEVACC")&&!isDevRoot)return json({error:"Only root DEV can assign DEVacc."},403);
-     if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can modify DEVacc."},403);
+     if(newTier==="DEVACC"&&(!existing||existing.tier!=="DEVACC")&&!isDevRoot)return json({error:"Only immutable DEV can assign DEVACC."},403);
+     if(existing?.tier==="DEVACC"&&!isCentralBankAccess)return json({error:"Only immutable DEV can modify DEVACC accounts."},403);
      if(existing?.tier==="OWNER")return json({error:"The root OWNER account is protected."},403);
    }
    if(canonicalIdentity&&displayName!==(existing.displayName||existing.username)){
@@ -966,7 +966,7 @@ if(action==="roots-state"){
    const target=String(body.username||"").trim();
    if(!target)return json({error:"Username required"},400);
    if(target.toUpperCase()==="DEV"||bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="OWNER"))return json({error:"The DEV root OWNER account cannot be deleted or removed."},403);
-   if(bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="DEVACC")&&!isCentralBankAccess)return json({error:"Only DEV and DEVACC can remove DEVacc."},403);
+   if(bank.users.some((u:any)=>u.username.toLowerCase()===target.toLowerCase()&&u.tier==="DEVACC")&&!isCentralBankAccess)return json({error:"Only immutable DEV can remove DEVACC accounts."},403);
    if(target.toLowerCase()===currentUser.username.toLowerCase())return json({error:"Cannot delete your own account"},400);
    const linkedTarget=bank.users.find((u:any)=>u.username.toLowerCase()===target.toLowerCase());
    if(linkedTarget?.userId){
