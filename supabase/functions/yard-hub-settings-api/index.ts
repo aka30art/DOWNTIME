@@ -221,7 +221,7 @@ Deno.serve(async (req: Request) => {
     }
     if (lifecycleAction === "RECLASSIFY" && (!existingRoot || existingRoot.status !== "ACTIVE")) return json({ error: "An active ROOTS assignment is required for reclassification." }, 409);
     if (lifecycleAction === "REVOKE" && (!existingRoot || existingRoot.status !== "ACTIVE")) return json({ error: "An active ROOTS assignment is required for revocation." }, 409);
-    const expectedVersion = body.version == null ? null : Number(body.version);
+    const expectedVersion = body.version == null ? 0 : Number(body.version);
     if (existingRoot && lifecycleAction !== "ASSIGN" && (!Number.isInteger(expectedVersion) || expectedVersion < 1)) return json({ error: "A current ROOTS assignment version is required." }, 400);
     if (existingRoot && lifecycleAction === "ASSIGN" && existingRoot.status === "REVOKED" && (!Number.isInteger(expectedVersion) || expectedVersion < 1)) return json({ error: "A current ROOTS assignment version is required to restore this identity." }, 400);
     const { data: result, error: manageError } = await db.rpc("downtime_roots_manage_identity", {
