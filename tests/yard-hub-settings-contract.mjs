@@ -183,6 +183,9 @@ assert.ok(ui.includes("yardPermissionFields=[{key:'can_view',label:'VIEW'},{key:
 assert.ok(ui.includes('function isRootsAuthority()'),'DEV and protected ROOTS can administer canonical YARD ROLES');
 assert.ok(hubApi.includes('yard_role_save_definition'),'YARD ROLE definitions are persisted through the audited service-role RPC');
 assert.ok(hubApi.includes('yard_role_reassign_user'),'existing USERs can receive version-checked YARD ROLE reassignment');
+assert.ok(hubApi.includes('yard_role_assign_existing_user'),'first active USER assignment uses the atomic role assignment RPC');
+assert.ok(hubApi.includes('p_expected_bank_version: expectedBankVersion') && hubApi.includes('p_next_payload: nextPayload'),'active role assignment updates the Central Bank payload atomically');
+
 assert.ok(hubApi.includes('roleCatalogue: isProtectedRoot'),'only protected ROOTS can read the canonical role catalogue');
 assert.ok(hubApi.includes('rootsClass:'),'ROOTS classifications are displayed separately from ordinary YARD ROLE assignments');
 assert.ok(ui.includes("const modes=['NONE','READ','INPUT','EDIT']"),'YARD HUB tier UI includes INPUT mode');
