@@ -127,6 +127,7 @@ Deno.serve(async (req: Request) => {
 
   const legacyTier = String(user.tier || "USER").toUpperCase();
   const hubTier = assignedHubTier(configRow.payload, user.username);
+  const permissionTier = isProtectedRoot ? "OWNER" : hubTier;
   const isAdmin = isProtectedRoot || isHubSettingsAdmin(user, hubTier, legacyTier);
   const legacyPermissions = bank.tiers?.[legacyTier] || {};
   const hasCanonicalYardRole = Boolean(user.yardRoleId);
@@ -134,7 +135,7 @@ Deno.serve(async (req: Request) => {
   const canManageCentralUsers = rootsAuthority === "DEV";
 
   if (action === "my-access") {
-    const myPermissions = configRow.payload?.tiers?.[hubTier] || { floor: "NONE", checkSheets: "NONE", repairMaintenance: "NONE" };
+    const myPermissions = configRow.payload?.tiers?.[permissionTier] || { floor: "NONE", checkSheets: "NONE", repairMaintenance: "NONE" };
     return json({
       user: { ...safeUser(user), legacyTier, hubTier },
       canManageSettings: isProtectedRoot && canAccessYardHub,
