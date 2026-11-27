@@ -286,13 +286,46 @@ Deno.serve(async(req)=>{
 if(action==="roots-state"){
    if(rootsAuthority!=="DEV")return json({error:"ROOTS directory is restricted to immutable DEV."},403);
    if(rootsLookupError)return json({error:"Protected ROOTS registry is unavailable."},503);
-   const {data:assignments,error:assignmentsError}=await db.from("downtime_roots_effective_assignments").select("user_id,staff_id,roots_class,assigned_by_username,created_at").order("created_at");
-   if(assignmentsError)return json({error:"Protected ROOTS registry is unavailable."},503);
+   const [{data:assignments,error:assignmentsError},{data:history,error:historyError}]=await Promise.all([
+     db.from("downtime_roots_effective_assignments").select("user_id,staff_id,roots_class,assigned_by_username,created_at,changed_at").order("created_at"),
+     db.from("downtime_roots_assignment_audit").select("user_id,staff_id,roots_class,actor_username,action,created_at").order("created_at",{ascending:false})
+   ]);
+   if(assignmentsError||historyError)return json({error:"Protected ROOTS registry is unavailable."},503);
    const usersById=new Map(bank.users.filter((account:any)=>account.userId).map((account:any)=>[String(account.userId).toLowerCase(),account]));
-   return json({assignments:(assignments||[]).map((assignment:any)=>{
-     const target:any=usersById.get(String(assignment.user_id).toLowerCase());
-     return {userId:assignment.user_id,staffId:assignment.staff_id,rootsClass:assignment.roots_class,username:target?.username||null,displayName:target?.displayName||target?.username||null,assignedBy:assignment.assigned_by_username,createdAt:assignment.created_at};
-   })});
+   return json({
+     assignments:(assignments||[]).map((assignment:any)=>{
+       const target:any=usersById.get(String(assignment.user_id).toLowerCase());
+       return {userId:assignment.user_id,staffId:assignment.staff_id,rootsClass:assignment.roots_class,username:target?.username||null,displayName:target?.displayName||target?.username||null,assignedBy:assignment.assigned_by_username,createdAt:assignment.created_at,changedAt:assignment.changed_at};
+     }),
+     history:(history||[]).map((event:any)=>{
+       const target:any=usersById.get(String(event.user_id).toLowerCase());
+       return {userId:event.user_id,staffId:event.staff_id,rootsClass:event.roots_class,username:target?.username||null,action:event.action,actor:event.actor_username,createdAt:event.created_at};
+     })
+   });
+ }
+ if(action==="roots-revoke"){
+   if(rootsAuthority!=="DEV")return json({error:"Only immutable DEV may revoke ROOTS assignments."},403);
+   const userId=String(body.userId||"");
+   if(!/^[0-9a-f-]{36}$/i.test(userId))return json({error:"Immutable USER ID required."},400);
+   const {data:revoked,error:revokeError}=await db.rpc("downtime_roots_revoke_identity",{
+     p_user_id:userId,p_actor_user_id:currentUser.userId,p_actor_username:String(currentUser.username),
+     p_actor_display_name:String(currentUser.displayName||currentUser.username)
+   });
+   if(revokeError||!revoked)return json({error:revokeError?.message||"ROOTS revocation failed."},409);
+   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"roots-assignment-revoked",details:{targetUserId:userId,previousRootsClass:revoked.previous_roots_class}});
+   return json({ok:true,revocation:revoked});
+ }
+ if(action==="roots-reclassify"){
+   if(rootsAuthority!=="DEV")return json({error:"Only immutable DEV may reclassify ROOTS assignments."},403);
+   const userId=String(body.userId||""),rootsClass=String(body.rootsClass||"").toUpperCase();
+   if(!/^[0-9a-f-]{36}$/i.test(userId)||!["DEV1","ADMIN"].includes(rootsClass))return json({error:"A valid immutable USER ID and ROOTS class are required."},400);
+   const {data:changed,error:changeError}=await db.rpc("downtime_roots_reclassify_identity",{
+     p_user_id:userId,p_roots_class:rootsClass,p_actor_user_id:currentUser.userId,
+     p_actor_username:String(currentUser.username),p_actor_display_name:String(currentUser.displayName||currentUser.username)
+   });
+   if(changeError||!changed)return json({error:changeError?.message||"ROOTS reclassification failed."},409);
+   await db.from("downtime_central_audit").insert({username:currentUser.username,action:"roots-assignment-reclassified",details:{targetUserId:userId,rootsClass}});
+   return json({ok:true,assignment:changed});
  }
  if(action==="roots-assign"||action==="roots-assign-admin"){
    const requestedClass=String(body.rootsClass||"").toUpperCase();
@@ -305,7 +338,7 @@ if(action==="roots-state"){
    if(!/^[0-9a-f-]{36}$/i.test(String(body.userId||""))||!/^[0-9a-f-]{36}$/i.test(String(body.staffId||"")))return json({error:"Immutable USER and STAFF IDs are required."},400);
    const target=bank.users.find((account:any)=>String(account.userId||"").toLowerCase()===String(body.userId).toLowerCase());
    if(!target||target.enabled!==true||target.status!=="ACTIVE"||target.provisioning||target.tier!=null)return json({error:"An active canonical USER without a legacy tier claim is required."},409);
-   if(String(target.username||"").trim().toUpperCase()==="DEV"||String(target.staffId||"").toLowerCase()!==String(body.staffId).toLowerCase())return json({error:"Protected ROOTS assignments require a linked non-DEV USER and STAFF identity."},409);
+   if(String(target.username||"").trim().toUpperCase()==="DEV"||target.yardRoleId||String(target.staffId||"").toLowerCase()!==String(body.staffId).toLowerCase())return json({error:"Protected ROOTS assignments require a linked non-DEV USER and STAFF identity."},409);
    const profiles=bank.staff?.profiles&&typeof bank.staff.profiles==="object"?Object.values(bank.staff.profiles):[];
    const linkedProfile:any=profiles.find((profile:any)=>profile&&String(profile.staffId||"").toLowerCase()===String(target.staffId).toLowerCase()&&String(profile.linkedUserId||"").toLowerCase()===String(target.userId).toLowerCase());
    if(!linkedProfile||String(linkedProfile.status||"").toUpperCase()!=="ACTIVE")return json({error:"The USER and STAFF identities must have an active reciprocal link."},409);
