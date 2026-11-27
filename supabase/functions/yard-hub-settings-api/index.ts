@@ -147,7 +147,7 @@ Deno.serve(async (req: Request) => {
     const [{ data: yardRoles, error: yardRolesError }, { data: roleAssignments, error: roleAssignmentsError }, { data: rolePermissions, error: rolePermissionsError }] = await Promise.all([
       db.from("yard_roles").select("id,name,description,status").eq("status", "ACTIVE").order("name"),
       db.from("yard_role_assignments").select("user_id,staff_id,yard_role_id,status,version,verified_at"),
-      db.from("yard_role_department_permissions").select("yard_role_id,department,access_level"),
+      db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage"),
     ]);
     if (yardRolesError || roleAssignmentsError || rolePermissionsError) return json({ error: "Canonical YARD ROLE registry is unavailable." }, 503);
     const assignableYardRoles = (yardRoles || []).filter((role: any) => {
@@ -196,7 +196,7 @@ Deno.serve(async (req: Request) => {
     if (target.provisioning?.stage !== "YARD_ROLE_PENDING") return json({ error: "USER is not awaiting canonical YARD ROLE assignment." }, 409);
     if (target.provisioning.requestedYardRoleId !== yardRoleId) return json({ error: "Selected YARD ROLE does not match the provisioned request." }, 409);
     const { data: role, error: roleError } = await db.from("yard_roles").select("id,name,description,status").eq("id", yardRoleId).eq("status", "ACTIVE").maybeSingle();
-    const { data: permissions, error: permissionsError } = await db.from("yard_role_department_permissions").select("yard_role_id,department,access_level").eq("yard_role_id", yardRoleId);
+    const { data: permissions, error: permissionsError } = await db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage").eq("yard_role_id", yardRoleId);
     if (roleError || permissionsError || !role) return json({ error: "Selected canonical YARD ROLE is unavailable." }, 409);
     try { resolveYardRolePermissions(role, permissions || []); }
     catch (error) { return json({ error: error instanceof Error ? error.message : "YARD ROLE permission matrix is invalid." }, 409); }
