@@ -87,7 +87,8 @@ assert.ok(src.includes('const isRootAuthority=["DEV","DEV1","ADMIN"].includes(ro
   'DEV1 and ADMIN receive protected ROOTS status independent of legacy tiers');
 assert.ok(src.includes('const isDevRoot=rootsAuthority==="DEV";'), 'DEV authority cannot be inferred from username or OWNER tier');
 assert.ok(src.includes('yardRolePermissions:u.yardRolePermissions||null'), 'safe current-user contract can carry canonical rights');
-assert.ok(src.includes('yardRolePermissions:resolvedYardRole?.departments?.Management||null'), 'DOWNTIME receives its Management department role rights');
+assert.ok(src.includes('yardRolePermissions:resolvedYardRole?.departments||null'), 'Central Bank returns the complete five-department permission matrix to the client');
+assert.ok(src.includes('const management=resolvedYardRole.departments.Management'), 'DOWNTIME enforcement separately resolves the Management department');
 assert.ok(src.includes('managementRights?.enter===true')&&src.includes('managementRights?.edit===true')&&src.includes('managementRights?.manage===true'),
   'Management Enter, Edit and Manage are independently evaluated');
 assert.ok(src.includes('Management ENTER permission is required to add operational records.')&&src.includes('Management EDIT permission is required to change operational records.')&&src.includes('Management MANAGE permission is required to remove operational records.'),
