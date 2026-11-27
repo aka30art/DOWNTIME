@@ -15,6 +15,8 @@ assert.equal(resolveRootsAuthority(dev1,devAssignment),"DEV1");
 assert.equal(resolveRootsAuthority(admin,adminAssignment),"ADMIN");
 assert.equal(resolveRootsAuthority({...dev1,staffId:"33333333-3333-4333-8333-333333333333"},devAssignment),null,"mismatched STAFF assignment cannot grant ROOTS");
 assert.equal(resolveRootsAuthority({...dev1,userId:"bad"},devAssignment),null,"invalid immutable identity cannot grant ROOTS");
+assert.equal(resolveRootsAuthority({...dev1,enabled:false},devAssignment),null,"disabled USER cannot retain ROOTS authority");
+assert.equal(resolveRootsAuthority({...dev1,status:"PENDING"},devAssignment),null,"inactive USER cannot retain ROOTS authority");
 assert.deepEqual(rootsCapabilities("DEV"),{canBrowseRoots:true,canAssignDev1:true,canAssignAdmin:true,hasAutomaticDepartmentManage:true});
 assert.deepEqual(rootsCapabilities("DEV1"),{canBrowseRoots:false,canAssignDev1:false,canAssignAdmin:true,hasAutomaticDepartmentManage:true});
 assert.deepEqual(rootsCapabilities("ADMIN"),{canBrowseRoots:false,canAssignDev1:false,canAssignAdmin:false,hasAutomaticDepartmentManage:true});
