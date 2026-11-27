@@ -46,6 +46,7 @@ assert.match(api,/listGithubStaffOriginals/);
 assert.match(api,/remainingGitHub/);
 assert.match(api,/downtime_identity_reset_preserve_dev/);
 assert.match(api,/p_actor_session_hash:tokenHash/);
+assert.match(api,/resetCompleted:!resetStatusError/);
 assert.doesNotMatch(api,/downtime-evidence|downtime-pdfs|repair-maintenance-evidence|repair-maintenance-reports/);
 
 const rootsState = yardApi.slice(yardApi.indexOf('if (action === "roots-state")'),yardApi.indexOf('if (action === "roots-manage")'));
@@ -67,6 +68,9 @@ assert.match(settings,/executeIdentityReset/);
 assert.match(settings,/KEEP DEV - CLEAR USERS STAFF PHOTOS/);
 assert.match(settings,/window\.DowntimeCentral\.resetIdentities\(\{confirmation,currentDevPin\}\)/);
 assert.match(settings,/staffOriginalsDeleted/);
+assert.match(settings,/identityDiagnostics\(\)/);
+assert.match(settings,/resetCompleted===true/);
+assert.match(settings,/resetStatusAvailable===false/);
 assert.match(settings,/window\.location\.reload\(\)/);
 assert.doesNotMatch(settings,/DowntimeCentral\.logout\(\)/);
 assert.match(settings,/roleDefinitions\|\|\[\]/);
