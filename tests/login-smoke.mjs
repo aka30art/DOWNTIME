@@ -498,7 +498,18 @@ async function ensureMainMenu(page){
 async function ensureNavigationMenuOpen(page){
  await ensureMainMenu(page);
  const menu=page.locator('.nav-menu');
+ const yardHub=page.locator('#yardHub');
+ const shell=page.locator('.shell');
+ if(!await shell.isVisible()||await menu.evaluate(node=>node.hidden)){
+  if(!await yardHub.isVisible()){
+   await page.locator('#backToYardHub').click();
+   await yardHub.waitFor({state:'visible',timeout:5000});
+  }
+  await page.locator('#launchDowntimeBtn').click();
+  await page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:5000});
+ }
  if(!await menu.evaluate(node=>node.open))await menu.locator(':scope > summary').click();
+ await page.locator('.nav[data-view]').first().waitFor({state:'visible',timeout:3000});
 }
 
 async function openStaffSettings(page){
