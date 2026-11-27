@@ -275,7 +275,9 @@
     const isNew=!existing;
     const pendingProvisioning=existing?.provisioningState==='YARD_ROLE_PENDING';
     const canonicalIdentity=Boolean(existing?.yardRoleId);
-    const requestedYardRoleId=String($('yardHubUserYardRole')?.value||existing?.requestedYardRoleId||'');
+    const canonicalLinkedIdentity=Boolean(existing?.userId&&existing?.staffId&&!pendingProvisioning);
+    const requestedYardRoleId=String($('yardHubUserYardRole')?.value||existing?.requestedYardRoleId||existing?.yardRoleId||'');
+    const yardRoleChanged=canonicalLinkedIdentity&&requestedYardRoleId!==String(existing?.yardRoleId||'');
     const downtimeTier=existing?.legacyTier??null;
     const centralChanges=!pendingProvisioning&&(!existing||
       displayName!==(existing.displayName||existing.username)||
@@ -288,7 +290,7 @@
     if(!displayName||displayName.length>80){setStatus('Enter a display name of up to 80 characters.','error');return}
     if(pin&&(!/^[0-9]{4,8}$/.test(pin))){setStatus('PIN must contain 4–8 digits.','error');return}
     if(!editingUsername&&!pin){setStatus('A PIN is required for a new user.','error');return}
-    if(isNew||pendingProvisioning){
+    if(isNew||pendingProvisioning||yardRoleChanged){
       if(!requestedYardRoleId||!(state?.yardRoles||[]).some(role=>role.id===requestedYardRoleId)){setStatus('Select an active canonical YARD ROLE.','error');return}
     }else if(!canonicalIdentity&&!allRoles().includes(hubTier)){setStatus('Select a valid legacy YARD HUB tier.','error');return}
     if(!isRootAdmin()&&!editableByAdmin.includes(hubTier)&&(hubTier!==existing?.hubTier)){
@@ -330,7 +332,7 @@
           const activated=await activate(provisionedUserId);
           state.centralVersion=Number(activated.version||state.centralVersion+1);
         }
-      }else if(!canonicalIdentity){
+      }else if(canonicalLinkedIdentity&&yardRoleChanged){\n        await callApi('assign-user-role',{userId:existing.userId,yardRoleId:requestedYardRoleId,assignmentVersion:existing.yardRoleVersion});\n      }else if(!canonicalIdentity){
         const assigned=await callApi('save-user-tier',{username,tier:hubTier,version:state.permissionVersion});
         state.permissionVersion=Number(assigned.version||state.permissionVersion+1);
       }
