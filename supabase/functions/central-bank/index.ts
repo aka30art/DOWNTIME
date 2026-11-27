@@ -278,6 +278,9 @@ Deno.serve(async(req)=>{
  if(action==="photo-evidence-context"){
    return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username,userId:currentUser.userId||null,staffId:currentUser.staffId||null},permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canDeleteRecords:priv.canDeleteRecords===true}});
  }
+ if(action==="reports-context"){
+   return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username,userId:currentUser.userId||null,staffId:currentUser.staffId||null},permissions:{canViewReports:priv.canViewReports===true,canExportReports:priv.canExportReports===true,canDeleteRecords:priv.canDeleteRecords===true}});
+ }
 if(action==="roots-state"){
    if(rootsAuthority!=="DEV")return json({error:"ROOTS directory is restricted to immutable DEV."},403);
    if(rootsLookupError)return json({error:"Protected ROOTS registry is unavailable."},503);
