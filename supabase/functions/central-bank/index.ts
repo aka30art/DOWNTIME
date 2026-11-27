@@ -200,7 +200,6 @@ Deno.serve(async(req)=>{
      canViewDashboards:downtime.view,
      canViewReports:downtime.view,
      canControlPlantPower:false,
-     canManageUsers:false,canViewUsers:false,
      canManageStaff:staffManagement.manage===true,
      canEnterStaff:staffManagement.enter===true,
      canEditStaff:staffManagement.edit===true,
