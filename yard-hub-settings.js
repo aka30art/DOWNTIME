@@ -12,14 +12,16 @@
   const staffDepartmentRules={SCPL:{roles:['Main Operator','Picking Line Crew']},'R&M':{role:'Mechanic'},Management:{role:'Manager'},SCFL:{role:'Floor Crew'},Traffic:{role:'Gateman'}};
   const allRoles=()=>[...roles.filter(role=>!(workingPayload?.retiredTiers||[]).includes(role)),...(Array.isArray(workingPayload?.customTiers)?workingPayload.customTiers:[])];
   let state=null,workingPayload=null,editingUsername=null,saving=false,myHubTier=null,myCanManageSettings=false,accessRefresh=null;
-  let editingYardRoleId=null,editingYardRoleVersion=0,workingYardRolePermissions=[],yardRoleOriginal=null;
+  let editingYardRoleId=null,editingYardRoleVersion=0,workingYardRolePermissions=[],yardRoleOriginal=null,myRootsAuthority=null,rootsState=null;
 
   function currentSession(){return window.DowntimeCentral?.session||null}
   function currentUser(){return currentSession()?.user||null}
   function legacyTier(){return String(currentUser()?.tier||'USER').toUpperCase()}
-  function rootDev(){return String(currentUser()?.username||'').trim().toUpperCase()==='DEV'&&legacyTier()==='OWNER'}
+  function rootAuthority(){return state?.rootsAuthority||myRootsAuthority||null}
+  function rootDev(){return rootAuthority()==='DEV'}
+  function isProtectedRoot(){return ['DEV','DEV1','ADMIN'].includes(rootAuthority())}
   function isRootAdmin(){return rootDev()||myHubTier==='DEVACC'}
-  function isSettingsAdmin(){return rootDev()||myHubTier==='DEVACC'||myHubTier==='ADMIN'}
+  function isSettingsAdmin(){return isProtectedRoot()}
   function syncStaffRoleOptions(){
     const department=$('yardHubStaffDepartment')?.value||'SCPL',select=$('yardHubStaffRole');
     if(!select)return;
@@ -73,6 +75,7 @@
     try{
       const result=await callApi('my-access');
       myHubTier=String(result.user?.hubTier||'USER').toUpperCase();
+      myRootsAuthority=result.rootsAuthority||null;
       myCanManageSettings=result.canManageSettings===true;
       if(button)button.hidden=!myCanManageSettings;
       return result;
@@ -96,13 +99,15 @@
     const result=await callApi('settings-state');
     state=result;
     myHubTier=String(result.user?.hubTier||myHubTier||'USER').toUpperCase();
-    myCanManageSettings=true;
+    myRootsAuthority=result.rootsAuthority||myRootsAuthority||null;
+    myCanManageSettings=result.canManageYardRoles===true||result.canManageRoots===true;
     workingPayload=JSON.parse(JSON.stringify(result.tierPermissions));
     renderUsers();renderTierCards();renderYardRoleCards();updateTierSaveState();
     const addUser=$('yardHubUserAdd');
     if(addUser)addUser.disabled=saving||result.canManageCentralUsers!==true||!rootDev()||!(result.yardRoles||[]).length;
-    const addRole=$('yardHubRoleAdd');if(addRole)addRole.hidden=!rootDev();
-    const roleHome=$('yardHubSettingsRoles');if(roleHome)roleHome.hidden=!rootDev();
+    const addRole=$('yardHubRoleAdd');if(addRole)addRole.hidden!==undefined&&(addRole.hidden=!isProtectedRoot());
+    const roleHome=$('yardHubSettingsRoles');if(roleHome)roleHome.hidden=!isProtectedRoot();
+    const rootsHome=$('yardHubSettingsRoots');if(rootsHome)rootsHome.hidden=!rootDev();
     const addTier=$('yardHubCustomTierAdd');
     if(addTier)addTier.hidden=!isRootAdmin();
     return result;
@@ -123,27 +128,34 @@
   function showSettingsHome(){
     $('yardHubSettingsHome').hidden=false;
     $('yardHubUsersView').hidden=true;
+    $('yardHubRolesView').hidden=true;
+    $('yardHubRootsView').hidden=true;
     $('yardHubTiersView').hidden=true;
     $('yardHubUserModal').hidden=true;
+    $('yardHubRoleModal').hidden=true;
     $('yardHubSettingsTitle').textContent='YARD HUB SETTINGS';
     setStatus('');
   }
   function openSettingsView(view){
     $('yardHubSettingsHome').hidden=true;
     $('yardHubUsersView').hidden=view!=='users';
+    $('yardHubRolesView').hidden=view!=='roles';
+    $('yardHubRootsView').hidden=view!=='roots';
     $('yardHubTiersView').hidden=view!=='tiers';
     $('yardHubUserModal').hidden=true;
-    $('yardHubSettingsTitle').textContent=view==='users'?'USERS':'TIERS';
+    $('yardHubRoleModal').hidden=true;
+    $('yardHubSettingsTitle').textContent=view==='users'?'USERS':view==='roles'?'YARD ROLES':view==='roots'?'PROTECTED ROOTS':'TIERS';
     setStatus('');
     if(view==='users')renderUsers();
     if(view==='tiers')renderTierCards();
     if(view==='roles')renderYardRoleCards();
+    if(view==='roots')loadRootsState().catch(error=>setStatus(error.message||'Unable to load ROOTS directory.','error'));
   }
   async function openSettings(){
     setStatus('VERIFYING SETTINGS ACCESS…');
     try{
       const access=await configureButton();
-      if(!access?.canManageSettings||!isSettingsAdmin())throw new Error('YARD HUB SETTINGS is restricted to DEV, DEVACC and ADMIN.');
+      if(!access?.canManageSettings||!isSettingsAdmin())throw new Error('YARD HUB Access and Rights is restricted to protected ROOTS identities.');
       await loadState();
       setHomeVisible(true);showSettingsHome();setStatus('');
     }catch(error){
@@ -167,7 +179,7 @@
     return node;
   }
   function userIsProtected(user){
-    return String(user.username||'').toUpperCase()==='DEV'||user.hubTier==='OWNER'||user.hubTier==='DEVACC'||user.hubTier==='ADMIN';
+    return String(user.username||'').toUpperCase()==='DEV'||Boolean(user.rootsClass);
   }
   function renderUsers(){
     const host=$('yardHubUsersList');if(!host||!state)return;
@@ -186,7 +198,7 @@
       meta.appendChild(element('span','yard-hub-legacy-tag','DOWNTIME · '+(user.legacyTier||'NO LEGACY TIER')));
       meta.appendChild(element('span',user.provisioningState==='YARD_ROLE_PENDING'?'yard-hub-status off':user.enabled===false?'yard-hub-status off':'yard-hub-status',user.provisioningState==='YARD_ROLE_PENDING'?'PENDING SETUP':user.enabled===false?'DISABLED':'ACTIVE'));
       const actions=element('div','yard-hub-user-actions');
-      const protectedUser=userIsProtected(user)&&!isRootAdmin();
+      const protectedUser=userIsProtected(user)&&!rootDev();
       const isSelf=String(user.username).toLowerCase()===me;
       const edit=element('button','yard-hub-small-button','EDIT');
       edit.type='button';edit.disabled=saving||isSelf||protectedUser;
@@ -197,7 +209,25 @@
       status.type='button';status.disabled=saving||state.canManageCentralUsers!==true||isSelf||protectedUser||(String(user.username).toUpperCase()==='DEV');
       status.addEventListener('click',()=>setUserEnabled(user,user.enabled===false));
       actions.appendChild(status);
-      row.append(identity,meta,actions);host.appendChild(row);
+      row.append(identity,meta,actions);
+      if(isProtectedRoot()&&user.userId&&user.staffId&&!user.rootsClass&&user.enabled!==false&&user.provisioningState!=='YARD_ROLE_PENDING'){
+        const assign=element('div','yard-hub-user-role-assignment');
+        const select=document.createElement('select');select.setAttribute('aria-label','YARD ROLE for '+user.username);
+        (state.yardRoles||[]).forEach(role=>{const option=element('option','',role.name);option.value=role.id;select.appendChild(option)});
+        select.value=(state.yardRoles||[]).some(role=>role.id===user.yardRoleId)?user.yardRoleId:(state.yardRoles?.[0]?.id||'');
+        select.disabled=saving||!(state.yardRoles||[]).length;
+        const assignButton=element('button','yard-hub-small-button',user.yardRoleId?'ASSIGN / CHANGE ROLE':'ASSIGN YARD ROLE');
+        assignButton.type='button';assignButton.disabled=saving||!select.value;
+        assignButton.addEventListener('click',async()=>{
+          if(!select.value)return;
+          setBusy(true);setStatus('ASSIGNING YARD ROLE…');
+          try{await callApi('assign-user-role',{userId:user.userId,yardRoleId:select.value,assignmentVersion:Number(user.yardRoleVersion||0)||undefined});await loadState();setStatus('YARD ROLE ASSIGNED.','ok')}
+          catch(error){setStatus(error.message||'Unable to assign YARD ROLE.','error')}
+          finally{setBusy(false)}
+        });
+        assign.append(select,assignButton);row.appendChild(assign);
+      }
+      host.appendChild(row);
     });
   }
   function allowedHubTiers(existingTier,username){
@@ -386,6 +416,62 @@
     }catch(error){setStatus(error.message||'Unable to update account status.','error')}
     finally{setBusy(false)}
   }
+  async function loadRootsState(){
+    if(!rootDev())throw new Error('The protected ROOTS directory is restricted to DEV.');
+    const result=await callApi('roots-state');rootsState=result;
+    const select=$('yardHubRootUser'),previous=select.value;
+    select.replaceChildren();
+    const placeholder=element('option','','SELECT CANONICAL USER');placeholder.value='';select.appendChild(placeholder);
+    (result.eligibleUsers||[]).forEach(user=>{
+      const option=element('option','',user.displayName+' · '+user.username);option.value=user.userId+'|'+user.staffId;select.appendChild(option);
+    });
+    if([...select.options].some(option=>option.value===previous))select.value=previous;
+    const host=$('yardHubRootAssignments');host.replaceChildren();
+    const assignments=Array.isArray(result.assignments)?result.assignments:[];
+    if(!assignments.length){host.appendChild(element('p','yard-hub-empty','No DEV1 or ADMIN identities are assigned.'));return result}
+    assignments.forEach(item=>{
+      const card=element('article','yard-hub-root-card');
+      const identity=element('div','yard-hub-root-identity');
+      identity.append(element('strong','',item.displayName),element('small','',item.username+' · '+item.rootsClass+' · '+item.status));
+      card.appendChild(identity);
+      const actions=element('div','yard-hub-root-actions');
+      const classification=document.createElement('select');classification.setAttribute('aria-label','ROOTS classification for '+item.username);
+      ['DEV1','ADMIN'].forEach(value=>{const option=element('option','',value);option.value=value;classification.appendChild(option)});
+      classification.value=item.rootsClass;
+      const active=item.status==='ACTIVE';
+      if(active){
+        const change=element('button','yard-hub-small-button','RECLASSIFY');change.type='button';
+        change.disabled=saving||classification.value===item.rootsClass;
+        classification.addEventListener('change',()=>{change.disabled=saving||classification.value===item.rootsClass});
+        change.addEventListener('click',()=>manageRoot(item,'RECLASSIFY',classification.value));
+        const revoke=element('button','yard-hub-small-button danger','REVOKE');revoke.type='button';revoke.disabled=saving;
+        revoke.addEventListener('click',()=>{if(window.confirm('Revoke protected ROOTS authority for '+item.username+'?'))manageRoot(item,'REVOKE',item.rootsClass)});
+        actions.append(classification,change,revoke);
+      }else{
+        const restore=element('button','yard-hub-small-button','RESTORE');restore.type='button';restore.disabled=saving;
+        restore.addEventListener('click',()=>manageRoot(item,'ASSIGN',classification.value));
+        actions.append(classification,restore);
+      }
+      card.append(identity,actions);host.appendChild(card);
+    });
+    return result;
+  }
+  async function assignSelectedRoot(){
+    const value=$('yardHubRootUser')?.value||'';
+    const [userId,staffId]=value.split('|');
+    if(!userId||!staffId){setStatus('Select an active canonical USER/STAFF identity.','error');return}
+    await manageRoot({userId,staffId,version:null},'ASSIGN',$('yardHubRootClass').value);
+  }
+  async function manageRoot(item,lifecycleAction,rootsClass){
+    if(!rootDev()||saving)return;
+    setBusy(true);setStatus('UPDATING PROTECTED ROOTS…');
+    try{
+      await callApi('roots-manage',{userId:item.userId,staffId:item.staffId,lifecycleAction,rootsClass,version:item.version||undefined});
+      await loadRootsState();await loadState();
+      setStatus('PROTECTED ROOTS ASSIGNMENT UPDATED.','ok');
+    }catch(error){setStatus(error.message||'ROOTS operation failed.','error')}
+    finally{setBusy(false)}
+  }
   function renderYardRoleCards(){
     const host=$('yardHubRoleCards');if(!host||!state)return;
     host.replaceChildren();
@@ -403,7 +489,7 @@
       const summary=permissions.map(row=>row.department+': '+yardPermissionFields.filter(field=>row[field.key]===true).map(field=>field.label).join(', ')).join(' · ');
       card.appendChild(element('p','',summary||'No permissions configured'));
       const actions=element('div','yard-hub-role-actions');
-      const edit=element('button','yard-hub-secondary','EDIT ROLE');edit.type='button';edit.disabled=!rootDev()||saving;
+      const edit=element('button','yard-hub-secondary','EDIT ROLE');edit.type='button';edit.disabled=!isProtectedRoot()||saving;
       edit.addEventListener('click',()=>openYardRoleModal(role));
       actions.appendChild(edit);card.appendChild(actions);host.appendChild(card);
     });
@@ -428,7 +514,7 @@
     });
   }
   function openYardRoleModal(role=null){
-    if(!rootDev()||saving)return;
+    if(!isProtectedRoot()||saving)return;
     editingYardRoleId=role?.id||null;editingYardRoleVersion=Number(role?.version||0);
     $('yardHubRoleName').value=role?.name||'';
     $('yardHubRoleDescription').value=role?.description||'';
@@ -452,7 +538,7 @@
   }
   async function saveYardRole(event){
     event?.preventDefault();
-    if(saving||!rootDev())return;
+    if(saving||!isProtectedRoot())return;
     const name=String($('yardHubRoleName').value||'').trim(),description=String($('yardHubRoleDescription').value||'').trim(),status=String($('yardHubRoleStatus').value||'DRAFT');
     if(!name||name.length>80||description.length>500){setStatus('Enter a valid YARD ROLE name and description.','error');return}
     if(workingYardRolePermissions.length!==5||yardDepartments.some(department=>!workingYardRolePermissions.some(row=>row.department===department))){setStatus('All five departments require a permission record.','error');return}
@@ -549,6 +635,8 @@
     $('yardHubSettingsUsers')?.addEventListener('click',()=>openSettingsView('users'));
     $('yardHubSettingsTiers')?.addEventListener('click',()=>openSettingsView('tiers'));
     $('yardHubSettingsRoles')?.addEventListener('click',()=>openSettingsView('roles'));
+    $('yardHubSettingsRoots')?.addEventListener('click',()=>openSettingsView('roots'));
+    $('yardHubRootAssign')?.addEventListener('click',assignSelectedRoot);
     $('yardHubRoleAdd')?.addEventListener('click',()=>openYardRoleModal());
     $('yardHubRoleCancel')?.addEventListener('click',closeYardRoleModal);
     $('yardHubRoleForm')?.addEventListener('submit',saveYardRole);
