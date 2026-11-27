@@ -63,11 +63,11 @@ Deno.serve(async (req: Request) => {
     try{resolvedYardRole=resolveYardRolePermissions(role,rolePermissions||[])}catch{return json({error:"Canonical YARD ROLE permission profile is invalid."},503)}
   }
   const canTrafficView=!!resolvedYardRole&&canYardRolePerform(resolvedYardRole,"Traffic","VIEW");
-  const canTrafficInput=!!resolvedYardRole&&(canYardRolePerform(resolvedYardRole,"Traffic","ADD")||canYardRolePerform(resolvedYardRole,"Traffic","EDIT"));
+  const canTrafficInput=!!resolvedYardRole&&canYardRolePerform(resolvedYardRole,"Traffic","ADD");
   const canTrafficEdit=!!resolvedYardRole&&canYardRolePerform(resolvedYardRole,"Traffic","EDIT");
   const canTrafficManage=!!resolvedYardRole&&canYardRolePerform(resolvedYardRole,"Traffic","DELETE");
   const legacyCanAccess=bank.payload.tiers?.[legacyTier]?.canAccessYardHub!==false||String(user.username).toUpperCase()==="DEV"&&legacyTier==="OWNER";
-  const canAccess=isProtectedRoot||(resolvedYardRole?canTrafficView:legacyCanAccess);
+  const canAccess=isProtectedRoot||(resolvedYardRole?(canTrafficView||canTrafficInput||canTrafficEdit||canTrafficManage):legacyCanAccess);
   if(!canAccess)return json({error:"YARD HUB access is disabled for this account."},403);
   const actor=clean(user.displayName||user.username,80), action=String(body.action||"");
   const canManageGateman=isProtectedRoot||(resolvedYardRole?canTrafficManage:bank.payload.tiers?.[legacyTier]?.canManageAssignments===true);
@@ -76,7 +76,7 @@ Deno.serve(async (req: Request) => {
   const canEditTraffic=isProtectedRoot||(resolvedYardRole?canTrafficEdit:true);
   if(resolvedYardRole){
     if(["customer-arrival","customer-save","vehicle-save","arrival"].includes(action)&&!canInputTraffic)return json({error:"Traffic INPUT permission is required."},403);
-    if(["departure","visit-update"].includes(action)&&!canEditTraffic)return json({error:"Traffic INPUT or MANAGE permission is required."},403);
+    if(["departure","visit-update"].includes(action)&&!canEditTraffic)return json({error:"Traffic EDIT permission is required."},403);
     if(["gateman-save","gateman-lock","report-save","customer-update","customer-archive","waste-type-create","waste-type-update","visit-delete"].includes(action)&&!canManageGateman)return json({error:"Traffic MANAGE permission is required."},403);
   }
   // Gateman duty is assigned to operational STAFF, never to a USER account.
@@ -116,7 +116,7 @@ Deno.serve(async (req: Request) => {
       customerIds.length?db.from("gatelog_customers").select("id,customer_name").in("id",customerIds):Promise.resolve({data:[],error:null})
     ]);
     if(visitWaste.error||customerRows.error)return json({error:"GATELOG relationships could not be loaded."},503);
-    return json({customers:customers.data||[],vehicles:vehicles.data||[],customerStats:Object.fromEntries((customerStats.data||[]).map((row:any)=>[row.customer_id,{totalVisits:Number(row.total_visits)||0,todayVisits:Number(row.today_visits)||0}])),arrivalsToday:(todayVisits.data||[]).length,departuresToday:(todayVisits.data||[]).filter((v:any)=>v.status==="DEPARTED").length,activeVisits:visits.map((v:any)=>({...v,customer_name:(customerRows.data||[]).find((c:any)=>c.id===v.customer_id)?.customer_name||"Unknown",waste_types:(visitWaste.data||[]).filter((w:any)=>w.visit_id===v.id).map((w:any)=>w.gatelog_waste_types?.label).filter(Boolean)})),wasteTypes:waste.data||[],statistics:{overallVisits:Number(overallStats.data?.[0]?.total_visits)||0,mostCommonWasteType:overallStats.data?.[0]?.most_common_waste_type||"—",averageMinutes:overallStats.data?.[0]?.average_minutes==null?null:Number(overallStats.data[0].average_minutes),completedVisits:Number(overallStats.data?.[0]?.completed_visits)||0},periodStatistics:Object.fromEntries((periodStats.data||[]).filter((row:any)=>["daily","weekly","monthly"].includes(row.period_key)).map((row:any)=>[row.period_key,{totalVisits:Number(row.total_visits)||0,mostCommonWasteType:row.most_common_waste_type||"—"}])),dailyGatemen,dayVisitCounts,gatemen,canManageGateman,canExportReports,register:(registerRows.data||[]).map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)}))});
+    return json({customers:customers.data||[],vehicles:vehicles.data||[],customerStats:canTrafficView?Object.fromEntries((customerStats.data||[]).map((row:any)=>[row.customer_id,{totalVisits:Number(row.total_visits)||0,todayVisits:Number(row.today_visits)||0}])):{},arrivalsToday:canTrafficView?(todayVisits.data||[]).length:0,departuresToday:canTrafficView?(todayVisits.data||[]).filter((v:any)=>v.status==="DEPARTED").length:0,activeVisits:canTrafficView?visits.map((v:any)=>({...v,customer_name:(customerRows.data||[]).find((c:any)=>c.id===v.customer_id)?.customer_name||"Unknown",waste_types:(visitWaste.data||[]).filter((w:any)=>w.visit_id===v.id).map((w:any)=>w.gatelog_waste_types?.label).filter(Boolean)})):[],wasteTypes:waste.data||[],statistics:canTrafficView?{overallVisits:Number(overallStats.data?.[0]?.total_visits)||0,mostCommonWasteType:overallStats.data?.[0]?.most_common_waste_type||"—",averageMinutes:overallStats.data?.[0]?.average_minutes==null?null:Number(overallStats.data[0].average_minutes),completedVisits:Number(overallStats.data?.[0]?.completed_visits)||0}:{overallVisits:0,mostCommonWasteType:"—",averageMinutes:null,completedVisits:0},periodStatistics:canTrafficView?Object.fromEntries((periodStats.data||[]).filter((row:any)=>["daily","weekly","monthly"].includes(row.period_key)).map((row:any)=>[row.period_key,{totalVisits:Number(row.total_visits)||0,mostCommonWasteType:row.most_common_waste_type||"—"}])):{},dailyGatemen:canManageGateman?dailyGatemen:[],dayVisitCounts:canTrafficView?dayVisitCounts:{},gatemen:(canManageGateman||canTrafficView)?gatemen:[],canManageGateman,canExportReports,register:canTrafficView?(registerRows.data||[]).map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)})):[]});
   }
   if(action==="gateman-save"){
     if(!canManageGateman)return json({error:"You do not have permission to manage daily Gateman assignments."},403);
@@ -142,6 +142,7 @@ Deno.serve(async (req: Request) => {
     return json({assignment});
   }
   if(action==="day-register"){
+    if(resolvedYardRole&&!canTrafficView)return json({error:"Traffic VIEW permission is required to inspect the day register."},403);
     const dutyDate=clean(body.dutyDate,10);
     if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate))return json({error:"Select a valid date."},400);
     const rows:any[]=[];for(let offset=0;offset<100000;offset+=1000){const page=await db.from("gatelog_visits").select("id,customer_id,vehicle_registration_snapshot,visit_date,time_in,time_out,status,created_by,departed_by,gatelog_customers(customer_name),gatelog_visit_waste_types(gatelog_waste_types(label))").eq("visit_date",dutyDate).order("time_in",{ascending:false}).range(offset,offset+999);if(page.error)return fail(page.error);rows.push(...(page.data||[]));if((page.data||[]).length<1000)break;}
