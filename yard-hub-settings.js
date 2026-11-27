@@ -35,8 +35,9 @@
     select.replaceChildren();
     const roles=Array.isArray(state?.yardRoles)?state.yardRoles:[];
     if(!roles.length){const option=element('option','','NO ACTIVE YARD ROLES CONFIGURED');option.value='';option.disabled=true;select.appendChild(option);select.value='';return false}
+    const placeholder=element('option','','SELECT A YARD ROLE');placeholder.value='';placeholder.disabled=true;select.appendChild(placeholder);
     roles.forEach(role=>{const option=element('option','',role.name);option.value=role.id;select.appendChild(option)});
-    if(roles.some(role=>role.id===selectedId))select.value=selectedId;
+    select.value=roles.some(role=>role.id===selectedId)?selectedId:'';
     return true;
   }
   function setStatus(message,type=''){
@@ -280,8 +281,8 @@
     const existing=editingUsername?state.users.find(user=>String(user.username).toLowerCase()===editingUsername.toLowerCase()):null;
     const isNew=!existing;
     const pendingProvisioning=existing?.provisioningState==='YARD_ROLE_PENDING';
-    const canonicalIdentity=Boolean(existing?.yardRoleId);
-    const canonicalLinkedIdentity=Boolean(existing?.userId&&existing?.staffId&&!pendingProvisioning);
+    const canonicalIdentity=Boolean(existing?.userId&&existing?.staffId);
+    const canonicalLinkedIdentity=canonicalIdentity&&!pendingProvisioning;
     const requestedYardRoleId=String($('yardHubUserYardRole')?.value||existing?.requestedYardRoleId||existing?.yardRoleId||'');
     const yardRoleChanged=canonicalLinkedIdentity&&requestedYardRoleId!==String(existing?.yardRoleId||'');
     const downtimeTier=existing?.legacyTier??null;
