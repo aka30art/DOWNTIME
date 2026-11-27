@@ -76,7 +76,7 @@ assert.ok(src.includes('action:"central-config-restore-draft"'),'restoring histo
 
 assert.ok(src.includes('const isCentralAdmin=isDevRoot;')&&src.includes('const isCentralBankAccess=isDevRoot;'),
   'the immutable DEV USER is the only central control-plane administrator');
-assert.ok(src.includes('if(action==="user-save"){\n   if(!isDevRoot)'), 'only immutable DEV may maintain existing USER identities');
+assert.ok(src.includes('if(action==="user-save"){\n   if(!priv.canManageUsers)'), 'Staff Management MANAGE may maintain ordinary canonical USER identities');
 assert.ok(src.includes('if(action==="user-delete"){\n   if(!isDevRoot)'), 'only immutable DEV may perform USER lifecycle operations');
 assert.ok(src.includes('if(action==="staff-save"){\n   if(!priv.canManageStaff)'), 'only Management MANAGE may maintain STAFF identities through the Staff module; protected ROOTS receive that capability through the separate ROOTS overlay');
 assert.ok(src.includes('if(action==="tiers-save"){\n   return json({error:"Legacy account-tier permissions are retired. Configure department access through canonical YARD ROLE."},410);'),
@@ -114,12 +114,12 @@ assert.ok(src.includes('if(hasCanonicalIdentity&&!isRootAuthority&&!moduleRights
 assert.ok(src.includes('!priv.canViewDashboards'),'dashboard redaction remains enforced');
 assert.ok(src.includes('if(!priv.canViewReports)delete restrictedData.archive'),'report redaction remains enforced');
 assert.ok(src.includes('Without VIEW, treat omitted records as concealed rather than deleted.'),'users without VIEW cannot overwrite or delete concealed operational history');
-assert.ok(src.includes('if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);'),
-  'only immutable DEV can provision linked USER + STAFF identities');
+assert.ok(src.includes('if(!priv.canManageUsers)return json({error:"Management MANAGE permission or immutable DEV authority is required to provision USER + STAFF identities."},403);'),
+  'Staff Management MANAGE or protected ROOTS may provision ordinary linked USER + STAFF identities');
 assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to immutable DEV."},403);'),
   'whole-bank state is restricted to immutable DEV');
 assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),
   'all global configuration actions share the immutable DEV gate');
 console.log('Central API ROOTS, USER/STAFF lifecycle, Management YARD ROLE and separate record-rights contracts passed (static source checks).');
 
-assert.ok(src.includes('priv.canManageUsers=rootsAuthority==="DEV";priv.canViewUsers=rootsAuthority==="DEV";'),'legacy tier strings cannot grant Central Bank USER directory visibility or mutation');
+assert.ok(src.includes('priv.canManageUsers=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"")||(hasCanonicalIdentity&&resolvedYardRole&&moduleRights["Staff & Management"]?.manage===true);'),'ordinary USER management follows Staff Management MANAGE or protected ROOTS authority, never legacy tier labels');
