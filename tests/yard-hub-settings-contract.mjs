@@ -47,10 +47,10 @@ assert.ok(ui.includes("key:'floor',label:'STAFF MANAGEMENT'"),'STAFF MANAGEMENT 
 assert.match(html,/data-app="check-sheets" type="button" disabled/,'DAILY remains unavailable until its application is released');
 assert.ok(ui.includes("key:'checkSheets',label:'DAILY'"),'DAILY is the label shown in the Hub tier editor');
 assert.match(html,/id="launchDowntimeBtn" data-app="downtime" type="button"/,'DOWNTIME launcher remains present and enabled');
-assert.ok(html.includes('yard-hub-settings.js?v=20261127-3'),'YARD HUB settings client cache is refreshed');
+assert.ok(html.includes('yard-hub-settings.js?v=20261127-5'),'YARD HUB settings client cache is refreshed');
 assert.ok(pagesWorkflow.includes("if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'"),'Pages artifact build runs on PRs for pre-merge validation');
 assert.ok(pagesWorkflow.includes("if: github.ref == 'refs/heads/main'"),'Pages deployment remains restricted to main');
-assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261127-3'),'live deployment smoke test verifies the updated Hub settings asset');
+assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261127-5'),'live deployment smoke test verifies the updated Hub settings asset');
 assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261125-4'),'live deployment smoke test verifies the updated R&M app asset');
 assert.ok(pagesWorkflow.includes('yard-hub-structure.js?v=phase09-1'),'live deployment smoke test verifies the YARD HUB structure runtime');
 assert.ok(pagesWorkflow.includes('repair-maintenance-structure.js?v=phase09-1'),'live deployment smoke test verifies the R&M structure runtime');
