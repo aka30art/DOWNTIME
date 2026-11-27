@@ -24,7 +24,7 @@ assert.ok(html.includes('id="yardHubRolePermissions"'), 'YARD ROLE editor expose
 assert.ok(ui.includes("yardPermissionFields=[{key:'can_view',label:'VIEW'},{key:'can_enter',label:'ENTER'},{key:'can_edit',label:'EDIT'},{key:'can_manage',label:'MANAGE'}]"), 'YARD ROLE editor uses four independent permission checkboxes');
 assert.ok(ui.includes("callApi('yard-role-save'"), 'YARD ROLE definitions are saved through the authenticated server API');
 assert.ok(hubApi.includes('yard_role_save_definition'), 'YARD ROLE definition changes are persisted through the audited service-role RPC');
-assert.ok(hubApi.includes('isRootDev(user, legacyTier) ? (yardRoles || []).map'), 'YARD ROLE catalogue details are returned only to DEV pending ROOTS integration');
+assert.ok(hubApi.includes('roleCatalogue: rootCapabilities.canManageYardRoles ? (yardRoles || []).map'), 'YARD ROLE catalogue details are returned to DEV, DEV1 and protected ADMIN ROOTS identities');
 
 assert.match(html,/\.yard-tile\[hidden\][^{]*\{display:none!important\}/,'the Settings tile must remain hidden until access is verified');
 assert.doesNotMatch(html,/yard-logout yard-hub-settings-trigger/,'Settings must not remain in the authenticated-user header');
