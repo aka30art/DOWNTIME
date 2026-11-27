@@ -131,7 +131,7 @@ Deno.serve(async (req: Request) => {
   const legacyPermissions = bank.tiers?.[legacyTier] || {};
   const hasCanonicalYardRole = Boolean(user.yardRoleId);
   const canAccessYardHub = isProtectedRoot || (!hasCanonicalYardRole && (legacyPermissions.canAccessYardHub !== false || isRootDev(user, legacyTier)));
-  const canManageCentralUsers = rootsAuthority === "DEV" || legacyPermissions.canManageUsers === true || legacyTier === "OWNER" || legacyTier === "DEVACC";
+  const canManageCentralUsers = rootsAuthority === "DEV";
 
   if (action === "my-access") {
     const myPermissions = configRow.payload?.tiers?.[hubTier] || { floor: "NONE", checkSheets: "NONE", repairMaintenance: "NONE" };
