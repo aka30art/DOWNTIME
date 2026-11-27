@@ -186,7 +186,7 @@
       meta.appendChild(element('span','yard-hub-legacy-tag','DOWNTIME · '+(user.legacyTier||'NO LEGACY TIER')));
       meta.appendChild(element('span',user.provisioningState==='YARD_ROLE_PENDING'?'yard-hub-status off':user.enabled===false?'yard-hub-status off':'yard-hub-status',user.provisioningState==='YARD_ROLE_PENDING'?'PENDING SETUP':user.enabled===false?'DISABLED':'ACTIVE'));
       const actions=element('div','yard-hub-user-actions');
-      const protectedUser=userIsProtected(user)&&!isRootAdmin();
+      const protectedUser=userIsProtected(user)&&!rootDev();
       const isSelf=String(user.username).toLowerCase()===me;
       const edit=element('button','yard-hub-small-button','EDIT');
       edit.type='button';edit.disabled=saving||isSelf||protectedUser;
@@ -213,12 +213,12 @@
     if(user&&String(user.username).toLowerCase()===String(currentUser()?.username||'').toLowerCase()){
       setStatus('Use a different administrator account to modify your own user record.','error');return;
     }
-    if(user&&userIsProtected(user)&&!isRootAdmin()){
+    if(user&&userIsProtected(user)&&!rootDev()){
       setStatus('This user has a protected YARD HUB tier.','error');return;
     }
     const canManageCentralUsers=state?.canManageCentralUsers===true;
     const isPending=user?.provisioningState==='YARD_ROLE_PENDING';
-    const isCanonical=Boolean(user?.yardRoleId);
+    const isCanonical=Boolean(user?.userId&&user?.staffId);
     if(!user&&!rootDev()){setStatus('Only immutable DEV may create new USER identities.','error');return}
     if(user&&!canManageCentralUsers){setStatus('Your account cannot manage Central USER records.','error');return}
     editingUsername=user?String(user.username):null;
