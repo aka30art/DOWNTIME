@@ -149,6 +149,7 @@ window.supabase={createClient:()=>({
  const staffPhotoRemovals=[];
  let staffPhotoSequence=1;
  await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/downtime-reports-api',async route=>{
+  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'http://127.0.0.1:4173','access-control-allow-headers':'apikey, content-type, x-downtime-session','access-control-allow-methods':'POST, OPTIONS','vary':'Origin'} });
   const req=route.request().postDataJSON(),action=req.action;
   weeklyReportApiCalls.push({action,reportId:req.reportId||null});
   const ok=(data,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
