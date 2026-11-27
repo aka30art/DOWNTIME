@@ -6,8 +6,11 @@ const migration = await readFile("supabase/migrations/20261126233000_canonical_y
 assert.match(migration, /status text not null default 'DRAFT'/, "new YARD ROLEs start as drafts");
 assert.match(migration, /version integer not null default 1/, "YARD ROLE definitions are versioned");
 assert.match(migration, /department in \('SCPL', 'R&M', 'Management', 'SCFL', 'Traffic'\)/, "schema restricts the five approved operational departments");
-assert.match(migration, /access_level in \('OFF', 'READ_ONLY', 'INPUT', 'MANAGE'\)/, "schema enforces the four approved permission levels");
-assert.match(migration, /v_permission_count <> 5/, "a role cannot be assigned without all five department levels");
+assert.match(migration, /can_view boolean not null default false/, "View is independently configurable");
+assert.match(migration, /can_enter boolean not null default false/, "Enter is independently configurable");
+assert.match(migration, /can_edit boolean not null default false/, "Edit is independently configurable");
+assert.match(migration, /can_manage boolean not null default false/, "Manage is independently configurable");
+assert.match(migration, /v_permission_count <> 5/, "a role cannot be assigned without all five department permission records");
 assert.match(migration, /p_actor_user_id uuid/, "role assignment RPC requires immutable actor identity");
 assert.match(migration, /actor_user_id uuid not null/, "assignment audit persists immutable actor identity");
 assert.match(migration, /before update or delete on public\.yard_role_assignment_audit/, "assignment audit is immutable");
