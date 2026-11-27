@@ -181,7 +181,7 @@ Deno.serve(async(req)=>{
    };
  };
  const hideProtectedRootStaff=(payload:any,staffIds:Set<string>)=>{
-   const profiles=payload.staff?.profiles||payload.appData?.operatorProfiles||{};
+   const profiles={...(payload.appData?.operatorProfiles||{}),...(payload.staff?.profiles||{})};
    const protectedNames=new Set(Object.entries(profiles).filter(([,profile]:any)=>profile?.staffId&&staffIds.has(String(profile.staffId).toLowerCase())).map(([name])=>name));
    payload.staff=payload.staff||{roster:[],profiles:{}};
    payload.staff.roster=(payload.staff.roster||[]).filter((name:string)=>!protectedNames.has(name));
