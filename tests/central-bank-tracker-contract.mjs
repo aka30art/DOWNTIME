@@ -58,6 +58,8 @@ assert.match(reportsApi,/functions\/v1\/central-bank/,'report archive revalidate
 assert.match(reportsApi,/permissions\.canExportReports !== true/,'weekly PDF uploads require Central Bank export permission');
 assert.match(reportsApi,/permissions\.canDeleteRecords !== true/,'weekly PDF deletion requires Central Bank Manage permission');
 assert.match(reportsApi,/createSignedUrl\(report\.storage_path, 60\)/,'report downloads use short-lived signed URLs');
+assert.match(reportsApi,/weekly-report-auto-prune/,'automatic archive retention is audited server-side');
+assert.match(reportsApi,/actorUserId: user\.userId/,'report archive audit events carry immutable actor USER IDs');
 assert.match(reportBoundary,/revoke all on table public\.downtime_reports from anon, authenticated/,'anonymous Supabase Auth cannot read or mutate report metadata');
 assert.match(reportBoundary,/grant select, insert, delete on table public\.downtime_reports to service_role/,'report metadata is service-role only');
 assert.match(reportBoundary,/revoke all on table public\.downtime_shared_state from anon, authenticated/,'anonymous Supabase Auth cannot read or mutate shared tracker state');
