@@ -297,11 +297,12 @@ window.supabase={createClient:()=>({
   const root=username.toUpperCase()==='DEV'&&tier==='OWNER';
   const canManage=root||hubTier==='DEVACC'||hubTier==='ADMIN';
   const users=getMockUsers();
-  if(action==='my-access')return ok({user:{username,displayName:username,legacyTier:tier,hubTier},canManageSettings:canManage,canManageCentralUsers:tiers[tier]?.canManageUsers===true,canAccessYardHub:true,sections:yardHubConfig.tiers[hubTier],permissionVersion:yardHubPermissionVersion});
+  if(action==='my-access')return ok({user:{username,displayName:username,legacyTier:tier,hubTier},rootsAuthority:root?'DEV':null,canManageSettings:root,canManageYardRoles:root,canManageRoots:root,canManageCentralUsers:tiers[tier]?.canManageUsers===true,canAccessYardHub:true,sections:yardHubConfig.tiers[hubTier],permissionVersion:yardHubPermissionVersion});
   if(action==='settings-state'){
    if(!canManage)return ok({error:'Permission denied'},403);
    return ok({
     user:{username,displayName:username,legacyTier:tier,hubTier},
+    rootsAuthority:root?'DEV':null,canManageYardRoles:root,canManageRoots:root,
     users:users.map(user=>({...user,legacyTier:user.tier,hubTier:yardHubConfig.userTiers[user.username.toLowerCase()]||'USER'})),
     userTiers:yardHubConfig.userTiers,
     centralVersion:version,
