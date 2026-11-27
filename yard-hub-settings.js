@@ -218,12 +218,12 @@
     $('yardHubUserForm').reset();
     $('yardHubStaffFields').hidden=!!user;
     $('yardHubLegacyTierField').hidden=!user||isPending||isCanonical;
-    $('yardHubUserYardRoleField').hidden=!!user&&!isPending;
+    $('yardHubUserYardRoleField').hidden=!!user&&!isPending&&!(user.userId&&user.staffId);
     $('yardHubStaffDepartment').value='SCPL';syncStaffRoleOptions();
     $('yardHubStaffRole').value='Main Operator';$('yardHubStaffStation').value='';
     $('yardHubStaffStationLocked').checked=false;$('yardHubStaffOnSite').checked=true;
     const hasRoles=populateYardRoles(user?.requestedYardRoleId||user?.yardRoleId||'');
-    $('yardHubUserYardRole').disabled=isPending;
+    $('yardHubUserYardRole').disabled=isPending||!rootDev();
     $('yardHubUserModal').hidden=false;
     $('yardHubUserModalTitle').textContent=user?'EDIT USER':'ADD USER';
     $('yardHubUserUsername').value=user?.username||'';
@@ -339,7 +339,7 @@
       setStatus((isNew||pendingProvisioning)&&!enabled
         ?'USER + STAFF SAVED WITH A PENDING YARD ROLE. ACCOUNT REMAINS INACTIVE.'
         :(isNew||pendingProvisioning)?'USER, STAFF AND CANONICAL YARD ROLE PROVISIONED.'
-        :canonicalIdentity?'CANONICAL USER AND LINKED STAFF DETAILS SAVED.':'LEGACY USER AND YARD HUB SETTINGS SAVED.','ok');
+        :yardRoleChanged?'CANONICAL YARD ROLE REASSIGNED.':canonicalIdentity?'CANONICAL USER AND LINKED STAFF DETAILS SAVED.':'LEGACY USER AND YARD HUB SETTINGS SAVED.','ok');
     }catch(error){
       const detail=centralSaved||error?.centralUserSaved
         ?'Central USER + STAFF record was saved, but canonical YARD ROLE assignment or activation did not complete. The account remains inactive. Refresh the user list before retrying. '
