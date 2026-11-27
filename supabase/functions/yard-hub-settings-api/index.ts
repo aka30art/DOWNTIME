@@ -166,9 +166,10 @@ Deno.serve(async (req: Request) => {
       try { return Object.keys(resolveYardRolePermissions(role, rolePermissions || []).departments).length > 0; }
       catch { return false; }
     });
-    const roleByUser = new Map((roleAssignments || []).map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));\n    const rootsByUser = new Map((rootsAssignments || []).map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));
+    const roleByUser = new Map((roleAssignments || []).map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));
+    const rootsByUser = new Map((rootsAssignments || []).map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));
     return json({
-      user: { ...safeUser(user), legacyTier, hubTier },
+      user: { ...safeUser(user), legacyTier, hubTier, rootsAuthority },
       users: (Array.isArray(bank.users) ? bank.users : []).filter((account: any) => rootsAuthority === "DEV" || (String(account.username || "").trim().toUpperCase() !== "DEV" && !protectedUserIds.has(String(account.userId || "").toLowerCase()))).map((account: any) => {
         const assignment: any = roleByUser.get(String(account.userId || "").toLowerCase());
         return {
@@ -179,10 +180,13 @@ Deno.serve(async (req: Request) => {
           userId: account.userId || null,
           staffId: account.staffId || null,
           requestedYardRoleId: account.provisioning?.requestedYardRoleId || null,
-          yardRoleId: assignment?.yard_role_id || account.yardRoleId || null,\n          yardRoleVersion: assignment?.version || null,\n          rootsClass: (rootsByUser.get(String(account.userId || "").toLowerCase()) as any)?.roots_class || null,
+          yardRoleId: assignment?.yard_role_id || account.yardRoleId || null,
+          yardRoleVersion: assignment?.version || null,
+          rootsClass: (rootsByUser.get(String(account.userId || "").toLowerCase()) as any)?.roots_class || null,
         };
       }).sort((a: any, b: any) => a.username.localeCompare(b.username)),
-      yardRoles: assignableYardRoles,\n      roleCatalogue: isProtectedRoot ? (yardRoles || []).map((role: any) => ({ ...role, permissions: (rolePermissions || []).filter((row: any) => String(row.yard_role_id).toLowerCase() === String(role.id).toLowerCase()).map((row: any) => ({ department: row.department, can_view: row.can_view === true, can_enter: row.can_enter === true, can_edit: row.can_edit === true, can_manage: row.can_manage === true })) })) : [],
+      yardRoles: assignableYardRoles,
+      roleCatalogue: isProtectedRoot ? (yardRoles || []).map((role: any) => ({ ...role, permissions: (rolePermissions || []).filter((row: any) => String(row.yard_role_id).toLowerCase() === String(role.id).toLowerCase()).map((row: any) => ({ department: row.department, can_view: row.can_view === true, can_enter: row.can_enter === true, can_edit: row.can_edit === true, can_manage: row.can_manage === true })) })) : [],
       userTiers: configRow.payload?.userTiers || {},
       centralVersion: Number(bankRow.version || 0),
       tierPermissions: normalizeTierPermissions(configRow.payload, configRow.payload, [...tierNames.filter(name => !(configRow.payload.retiredTiers || []).includes(name)), ...(Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [])]),
