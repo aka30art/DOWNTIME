@@ -177,7 +177,7 @@ assert.ok(ui.includes("key:'repairMaintenanceMachinery',label:'R&M MACHINERY'"),
 assert.ok(hubApi.includes('repairMaintenanceMachinery'),'Hub Settings normalizes and persists the new machinery permission');
 assert.ok(hubApi.includes('value[key] ?? value.repairMaintenance'),'existing tier values safely seed the new permission');
 assert.ok(rmApi.includes('permissions.canReadRepairMaintenanceMachinery')&&rmApi.includes('permissions.canManageRepairMaintenanceMachinery'),'R&M API enforces separate machinery READ / EDIT permissions');
-assert.ok(rmApi.includes('const rootOperator =')&&rmApi.includes('hubTier === "DEVACC"'),'DEV and DEVACC retain root machinery permissions');
+assert.ok(rmApi.includes('if (isProtectedRoot)')&&rmApi.includes('canManageRepairMaintenanceMachinery: true'),'DEV, DEV1 and protected ADMIN receive automatic R&M MANAGE authority through ROOTS, not legacy DEVACC tiers');
 
 console.log('YARD HUB Settings isolation, identity compatibility, permission enforcement and DOWNTIME protection contracts passed.');
 
