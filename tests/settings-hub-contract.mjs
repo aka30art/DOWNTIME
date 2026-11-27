@@ -38,7 +38,7 @@ assert.equal((html.match(/data-settings-back>/g) || []).length, 7,
   'operational settings panels retain back-to-settings controls; STAFF returns to YARD HUB');
 assert.doesNotMatch(html, /data-view="staff"/, 'STAFF must no longer have a standalone navigation destination');
 assert.match(html, /id="settingsPanelStaff"[\s\S]*?id="staffRosterList"/, 'STAFF workspace implementation remains available for the YARD HUB launcher');
-assert.match(html, /id="settingsPanelStaff"[\s\S]*?BACK TO YARD HUB/, 'STAFF workspace returns to YARD HUB rather than DOWNTIME Settings');
+assert.match(html, /id="settingsPanelStaff"[\s\S]*?STAFF MANAGEMENT/, 'STAFF workspace is labelled STAFF MANAGEMENT rather than a duplicate return action');
 assert.match(html, /id="settingsOwnerAccess"[\s\S]*?data-settings-open="accessRights"/, 'Access and Rights lives in a separate ADMIN/JAN-only Settings area');
 assert.match(html, /id="settingsPanelAccessRights" class="settings-panel" hidden/, 'Access and Rights has its own hidden panel');
 assert.match(html, /id="accessRightsTierList"[\s\S]*?id="saveAccessRights"/, 'ADMIN/JAN have an individual tier rights editor and central save control');

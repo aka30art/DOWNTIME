@@ -100,7 +100,7 @@ async function dismissPlantTransitionAlerts(page){
  throw new Error('Plant transition alerts did not drain after acknowledgement.');
 }
 async function clickOverview(page){
- await ensureMainMenu(page);
+ await ensureNavigationMenuOpen(page);
  const link=page.locator('.overview-link');
  for(let attempt=0;attempt<10;attempt++){
   await dismissPlantTransitionAlerts(page);
@@ -498,7 +498,18 @@ async function ensureMainMenu(page){
 async function ensureNavigationMenuOpen(page){
  await ensureMainMenu(page);
  const menu=page.locator('.nav-menu');
+ const yardHub=page.locator('#yardHub');
+ const shell=page.locator('.shell');
+ if(!await shell.isVisible()||await menu.evaluate(node=>node.hidden)){
+  if(!await yardHub.isVisible()){
+   await page.locator('#backToYardHub').click();
+   await yardHub.waitFor({state:'visible',timeout:5000});
+  }
+  await page.locator('#launchDowntimeBtn').click();
+  await page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:5000});
+ }
  if(!await menu.evaluate(node=>node.open))await menu.locator(':scope > summary').click();
+ await page.locator('.nav[data-view]').first().waitFor({state:'visible',timeout:3000});
 }
 
 async function openStaffSettings(page){
@@ -757,7 +768,7 @@ try{
  await owner.page.locator('#smSave').click();
  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:5000});
  assert.equal(owner.getBank().staff.profiles.Jan.station,'Station 3 · SCRAP','SCPL STAFF station reassignment is confirmed in the central data bank');
- await owner.page.locator('#settingsPanelStaff .settings-back').click();
+ await owner.page.locator('#backToYardHub').click();
  await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
  await owner.page.locator('#launchDowntimeBtn').click();
  await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
@@ -874,8 +885,15 @@ try{
  await owner.page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
  assert.equal(await owner.page.locator('#settingsPanelStaff').isVisible(),true,'OWNER opens STAFF management through YARD HUB Staff Management');
  assert.equal(await owner.page.locator('#addStaffBtn').isEnabled(),true,'OWNER retains STAFF management privileges');
- await ensureMainMenu(owner.page);
- assert.equal(await owner.page.locator('.nav[data-view="reports"]').isVisible(),true,'OWNER can view reports');
+ assert.equal(await owner.page.locator('.nav-menu').isVisible(),false,'STAFF workspace hides the MAIN MENU dropdown while the focused page is open');
+ assert.equal(await owner.page.locator('#backToYardHub').isVisible(),true,'STAFF workspace retains the dedicated BACK TO YARD HUB route');
+ await owner.page.locator('#backToYardHub').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
+ await owner.page.locator('#launchDowntimeBtn').click();
+ await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
+ await owner.page.locator('.nav-menu > summary').click();
+ await owner.page.locator('.nav[data-view="reports"]').waitFor({state:'visible',timeout:3000});
+ assert.equal(await owner.page.locator('.nav[data-view="reports"]').isVisible(),true,'OWNER can view reports after returning from STAFF to DOWNTIME');
  assert.equal(await owner.page.locator('.overview-link').isVisible(),true,'OWNER can view Plant Overview');
  assert.equal(await owner.page.locator('#addEntry').isDisabled(),false,'OWNER can edit tracker');
  await clickOverview(owner.page);
@@ -1121,6 +1139,7 @@ await ensureNavigationMenuOpen(owner.page);
   assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="5"]').textContent(),'SHAYNE','previous station is cleared after unlocked reassignment');
   await owner.page.frameLocator('#overviewFrame').locator('#exitOverview').click();
   await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
+  await openStaffSettings(owner.page);
   await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
   owner.page.once('dialog',dialog=>dialog.accept());
   await owner.page.locator('#smPhotoRemove').click();
@@ -1180,8 +1199,8 @@ await ensureNavigationMenuOpen(owner.page);
  await openStaffSettings(user.page);
  assert.equal(await user.page.locator('#staffRosterList').isVisible(),true,'USER can view STAFF information inside Settings');
  assert.equal(await user.page.locator('#addStaffBtn').isDisabled(),true,'USER cannot manage STAFF');
- await ensureMainMenu(user.page);
- assert.equal(await user.page.locator('#addStaffBtn').isDisabled(),true,'USER cannot manage STAFF');
+ await ensureNavigationMenuOpen(user.page);
+ assert.equal(await user.page.locator('#addStaffBtn').isDisabled(),true,'USER cannot manage STAFF after returning to DOWNTIME');
  assert.equal(await user.page.locator('[data-settings-open="dailyTasks"]').isVisible(),false,'USER cannot manage Daily Tasks presets');
  assert.equal(await user.page.locator('.nav[data-view="reports"]').isVisible(),true,'USER can see reports');
  assert.equal(await user.page.locator('.overview-link').isVisible(),true,'USER can see Plant Overview');
