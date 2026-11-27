@@ -29,7 +29,7 @@ assert.ok(!src.includes('login-options'),'no separate pre-authentication directo
 assert.ok(src.includes('if(action==="list-users"&&!req.headers.get("x-downtime-session"))return json({users:bank.users.map((u:any)=>({username:u.username}))});'),'legacy cached login clients receive usernames only, without profile or permission metadata');
 assert.ok(src.includes('return json({error:"Invalid username or PIN"},401)'),'unknown usernames and incorrect PINs share a generic login error');
 assert.ok(src.includes('pinSalt:"central-login-dummy-salt",pinHash:"0".repeat(64)')&&src.includes('const validPin=await verifyPin(pin,pinCandidate)'),'unknown and disabled usernames receive the same PBKDF2 verification work as invalid PIN attempts');
-assert.ok(src.includes('priv.canManageUsers||priv.canViewUsers?bank.users.filter((u:any)=>u.enabled!==false).map(safeUser):[safeUser(currentUser)]'),'authenticated directory listing is permission-scoped');
+assert.ok(src.includes('priv.canManageUsers||priv.canViewUsers?directoryUsers.map(safeUser):[safeUser(currentUser)]')&&src.includes('loadProtectedRootUserIds'),'authenticated directory listing is permission-scoped and hides protected ROOTS identities');
 assert.ok(src.includes('failedCount||0)>=5'),'server enforces a five-attempt account lock');
 assert.ok(src.includes('Try again in five minutes.'),'server lockout window is communicated');
 assert.ok(src.includes('await db.from("downtime_central_sessions").delete().eq("username",existing?.username||username)'), 'updating a USER revokes their prior active sessions');
