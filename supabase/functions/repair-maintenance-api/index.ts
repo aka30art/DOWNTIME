@@ -79,6 +79,7 @@ Deno.serve(async (req: Request) => {
   const isProtectedRoot = ["DEV", "DEV1", "ADMIN"].includes(rootsAuthority || "");
   let resolvedYardRole: any = null;
   if (user.yardRoleId && !isProtectedRoot) {
+    if (user.enabled !== true || user.status !== "ACTIVE") return json({ error: "Canonical USER identity is not active." }, 403);
     if (!user.userId || !user.staffId) return json({ error: "Canonical USER/STAFF identity is incomplete." }, 403);
     const { data: assignment, error: assignmentError } = await db.from("yard_role_assignments")
       .select("user_id,staff_id,yard_role_id,status")
