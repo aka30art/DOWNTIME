@@ -6,7 +6,7 @@ Status: implementation candidate on `feat/preserve-dev-roots-reset-2026-11-27`.
 
 The existing immutable DEV account is retained exactly as it exists before the reset. Its USER UUID, PIN salt, PIN hash, OWNER tier, ROOTS bootstrap binding and currently executing DEV session remain unchanged.
 
-The reset removes every other DOWNTIME USER account, all STAFF roster entries, all STAFF profile records, and all objects in the dedicated `downtime-staff-photos` storage bucket. Compatibility copies in `appData.staffRoster` and `appData.operatorProfiles` are cleared.
+The reset removes every other DOWNTIME USER account, all STAFF roster entries, all STAFF profile records, and all objects in the dedicated `downtime-staff-photos` storage bucket, and all `original.png` files found in the GitHub `assets/staff/originals` library. Compatibility copies in `appData.staffRoster` and `appData.operatorProfiles` are cleared.
 
 DEV1 and ADMIN are protected ROOTED role definitions only. They are not created as USER accounts, login credentials, or STAFF profiles. The definitions are stored in a separate DEV-only catalogue and are returned only by the DEV-authorised ROOTS directory endpoint.
 
@@ -40,7 +40,7 @@ The reset is one-time and requires:
 3. Exact typed confirmation: `KEEP DEV - CLEAR USERS STAFF PHOTOS`.
 4. A version-checked database transaction.
 
-The Edge Function removes objects only from `downtime-staff-photos`, verifies that bucket is empty, then invokes the atomic database reset. It does not delete from operational evidence, PDF archive, R&M evidence or R&M report buckets. The database transaction preserves the current DEV session and removes all other Central Bank sessions.
+The Edge Function enumerates and deletes `original.png` files from the GitHub STAFF originals library, removes objects only from `downtime-staff-photos`, verifies both sources are empty, then invokes the atomic database reset. It does not delete from operational evidence, PDF archive, R&M evidence or R&M report buckets. The database transaction preserves the current DEV session and removes all other Central Bank sessions.
 
 If photo deletion succeeds but the database transaction fails, the reset is not marked complete; the UI reports that photos were removed and permits a safe retry. The database reset is idempotently gated by `downtime_identity_reset_runs`.
 
@@ -49,8 +49,8 @@ If photo deletion succeeds but the database transaction fails, the reset is not 
 - Supabase Auth infrastructure users are not the DOWNTIME Central Bank USER directory and are not deleted by this reset.
 - Historical audit rows are retained for accountability and may contain historical actor labels or identifiers.
 - Operational records are retained; staff names already embedded in operational history are not rewritten by this reset.
-- Provider backups and point-in-time recovery snapshots may retain deleted data until their retention period expires. Live deletion is not equivalent to immediate physical erasure from historical backups.
-- The current repository search did not return tracked `assets/staff/originals` or `original.png` files. The reset deletes live objects in the dedicated Supabase STAFF photo bucket.
+- Provider backups and point-in-time recovery snapshots may retain deleted data until their retention period expires. GitHub commit history may also retain prior photo blobs until a separate history-rewrite/purge process is completed. Live deletion is not equivalent to immediate physical erasure from historical backups or Git objects.
+- The current repository search did not return tracked `assets/staff/originals` or `original.png` files, but the reset still enumerates that GitHub directory at execution time and deletes any originals found.
 
 ## Release gates
 
