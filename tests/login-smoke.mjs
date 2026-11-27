@@ -375,11 +375,13 @@ window.supabase={createClient:()=>({
   ]}})});
   return route.fulfill({status:400,contentType:'application/json',headers:cors,body:JSON.stringify({error:'Unknown central config action'})});
  });
- await page.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/downtime-reports-api',async route=>{
+ await page.route('**/functions/v1/downtime-reports-api',async route=>{
+  const cors={'access-control-allow-origin':'http://127.0.0.1:4173','access-control-allow-headers':'apikey, content-type, x-downtime-session','access-control-allow-methods':'POST, OPTIONS','vary':'Origin'};
+  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors});
   const req=route.request().postDataJSON();
   reportApiCalls.push({action:req.action,reportId:req.reportId||null});
-  if(req.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({reports:[{id:'weekly-report-qa',week_start:'2026-11-16',file_name:'Downtime_2026-11-16_Weekly.pdf',file_size_bytes:18432,operators:{Monday:'Jan'}}]})});
-  if(req.action==='download'&&req.reportId==='weekly-report-qa')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({url:'https://storage.test/downtime-pdfs/2026-11-16/weekly-report-qa.pdf',fileName:'Downtime_2026-11-16_Weekly.pdf',expiresIn:60})});
+  if(req.action==='list')return route.fulfill({status:200,headers:cors,contentType:'application/json',body:JSON.stringify({reports:[{id:'weekly-report-qa',week_start:'2026-11-16',file_name:'Downtime_2026-11-16_Weekly.pdf',file_size_bytes:18432,operators:{Monday:'Jan'}}]})});
+  if(req.action==='download'&&req.reportId==='weekly-report-qa')return route.fulfill({status:200,headers:cors,contentType:'application/json',body:JSON.stringify({url:'https://storage.test/downtime-pdfs/2026-11-16/weekly-report-qa.pdf',fileName:'Downtime_2026-11-16_Weekly.pdf',expiresIn:60})});
   return route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({error:'Mock report not found'})});
  });
  await page.route('https://storage.test/**',async route=>{
@@ -388,7 +390,7 @@ window.supabase={createClient:()=>({
   const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Length '+stream.length+' >>\\nstream\\n'+stream+'endstream'];
   objects.forEach((object,index)=>{offsets.push(pdf.length);pdf+=(index+1)+' 0 obj\\n'+object+'\\nendobj\\n';});
   const xref=pdf.length;pdf+='xref\\n0 6\\n0000000000 65535 f \\n'+offsets.slice(1).map(offset=>String(offset).padStart(10,'0')+' 00000 n \\n').join('')+'trailer\\n<< /Size 6 /Root 1 0 R >>\\nstartxref\\n'+xref+'\\n%%EOF';
-  return route.fulfill({status:200,contentType:'application/pdf',body:pdf});
+  return route.fulfill({status:200,headers:{'access-control-allow-origin':'http://127.0.0.1:4173'},contentType:'application/pdf',body:pdf});
  });
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
  await page.route('**/functions/v1/repair-maintenance-api',async route=>{
