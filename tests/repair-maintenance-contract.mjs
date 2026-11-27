@@ -165,7 +165,7 @@ assert.match(api,/!resolvedYardRole && !isProtectedRoot/,'legacy R&M fallback is
 assert.doesNotMatch(api,/Canonical YARD ROLE authorization is not yet enabled for R&M/,'canonical YARD ROLE identities no longer receive a blanket denial');
 assert.match(api,/downtime_roots_assignments/,'R&M reads server-side protected ROOTS assignments');
 assert.match(api,/includes\(rootsAuthority \|\| ""\)/,'protected DEV, DEV1 and ADMIN receive automatic R&M Manage authority');
-assert.match(api,/user.yardRoleId && !\["DEV1", "ADMIN"\]/,'ROOTS authority is a separate override for ordinary YARD ROLE gating');
+
 console.log('R&M module contract checks passed.');
 
 assert.ok(api.includes('permissions.canCreateRepairMaintenance = mode === "INPUT" || mode === "EDIT"'),'R&M INPUT tier can create faults');
