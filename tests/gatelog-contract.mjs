@@ -97,7 +97,7 @@ assert.match(api,/canAccess=isProtectedRoot\|\|\(resolvedYardRole\?\(canTrafficV
 assert.match(api,/if\(resolvedYardRole&&!canViewTraffic\)\{[\s\S]{0,1200}activeVisits:\[\]/,'GATELOG bootstrap returns no active visits when a canonical role lacks VIEW, even if another Traffic permission grants module entry');
 assert.match(api,/if\(action===\"day-register\"\)\{[\s\S]{0,250}if\(!canViewTraffic\)/,'the day register requires Traffic VIEW even when another permission grants module access');
 
-assert.match(api,/Traffic INPUT permission is required/,'GATELOG creation actions require Traffic INPUT or MANAGE');
+assert.match(api,/Traffic ENTER permission is required/,'GATELOG creation actions require Traffic ENTER or MANAGE');
 assert.match(api,/Traffic MANAGE permission is required/,'GATELOG administrative actions require Traffic MANAGE');
 assert.doesNotMatch(api,/Canonical YARD ROLE authorization is not yet enabled/,'canonical YARD ROLE identities no longer receive a blanket denial');
 assert.match(api,/protectedStaffIds\.has/,'non-DEV users cannot inspect protected ROOTS STAFF entries in GATELOG rosters');
