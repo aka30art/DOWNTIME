@@ -216,6 +216,8 @@ Deno.serve(async(req)=>{
        canManageAssignments:false,canViewAssignments:false,canManageSettings:false,canManageAccessRights:false});
    }
  }
+ // USER directory access is a DEV-only control-plane capability; legacy tiers never grant it.
+ priv.canManageUsers=rootsAuthority==="DEV";priv.canViewUsers=rootsAuthority==="DEV";
  const isCentralAdmin=isDevRoot;
  const isCentralBankAccess=isDevRoot;
  const loadProtectedRootUserIds=async()=>{
