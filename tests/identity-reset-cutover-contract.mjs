@@ -53,6 +53,8 @@ const rootsState = yardApi.slice(yardApi.indexOf('if (action === "roots-state")'
 assert.match(rootsState,/if \(!rootCapabilities\.canBrowseRoots\)/);
 assert.match(rootsState,/downtime_roots_role_definitions/);
 assert.match(rootsState,/roleDefinitions: roleDefinitions/);
+assert.match(yardApi,/const permissionTier = isProtectedRoot \? "OWNER" : hubTier/);
+assert.match(yardApi,/tiers\?\.\[permissionTier\]/,"protected ROOTS accounts retain automatic MANAGE department permissions after userTiers are cleared");
 assert.match(yardApi,/const permissionTier = isProtectedRoot \? "OWNER" : hubTier/,"ROOTED accounts retain automatic MANAGE department permissions even without userTiers entries");
 assert.match(yardApi,/tiers\?\.\[permissionTier\]/);
 
