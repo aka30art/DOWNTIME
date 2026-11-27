@@ -725,6 +725,12 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
           <small>Create roles and configure independent View, Enter, Edit and Manage permissions across all five departments</small>
           <span class="yard-hub-settings-card-arrow">›</span>
         </button>
+        <button id="yardHubSettingsRoots" type="button" class="yard-hub-settings-card" hidden>
+          <span class="yard-hub-settings-card-icon">◆</span>
+          <strong>ROOTS</strong>
+          <small>Protected DEV1 and ADMIN identities, assignments and lifecycle controls</small>
+          <span class="yard-hub-settings-card-arrow">›</span>
+        </button>
         <button id="yardHubSettingsTiers" type="button" class="yard-hub-settings-card" hidden>
           <span class="yard-hub-settings-card-icon">▤</span>
           <strong>LEGACY TIERS</strong>
@@ -762,6 +768,24 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
             <button id="yardHubRoleSave" type="submit" class="yard-hub-primary">SAVE YARD ROLE</button>
           </div>
         </form>
+      </div>
+      <div id="yardHubRootsView" class="yard-hub-settings-view" hidden>
+        <div class="yard-hub-view-toolbar">
+          <div><h2>PROTECTED ROOTS</h2><p>DEV controls the ROOTS directory. DEV1 can assign ADMIN only. ROOTS authority is separate from ordinary YARD ROLE permissions.</p></div>
+          <div class="yard-hub-tier-actions"><button type="button" data-yard-settings-home class="yard-hub-secondary">‹ BACK TO SETTINGS</button></div>
+        </div>
+        <section class="yard-hub-roots-assignment" aria-labelledby="yardHubRootsAssignHeading">
+          <h3 id="yardHubRootsAssignHeading">ASSIGN PROTECTED AUTHORITY</h3>
+          <div class="yard-hub-roots-form">
+            <label>CANONICAL USER<select id="yardHubRootUser"><option value="">SELECT USER</option></select></label>
+            <label>ROOTS CLASSIFICATION<select id="yardHubRootClass"><option value="DEV1">DEV1</option><option value="ADMIN">ADMIN</option></select></label>
+            <button id="yardHubRootAssign" type="button" class="yard-hub-primary">ASSIGN ROOTS</button>
+          </div>
+        </section>
+        <section class="yard-hub-roots-directory" aria-labelledby="yardHubRootsDirectoryHeading">
+          <h3 id="yardHubRootsDirectoryHeading">ROOTS DIRECTORY</h3>
+          <div id="yardHubRootAssignments" class="yard-hub-roots-list"></div>
+        </section>
       </div>
       <div id="yardHubTiersView" class="yard-hub-settings-view" hidden>
         <div class="yard-hub-view-toolbar">
