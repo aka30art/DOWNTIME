@@ -115,7 +115,9 @@ Deno.serve(async (req: Request) => {
     if (rootsLookup.error) return json({ error: "Protected identity registry is unavailable." }, 503);
     rootsAssignment = rootsLookup.data;
   }
-  const rootsAuthority = resolveRootsAuthority(user, rootsAssignment);
+  const { data: rootsBootstrap, error: rootsBootstrapError } = await db.from("downtime_roots_bootstrap").select("user_id").eq("singleton", true).maybeSingle();
+  if (rootsBootstrapError || !rootsBootstrap?.user_id) return json({ error: "Immutable DEV bootstrap identity is unavailable." }, 503);
+  const rootsAuthority = resolveRootsAuthority(user, rootsAssignment, rootsBootstrap.user_id);
   const { data: configRow, error: configError } = await db.from("yard_hub_tier_config")
     .select("payload,version,updated_by,updated_at")
     .eq("id", 1)
