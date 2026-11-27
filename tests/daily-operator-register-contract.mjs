@@ -16,7 +16,7 @@ assert.match(migration,/grant all on public\.downtime_daily_operator_assignments
 assert.match(api,/if\(action==="daily-operator-list"\)/);
 assert.match(api,/if\(action==="daily-operator-assign"\)/);
 assert.match(api,/if\(action==="daily-operator-unlock"\)/);
-assert.match(api,/hasCanonicalIdentity&&!isRootAuthority\?!moduleRights\.DOWNTIME\.manage:!\["OWNER","DEVACC","ADMIN","SUPERVISOR"\]\.includes\(tier\)/,'canonical identities require SCPL MANAGE; legacy non-canonical tiers retain their compatibility gate');
+assert.match(api,/!isRootAuthority&&\(hasCanonicalIdentity\?!moduleRights\.DOWNTIME\.manage:!\["OWNER","DEVACC","ADMIN","SUPERVISOR"\]\.includes\(tier\)\)/,'ROOTS authority takes precedence; canonical non-ROOTS identities require SCPL MANAGE and legacy accounts retain their compatibility gate');
 assert.match(api,/already has a locked operator/i,'locked records cannot be overwritten');
 assert.match(api,/Enter a reason for unlocking this daily assignment/i,'unlock requires a reason');
 assert.match(api,/downtime_daily_operator_audit/,'server records an immutable audit event');
