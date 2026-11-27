@@ -86,6 +86,8 @@ begin
   v_admin_staff_id := (p_admin_staff->>'staffId')::uuid;
 
   if v_dev_user_id = p_actor_user_id
+     or v_dev1_user_id = p_actor_user_id or v_admin_user_id = p_actor_user_id
+     or v_dev1_staff_id = p_actor_user_id or v_admin_staff_id = p_actor_user_id
      or v_dev_user_id = v_dev1_user_id or v_dev_user_id = v_admin_user_id
      or v_dev1_user_id = v_admin_user_id
      or v_dev1_staff_id = v_admin_staff_id
@@ -111,6 +113,9 @@ begin
      or p_admin_staff->>'linkedUserId' is distinct from v_admin_user_id::text
      or p_dev1_staff->>'name' is distinct from 'DEV1'
      or p_admin_staff->>'name' is distinct from 'ADMIN'
+     or p_dev1_staff->>'status' is distinct from 'ACTIVE'
+     or p_admin_staff->>'status' is distinct from 'ACTIVE'
+     or p_new_dev_user ? 'tier' or p_new_dev1_user ? 'tier' or p_new_admin_user ? 'tier'
      or coalesce(p_new_dev_user->>'pinSalt','') = ''
      or coalesce(p_new_dev_user->>'pinHash','') = ''
      or coalesce(p_new_dev1_user->>'pinSalt','') = ''
@@ -221,7 +226,7 @@ begin
     'newDev1UserId',v_dev1_user_id,
     'newAdminUserId',v_admin_user_id,
     'previousUserCount',jsonb_array_length(coalesce(v_payload->'users','[]'::jsonb)),
-    'previousStaffProfileCount',jsonb_object_length(coalesce(v_payload->'staff'->'profiles','{}'::jsonb)),
+    'previousStaffProfileCount',case when jsonb_typeof(v_payload->'staff'->'profiles')='object' then jsonb_object_length(v_payload->'staff'->'profiles') else 0 end,
     'operationalRecordsPreserved',true,
     'auditHistoryPreserved',true,
     'sharedPhotoEvidencePreserved',true
