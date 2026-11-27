@@ -73,26 +73,29 @@ function resolvePermission(user,root=''){
     user,{},'legacy-test',()=> 'USER',{}, {},()=>root,hasDepartment
   );
 }
-const readOnlyIdentity={userId:'user-read-only',staffId:'staff-read-only',yardRolePermissions:{Management:{view:true,enter:false,edit:false,manage:false}}};
+const readOnlyIdentity={userId:'user-read-only',staffId:'staff-read-only',yardRolePermissions:{SCPL:{view:true,enter:false,edit:false,manage:false}}};
 const readOnlyPermission=resolvePermission(readOnlyIdentity);
-assert.equal(readOnlyPermission('canViewAreaPresets'),true,'Management READ ONLY can view Area Presets');
-assert.equal(readOnlyPermission('canViewReasonPresets'),true,'Management READ ONLY can view Reason Presets');
-assert.equal(readOnlyPermission('canViewShiftSchedule'),true,'Management READ ONLY can view Shift & Breaktime');
-assert.equal(readOnlyPermission('canViewDailyTasks'),true,'Management READ ONLY can view Daily Tasks');
-assert.equal(readOnlyPermission('canViewStations'),true,'Management READ ONLY can view Station Manager');
+assert.equal(readOnlyPermission('canViewAreaPresets'),true,'SCPL READ ONLY can view Area Presets');
+assert.equal(readOnlyPermission('canViewReasonPresets'),true,'SCPL READ ONLY can view Reason Presets');
+assert.equal(readOnlyPermission('canViewShiftSchedule'),true,'SCPL READ ONLY can view Shift & Breaktime');
+assert.equal(readOnlyPermission('canViewDailyTasks'),true,'SCPL READ ONLY can view Daily Tasks');
+assert.equal(readOnlyPermission('canViewStations'),true,'SCPL READ ONLY can view Station Manager');
 assert.equal(readOnlyPermission('canManageSettings'),false,'Management READ ONLY cannot manage settings');
 assert.equal(readOnlyPermission('canManageAreaPresets'),false,'Management READ ONLY cannot modify Area Presets');
-const inputIdentity={...readOnlyIdentity,yardRolePermissions:{Management:{view:true,enter:true,edit:false,manage:false}}};
+const inputIdentity={...readOnlyIdentity,yardRolePermissions:{SCPL:{view:true,enter:true,edit:false,manage:false}}};
 const inputPermission=resolvePermission(inputIdentity);
-assert.equal(inputPermission('canViewAreaPresets'),true,'Management INPUT inherits read access');
-assert.equal(inputPermission('canManageSettings'),false,'Management INPUT does not inherit settings management');
-const manageIdentity={...readOnlyIdentity,yardRolePermissions:{Management:{view:true,enter:true,edit:true,manage:true}}};
+assert.equal(inputPermission('canViewAreaPresets'),true,'SCPL INPUT inherits read access');
+assert.equal(inputPermission('canManageSettings'),false,'SCPL INPUT does not inherit settings management');
+const manageIdentity={...readOnlyIdentity,yardRolePermissions:{SCPL:{view:true,enter:true,edit:true,manage:true}}};
 const managePermission=resolvePermission(manageIdentity);
-assert.equal(managePermission('canManageSettings'),true,'Management MANAGE can manage operational settings');
-assert.equal(managePermission('canManageAreaPresets'),true,'Management MANAGE can manage area presets');
-assert.equal(managePermission('canManageReasonPresets'),true,'Management MANAGE can manage reason presets');
-assert.equal(managePermission('canManageShiftSchedule'),true,'Management MANAGE can manage shift schedule');
-assert.equal(managePermission('canManageDailyTasks'),true,'Management MANAGE can manage daily tasks');
+const staffManager=resolvePermission({...readOnlyIdentity,yardRolePermissions:{Management:{view:true,enter:true,edit:true,manage:true}}});
+assert.equal(staffManager('canManageStaff'),true,'Management MANAGE controls Staff & Management');
+assert.equal(staffManager('canManageSettings'),false,'Management MANAGE does not grant DOWNTIME Settings access');
+assert.equal(managePermission('canManageSettings'),true,'SCPL MANAGE can manage operational settings');
+assert.equal(managePermission('canManageAreaPresets'),true,'SCPL MANAGE can manage area presets');
+assert.equal(managePermission('canManageReasonPresets'),true,'SCPL MANAGE can manage reason presets');
+assert.equal(managePermission('canManageShiftSchedule'),true,'SCPL MANAGE can manage shift schedule');
+assert.equal(managePermission('canManageDailyTasks'),true,'SCPL MANAGE can manage daily tasks');
 assert.equal(managePermission('canManageUsers'),false,'Management MANAGE cannot manage central USER accounts');
 for(const root of ['DEV','DEV1','ADMIN']){
   const rootPermission=resolvePermission({userId:'root-user',staffId:'root-staff'},root);

@@ -381,7 +381,7 @@ const resolverSource = await readFile("supabase/functions/_shared/yard-role-reso
 const repairMaintenanceApi = await readFile("supabase/functions/repair-maintenance-api/index.ts", "utf8");
 const gatelogApi = await readFile("supabase/functions/gatelog-api/index.ts", "utf8");
 
-assert.match(centralApi, /import \{ canYardRolePerform, resolveYardRolePermissions \} from ["']\.\.\/_shared\/yard-role-resolver\.mjs["']/);
+assert.match(centralApi, /import \{ canYardRolePerform, resolveYardRolePermissions, resolveYardRoleModulePermissions \} from ["']\.\.\/_shared\/yard-role-resolver\.mjs["']/);
 assert.match(centralApi, /import \{ activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning, renameLinkedStaffDisplayName \} from ["']\.\.\/_shared\/user-staff-identity\.mjs["']/);
 const provisioningRoutes = centralApi.slice(
   centralApi.indexOf('if(action==="user-staff-provision")'),

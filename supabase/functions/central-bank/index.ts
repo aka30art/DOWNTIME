@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning, renameLinkedStaffDisplayName } from "../_shared/user-staff-identity.mjs";
-import { canYardRolePerform, resolveYardRolePermissions } from "../_shared/yard-role-resolver.mjs";
+import { canYardRolePerform, resolveYardRolePermissions, resolveYardRoleModulePermissions } from "../_shared/yard-role-resolver.mjs";
 import { resolveRootsAuthority } from "../_shared/roots-authority.mjs";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
@@ -170,6 +170,7 @@ Deno.serve(async(req)=>{
  const isDevRoot=rootsAuthority==="DEV";
  const isRootAuthority=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"");
  let resolvedYardRole:any=null;
+ let moduleRights:any=null;
  const hasCanonicalIdentity=Boolean(currentUser.userId||currentUser.staffId);
  if(hasCanonicalIdentity&&!isRootAuthority){
    if(currentUser.enabled!==true||currentUser.status!=="ACTIVE"||!currentUser.userId||!currentUser.staffId)return json({error:"Canonical USER/STAFF identity is not active or complete."},403);
@@ -186,26 +187,34 @@ Deno.serve(async(req)=>{
    if(yardRoleError||departmentRowsError||!yardRole)return json({error:"Canonical YARD ROLE permission profile is unavailable."},503);
    try{resolvedYardRole=resolveYardRolePermissions(yardRole,departmentRows||[])}
    catch(error){return json({error:error instanceof Error?error.message:"Canonical YARD ROLE permission profile is invalid."},503)}
-   const management=resolvedYardRole.departments.Management;
-   const hasManagementAccess=management.view||management.enter||management.edit||management.manage;
-   if(!hasManagementAccess)return json({error:"This USER has no access to the Management department."},403);
+   moduleRights=resolveYardRoleModulePermissions(resolvedYardRole);
+   const downtime=moduleRights.DOWNTIME;
+   const staffManagement=moduleRights["Staff & Management"];
+   const hasConnectedModuleAccess=Object.values(moduleRights).some((rights:any)=>rights.view||rights.enter||rights.edit||rights.manage);
+   if(!hasConnectedModuleAccess)return json({error:"This USER has no access to a connected application module."},403);
    Object.assign(priv,{
-     canEditTracker:management.enter||management.edit||management.manage,
-     canDeleteRecords:management.manage,
-     canExportReports:management.view,
-     canViewPlantOverview:management.view,
-     canViewDashboards:management.view,
-     canViewReports:management.view,
+     canEditTracker:downtime.enter||downtime.edit||downtime.manage,
+     canDeleteRecords:downtime.manage,
+     canExportReports:downtime.view,
+     canViewPlantOverview:downtime.view,
+     canViewDashboards:downtime.view,
+     canViewReports:downtime.view,
      canControlPlantPower:false,
-     canManageUsers:false,canViewUsers:false,canManageStaff:false,canViewStaff:false,
-     canManageAssignments:false,canViewAssignments:false,canManageAccessRights:false,
-     canManageSettings:management.manage===true,
-     canViewStations:hasManagementAccess,
-     canViewAreaPresets:hasManagementAccess,canManageAreaPresets:management.manage===true,
-     canViewReasonPresets:hasManagementAccess,canManageReasonPresets:management.manage===true,
-     canViewShiftSchedule:hasManagementAccess,canManageShiftSchedule:management.manage===true,
-     canViewDailyTasks:hasManagementAccess,canManageDailyTasks:management.manage===true,
-     canAddDowntimeReasons:false,
+     canManageUsers:false,canViewUsers:false,
+     canManageStaff:staffManagement.manage===true,
+     canEnterStaff:staffManagement.enter===true,
+     canEditStaff:staffManagement.edit===true,
+     canViewStaff:staffManagement.view===true,
+     canManageAssignments:staffManagement.manage===true,
+     canViewAssignments:staffManagement.view===true,
+     canManageAccessRights:false,
+     canManageSettings:downtime.manage===true,
+     canViewStations:staffManagement.view===true||downtime.view===true,
+     canViewAreaPresets:downtime.view,canManageAreaPresets:downtime.manage===true,
+     canViewReasonPresets:downtime.view,canManageReasonPresets:downtime.manage===true,
+     canViewShiftSchedule:downtime.view,canManageShiftSchedule:downtime.manage===true,
+     canViewDailyTasks:downtime.view,canManageDailyTasks:downtime.manage===true,
+     canAddDowntimeReasons:downtime.manage===true,
    });
  }
  if(isRootAuthority){
@@ -216,7 +225,7 @@ Deno.serve(async(req)=>{
    if(rootsAuthority!=="DEV"){
      Object.assign(priv,{canManageUsers:false,canViewUsers:false,canManageSettings:true,canManageAccessRights:false});
    }
-   Object.assign(priv,{canManageStaff:true,canViewStaff:true,canManageAssignments:true,canViewAssignments:true});
+   Object.assign(priv,{canManageStaff:true,canEnterStaff:true,canEditStaff:true,canViewStaff:true,canManageAssignments:true,canViewAssignments:true});
  }
  // Central Bank USER directory access is an immutable DEV-only control-plane capability.
  priv.canManageUsers=rootsAuthority==="DEV";priv.canViewUsers=rootsAuthority==="DEV";
@@ -444,6 +453,7 @@ Deno.serve(async(req)=>{
    return updated?next:null;
  };
  if(action==="daily-operator-list"){
+   if(hasCanonicalIdentity&&!isRootAuthority&&!moduleRights.DOWNTIME.view)return json({error:"SCPL VIEW permission is required to read the DOWNTIME daily operator register."},403);
    const fromDate=String(body.fromDate||""),toDate=String(body.toDate||"");
    if(!/^\d{4}-\d{2}-\d{2}$/.test(fromDate)||!/^\d{4}-\d{2}-\d{2}$/.test(toDate)||fromDate>toDate)return json({error:"A valid date range is required"},400);
    const rangeDays=(Date.parse(toDate+"T00:00:00Z")-Date.parse(fromDate+"T00:00:00Z"))/86400000;
@@ -455,7 +465,7 @@ Deno.serve(async(req)=>{
    return json({records:records||[],history:history||[]});
  }
  if(action==="daily-operator-assign"){
-   if(!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"Supervisor permission is required to assign or change the daily operator"},403);
+   if(hasCanonicalIdentity&&!isRootAuthority?!moduleRights.DOWNTIME.manage:!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"SCPL MANAGE permission is required to assign or change the DOWNTIME daily operator"},403);
    const dutyDate=String(body.dutyDate||""),requested=String(body.operatorName||"").trim();
    if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate)||!Number.isFinite(Date.parse(dutyDate+"T00:00:00Z")))return json({error:"A valid calendar date is required"},400);
    const roster=Array.isArray(bank.staff?.roster)?bank.staff.roster:["Jan","Mick","Gigi","Daz","Shayne"];
@@ -483,7 +493,7 @@ Deno.serve(async(req)=>{
    return json({ok:true,record,centralVersion});
  }
  if(action==="daily-operator-unlock"){
-   if(!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"Supervisor permission is required to unlock the daily operator"},403);
+   if(hasCanonicalIdentity&&!isRootAuthority?!moduleRights.DOWNTIME.manage:!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"SCPL MANAGE permission is required to unlock the DOWNTIME daily operator"},403);
    const dutyDate=String(body.dutyDate||""),reason=String(body.reason||"").trim().slice(0,240);
    if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate))return json({error:"A valid calendar date is required"},400);
    if(reason.length<4)return json({error:"Enter a reason for unlocking this daily assignment"},400);
@@ -499,7 +509,7 @@ Deno.serve(async(req)=>{
    const centralVersion=await bumpCentralVersion();
    return json({ok:true,dutyDate,isLocked:false,updatedBy:currentUser.username,updatedAt:now,centralVersion});
  }
- if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers||priv.canViewUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canDeleteRecords&&priv.canViewDashboards)restrictedData.weeks=addStableRecordIds(restrictedData.weeks||{});if(!priv.canViewStaff&&!priv.canManageStaff&&!priv.canManageAssignments){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}else if(!priv.canViewStaff&&!priv.canManageStaff&&priv.canManageAssignments){const assignmentProfiles=publicBank.staff?.profiles||{};const minimalProfiles=Object.fromEntries(Object.entries(assignmentProfiles).map(([name,profile]:any)=>[name,{name,onSite:profile?.onSite!==false,station:String(profile?.station||profile?.assignedStation||"").slice(0,100)}]));publicBank.staff={roster:publicBank.staff?.roster||[],profiles:minimalProfiles};restrictedData.staffRoster=publicBank.staff.roster;restrictedData.operatorProfiles=minimalProfiles;}if(!priv.canViewAssignments&&!priv.canManageAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff||priv.canManageStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!(priv.canViewAreaPresets||priv.canManageAreaPresets||priv.canManageSettings))delete restrictedData.areas;if(!(priv.canViewReasonPresets||priv.canManageReasonPresets||priv.canAddDowntimeReasons||priv.canManageSettings))delete restrictedData.reasons;if(!(priv.canViewShiftSchedule||priv.canManageShiftSchedule||priv.canManageSettings)){delete restrictedData.shiftSchedule;delete restrictedData.shiftPresets;}if(!(priv.canViewDailyTasks||priv.canManageDailyTasks||priv.canManageSettings))delete restrictedData.dailyTaskPresets;if(!(priv.canViewStations||priv.canViewAssignments||priv.canManageAssignments||priv.canManageSettings))delete restrictedData.stationConfig;if(!priv.canViewReports)delete restrictedData.archive;publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};const {data:dailyOperators,error:dailyOperatorError}=await db.from("downtime_daily_operator_assignments").select("duty_date,operator_name,is_locked,assigned_by,assigned_at,locked_by,locked_at,updated_by,updated_at").order("duty_date",{ascending:false}).limit(400);if(dailyOperatorError)return json({error:"Daily operator register is unavailable"},503);publicBank.dailyOperators=dailyOperators||[];return json({payload:publicBank,dailyOperators:dailyOperators||[],user:safeUser({...currentUser,rootsAuthority,yardRolePermissions:resolvedYardRole?.departments||null}),version:row?.version||0,updatedAt:row?.updated_at});}
+ if(action==="get-state"){const publicBank={...bank,users:priv.canManageUsers||priv.canViewUsers?bank.users.map(safeUser):[safeUser(currentUser)]};const restrictedData={...(publicBank.appData||{})};if(!priv.canDeleteRecords&&priv.canViewDashboards)restrictedData.weeks=addStableRecordIds(restrictedData.weeks||{});if(!priv.canViewStaff&&!priv.canManageStaff&&!priv.canManageAssignments){publicBank.staff={roster:[],profiles:{}};delete restrictedData.staffRoster;delete restrictedData.operatorProfiles;}else if(!priv.canViewStaff&&!priv.canManageStaff&&priv.canManageAssignments){const assignmentProfiles=publicBank.staff?.profiles||{};const minimalProfiles=Object.fromEntries(Object.entries(assignmentProfiles).map(([name,profile]:any)=>[name,{name,onSite:profile?.onSite!==false,station:String(profile?.station||profile?.assignedStation||"").slice(0,100)}]));publicBank.staff={roster:publicBank.staff?.roster||[],profiles:minimalProfiles};restrictedData.staffRoster=publicBank.staff.roster;restrictedData.operatorProfiles=minimalProfiles;}if(!priv.canViewAssignments&&!priv.canManageAssignments){delete restrictedData.assignments;if(restrictedData.weeks){for(const weekData of Object.values(restrictedData.weeks) as any[]){for(const dayData of (weekData?.days||[])){delete dayData.operator;}}}if(priv.canViewStaff||priv.canManageStaff){const hideAssignments=(profiles:any)=>Object.fromEntries(Object.entries(profiles||{}).map(([name,profile]:any)=>{const clean={...profile};delete clean.station;delete clean.assignedStation;return [name,clean]}));publicBank.staff={...publicBank.staff,profiles:hideAssignments(publicBank.staff?.profiles)};restrictedData.operatorProfiles=hideAssignments(restrictedData.operatorProfiles);}}if(!priv.canViewDashboards){delete restrictedData.weeks;delete restrictedData.quickReasons;delete restrictedData.archive;}if(!(priv.canViewAreaPresets||priv.canManageAreaPresets||priv.canManageSettings))delete restrictedData.areas;if(!(priv.canViewReasonPresets||priv.canManageReasonPresets||priv.canAddDowntimeReasons||priv.canManageSettings))delete restrictedData.reasons;if(!(priv.canViewShiftSchedule||priv.canManageShiftSchedule||priv.canManageSettings)){delete restrictedData.shiftSchedule;delete restrictedData.shiftPresets;}if(!(priv.canViewDailyTasks||priv.canManageDailyTasks||priv.canManageSettings))delete restrictedData.dailyTaskPresets;if(!(priv.canViewStations||priv.canViewAssignments||priv.canManageAssignments||priv.canManageSettings))delete restrictedData.stationConfig;if(!priv.canViewReports)delete restrictedData.archive;if(hasCanonicalIdentity&&!isRootAuthority&&!moduleRights.DOWNTIME.view){const staffOnly:any={};for(const field of ["staffRoster","operatorProfiles","staffRoles","stationConfig"])if(Object.prototype.hasOwnProperty.call(restrictedData,field))staffOnly[field]=restrictedData[field];for(const field of Object.keys(restrictedData))delete restrictedData[field];Object.assign(restrictedData,staffOnly);}publicBank.appData=restrictedData;publicBank.statsSource={weeks:priv.canViewDashboards?(restrictedData.weeks||{}):{}};const {data:dailyOperators,error:dailyOperatorError}=await db.from("downtime_daily_operator_assignments").select("duty_date,operator_name,is_locked,assigned_by,assigned_at,locked_by,locked_at,updated_by,updated_at").order("duty_date",{ascending:false}).limit(400);if(dailyOperatorError)return json({error:"Daily operator register is unavailable"},503);const scopedDailyOperators=hasCanonicalIdentity&&!isRootAuthority&&!moduleRights.DOWNTIME.view?[]:(dailyOperators||[]);publicBank.dailyOperators=scopedDailyOperators;return json({payload:publicBank,dailyOperators:scopedDailyOperators,user:safeUser({...currentUser,rootsAuthority,yardRolePermissions:resolvedYardRole?.departments||null}),version:row?.version||0,updatedAt:row?.updated_at});}
  if(action==="save-state"){
    if(!priv.canEditTracker)return json({error:"Permission denied"},403);
    const incoming=body?.appData;if(!incoming||typeof incoming!=="object"||Array.isArray(incoming))return json({error:"appData required"},400);
@@ -507,8 +517,8 @@ Deno.serve(async(req)=>{
    if(Object.prototype.hasOwnProperty.call(bank.appData||{},"stationConfig"))nextAppData.stationConfig=bank.appData.stationConfig;else delete nextAppData.stationConfig;
    const oldWeeks=bank.appData?.weeks||{};
    const submittedWeeks=incoming.weeks&&typeof incoming.weeks==="object"?incoming.weeks:{};
-   const canonicalManagement=hasCanonicalIdentity&&!isRootAuthority;
-   const managementRights=resolvedYardRole?.departments?.Management||null;
+   const canonicalScpl=hasCanonicalIdentity&&!isRootAuthority;
+   const scplRights=resolvedYardRole?.departments?.SCPL||null;
    const keyForEntry=(entry:any,index:number)=> {
      const id=typeof entry?.recordId==="string"?entry.recordId:"";
      return id&&!id.startsWith("legacy-")?"id:"+id:"position:"+index;
@@ -517,11 +527,11 @@ Deno.serve(async(req)=>{
      const value={...(entry||{})};delete value.recordId;
      return JSON.stringify(value);
    };
-   if(canonicalManagement){
-     const canView=managementRights?.view===true;
-     const canEnter=managementRights?.enter===true;
-     const canEdit=managementRights?.edit===true;
-     const canManage=managementRights?.manage===true;
+   if(canonicalScpl){
+     const canView=scplRights?.view===true;
+     const canEnter=scplRights?.enter===true;
+     const canEdit=scplRights?.edit===true;
+     const canManage=scplRights?.manage===true;
      if(canView){
        const weekKeys=new Set([...Object.keys(oldWeeks),...Object.keys(submittedWeeks)]);
        for(const weekKey of weekKeys){
@@ -534,12 +544,12 @@ Deno.serve(async(req)=>{
            const oldMap=new Map(oldEntries.map((entry:any,index:number)=>[keyForEntry(entry,index),entry]));
            const newMap=new Map(newEntries.map((entry:any,index:number)=>[keyForEntry(entry,index),entry]));
            for(const [key,newEntry] of newMap){
-             if(!oldMap.has(key)&&!canEnter)return json({error:"Management ENTER permission is required to add operational records."},403);
+             if(!oldMap.has(key)&&!canEnter)return json({error:"SCPL INPUT permission is required to add DOWNTIME records."},403);
              if(oldMap.has(key)&&entryValue(oldMap.get(key))!==entryValue(newEntry)&&!canEdit)
-               return json({error:"Management EDIT permission is required to change operational records."},403);
+               return json({error:"SCPL EDIT permission is required to change DOWNTIME records."},403);
            }
            for(const key of oldMap.keys()){
-             if(!newMap.has(key)&&!canManage)return json({error:"Management MANAGE permission is required to remove operational records."},403);
+             if(!newMap.has(key)&&!canManage)return json({error:"SCPL MANAGE permission is required to remove DOWNTIME records."},403);
            }
          }
        }
@@ -564,11 +574,11 @@ Deno.serve(async(req)=>{
              const existingIndex=mergedDay.entries.findIndex((entry:any,index:number)=>keyForEntry(entry,index)===key);
              if(existingIndex>=0){
                if(entryValue(mergedDay.entries[existingIndex])!==entryValue(submittedEntry)){
-                 if(!canEdit)return json({error:"Management EDIT permission is required to change operational records."},403);
+                 if(!canEdit)return json({error:"SCPL EDIT permission is required to change DOWNTIME records."},403);
                  mergedDay.entries[existingIndex]={...submittedEntry,recordId:mergedDay.entries[existingIndex].recordId||submittedEntry.recordId||crypto.randomUUID()};
                }
              }else{
-               if(!canEnter)return json({error:"Management ENTER permission is required to add operational records."},403);
+               if(!canEnter)return json({error:"SCPL INPUT permission is required to add DOWNTIME records."},403);
                mergedDay.entries.push({...submittedEntry,recordId:submittedEntry.recordId||crypto.randomUUID()});
              }
            }
@@ -671,9 +681,9 @@ Deno.serve(async(req)=>{
    const canManageReasons=priv.canManageSettings||priv.canManageReasonPresets;
    const canManageSchedule=priv.canManageSettings||priv.canManageShiftSchedule;
    const canManageTasks=priv.canManageSettings||priv.canManageDailyTasks;
-   const canManageStaff=!!priv.canManageStaff,canManageAssignments=!!priv.canManageAssignments,canManageStations=!!priv.canManageSettings;
+   const canManageStaff=!!priv.canManageStaff,canEnterStaff=!!priv.canEnterStaff,canEditStaff=!!priv.canEditStaff,canManageAssignments=!!priv.canManageAssignments,canManageStations=!!priv.canManageSettings;
    const canAddReasons=canManageReasons||!!priv.canAddDowntimeReasons;
-   if(!(canManageAreas||canAddReasons||canManageSchedule||canManageTasks||canManageStaff||canManageAssignments||canManageStations))return json({error:"Permission denied"},403);
+   if(!(canManageAreas||canAddReasons||canManageSchedule||canManageTasks||canManageStaff||canEnterStaff||canEditStaff||canManageAssignments||canManageStations))return json({error:"Permission denied"},403);
    const nextAppData={...(bank.appData||{})};
    const cleanList=(value:any,maxItems:number,maxLength:number)=>Array.isArray(value)?value.filter((item:any)=>typeof item==="string"&&item.trim()).slice(0,maxItems).map((item:string)=>item.trim().slice(0,maxLength)):[];
    if(canManageAreas){
@@ -713,16 +723,31 @@ Deno.serve(async(req)=>{
    const currentProfiles=bank.staff.profiles||bank.appData?.operatorProfiles||{};
    const previousStaffRoles=Array.isArray(bank.appData?.staffRoles)?bank.appData.staffRoles:[];
    let staffAuditEvents:any[]=[];
-   if(canManageStaff){
+   if(canManageStaff||canEnterStaff||canEditStaff){
      if(incoming.operatorProfiles!==undefined&&(!incoming.operatorProfiles||typeof incoming.operatorProfiles!=="object"||Array.isArray(incoming.operatorProfiles)))return json({error:"Invalid staff profiles"},400);
      if(!Array.isArray(incoming.staffRoster))return json({error:"Invalid staff roster"},400);
      const newProfiles=structuredClone(currentProfiles||{});
      for(const [name,incomingProfile] of Object.entries((incoming.operatorProfiles||{}) as Record<string,any>)){
        const cleanName=String(name||"").trim();
        if(!cleanName||cleanName.length>80||!incomingProfile||typeof incomingProfile!=="object"||Array.isArray(incomingProfile))return json({error:"Invalid staff profile entry"},400);
+       const hasExistingProfile=Object.prototype.hasOwnProperty.call(newProfiles,cleanName);
        const existing={...((newProfiles as any)[cleanName]||{})};
+       if(!hasExistingProfile&&!canEnterStaff&&!canManageStaff)return json({error:"Management INPUT permission is required to add STAFF profiles."},403);
+       if(hasExistingProfile&&!canEditStaff&&!canManageStaff){
+         const allowedFields=new Set(["department","onSiteRole","onSite"]);
+         if(Object.keys(incomingProfile).some((field:string)=>!allowedFields.has(field)&&JSON.stringify((incomingProfile as any)[field])!==JSON.stringify((existing as any)[field])))return json({error:"Management EDIT permission is required to change this STAFF profile field."},403);
+       }
+       if(!canManageStaff){
+         const allowedFields=hasExistingProfile?new Set(["department","onSiteRole","onSite"]):new Set(["department","onSiteRole","onSite","status"]);
+         if(Object.keys(incomingProfile).some((field:string)=>!allowedFields.has(field)&&JSON.stringify((incomingProfile as any)[field])!==JSON.stringify((existing as any)[field])))return json({error:"STAFF INPUT / EDIT does not include photo, archive or identity-link management."},403);
+         if(hasExistingProfile&&Object.prototype.hasOwnProperty.call(incomingProfile,"status")&&incomingProfile.status!==existing.status)return json({error:"Management MANAGE permission is required to archive or restore STAFF."},403);
+       }
        if(("staffId" in incomingProfile&&incomingProfile.staffId!==existing.staffId)||("linkedUserId" in incomingProfile&&incomingProfile.linkedUserId!==existing.linkedUserId)||"userId" in incomingProfile)return json({error:"STAFF Settings cannot create or alter authenticated USER identity links."},400);
        const profile={...existing,...incomingProfile};
+       if(!canManageStaff){
+         for(const field of Object.keys(existing))if(!["department","onSiteRole","onSite","status"].includes(field))profile[field]=existing[field];
+         for(const field of Object.keys(profile))if(!["department","onSiteRole","onSite","status"].includes(field)&&!Object.prototype.hasOwnProperty.call(existing,field))delete profile[field];
+       }
        for(const field of ["staffId","linkedUserId"]){if(Object.prototype.hasOwnProperty.call(existing,field))profile[field]=existing[field];else delete profile[field]}
        const department=String(profile.department||"");
        if(department){
@@ -770,7 +795,8 @@ Deno.serve(async(req)=>{
        (newProfiles as any)[cleanName]=profile;
      }
      let nextStaffRoles=previousStaffRoles;
-     if(incoming.staffRoles!==undefined){
+     if(incoming.staffRoles!==undefined&&!canManageStaff&&JSON.stringify(incoming.staffRoles)!==JSON.stringify(previousStaffRoles))return json({error:"Management MANAGE permission is required to maintain STAFF role definitions."},403);
+     if(incoming.staffRoles!==undefined&&canManageStaff){
        if(!Array.isArray(incoming.staffRoles)||incoming.staffRoles.length<1||incoming.staffRoles.length>100)return json({error:"At least one and no more than 100 on-site roles must be configured"},400);
        nextStaffRoles=incoming.staffRoles.map((role:any)=>typeof role==="string"?role.trim():"");
        if(nextStaffRoles.some((role:string)=>!role||role.length>60)||new Set(nextStaffRoles.map((role:string)=>role.toLowerCase())).size!==nextStaffRoles.length)return json({error:"On-site roles must be unique names of 1–60 characters"},400);
@@ -904,7 +930,7 @@ Deno.serve(async(req)=>{
    return json({ok:true,version:(row?.version||0)+1});
  }
  if(action==="staff-save"){
-   if(!isRootAuthority)return json({error:"Only protected ROOTS identities may maintain STAFF identities."},403);
+   if(!priv.canManageStaff)return json({error:"Management MANAGE permission is required to maintain STAFF profiles."},403);
    const name=String(body.name||"").trim();if(!name||name.length>80)return json({error:"Staff name required"},400);
    bank.staff.profiles=bank.staff.profiles||{};bank.staff.roster=bank.staff.roster||[];
    const existingProfile=bank.staff.profiles[name]||bank.appData?.operatorProfiles?.[name]||{};
