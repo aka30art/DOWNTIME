@@ -170,7 +170,7 @@ Deno.serve(async (req: Request) => {
           yardRoleId: assignment?.yard_role_id || account.yardRoleId || null,
         };
       }).sort((a: any, b: any) => a.username.localeCompare(b.username)),
-      yardRoles: assignableYardRoles,\n      roleCatalogue: (yardRoles || []).map((role: any) => ({ ...role, permissions: (rolePermissions || []).filter((row: any) => String(row.yard_role_id).toLowerCase() === String(role.id).toLowerCase()).map((row: any) => ({ department: row.department, can_view: row.can_view === true, can_enter: row.can_enter === true, can_edit: row.can_edit === true, can_manage: row.can_manage === true })) })),
+      yardRoles: assignableYardRoles,\n      roleCatalogue: isRootDev(user, legacyTier) ? (yardRoles || []).map((role: any) => ({ ...role, permissions: (rolePermissions || []).filter((row: any) => String(row.yard_role_id).toLowerCase() === String(role.id).toLowerCase()).map((row: any) => ({ department: row.department, can_view: row.can_view === true, can_enter: row.can_enter === true, can_edit: row.can_edit === true, can_manage: row.can_manage === true })) })) : [],
       userTiers: configRow.payload?.userTiers || {},
       centralVersion: Number(bankRow.version || 0),
       tierPermissions: normalizeTierPermissions(configRow.payload, configRow.payload, [...tierNames.filter(name => !(configRow.payload.retiredTiers || []).includes(name)), ...(Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [])]),
