@@ -139,8 +139,8 @@ assert.match(html, /settings-accent-violet/, 'DOWNTIME violet accent must be pre
 
 const settingsGridStart = html.indexOf('<div class="settings-card-grid">');
 const settingsGridEnd = html.indexOf('</div>', settingsGridStart);
-assert.equal((html.slice(settingsGridStart, settingsGridEnd).match(/data-settings-open="/g) || []).length, 7,
-  'the DOWNTIME Settings grid must expose USERS, STAFF and all five operational configuration destinations');
+assert.equal((html.slice(settingsGridStart, settingsGridEnd).match(/data-settings-open="/g) || []).length, 5,
+  'the DOWNTIME Settings grid exposes only the five operational configuration destinations');
 
 assert.match(html, /id="stationManagerStatus"[^>]*role="status"/, 'Station Manager has an accessible save status');
 assert.match(html, /function saveStationManager\(\)[\s\S]*?persistSettingsConfirmed\(\)/, 'Station Manager saves only after central acknowledgement');
