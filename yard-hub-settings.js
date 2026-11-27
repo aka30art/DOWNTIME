@@ -6,10 +6,10 @@
   const editableByAdmin=['MANAGER','SUPERVISOR','MECHANIC','USER','SPECTATOR'];
   const roleLabels={OWNER:'OWNER · ROOT',DEVACC:'DEVACC',ADMIN:'ADMIN',MANAGER:'MANAGER',SUPERVISOR:'SUPERVISOR',MECHANIC:'MECHANIC',USER:'USER',SPECTATOR:'SPECTATOR'};
   const sections=[{key:'floor',label:'STAFF MANAGEMENT'},{key:'checkSheets',label:'DAILY'},{key:'repairMaintenance',label:'REPAIRS & MAINTENANCE'},{key:'repairMaintenanceMachinery',label:'R&M MACHINERY'}];
-  const modes=['NONE','READ','INPUT','EDIT'];
+  const modes=['NONE','READ','INPUT','EDIT'];\n  const yardDepartments=['SCPL','R&M','Management','SCFL','Traffic'];\n  const yardPermissionFields=[{key:'can_view',label:'VIEW'},{key:'can_enter',label:'ENTER'},{key:'can_edit',label:'EDIT'},{key:'can_manage',label:'MANAGE'}];
   const staffDepartmentRules={SCPL:{roles:['Main Operator','Picking Line Crew']},'R&M':{role:'Mechanic'},Management:{role:'Manager'},SCFL:{role:'Floor Crew'},Traffic:{role:'Gateman'}};
   const allRoles=()=>[...roles.filter(role=>!(workingPayload?.retiredTiers||[]).includes(role)),...(Array.isArray(workingPayload?.customTiers)?workingPayload.customTiers:[])];
-  let state=null,workingPayload=null,editingUsername=null,saving=false,myHubTier=null,myCanManageSettings=false,accessRefresh=null;
+  let state=null,workingPayload=null,editingUsername=null,saving=false,myHubTier=null,myCanManageSettings=false,accessRefresh=null;\n  let editingYardRoleId=null,editingYardRoleVersion=0,workingYardRolePermissions=[],yardRoleOriginal=null;
 
   function currentSession(){return window.DowntimeCentral?.session||null}
   function currentUser(){return currentSession()?.user||null}
@@ -44,7 +44,7 @@
   }
   function setBusy(value){
     saving=value;
-    ['yardHubUserSave','yardHubUserStatus','yardHubTierSave'].forEach(id=>{const b=$(id);if(b)b.disabled=value});
+    ['yardHubUserSave','yardHubUserStatus','yardHubTierSave','yardHubRoleSave','yardHubRoleAdd'].forEach(id=>{const b=$(id);if(b)b.disabled=value});
     const addUser=$('yardHubUserAdd');
     if(addUser)addUser.disabled=value||state?.canManageCentralUsers!==true||!rootDev()||!(state?.yardRoles||[]).length;
   }
@@ -94,10 +94,10 @@
     myHubTier=String(result.user?.hubTier||myHubTier||'USER').toUpperCase();
     myCanManageSettings=true;
     workingPayload=JSON.parse(JSON.stringify(result.tierPermissions));
-    renderUsers();renderTierCards();updateTierSaveState();
+    renderUsers();renderTierCards();renderYardRoleCards();updateTierSaveState();
     const addUser=$('yardHubUserAdd');
     if(addUser)addUser.disabled=saving||result.canManageCentralUsers!==true||!rootDev()||!(result.yardRoles||[]).length;
-    const addTier=$('yardHubCustomTierAdd');
+    const addRole=$('yardHubRoleAdd');if(addRole)addRole.hidden=!rootDev();\n    const roleHome=$('yardHubSettingsRoles');if(roleHome)roleHome.hidden=!rootDev();\n    const addTier=$('yardHubCustomTierAdd');
     if(addTier)addTier.hidden=!isRootAdmin();
     return result;
   }
@@ -130,7 +130,7 @@
     $('yardHubSettingsTitle').textContent=view==='users'?'USERS':'TIERS';
     setStatus('');
     if(view==='users')renderUsers();
-    if(view==='tiers')renderTierCards();
+    if(view==='tiers')renderTierCards();\n    if(view==='roles')renderYardRoleCards();
   }
   async function openSettings(){
     setStatus('VERIFYING SETTINGS ACCESS…');
@@ -375,6 +375,87 @@
     }catch(error){setStatus(error.message||'Unable to update account status.','error')}
     finally{setBusy(false)}
   }
+  function renderYardRoleCards(){
+    const host=$('yardHubRoleCards');if(!host||!state)return;
+    host.replaceChildren();
+    const catalogue=Array.isArray(state.roleCatalogue)?state.roleCatalogue:[];
+    if(!catalogue.length){host.appendChild(element('p','yard-hub-empty','No YARD ROLES have been created. Create the first role and configure its five-department permission matrix.'));return}
+    catalogue.forEach(role=>{
+      const card=element('article','yard-hub-role-card');
+      const head=element('header','yard-hub-role-card-head');
+      const identity=element('div','');
+      identity.append(element('strong','',role.name),element('small','',role.description||'No description'));
+      head.appendChild(identity);
+      head.appendChild(element('span','yard-hub-role-status',role.status));
+      card.appendChild(head);
+      const permissions=Array.isArray(role.permissions)?role.permissions:[];
+      const summary=permissions.map(row=>row.department+': '+yardPermissionFields.filter(field=>row[field.key]===true).map(field=>field.label).join(', ')).join(' · ');
+      card.appendChild(element('p','',summary||'No permissions configured'));
+      const actions=element('div','yard-hub-role-actions');
+      const edit=element('button','yard-hub-secondary','EDIT ROLE');edit.type='button';edit.disabled=!rootDev()||saving;
+      edit.addEventListener('click',()=>openYardRoleModal(role));
+      actions.appendChild(edit);card.appendChild(actions);host.appendChild(card);
+    });
+  }
+  function renderYardRolePermissionControls(){
+    const host=$('yardHubRolePermissions');if(!host)return;
+    host.replaceChildren();
+    yardDepartments.forEach(department=>{
+      const current=workingYardRolePermissions.find(row=>row.department===department)||{department,can_view:false,can_enter:false,can_edit:false,can_manage:false};
+      const row=element('div','yard-hub-role-permission-row');
+      row.appendChild(element('strong','',department));
+      yardPermissionFields.forEach(field=>{
+        const label=element('label','yard-hub-role-check');
+        const box=document.createElement('input');box.type='checkbox';box.checked=current[field.key]===true;box.dataset.department=department;box.dataset.permission=field.key;
+        box.addEventListener('change',()=>{
+          const target=workingYardRolePermissions.find(item=>item.department===department);
+          if(target)target[field.key]=box.checked;
+        });
+        label.append(box,element('span','',field.label));row.appendChild(label);
+      });
+      host.appendChild(row);
+    });
+  }
+  function openYardRoleModal(role=null){
+    if(!rootDev()||saving)return;
+    editingYardRoleId=role?.id||null;editingYardRoleVersion=Number(role?.version||0);
+    $('yardHubRoleName').value=role?.name||'';
+    $('yardHubRoleDescription').value=role?.description||'';
+    $('yardHubRoleStatus').value=role?.status||'DRAFT';
+    workingYardRolePermissions=yardDepartments.map(department=>{
+      const row=(role?.permissions||[]).find(item=>item.department===department)||{};
+      return {department,can_view:row.can_view===true,can_enter:row.can_enter===true,can_edit:row.can_edit===true,can_manage:row.can_manage===true};
+    });
+    yardRoleOriginal=role?JSON.stringify({name:role.name,description:role.description,status:role.status,permissions:workingYardRolePermissions}):null;
+    $('yardHubRoleModalTitle').textContent=role?'EDIT YARD ROLE':'CREATE YARD ROLE';
+    $('yardHubRoleSave').disabled=false;
+    renderYardRolePermissionControls();
+    $('yardHubRoleModal').hidden=false;
+    $('yardHubRoleName').focus();
+  }
+  function closeYardRoleModal(){
+    const modal=$('yardHubRoleModal');if(!modal||modal.hidden)return;
+    const current=JSON.stringify({name:$('yardHubRoleName').value.trim(),description:$('yardHubRoleDescription').value.trim(),status:$('yardHubRoleStatus').value,permissions:workingYardRolePermissions});
+    if(current!==yardRoleOriginal&&!window.confirm('Discard unsaved YARD ROLE changes?'))return;
+    modal.hidden=true;editingYardRoleId=null;editingYardRoleVersion=0;workingYardRolePermissions=[];yardRoleOriginal=null;
+  }
+  async function saveYardRole(event){
+    event?.preventDefault();
+    if(saving||!rootDev())return;
+    const name=String($('yardHubRoleName').value||'').trim(),description=String($('yardHubRoleDescription').value||'').trim(),status=String($('yardHubRoleStatus').value||'DRAFT');
+    if(!name||name.length>80||description.length>500){setStatus('Enter a valid YARD ROLE name and description.','error');return}
+    if(workingYardRolePermissions.length!==5||yardDepartments.some(department=>!workingYardRolePermissions.some(row=>row.department===department))){setStatus('All five departments require a permission record.','error');return}
+    setBusy(true);setStatus('SAVING YARD ROLE…');
+    try{
+      await callApi('yard-role-save',{roleId:editingYardRoleId||undefined,version:editingYardRoleVersion,name,description,status,permissions:workingYardRolePermissions});
+      await loadState();
+      $('yardHubRoleModal').hidden=true;editingYardRoleId=null;editingYardRoleVersion=0;workingYardRolePermissions=[];yardRoleOriginal=null;
+      setStatus('YARD ROLE SAVED.','ok');
+    }catch(error){
+      setStatus(error.message||'Unable to save YARD ROLE.','error');
+      if(error.status===409){try{await loadState()}catch{}}
+    }finally{setBusy(false)}
+  }
   function renderTierCards(){
     const host=$('yardHubTierCards');if(!host||!workingPayload)return;
     host.replaceChildren();
@@ -455,7 +536,7 @@
     if(button){button.hidden=true;button.addEventListener('click',openSettings)}
     $('yardHubSettingsBack')?.addEventListener('click',closeSettings);
     $('yardHubSettingsUsers')?.addEventListener('click',()=>openSettingsView('users'));
-    $('yardHubSettingsTiers')?.addEventListener('click',()=>openSettingsView('tiers'));
+    $('yardHubSettingsTiers')?.addEventListener('click',()=>openSettingsView('tiers'));\n    $('yardHubSettingsRoles')?.addEventListener('click',()=>openSettingsView('roles'));\n    $('yardHubRoleAdd')?.addEventListener('click',()=>openYardRoleModal());\n    $('yardHubRoleCancel')?.addEventListener('click',closeYardRoleModal);\n    $('yardHubRoleForm')?.addEventListener('submit',saveYardRole);\n    $('yardHubRoleModal')?.addEventListener('click',event=>{if(event.target===$('yardHubRoleModal'))closeYardRoleModal()});
     document.querySelectorAll('[data-yard-settings-home]').forEach(node=>node.addEventListener('click',showSettingsHome));
     $('yardHubUserAdd')?.addEventListener('click',()=>openUserModal());
     $('yardHubUserCancel')?.addEventListener('click',closeUserModal);
@@ -474,7 +555,7 @@
       renderTierCards();updateTierSaveState();setStatus('');
     });
     $('yardHubUserModal')?.addEventListener('click',event=>{if(event.target===$('yardHubUserModal'))closeUserModal()});
-    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('yardHubUserModal')?.hidden)closeUserModal()});
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('yardHubUserModal')?.hidden)closeUserModal();if(event.key==='Escape'&&!$('yardHubRoleModal')?.hidden)closeYardRoleModal()});
     window.addEventListener('yard-hub:shown',()=>configureButton().catch(()=>{}));
     configureButton().catch(()=>{});
   }
