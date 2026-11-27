@@ -107,3 +107,23 @@
 .yard-hub-role-form{max-width:760px}
 .yard-hub-role-form textarea{width:100%;min-height:64px;resize:vertical}
 @media(max-width:520px){.yard-hub-role-permission-row{grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:5px;padding:8px}.yard-hub-role-permission-row>strong{grid-column:1/-1}.yard-hub-role-check{font-size:8px}}
+
+.yard-hub-roots-assignment,.yard-hub-roots-directory{margin-top:16px;padding:16px;border:1px solid #304b5e;border-radius:14px;background:linear-gradient(145deg,#132a39,#0b1924)}
+.yard-hub-roots-assignment h3,.yard-hub-roots-directory h3{margin:0 0 12px;color:#ffd12a;font-size:12px;font-weight:950;letter-spacing:1px}
+.yard-hub-roots-form{display:grid;grid-template-columns:minmax(180px,1.5fr) minmax(130px,1fr) auto;align-items:end;gap:10px}
+.yard-hub-roots-form label{display:grid;gap:6px;color:#a9bdc9;font-size:10px;font-weight:900;letter-spacing:.7px}
+.yard-hub-roots-form select,.yard-hub-root-actions select,.yard-hub-user-role-assignment select{min-width:0;min-height:40px;padding:8px 10px;border:1px solid #526b7e;border-radius:8px;background:#071723;color:#f2f6f9;font:inherit}
+.yard-hub-roots-list{display:grid;gap:9px}
+.yard-hub-root-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid #304b5e;border-radius:10px;background:#0a1924}
+.yard-hub-root-identity{display:grid;gap:4px;min-width:0}
+.yard-hub-root-identity strong{color:#f2f6f9;font-size:13px}
+.yard-hub-root-identity small{color:#91a9b8;font-size:10px;overflow-wrap:anywhere}
+.yard-hub-root-actions,.yard-hub-user-role-assignment{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.yard-hub-user-role-assignment{grid-column:1/-1;padding-top:6px;border-top:1px solid #304b5e}
+.yard-hub-user-role-assignment select{flex:1 1 180px}
+@media(max-width:650px){
+ .yard-hub-roots-form{grid-template-columns:1fr}
+ .yard-hub-root-card{align-items:stretch;flex-direction:column}
+ .yard-hub-root-actions{display:grid;grid-template-columns:minmax(0,1fr) auto auto}
+ .yard-hub-roots-form button{width:100%}
+}
