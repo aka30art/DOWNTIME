@@ -94,7 +94,6 @@ Deno.serve(async(req)=>{
   const user=context.user,permissions=context.permissions;
 
   if(action==="create-upload"){
-    if(permissions.canEditTracker!==true||permissions.canViewDashboards!==true)return json({error:"DOWNTIME input permission required"},403);
     const entryKey=body?.entryKey,recordId=body?.recordId,mime=body?.mimeType,size=Number(body?.size);
     if(!uuidPattern.test(entryKey||""))return json({error:"Invalid photo entry key"},400);
     if(!recordIdPattern.test(recordId||""))return json({error:"A valid operational record ID is required"},400);
@@ -103,6 +102,12 @@ Deno.serve(async(req)=>{
     const {data:existing,error:existingError}=await admin.from("downtime_attachments").select("id,storage_path,expires_at,status,record_id,uploaded_by_user_id").eq("downtime_entry_key",entryKey).maybeSingle();
     if(existingError)return json({error:"Unable to check existing photo evidence"},503);
     if(existing&&existing.record_id!==recordId)return json({error:"Photo entry key is already associated with another operational record"},409);
+    const {data:bankRow,error:bankError}=await admin.from("downtime_central_bank").select("payload").eq("id",1).maybeSingle();
+    if(bankError||!bankRow?.payload)return json({error:"Operational record state unavailable"},503);
+    const associated=findOperationalRecord(bankRow.payload,recordId,null);
+    if(existing&&!associated)return json({error:"Photo is not attached to an active operational record"},404);
+    if(!existing&&associated&&permissions.canEditRecords!==true&&permissions.canDeleteRecords!==true)return json({error:"Management EDIT or MANAGE permission is required to attach photo evidence to an existing record"},403);
+    if(!existing&&!associated&&permissions.canEnterRecords!==true)return json({error:"Management ENTER permission is required to attach photo evidence to a new record"},403);
     if(existing&&existing.uploaded_by_user_id!==user.userId&&permissions.canDeleteRecords!==true)return json({error:"Only the original uploader or a Manage-authorised user may replace this photo."},403);
     if(existing&&!existing.uploaded_by_user_id&&permissions.canDeleteRecords!==true)return json({error:"Legacy photo evidence has no verified owner; Manage permission is required to replace it."},403);
     if(existing&&existing.status==="available"&&new Date(existing.expires_at)>new Date())return json({error:"An active photo already exists for this entry"},409);
@@ -135,7 +140,6 @@ Deno.serve(async(req)=>{
   }
 
   if(action==="view"){
-    if(permissions.canViewDashboards!==true)return json({error:"DOWNTIME read permission required"},403);
     const id=body?.attachmentId;
     if(!uuidPattern.test(id||""))return json({error:"Invalid attachment id"},400);
     const {data:row,error}=await admin.from("downtime_attachments").select("storage_path,expires_at,status,record_id,department,uploaded_by_user_id,uploaded_by_staff_id").eq("id",id).maybeSingle();
@@ -154,7 +158,7 @@ Deno.serve(async(req)=>{
   }
 
   if(action==="delete"){
-    if(permissions.canDeleteRecords!==true||permissions.canViewDashboards!==true)return json({error:"Manage permission required to remove photo evidence"},403);
+    if(permissions.canDeleteRecords!==true)return json({error:"Manage permission required to remove photo evidence"},403);
     const id=body?.attachmentId;
     if(!uuidPattern.test(id||""))return json({error:"Invalid attachment id"},400);
     const {data:row,error}=await admin.from("downtime_attachments").select("id,storage_path,record_id,department,status,uploaded_by_user_id,uploaded_by_staff_id").eq("id",id).maybeSingle();
