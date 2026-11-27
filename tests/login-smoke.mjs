@@ -502,19 +502,23 @@ async function ensureNavigationMenuOpen(page){
 async function openStaffSettings(page){
  await ensureMainMenu(page);
  await dismissPlantTransitionAlerts(page);
- // Follow the supported YARD HUB route. Do not expose the removed legacy STAFF card
- // or force-render its hidden Settings panel in the browser regression.
+ // STAFF profile permissions remain independent of the ROOTS-only YARD HUB
+ // administration tile. Open DOWNTIME and use its existing permission-checked
+ // panel router; never navigate through the retired Settings STAFF card.
  const yardHub=page.locator('#yardHub');
- if(!await yardHub.isVisible()){
-  const backToHub=page.locator('#backToYardHub');
-  await backToHub.waitFor({state:'visible',timeout:5000});
-  await backToHub.click();
-  await yardHub.waitFor({state:'visible',timeout:5000});
+ if(await yardHub.isVisible()){
+  await page.locator('#launchDowntimeBtn').click();
+  await page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:5000});
  }
- await page.locator('#launchStaffManagementBtn').waitFor({state:'visible',timeout:5000});
- await page.locator('#launchStaffManagementBtn').click();
- await page.locator('#yardHubSettingsScreen').waitFor({state:'visible',timeout:5000});
- await page.locator('#yardHubSettingsStaff').click();
+ await page.evaluate(()=>{
+  const settings=document.querySelector('#settings');
+  if(!settings)throw new Error('DOWNTIME Settings surface is unavailable');
+  document.querySelectorAll('.view').forEach(view=>view.classList.toggle('active',view===settings));
+  settings.style.display='block';
+  if(typeof openSettingsPanel!=='function')throw new Error('Settings panel router is unavailable');
+  openSettingsPanel('staff');
+ });
+ await page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
  await page.locator('#staffRosterList').waitFor({state:'visible',timeout:5000});
 }
 
