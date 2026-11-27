@@ -880,6 +880,7 @@ Deno.serve(async(req)=>{
    if(!priv.canManageUsers)return json({error:"Staff Management MANAGE or immutable DEV authority is required to maintain ordinary USER identities."},403);
    const username=String(body.username||"").trim(),displayName=String(body.displayName||username).trim(),pin=String(body.pin||"");
    if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username))return json({error:"Invalid username"},400);
+   if(!displayName||displayName.length>80)return json({error:"Display name must contain 1–80 characters."},400);
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
    const existing=idx>=0?bank.users[idx]:null;
    if(!existing)return json({error:"New accounts must use the canonical USER + STAFF + YARD ROLE provisioning workflow."},409);
