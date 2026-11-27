@@ -22,10 +22,10 @@ revoke insert, update, delete on public.downtime_roots_role_definitions from ser
 insert into public.downtime_roots_role_definitions
   (role_key, display_name, visibility, description, capabilities, created_by_user_id)
 select
-  roles.role_key,
-  roles.display_name,
+  role_text.role_key,
+  role_text.display_name,
   'DEV_ONLY',
-  roles.description,
+  role_text.description,
   role_caps.capabilities,
   bootstrap.user_id
 from public.downtime_roots_bootstrap bootstrap
