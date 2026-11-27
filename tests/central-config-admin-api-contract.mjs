@@ -11,8 +11,11 @@ assert.ok(fn.includes('x-downtime-session')&&fn.includes('SHA-256')&&fn.includes
   'endpoint hashes the opaque CDB session token with SHA-256 before lookup');
 assert.ok(fn.includes('downtime_central_sessions')&&fn.includes('.gt("expires_at"'),
   'expired and unknown sessions are denied');
-assert.ok(fn.includes('username === "DEV" && tier === "OWNER"')&&fn.includes('tier === "DEVACC"'),
-  'only DEV root OWNER and DEVACC are admitted');
+assert.ok(fn.includes('resolveRootsAuthority')&&fn.includes('downtime_roots_bootstrap')&&fn.includes('const rootsAuthority = resolveRootsAuthority(user, null, rootsBootstrap.user_id)')&&fn.includes('const isDevRoot = rootsAuthority === "DEV"'),
+  'Central configuration authority is derived from the immutable DEV bootstrap identity');
+assert.ok(fn.includes('if (!isDevRoot) return json({ error: "Central Data Bank access is restricted to immutable DEV." }, 403)'),
+  'only immutable DEV can access draft, publish, restore and administrative configuration actions');
+assert.ok(!fn.includes('tier === "DEVACC"'),'legacy DEVACC is not treated as Central configuration authority');
 assert.ok(fn.includes('downtime_central_config_state')&&fn.includes('downtime_central_config_history'),
   'draft, published and history data use the existing isolated CDB tables');
 assert.ok(fn.includes('downtime_central_audit'),'configuration actions are audited');
