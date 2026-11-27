@@ -159,6 +159,7 @@ assert.match(hubApi,/if \(action === "remove-user-tier"\)[\s\S]*?if \(target\.pr
  assert.ok(ui.includes('LEGACY USER AND YARD HUB SETTINGS SAVED.'), 'legacy Hub tier edits remain compatibility-only');
  assert.ok(ui.includes('state?.canManageStaffUsers!==true'), 'new user creation requires Staff Management MANAGE');
 assert.ok(ui.includes('state?.canAssignUserRoles!==true'), 'ordinary managers may assign existing YARD ROLES but cannot create role definitions');
+assert.ok(ui.includes('state?.canManageUserAccounts!==true'), 'Management MANAGE can maintain ordinary USER account details and status');
 assert.ok(ui.includes('openStaffUserManagement'), 'USER management is reachable from the Staff Management workspace');
 assert.match(config,/\[functions\.yard-hub-settings-api\][\s\S]*?verify_jwt\s*=\s*false/,'YARD HUB API validates the existing opaque session itself');
 
