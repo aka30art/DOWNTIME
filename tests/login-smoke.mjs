@@ -720,7 +720,7 @@ try{
  assert.equal(await nonJanAdmin.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'legacy ADMIN does not receive DEV-only Central Bank access');
  await openSettingsHub(nonJanAdmin.page);
  assert.equal(await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'legacy ADMIN cannot edit Access and Rights');
- await nonJanAdmin.page.locator('[data-settings-open="users"]').click();
+ assert.equal(await nonJanAdmin.page.locator('[data-settings-open="users"]').isVisible().catch(()=>false),false,'legacy ADMIN cannot view the Central Bank USER directory');
  assert.equal(await nonJanAdmin.page.locator('#centralUsersManager').isVisible().catch(()=>false),false,'legacy ADMIN cannot manage Central Bank USER accounts');
  await nonJanAdmin.context.close();
  const devaccBank=makeBank();
@@ -736,7 +736,7 @@ try{
  assert.equal(await devacc.page.locator('.yard-tile[data-app="staff-management"]').isEnabled(),true,'legacy DEVACC may retain its explicit ordinary Staff Management permission');
  await openSettingsHub(devacc.page);
  assert.equal(await devacc.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'legacy DEVACC cannot edit Access and Rights');
- await devacc.page.locator('[data-settings-open="users"]').click();
+ assert.equal(await devacc.page.locator('[data-settings-open="users"]').isVisible().catch(()=>false),false,'legacy DEVACC cannot view the Central Bank USER directory');
  assert.equal(await devacc.page.locator('#centralUsersManager').isVisible().catch(()=>false),false,'legacy DEVACC cannot manage Central Bank USER accounts');
  assert.equal(await devacc.page.locator('#yardHubSettingsBtn').isVisible().catch(()=>false),false,'legacy DEVACC cannot manage canonical YARD ROLE settings');
  await devacc.context.close();
@@ -746,8 +746,7 @@ try{
  await openSettingsHub(manager.page);
  assert.equal(await manager.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'MANAGER never gains access to ADMIN/DEV-only Access and Rights');
  assert.equal(await manager.page.locator('[data-settings-open="areas"]').isVisible(),true,'MANAGER receives ADMIN-equivalent Settings access');
- await manager.page.locator('[data-settings-open="users"]').click();
- assert.equal(await manager.page.locator('#centralUsersManager').isVisible().catch(()=>false),false,'legacy MANAGER cannot manage Central Bank USER accounts');
+ assert.equal(await manager.page.locator('[data-settings-open="users"]').isVisible().catch(()=>false),false,'legacy MANAGER cannot view the Central Bank USER directory');
  await manager.page.locator('#settingsPanelUsers [data-settings-back]').click();
  await manager.page.locator('[data-settings-open="areas"]').click();
  assert.equal(await manager.page.locator('#newAreaPreset').isEnabled(),true,'MANAGER can edit Area Presets when granted ADMIN-equivalent rights');
