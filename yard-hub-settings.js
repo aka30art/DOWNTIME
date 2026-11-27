@@ -35,7 +35,7 @@
   function populateYardRoles(selectedId=''){
     const select=$('yardHubUserYardRole');if(!select)return false;
     select.replaceChildren();
-    const roles=Array.isArray(state?.yardRoles)?state.yardRoles:[];
+    const roles=(Array.isArray(state?.yardRoles)?state.yardRoles:[]).filter(role=>role.status==='ACTIVE');
     if(!roles.length){const option=element('option','','NO ACTIVE YARD ROLES CONFIGURED');option.value='';option.disabled=true;select.appendChild(option);select.value='';return false}
     const placeholder=element('option','','SELECT A YARD ROLE');placeholder.value='';placeholder.disabled=true;select.appendChild(placeholder);
     roles.forEach(role=>{const option=element('option','',role.name);option.value=role.id;select.appendChild(option)});
@@ -52,7 +52,7 @@
     saving=value;
     ['yardHubUserSave','yardHubUserStatus','yardHubTierSave','yardHubRoleSave','yardHubRoleAdd'].forEach(id=>{const b=$(id);if(b)b.disabled=value});
     const addUser=$('yardHubUserAdd');
-    if(addUser)addUser.disabled=value||state?.canManageCentralUsers!==true||!rootDev()||!(state?.yardRoles||[]).length;
+    if(addUser)addUser.disabled=value||state?.canManageCentralUsers!==true||!rootDev()||!(state?.yardRoles||[]).some(role=>role.status==='ACTIVE');
   }
   async function callApi(action,body={}){
     const session=currentSession();
@@ -104,7 +104,7 @@
     workingPayload=JSON.parse(JSON.stringify(result.tierPermissions));
     renderUsers();renderTierCards();renderYardRoleCards();updateTierSaveState();
     const addUser=$('yardHubUserAdd');
-    if(addUser)addUser.disabled=saving||result.canManageCentralUsers!==true||!rootDev()||!(result.yardRoles||[]).length;
+    if(addUser)addUser.disabled=saving||result.canManageCentralUsers!==true||!rootDev()||!(result.yardRoles||[]).some(role=>role.status==='ACTIVE');
     const addRole=$('yardHubRoleAdd');if(addRole)addRole.hidden=!isProtectedRoot();
     const roleHome=$('yardHubSettingsRoles');if(roleHome)roleHome.hidden=!isProtectedRoot();
     const rootsHome=$('yardHubSettingsRoots');if(rootsHome)rootsHome.hidden=!(rootDev()||rootAuthority()==='DEV1');
