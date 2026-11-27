@@ -8,7 +8,7 @@
   const sections=[{key:'floor',label:'STAFF MANAGEMENT'},{key:'checkSheets',label:'DAILY'},{key:'repairMaintenance',label:'REPAIRS & MAINTENANCE'},{key:'repairMaintenanceMachinery',label:'R&M MACHINERY'}];
   const modes=['NONE','READ','INPUT','EDIT'];
   const yardDepartments=['SCPL','R&M','Management','SCFL','Traffic'];
-  const yardPermissionFields=[{key:'can_view',label:'VIEW'},{key:'can_enter',label:'ENTER'},{key:'can_edit',label:'EDIT'},{key:'can_manage',label:'MANAGE'}];
+  const yardPermissionLevels=['OFF','READ ONLY','INPUT','MANAGE'];
   const staffDepartmentRules={SCPL:{roles:['Main Operator','Picking Line Crew']},'R&M':{role:'Mechanic'},Management:{role:'Manager'},SCFL:{role:'Floor Crew'},Traffic:{role:'Gateman'}};
   const allRoles=()=>[...roles.filter(role=>!(workingPayload?.retiredTiers||[]).includes(role)),...(Array.isArray(workingPayload?.customTiers)?workingPayload.customTiers:[])];
   let state=null,workingPayload=null,editingUsername=null,saving=false,myHubTier=null,myCanManageSettings=false,accessRefresh=null;
@@ -135,7 +135,7 @@
     $('yardHubTiersView').hidden=true;
     $('yardHubUserModal').hidden=true;
     $('yardHubRoleModal').hidden=true;
-    $('yardHubSettingsTitle').textContent='YARD HUB SETTINGS';
+    $('yardHubSettingsTitle').textContent='STAFF MANAGEMENT';
     setStatus('');
   }
   function openSettingsView(view){
@@ -516,6 +516,24 @@
     }catch(error){setStatus(error.message||'ADMIN assignment failed.','error')}
     finally{setBusy(false)}
   }
+  function yardRoleLevel(row){
+    const v=row?.can_view===true,e=row?.can_enter===true,d=row?.can_edit===true,m=row?.can_manage===true;
+    if(!v&&!e&&!d&&!m)return 'OFF';
+    if(v&&!e&&!d&&!m)return 'READ ONLY';
+    if(v&&e&&!d&&!m)return 'INPUT';
+    if(v&&e&&d&&m)return 'MANAGE';
+    return 'INVALID · REVIEW';
+  }
+  function applyYardRoleLevel(row,level){
+    const flags={
+      'OFF':{can_view:false,can_enter:false,can_edit:false,can_manage:false},
+      'READ ONLY':{can_view:true,can_enter:false,can_edit:false,can_manage:false},
+      'INPUT':{can_view:true,can_enter:true,can_edit:false,can_manage:false},
+      'MANAGE':{can_view:true,can_enter:true,can_edit:true,can_manage:true}
+    }[level];
+    if(!flags)throw new Error('Select one valid YARD ROLE access level.');
+    Object.assign(row,flags);
+  }
   function renderYardRoleCards(){
     const host=$('yardHubRoleCards');if(!host||!state)return;
     host.replaceChildren();
@@ -530,7 +548,7 @@
       head.appendChild(element('span','yard-hub-role-status',role.status));
       card.appendChild(head);
       const permissions=Array.isArray(role.permissions)?role.permissions:[];
-      const summary=permissions.map(row=>row.department+': '+yardPermissionFields.filter(field=>row[field.key]===true).map(field=>field.label).join(', ')).join(' · ');
+      const summary=permissions.map(row=>row.department+': '+yardRoleLevel(row)).join(' · ');
       card.appendChild(element('p','',summary||'No permissions configured'));
       const actions=element('div','yard-hub-role-actions');
       const edit=element('button','yard-hub-secondary','EDIT ROLE');edit.type='button';edit.disabled=!isProtectedRoot()||saving;
@@ -545,15 +563,19 @@
       const current=workingYardRolePermissions.find(row=>row.department===department)||{department,can_view:false,can_enter:false,can_edit:false,can_manage:false};
       const row=element('div','yard-hub-role-permission-row');
       row.appendChild(element('strong','',department));
-      yardPermissionFields.forEach(field=>{
-        const label=element('label','yard-hub-role-check');
-        const box=document.createElement('input');box.type='checkbox';box.checked=current[field.key]===true;box.dataset.department=department;box.dataset.permission=field.key;
-        box.addEventListener('change',()=>{
-          const target=workingYardRolePermissions.find(item=>item.department===department);
-          if(target)target[field.key]=box.checked;
-        });
-        label.append(box,element('span','',field.label));row.appendChild(label);
+      const label=element('label','yard-hub-role-level');
+      const select=document.createElement('select');
+      select.setAttribute('aria-label',department+' YARD ROLE access level');
+      yardPermissionLevels.forEach(level=>{const option=element('option','',level);option.value=level;select.appendChild(option)});
+      const level=yardRoleLevel(current);
+      if(level.startsWith('INVALID')){
+        const invalid=element('option','',level);invalid.value='INVALID';invalid.disabled=true;select.insertBefore(invalid,select.firstChild);select.value='INVALID';
+      }else select.value=level;
+      select.addEventListener('change',()=>{
+        const target=workingYardRolePermissions.find(item=>item.department===department);
+        if(target)applyYardRoleLevel(target,select.value);
       });
+      label.appendChild(select);row.appendChild(label);
       host.appendChild(row);
     });
   }
@@ -586,6 +608,7 @@
     const name=String($('yardHubRoleName').value||'').trim(),description=String($('yardHubRoleDescription').value||'').trim(),status=String($('yardHubRoleStatus').value||'DRAFT');
     if(!name||name.length>80||description.length>500){setStatus('Enter a valid YARD ROLE name and description.','error');return}
     if(workingYardRolePermissions.length!==5||yardDepartments.some(department=>!workingYardRolePermissions.some(row=>row.department===department))){setStatus('All five departments require a permission record.','error');return}
+    if(workingYardRolePermissions.some(row=>yardRoleLevel(row).startsWith('INVALID'))){setStatus('Choose one valid OFF, READ ONLY, INPUT or MANAGE level for every department.','error');return}
     setBusy(true);setStatus('SAVING YARD ROLE…');
     try{
       await callApi('yard-role-save',{roleId:editingYardRoleId||undefined,version:editingYardRoleVersion,name,description,status,permissions:workingYardRolePermissions});

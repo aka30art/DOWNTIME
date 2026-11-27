@@ -708,8 +708,8 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
       <header class="yard-hub-settings-heading">
         <button id="yardHubSettingsBack" type="button" class="yard-hub-back">‹ BACK TO YARD HUB</button>
         <div class="yard-hub-settings-eyebrow">YARD OPERATIONS CORE · ADMINISTRATION</div>
-        <h1 id="yardHubSettingsTitle">YARD HUB SETTINGS</h1>
-        <p>Manage central user accounts and application-level access separately from DOWNTIME.</p>
+        <h1 id="yardHubSettingsTitle">STAFF MANAGEMENT</h1>
+        <p>Manage USERS, STAFF profiles and YARD ROLE access rights.</p>
       </header>
       <div id="yardHubSettingsStatus" class="yard-hub-settings-status" role="status" aria-live="polite"></div>
       <div id="yardHubSettingsHome" class="yard-hub-settings-home">
@@ -779,7 +779,7 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
           <label>YARD ROLE NAME<input id="yardHubRoleName" required maxlength="80" autocomplete="off"></label>
           <label>DESCRIPTION<textarea id="yardHubRoleDescription" maxlength="500" rows="2"></textarea></label>
           <label>STATUS<select id="yardHubRoleStatus"><option value="DRAFT">DRAFT</option><option value="ACTIVE">ACTIVE</option><option value="RETIRED">RETIRED</option></select></label>
-          <div class="yard-hub-role-permission-head"><strong>OPERATIONAL RECORDS</strong><span>Each permission is independent. No checkbox implies another.</span></div>
+          <div class="yard-hub-role-permission-head"><strong>DEPARTMENT ACCESS LEVELS</strong><span>Select exactly one level per department. INPUT includes viewing and adding; MANAGE includes full access.</span></div>
           <div id="yardHubRolePermissions" class="yard-hub-role-permissions"></div>
           <div class="yard-hub-user-modal-actions">
             <button id="yardHubRoleSave" type="submit" class="yard-hub-primary">SAVE YARD ROLE</button>

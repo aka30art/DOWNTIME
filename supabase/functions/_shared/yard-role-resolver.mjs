@@ -1,12 +1,22 @@
 /**
- * Canonical ordinary YARD ROLE permission resolver.
- * Four permissions are independently selectable for each department.
+ * Canonical ordinary YARD ROLE access resolver.
+ * Each department receives exactly one of four hierarchical access levels.
  * ROOTS classifications are handled by a separate authorization layer.
  */
 export const YARD_ROLE_PERMISSION_KEYS = Object.freeze(["view", "enter", "edit", "manage"]);
+export const YARD_ROLE_ACCESS_LEVELS = Object.freeze(["OFF", "READ ONLY", "INPUT", "MANAGE"]);
 export const YARD_ROLE_DEPARTMENTS = Object.freeze(["SCPL", "R&M", "Management", "SCFL", "Traffic"]);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+
+function resolveAccessLevel(permissions) {
+  const { view, enter, edit, manage } = permissions;
+  if (!view && !enter && !edit && !manage) return "OFF";
+  if (view && !enter && !edit && !manage) return "READ ONLY";
+  if (view && enter && !edit && !manage) return "INPUT";
+  if (view && enter && edit && manage) return "MANAGE";
+  throw new Error("YARD ROLE department permissions must map to OFF, READ ONLY, INPUT or MANAGE.");
+}
 
 export function resolveYardRolePermissions(role, permissionRows = []) {
   if (!isObject(role) || !UUID_PATTERN.test(String(role.id || ""))) throw new Error("A canonical YARD ROLE with an immutable UUID is required.");
@@ -27,10 +37,11 @@ export function resolveYardRolePermissions(role, permissionRows = []) {
       if (typeof row[field] !== "boolean") throw new Error("YARD ROLE " + permission + " permission must be an explicit boolean.");
       permissions[permission] = row[field];
     }
+    permissions.level = resolveAccessLevel(permissions);
     seen.add(key); departments[department] = Object.freeze(permissions);
   }
   const missing = YARD_ROLE_DEPARTMENTS.filter((department) => !seen.has(department.toLocaleLowerCase("en-GB")));
-  if (missing.length) throw new Error("YARD ROLE must define exactly one independent permission record for each approved department: " + missing.join(", "));
+  if (missing.length) throw new Error("YARD ROLE must define exactly one access-level record for each approved department: " + missing.join(", "));
   return Object.freeze({ yardRoleId: role.id, name: roleName, departments: Object.freeze({ ...departments }) });
 }
 

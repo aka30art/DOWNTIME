@@ -100,13 +100,13 @@
 .yard-hub-role-permission-head strong{font-size:12px;color:#ffd12a;letter-spacing:.8px}
 .yard-hub-role-permission-head span{font-size:11px;color:#91a9b8}
 .yard-hub-role-permissions{display:grid;gap:8px}
-.yard-hub-role-permission-row{display:grid;grid-template-columns:minmax(110px,1fr) repeat(4,minmax(58px,auto));align-items:center;gap:8px;padding:10px;border:1px solid #304b5e;border-radius:10px;background:#0c1b26}
+.yard-hub-role-permission-row{display:grid;grid-template-columns:minmax(110px,1fr) minmax(150px,220px);align-items:center;gap:12px;padding:10px;border:1px solid #304b5e;border-radius:10px;background:#0c1b26}
 .yard-hub-role-permission-row>strong{font-size:11px;color:#dce7ed}
-.yard-hub-role-check{display:flex;align-items:center;justify-content:center;gap:5px;font-size:9px;font-weight:800;color:#a8bbc7}
-.yard-hub-role-check input{accent-color:#ffd12a;width:16px;height:16px;margin:0}
+.yard-hub-role-level{display:block;min-width:0}
+.yard-hub-role-level select{width:100%;min-height:38px;padding:8px 10px;border:1px solid #38576b;border-radius:8px;background:#102332;color:#f3f7fa;font-size:11px;font-weight:850}
 .yard-hub-role-form{max-width:760px}
 .yard-hub-role-form textarea{width:100%;min-height:64px;resize:vertical}
-@media(max-width:520px){.yard-hub-role-permission-row{grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:5px;padding:8px}.yard-hub-role-permission-row>strong{grid-column:1/-1}.yard-hub-role-check{font-size:8px}}
+@media(max-width:520px){.yard-hub-role-permission-row{grid-template-columns:1fr;gap:7px;padding:9px}}
 
 .yard-hub-roots-assignment,.yard-hub-roots-directory{margin-top:16px;padding:16px;border:1px solid #304b5e;border-radius:14px;background:linear-gradient(145deg,#132a39,#0b1924)}
 .yard-hub-roots-assignment h3,.yard-hub-roots-directory h3{margin:0 0 12px;color:#ffd12a;font-size:12px;font-weight:950;letter-spacing:1px}

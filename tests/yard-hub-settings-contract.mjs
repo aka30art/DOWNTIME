@@ -18,10 +18,12 @@ const rmStructure=fs.readFileSync('repair-maintenance-structure.js','utf8');
 
 // YARD HUB Settings is an additive surface inside the Hub, not inside the DOWNTIME application shell.
 assert.match(html,/id="yardHubSettingsBtn" data-app="settings" type="button"[^>]*hidden/,'Settings must be the fifth, access-gated application tile');
-assert.ok(html.includes('id="yardHubSettingsRoles"'), 'Settings exposes the canonical YARD ROLES view');
+assert.ok(html.includes('id="yardHubSettingsRoles"'), 'Settings exposes the Access and Rights view');
+assert.ok(html.includes('id="yardHubSettingsStaff"'), 'Staff Management exposes a separate STAFF tile');
+assert.ok(html.includes('<strong>ACCESS AND RIGHTS</strong>'), 'the third Staff Management tile is Access and Rights');
 assert.ok(html.includes('id="yardHubRolesView"') && html.includes('id="yardHubRoleModal"'), 'YARD ROLE catalogue and editor are present');
 assert.ok(html.includes('id="yardHubRolePermissions"'), 'YARD ROLE editor exposes the department permission matrix');
-assert.ok(ui.includes("yardPermissionFields=[{key:'can_view',label:'VIEW'},{key:'can_enter',label:'ENTER'},{key:'can_edit',label:'EDIT'},{key:'can_manage',label:'MANAGE'}]"), 'YARD ROLE editor uses four independent permission checkboxes');
+assert.ok(ui.includes("yardPermissionLevels=['OFF','READ ONLY','INPUT','MANAGE']"), 'YARD ROLE editor uses one of the four established access levels per department');
 assert.ok(ui.includes("callApi('yard-role-save'"), 'YARD ROLE definitions are saved through the authenticated server API');
 assert.ok(hubApi.includes('yard_role_save_definition'), 'YARD ROLE definition changes are persisted through the audited service-role RPC');
 assert.ok(hubApi.includes('roleCatalogue: rootCapabilities.canManageYardRoles ? (yardRoles || []).map'), 'YARD ROLE catalogue details are returned to DEV, DEV1 and protected ADMIN ROOTS identities');
@@ -44,10 +46,10 @@ assert.ok(ui.includes("key:'floor',label:'STAFF MANAGEMENT'"),'STAFF MANAGEMENT 
 assert.match(html,/data-app="check-sheets" type="button" disabled/,'DAILY remains unavailable until its application is released');
 assert.ok(ui.includes("key:'checkSheets',label:'DAILY'"),'DAILY is the label shown in the Hub tier editor');
 assert.match(html,/id="launchDowntimeBtn" data-app="downtime" type="button"/,'DOWNTIME launcher remains present and enabled');
-assert.ok(html.includes('yard-hub-settings.js?v=20261127-1'),'YARD HUB settings client cache is refreshed');
+assert.ok(html.includes('yard-hub-settings.js?v=20261127-2'),'YARD HUB settings client cache is refreshed');
 assert.ok(pagesWorkflow.includes("if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'"),'Pages artifact build runs on PRs for pre-merge validation');
 assert.ok(pagesWorkflow.includes("if: github.ref == 'refs/heads/main'"),'Pages deployment remains restricted to main');
-assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261127-1'),'live deployment smoke test verifies the updated Hub settings asset');
+assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261127-2'),'live deployment smoke test verifies the updated Hub settings asset');
 assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261125-4'),'live deployment smoke test verifies the updated R&M app asset');
 assert.ok(pagesWorkflow.includes('yard-hub-structure.js?v=phase09-1'),'live deployment smoke test verifies the YARD HUB structure runtime');
 assert.ok(pagesWorkflow.includes('repair-maintenance-structure.js?v=phase09-1'),'live deployment smoke test verifies the R&M structure runtime');
