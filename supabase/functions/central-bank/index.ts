@@ -285,7 +285,7 @@ if(action==="roots-state"){
    if(String(target.username||"").trim().toUpperCase()==="DEV"||String(target.staffId||"").toLowerCase()!==String(body.staffId).toLowerCase())return json({error:"Protected ROOTS assignments require a linked non-DEV USER and STAFF identity."},409);
    const profiles=bank.staff?.profiles&&typeof bank.staff.profiles==="object"?Object.values(bank.staff.profiles):[];
    const linkedProfile:any=profiles.find((profile:any)=>profile&&String(profile.staffId||"").toLowerCase()===String(target.staffId).toLowerCase()&&String(profile.linkedUserId||"").toLowerCase()===String(target.userId).toLowerCase());
-   if(!linkedProfile||String(linkedProfile.status||"ACTIVE").toUpperCase()==="ARCHIVED")return json({error:"The USER and STAFF identities must have an active reciprocal link."},409);
+   if(!linkedProfile||String(linkedProfile.status||"").toUpperCase()!=="ACTIVE")return json({error:"The USER and STAFF identities must have an active reciprocal link."},409);
    const {data:existingAssignment,error:existingError}=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class").or("user_id.eq."+target.userId+",staff_id.eq."+target.staffId).maybeSingle();
    if(existingError)return json({error:"Protected ROOTS registry is unavailable."},503);
    if(existingAssignment&&(String(existingAssignment.user_id).toLowerCase()!==String(target.userId).toLowerCase()||String(existingAssignment.staff_id).toLowerCase()!==String(target.staffId).toLowerCase()||existingAssignment.roots_class!==requestedClass))return json({error:"This USER or STAFF identity already has a different protected ROOTS assignment."},409);
