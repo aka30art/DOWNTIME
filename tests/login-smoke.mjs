@@ -511,12 +511,14 @@ async function openStaffSettings(page){
   await page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:5000});
  }
  await page.evaluate(()=>{
-  const settings=document.querySelector('#settings');
+  const settingsNav=document.querySelector('.nav[data-view="settings"]');
   const hub=document.querySelector('#settingsHub');
   const panel=document.querySelector('#settingsPanelStaff');
-  if(!settings||!hub||!panel)throw new Error('DOWNTIME STAFF panel structure is unavailable');
-  document.querySelectorAll('.view').forEach(view=>view.classList.toggle('active',view===settings));
-  settings.style.display='block';
+  if(!settingsNav||!hub||!panel)throw new Error('DOWNTIME STAFF panel structure is unavailable');
+  // The existing Settings navigation handler hydrates the central STAFF roster.
+  // Programmatic click is used because the Settings nav is intentionally hidden
+  // for accounts whose only remaining legacy privilege is STAFF management.
+  settingsNav.click();
   hub.hidden=true;
   let node=panel;
   while(node&&node!==document.body){
