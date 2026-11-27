@@ -245,7 +245,7 @@ Deno.serve(async (req: Request) => {
     if (rootsTarget.data) return json({ error: "Protected ROOTS identities receive automatic department Manage authority and cannot be assigned an ordinary YARD ROLE." }, 409);
     const isPending = target.provisioning?.stage === "YARD_ROLE_PENDING";
     if (isPending && target.provisioning.requestedYardRoleId !== yardRoleId) return json({ error: "Selected YARD ROLE does not match the provisioned request." }, 409);
-    if (!isPending && (target.enabled !== true || target.status !== "ACTIVE" || !target.staffId)) return json({ error: "Only an active linked USER can receive a direct YARD ROLE reassignment." }, 409);
+    if (!isPending && (target.enabled !== true || target.status !== "ACTIVE" || !target.staffId || target.tier != null || target.provisioning)) return json({ error: "Only an active canonical USER without a legacy tier claim can receive a direct YARD ROLE assignment." }, 409);
     const profiles = Object.values(bank.staff?.profiles || {}) as any[];
     const linkedProfile = profiles.find((profile: any) =>
       profile && String(profile.staffId || "").toLowerCase() === String(target.staffId || "").toLowerCase() &&
