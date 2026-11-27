@@ -34,23 +34,24 @@ Implemented in this branch:
 - DEV is recognised only as the immutable DEV bootstrap identity. DEV1 and protected ADMIN require a matching server-loaded USER/STAFF assignment.
 - Legacy OWNER, DEVACC and ordinary ADMIN tier labels do not imply ROOTS authority.
 - DEV alone can browse the ROOTS directory and assign DEV1. DEV and DEV1 can assign ADMIN; DEV1 receives no ROOTS directory data. ADMIN cannot assign ROOTS.
-- ROOTS assignment rows and their audit rows are append-only and written through a service-role RPC.
+- ROOTS assignments are separate from ordinary YARD ROLE permissions. Assignment, reclassification, revocation and restoration use a version-checked service-role lifecycle RPC; audit events remain append-only.
+- DEV is recognised only by the immutable bootstrap USER ID. DEV1 and protected ADMIN require matching immutable USER/STAFF assignments. Legacy OWNER, DEVACC and ordinary ADMIN tier labels never imply ROOTS.
+- DEV alone can browse the ROOTS directory and assign DEV1. DEV and DEV1 can assign ADMIN. DEV1 receives no ROOTS directory data; protected ADMIN cannot assign ROOTS.
 - Non-DEV account listings, Central Bank STAFF payloads, daily-operator views and GATELOG STAFF rosters hide protected ROOTS identities. Ordinary account/tier/STAFF/photo paths cannot modify or inspect protected ROOTS identities.
-- Protected ROOTS authority is resolved independently and provides Manage access to the current GATELOG Traffic, R&M and YARD HUB settings consumers.
+- ROOTS authority is resolved independently and grants protected Manage capabilities to the current Central Bank Management, GATELOG Traffic, R&M and YARD HUB ROOTS consumers. It does not grant the separate DEV-only configuration control plane.
 
-Outstanding ROOTS lifecycle and provisioning decisions: this first registry is intentionally append-only and has no revocation/reclassification API. A separately audited DEV-only revocation workflow must be designed before ROOTS assignments are used operationally. The current assignment route accepts an already-active canonical USER/STAFF pair; a dedicated ROOTS-only provisioning/activation path is still needed so DEV1 and protected ADMIN can be created without requiring an ordinary YARD ROLE assignment.
+Outstanding provisioning decision: ROOTS assignment routes operate on an existing active canonical USER/STAFF pair. A dedicated ROOTS-only provisioning/activation path is still needed if DEV1 or protected ADMIN must be created without first completing the ordinary canonical USER/STAFF provisioning workflow.
 
 ## F6 — Canonical YARD ROLE consumers and legacy fallback
 
-Canonical YARD ROLE resolution is now wired into the current GATELOG Traffic and R&M APIs:
-- Each consumer validates the active assignment against immutable USER and STAFF IDs and the USER's assigned YARD ROLE ID.
-- The active role and complete five-department permission matrix are resolved server-side.
-- Missing, mismatched, inactive or invalid canonical assignments fail closed.
-- Traffic actions distinguish READ, INPUT/EDIT and MANAGE.
-- R&M actions distinguish READ, INPUT/EDIT and MANAGE; preset/machinery management requires MANAGE.
-- ROOTS authority is a separate override and is never derived from an ordinary YARD ROLE matrix.
+Canonical YARD ROLE resolution is wired into the current backend consumers:
+- **Management — Central Bank API / DOWNTIME tracker:** active USER/STAFF assignment and the complete matrix are validated. VIEW controls read/report/dashboard visibility; ENTER permits new operational records; EDIT permits changes to existing records; MANAGE permits removals. Without VIEW, concealed server records are merged back rather than being interpreted as deletions. Canonical Management users cannot change global settings or STAFF identity data through tracker writes.
+- **R&M — Repair & Maintenance API:** active immutable USER/STAFF/YARD ROLE assignment is validated. VIEW, ENTER, EDIT and MANAGE are enforced independently for fault, machinery, preset and report actions.
+- **Traffic — GATELOG API:** active immutable USER/STAFF/YARD ROLE assignment is validated. VIEW, ENTER, EDIT and MANAGE are enforced independently; destructive/customer administration actions require MANAGE.
+- **YARD HUB Settings:** ordinary YARD ROLE administration is separate from ROOTS governance. Protected ROOTS capabilities govern role catalogue and ROOTS lifecycle routes.
+- **SCPL and SCFL:** their four independent permission flags are present and validated in every complete role matrix, but there are no separate live application APIs for these departments in the current application. Their flags do not grant Management, R&M, Traffic, STAFF administration or ROOTS access. Any future SCPL/SCFL consumer must integrate the same server-side resolver before those permissions can become operational.
 
-The live backend consumers currently covered are GATELOG Traffic and R&M. SCPL, Management and SCFL do not yet have corresponding live authorization APIs integrated in this branch; any such consumer must use the same resolver before global activation. Legacy tier/YARD HUB permission fallback remains only for identities without a canonical YARD ROLE assignment and without protected ROOTS authority. It is transitional. Do not set `DOWNTIME_CANONICAL_AUTH_READY`, seed the role catalogue or treat the YARD ROLE resolver as application-wide authority until all live consumers, the direct Supabase Auth boundary, audit attribution and acceptance gates have been reviewed.
+The current live application consumer map is therefore Management, R&M and Traffic, plus the separate ROOTS administration boundary. Legacy Central/YARD HUB fallbacks remain transitional only for non-canonical identities without protected ROOTS authority. Do not set `DOWNTIME_CANONICAL_AUTH_READY`, seed the role catalogue or declare the resolver globally authoritative until the direct Supabase Auth boundary, remaining audit attribution, migration review and complete acceptance gates are resolved.
 
 ## Release boundary
 
