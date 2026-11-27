@@ -206,7 +206,7 @@
   }
   function returnToStaffManagementHome(){
     // Return from the operational STAFF directory to the STAFF AND MANAGEMENT submenu hub.
-    const shell=document.querySelector('.shell');if(shell)shell.style.display='none';
+    const shell=document.querySelector('.shell');if(shell){shell.classList.remove('staff-workspace-active');shell.style.display='none'}
     const hub=$('yardHub');if(hub){hub.hidden=false;hub.style.display='block'}
     setHomeVisible(true);showSettingsHome();setStatus('');
     window.dispatchEvent(new Event('yard-hub:shown'));
