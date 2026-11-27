@@ -63,7 +63,7 @@ assert.match(api,/OWNER:\{canEditTracker:true/,'OWNER default permissions remain
 const overviewPermissionBlock=page.slice(page.indexOf('const tierDefaults={'),page.indexOf('function permission(name)'));
 const apiOverviewPermissionBlock=api.slice(api.indexOf('const tierDefault:'),api.indexOf('const cryptoHex='));
 assert.ok(page.includes("{key:'canViewPlantOverview'"),'dedicated Plant Overview right is exposed in the existing editor');
-assert.ok(api.includes('const permissionKeys=Object.keys(tierDefault.OWNER)'),'server tier updates validate the permission against the existing permission whitelist');
+assert.ok(!api.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&api.includes('Legacy account-tier permissions are retired. Configure department access through canonical YARD ROLE.'),'server rejects legacy tier permission writes in favour of canonical YARD ROLE');
 function permissionRole(source,tier){
   const start=source.indexOf(tier+':{');if(start<0)return '';
   const end=source.indexOf('}',start);return end<0?'':source.slice(start,end+1);
