@@ -146,6 +146,7 @@ window.supabase={createClient:()=>({
  });
  let bank=initialBank?JSON.parse(JSON.stringify(initialBank)):makeBank(),version=initialVersion,token='central-session-'+username,failNextSettingsSave=false;
  const actions=[];
+ const reportApiCalls=[];
  const staffPhotoRemovals=[];
  let staffPhotoSequence=1;
  await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank',async route=>{
@@ -374,6 +375,21 @@ window.supabase={createClient:()=>({
   ]}})});
   return route.fulfill({status:400,contentType:'application/json',headers:cors,body:JSON.stringify({error:'Unknown central config action'})});
  });
+ await page.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/downtime-reports-api',async route=>{
+  const req=route.request().postDataJSON();
+  reportApiCalls.push({action:req.action,reportId:req.reportId||null});
+  if(req.action==='list')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({reports:[{id:'weekly-report-qa',week_start:'2026-11-16',file_name:'Downtime_2026-11-16_Weekly.pdf',file_size_bytes:18432,operators:{Monday:'Jan'}}]})});
+  if(req.action==='download'&&req.reportId==='weekly-report-qa')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({url:'https://storage.test/downtime-pdfs/2026-11-16/weekly-report-qa.pdf',fileName:'Downtime_2026-11-16_Weekly.pdf',expiresIn:60})});
+  return route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({error:'Mock report not found'})});
+ });
+ await page.route('https://storage.test/**',async route=>{
+  const stream='BT /F1 26 Tf 70 760 Td (WEEKLY REPORT PREVIEW QA) Tj 0 -45 Td /F1 15 Tf (Week of 16 November 2026) Tj ET\\n';
+  let pdf='%PDF-1.4\\n';const offsets=[0];
+  const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Length '+stream.length+' >>\\nstream\\n'+stream+'endstream'];
+  objects.forEach((object,index)=>{offsets.push(pdf.length);pdf+=(index+1)+' 0 obj\\n'+object+'\\nendobj\\n';});
+  const xref=pdf.length;pdf+='xref\\n0 6\\n0000000000 65535 f \\n'+offsets.slice(1).map(offset=>String(offset).padStart(10,'0')+' 00000 n \\n').join('')+'trailer\\n<< /Size 6 /Root 1 0 R >>\\nstartxref\\n'+xref+'\\n%%EOF';
+  return route.fulfill({status:200,contentType:'application/pdf',body:pdf});
+ });
  await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',route=>route.abort());
  await page.route('**/functions/v1/repair-maintenance-api',async route=>{
   const origin='http://127.0.0.1:4173';
@@ -418,7 +434,7 @@ window.supabase={createClient:()=>({
   loginPresentationVerified=true;
  }
 
- return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,getYardHubConfig:()=>yardHubConfig,getYardRoles:()=>yardRoles,getYardHubApiActions:()=>yardHubApiActions,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
+ return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,getYardHubConfig:()=>yardHubConfig,getYardRoles:()=>yardRoles,getYardHubApiActions:()=>yardHubApiActions,getReportApiCalls:()=>reportApiCalls,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
 let repairMaintenanceBootTested=false;
@@ -645,7 +661,7 @@ try{
  await owner.page.waitForFunction(()=>document.querySelector('#reportPreviewModal')?.classList.contains('show')&&document.querySelector('#reportPreviewFrame')?.src.startsWith('blob:'),{timeout:5000});
  await owner.page.waitForTimeout(1200); // Allow Chromium's built-in PDF renderer to paint the loaded page before screenshots.
  assert.equal(await owner.page.locator('#reportPreviewTitle').textContent(),'WEEK OF 16/11/2026','Display opens the selected report, not the current tracker week');
- assert.deepEqual(await owner.page.evaluate(()=>window.__weeklyReportDownloads),[{bucket:'downtime-pdfs',path:'2026-11-16/weekly-report-qa.pdf'}],'Display fetches only the selected report PDF from cloud storage');
+ assert.deepEqual(owner.getReportApiCalls().filter(call=>call.action==='download'),[{action:'download',reportId:'weekly-report-qa'}],'Display requests only the selected report through the session-authorized report API');
  await mkdir(resolve('artifacts/weekly-reports'),{recursive:true});
  for(const width of [320,390,600,601,768,1280]){
   await owner.page.setViewportSize({width,height:900});
