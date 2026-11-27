@@ -72,6 +72,7 @@ const tiers={
  SPECTATOR:{canEditTracker:false,canControlPlantPower:true,canManageUsers:false,canManageStaff:false,canManageSettings:false,canViewStaff:false,canViewAssignments:false,canViewDashboards:false,canViewReports:false}
 };
 tiers.DEVACC={...tiers.OWNER};
+tiers.MANAGER={...tiers.ADMIN,canManageUsers:false,canManageStaff:false,canManageAssignments:false,canViewUsers:false};
 for(const permissions of Object.values(tiers))permissions.canAccessYardHub=true;
 function makeBank(){
  const profiles=Object.fromEntries(['Jan','Mick','Gigi','Daz','Shayne'].map((name,i)=>[name,{station:'Station '+(i+1)+' · WOOD',onSite:true,photo:'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}]));
@@ -713,70 +714,15 @@ try{
   await owner.page.screenshot({path:resolve('artifacts/settings-hub/settings-'+width+'px.png')});
  }
  await owner.page.setViewportSize({width:1280,height:900});
- const accessRightsTile=owner.page.locator('[data-settings-open="accessRights"]');
- assert.equal(await accessRightsTile.isVisible(),true,'DEV root OWNER sees the dedicated ACCESS AND RIGHTS Settings destination');
- await accessRightsTile.click();
- assert.equal(await owner.page.locator('#settingsPanelAccessRights').isVisible(),true,'DEV opens the dedicated tier rights editor');
- assert.equal(await owner.page.locator('#accessRightsTierList [data-access-tier-card]').count(),7,'DEV can see Access & Rights cards for all seven tiers');
- assert.equal(await owner.page.locator('#accessRightsTierList [data-access-tier-card="OWNER"]').count(),1,'root OWNER has a dedicated tier card for Plant Power configuration');
- assert.equal(await owner.page.locator('#accessRightsTierList [data-access-tier-card="DEVACC"]').count(),1,'root-equivalent DEVACC has a dedicated tier card for Plant Power configuration');
- const ownerPlantPower=owner.page.locator('[data-access-tier="OWNER"][data-access-right="canControlPlantPower"]');
- const devaccPlantPower=owner.page.locator('[data-access-tier="DEVACC"][data-access-right="canControlPlantPower"]');
- assert.equal(await ownerPlantPower.isEnabled(),true,'OWNER Plant Power can be configured separately');
- assert.equal(await devaccPlantPower.isEnabled(),true,'DEVACC Plant Power can be configured separately');
- assert.equal(await owner.page.locator('[data-access-tier="OWNER"][data-access-right="canEditTracker"]').isDisabled(),true,'other root OWNER rights remain immutable');
- assert.equal(await owner.page.locator('[data-access-tier="DEVACC"][data-access-right="canManageUsers"]').isDisabled(),true,'other DEVACC root rights remain immutable');
- await ownerPlantPower.uncheck();
- await owner.page.locator('#saveAccessRights').click();
- await owner.page.waitForFunction(()=>document.querySelector('#accessRightsStatus')?.textContent.includes('saved centrally'),{timeout:5000});
- assert.equal(owner.getBank().tiers.OWNER.canControlPlantPower,false,'DEV can disable Plant Power for root OWNER');
- await ownerPlantPower.check();
- await devaccPlantPower.uncheck();
- await owner.page.locator('#saveAccessRights').click();
- await owner.page.waitForFunction(()=>document.querySelector('#accessRightsStatus')?.textContent.includes('saved centrally'),{timeout:5000});
- assert.equal(owner.getBank().tiers.OWNER.canControlPlantPower,true,'OWNER Plant Power can be re-enabled');
- assert.equal(owner.getBank().tiers.DEVACC.canControlPlantPower,false,'DEV can disable Plant Power for DEVACC');
- await devaccPlantPower.check();
- await owner.page.locator('#saveAccessRights').click();
- await owner.page.waitForFunction(()=>document.querySelector('#accessRightsStatus')?.textContent.includes('saved centrally'),{timeout:5000});
- assert.equal(owner.getBank().tiers.DEVACC.canControlPlantPower,true,'DEVACC Plant Power can be re-enabled');
- const userPlantPower=owner.page.locator('[data-access-tier="USER"][data-access-right="canControlPlantPower"]');
- const spectatorPlantPower=owner.page.locator('[data-access-tier="SPECTATOR"][data-access-right="canControlPlantPower"]');
- await userPlantPower.uncheck();
- await spectatorPlantPower.uncheck();
- await owner.page.locator('#saveAccessRights').click();
- await owner.page.waitForFunction(()=>document.querySelector('#accessRightsStatus')?.textContent.includes('saved centrally'),{timeout:5000});
- assert.equal(owner.getBank().tiers.USER.canControlPlantPower,false,'DEV can disable Plant Power for USER');
- assert.equal(owner.getBank().tiers.SPECTATOR.canControlPlantPower,false,'DEV can disable Plant Power for SPECTATOR');
- await userPlantPower.check();
- await spectatorPlantPower.check();
- await owner.page.locator('#saveAccessRights').click();
- await owner.page.waitForFunction(()=>document.querySelector('#accessRightsStatus')?.textContent.includes('saved centrally'),{timeout:5000});
- assert.equal(owner.getBank().tiers.USER.canControlPlantPower,true,'USER Plant Power can be re-enabled');
- assert.equal(owner.getBank().tiers.SPECTATOR.canControlPlantPower,true,'SPECTATOR Plant Power can be re-enabled');
- const adminDeleteRight=owner.page.locator('[data-access-tier="ADMIN"][data-access-right="canDeleteRecords"]');
- assert.equal(await adminDeleteRight.isChecked(),false,'ADMIN delete-record permission starts disabled');
- await adminDeleteRight.check();
- await owner.page.evaluate(()=>{
-  const admin=document.querySelector('[data-access-tier-card="ADMIN"]'),manager=document.querySelector('[data-access-tier-card="MANAGER"]');
-  admin.querySelectorAll('input[data-access-right]').forEach(source=>{const target=manager.querySelector('[data-access-right="'+source.dataset.accessRight+'"]');if(target)target.checked=source.checked});
- });
- await owner.page.locator('#saveAccessRights').click();
- await owner.page.waitForFunction(()=>document.querySelector('#accessRightsStatus')?.textContent.includes('saved centrally'),{timeout:5000});
- assert.equal(owner.getBank().tiers.ADMIN.canDeleteRecords,true,'DEV saves tier rights to central state');
- assert.equal(owner.getBank().tiers.MANAGER.canEditTracker,owner.getBank().tiers.ADMIN.canEditTracker,'MANAGER receives the same tracker-edit right as ADMIN');
- assert.deepEqual(owner.getBank().tiers.MANAGER,owner.getBank().tiers.ADMIN,'MANAGER permission profile exactly matches ADMIN');
- assert.ok(owner.actions.some(item=>item.action==='tiers-save'),'tier rights are saved through the central API');
- await owner.page.screenshot({path:resolve('artifacts/settings-hub/access-rights-1280px.png')});
- await owner.page.locator('#settingsPanelAccessRights [data-settings-back]').click();
+ assert.equal(await owner.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'legacy Access and Rights editing remains disabled during canonical identity cutover');
  const nonJanAdmin=await openFor('ADMIN','2468','MICK');
  await signIn(nonJanAdmin.page,'2468','MICK');
- assert.equal(await nonJanAdmin.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'ADMIN tier cannot see the DEV-only Central Data Bank menu entry');
+ assert.equal(await nonJanAdmin.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'legacy ADMIN does not receive DEV-only Central Bank access');
  await openSettingsHub(nonJanAdmin.page);
- assert.equal(await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),true,'delegated ADMIN can access the Access and Rights editor');
+ assert.equal(await nonJanAdmin.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'legacy ADMIN cannot edit Access and Rights');
  await nonJanAdmin.page.locator('[data-settings-open="users"]').click();
  await nonJanAdmin.page.locator('#settingsPanelUsers').waitFor({state:'visible'});
- assert.equal(await nonJanAdmin.page.locator('#centralUsersManager').isVisible(),true,'ADMIN retains ordinary account-management access');
+ assert.equal(await nonJanAdmin.page.locator('#centralUsersManager').isVisible().catch(()=>false),false,'legacy ADMIN cannot manage Central Bank USER accounts');
  await nonJanAdmin.context.close();
  const devaccBank=makeBank();
  devaccBank.users=[
@@ -787,32 +733,14 @@ try{
  ];
  const devacc=await openFor('DEVACC','2468','DEVacc',devaccBank);
  await signIn(devacc.page,'2468','DEVacc');
- assert.equal(await devacc.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),true,'DEVACC sees the root-equivalent Central Data Bank menu entry');
+ assert.equal(await devacc.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'legacy DEVACC does not receive DEV-only Central Bank access');
+ assert.equal(await devacc.page.locator('.yard-tile[data-app="staff-management"]').isEnabled(),true,'legacy DEVACC may retain its explicit ordinary Staff Management permission');
  await openSettingsHub(devacc.page);
- assert.equal(await devacc.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),true,'DEVACC can open the root-equivalent Access and Rights editor');
+ assert.equal(await devacc.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'legacy DEVACC cannot edit Access and Rights');
  await devacc.page.locator('[data-settings-open="users"]').click();
  await devacc.page.locator('#settingsPanelUsers').waitFor({state:'visible'});
- assert.equal(await devacc.page.locator('#centralUsersManager').isVisible(),true,'DEVACC can manage accounts');
- assert.equal(await devacc.page.locator('#centralAccountTier').isDisabled(),false,'DEVACC can manage standard account tiers');
- assert.equal(await devacc.page.locator('#centralAccountTier option[value="DEVACC"]').isDisabled(),true,'DEVACC cannot assign the DEVACC tier');
- const devaccTarget=devacc.page.locator('#centralUsersManageList > div').filter({hasText:'DEVacc'});
- assert.ok(await devaccTarget.locator('button').count()>0,'DEVACC can edit, disable or remove DEVACC accounts');
- await devaccTarget.getByRole('button',{name:'EDIT'}).click();
- assert.equal(await devacc.page.locator('#centralAccountUsername').inputValue(),'DEVacc','DEVACC can open an existing DEVACC account for editing');
- assert.equal(await devacc.page.locator('#centralAccountTier').inputValue(),'DEVACC','editing preserves the existing DEVACC tier');
- assert.equal(await devacc.page.locator('#centralAccountTier option[value="DEVACC"]').isDisabled(),true,'the DEVACC tier remains unavailable for reassignment while editing');
- await devacc.page.locator('#centralAccountDisplay').fill('DEVacc Updated');
- await devacc.page.locator('#centralAccountSave').click();
- await devacc.page.waitForFunction(()=>document.querySelector('#centralUsersStatus')?.textContent.includes('Account updated.'),{timeout:5000});
- assert.equal(devacc.getBank().users.find(user=>user.username==='DEVacc')?.displayName,'DEVacc Updated','DEVACC can save changes to an existing DEVACC account without reassigning its tier');
- const forbiddenGrant=await devacc.page.evaluate(async version=>{
-  try{await window.DowntimeCentral.saveUser({username:'DEVacc QA',displayName:'DEVacc QA',tier:'DEVACC',pin:'8642'},version);return null}
-  catch(error){return {status:error.status,message:error.message}}
- },devacc.getVersion());
- assert.equal(forbiddenGrant?.status,403,'a direct DEVACC user-save request cannot grant a new DEVACC account');
- assert.match(forbiddenGrant?.message||'',/Only root DEV can assign DEVacc/,'the API denial identifies root DEV as the sole DEVACC grant authority');
- assert.equal(devacc.getBank().users.some(user=>user.username==='DEVacc QA'),false,'a denied DEVACC grant does not create an account');
-
+ assert.equal(await devacc.page.locator('#centralUsersManager').isVisible().catch(()=>false),false,'legacy DEVACC cannot manage Central Bank USER accounts');
+ assert.equal(await devacc.page.locator('#yardHubSettingsBtn').isVisible().catch(()=>false),false,'legacy DEVACC cannot manage canonical YARD ROLE settings');
  await devacc.context.close();
  const manager=await openFor('MANAGER','2468','MICK',owner.getBank(),owner.getVersion());
  await signIn(manager.page,'2468','MICK');
