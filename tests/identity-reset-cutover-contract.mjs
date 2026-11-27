@@ -64,6 +64,9 @@ assert.match(settings,/window\.location\.reload\(\)/);
 assert.doesNotMatch(settings,/DowntimeCentral\.logout\(\)/);
 assert.match(settings,/roleDefinitions\|\|\[\]/);
 assert.match(settings,/roleSection\.hidden=!rootDev\(\)/);
+const rootsUi = settings.slice(settings.indexOf('async function loadRootsState()'),settings.indexOf('async function assignSelectedRoot()'));
+assert.match(rootsUi,/if\(roleSection\)roleSection\.hidden=true;[\s\S]*if\(dev1\)/,"DEV-only ROOTED role UI is hidden before handling a non-DEV ROOTS authority");
+assert.match(rootsUi,/if\(roleHost\)roleHost\.replaceChildren\(\)/,"cached ROOTED role definitions are cleared when ROOTS authority changes");
 
 assert.match(client,/resetIdentities\(data\)\{return call\("identity-reset",data\)\}/);
 assert.match(packageJson.scripts["test:user-staff-identity"],/identity-reset-cutover-contract\.mjs/);
