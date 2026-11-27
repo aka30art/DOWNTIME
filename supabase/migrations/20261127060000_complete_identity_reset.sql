@@ -226,7 +226,7 @@ begin
     'newDev1UserId',v_dev1_user_id,
     'newAdminUserId',v_admin_user_id,
     'previousUserCount',jsonb_array_length(coalesce(v_payload->'users','[]'::jsonb)),
-    'previousStaffProfileCount',case when jsonb_typeof(v_payload->'staff'->'profiles')='object' then jsonb_object_length(v_payload->'staff'->'profiles') else 0 end,
+    'previousStaffProfileCount',case when jsonb_typeof(v_payload->'staff'->'profiles')='object' then (select count(*) from jsonb_object_keys(v_payload->'staff'->'profiles')) else 0 end,
     'operationalRecordsPreserved',true,
     'auditHistoryPreserved',true,
     'sharedPhotoEvidencePreserved',true
