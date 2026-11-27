@@ -426,7 +426,7 @@
       const row=(role?.permissions||[]).find(item=>item.department===department)||{};
       return {department,can_view:row.can_view===true,can_enter:row.can_enter===true,can_edit:row.can_edit===true,can_manage:row.can_manage===true};
     });
-    yardRoleOriginal=role?JSON.stringify({name:role.name,description:role.description,status:role.status,permissions:workingYardRolePermissions}):null;
+    yardRoleOriginal=JSON.stringify({name:role?.name||'',description:role?.description||'',status:role?.status||'DRAFT',permissions:workingYardRolePermissions});
     $('yardHubRoleModalTitle').textContent=role?'EDIT YARD ROLE':'CREATE YARD ROLE';
     $('yardHubRoleSave').disabled=false;
     renderYardRolePermissionControls();
