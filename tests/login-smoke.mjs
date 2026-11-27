@@ -446,8 +446,9 @@ async function signIn(page,pin='2468',username='DEV'){
  const authenticatedUsername=String(authenticatedIdentity?.username||'').trim().toUpperCase();
  const authenticatedTier=String(authenticatedIdentity?.tier||'').trim().toUpperCase();
  const expectsStaffAutoAccess=authenticatedIdentity?.rootsAuthority==='DEV'||authenticatedTier==='DEVACC'||authenticatedTier==='ADMIN';
- const expectsStaffWorkspaceAccess=expectsStaffAutoAccess||['SUPERVISOR','STAFF_ONLY','ASSIGNMENT_ONLY'].includes(authenticatedTier);
- assert.equal(await page.locator('.yard-tile[data-app="staff-management"]').isEnabled(),expectsStaffWorkspaceAccess,authenticatedUsername+'/'+authenticatedTier+' receives STAFF access only through the ROOTS module or explicit STAFF management permissions');
+ const staffTierRights=tiers[authenticatedTier]||{};
+ const expectsStaffWorkspaceAccess=expectsStaffAutoAccess||Boolean(staffTierRights.canViewStaff||staffTierRights.canManageStaff||staffTierRights.canManageAssignments);
+ assert.equal(await page.locator('.yard-tile[data-app="staff-management"]').isEnabled(),expectsStaffWorkspaceAccess,authenticatedUsername+'/'+authenticatedTier+' receives STAFF access only when the tier grants staff visibility, staff management, assignment management or ROOTS access');
  assert.equal(await page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until released');
  await page.waitForFunction(()=>{const tile=document.querySelector('.yard-tile[data-app="repair-maintenance"]');return tile&&!tile.disabled},{timeout:5000});
  assert.equal(await page.locator('.yard-tile[data-app="repair-maintenance"]').isEnabled(),true,'R&M unlocks after the existing DOWNTIME session passes its module permission check');
@@ -501,12 +502,45 @@ async function ensureNavigationMenuOpen(page){
 }
 
 async function openStaffSettings(page){
- await ensureNavigationMenuOpen(page);
+ await ensureMainMenu(page);
  await dismissPlantTransitionAlerts(page);
- await page.locator('.nav[data-view="settings"]').click();
- await page.locator('[data-settings-open="staff"]').waitFor({state:'visible',timeout:5000});
- await page.locator('[data-settings-open="staff"]').click();
- await page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
+ const yardHub=page.locator('#yardHub');
+ if(!await yardHub.isVisible()){
+  await page.locator('#backToYardHub').click();
+  await yardHub.waitFor({state:'visible',timeout:5000});
+ }
+ await page.locator('#launchStaffManagementBtn').click();
+ const staffManagementHome=page.locator('#yardHubSettingsScreen');
+ const staffWorkspace=page.locator('#settingsPanelStaff');
+ await page.waitForFunction(()=>{
+  const hubScreen=document.querySelector('#yardHubSettingsScreen');
+  const staffPanel=document.querySelector('#settingsPanelStaff');
+  const visible=node=>!!node&&!node.hidden&&getComputedStyle(node).display!=='none'&&node.getClientRects().length>0;
+  return visible(hubScreen)||visible(staffPanel);
+ },{timeout:5000});
+ if(await staffManagementHome.isVisible())await page.locator('#yardHubSettingsStaff').click();
+ try{
+  await staffWorkspace.waitFor({state:'visible',timeout:5000});
+ }catch(error){
+  const diagnostic=await page.evaluate(()=>({
+   hubHidden:document.querySelector('#yardHub')?.hidden??null,
+   hubStyle:document.querySelector('#yardHub')?.getAttribute('style')??null,
+   hubSettingsHidden:document.querySelector('#yardHubSettingsScreen')?.hidden??null,
+   hubSettingsTitle:document.querySelector('#yardHubSettingsTitle')?.textContent??null,
+   hubSettingsStatus:document.querySelector('#yardHubSettingsStatus')?.textContent??null,
+   staffHubTileHidden:document.querySelector('#yardHubSettingsStaff')?.hidden??null,
+   staffHubTileDisabled:document.querySelector('#yardHubSettingsStaff')?.disabled??null,
+   staffPanelHidden:document.querySelector('#settingsPanelStaff')?.hidden??null,
+   settingsDisplay:document.querySelector('#settings')?.style.display??null,
+   settingsActive:document.querySelector('#settings')?.classList.contains('active')??null,
+   rootsAuthority:window.DOWNTIME_ROOTS_AUTHORITY??null,
+   launchStaffWorkspace:typeof window.launchStaffWorkspace,
+   staffAutoAccess:typeof window.isStaffModuleAutoAccess==='function'?window.isStaffModuleAutoAccess():null,
+   staffViewPermission:typeof window.permission==='function'?window.permission('canViewStaff'):null,
+   staffManagePermission:typeof window.permission==='function'?window.permission('canManageStaff'):null
+  }));
+  throw new Error('STAFF workspace launch timed out: '+JSON.stringify(diagnostic)+'; '+error.message);
+ }
  await page.locator('#staffRosterList .staff-settings-icon').first().waitFor({state:'visible',timeout:5000});
 }
 
@@ -705,7 +739,13 @@ try{
  assert.equal(savedStations[1].active,false,'station deactivation is stored centrally without deleting its record');
  assert.equal(savedStations[6].name,'Station 7','the newly-added station is available centrally');
  await owner.page.locator('#settingsPanelStations [data-settings-back]').click();
- await owner.page.locator('[data-settings-open="staff"]').click();
+ await ensureMainMenu(owner.page);
+ await owner.page.locator('#backToYardHub').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
+ await owner.page.locator('#launchStaffManagementBtn').click();
+ await owner.page.locator('#yardHubSettingsScreen').waitFor({state:'visible',timeout:5000});
+ await owner.page.locator('#yardHubSettingsStaff').click();
+ await owner.page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
  await owner.page.locator('#smDepartment').selectOption('SCPL');
  const stationOptionLabels=await owner.page.locator('#smStation option').evaluateAll(options=>options.filter(option=>!option.hidden).map(option=>option.textContent.trim()));
@@ -717,7 +757,11 @@ try{
  await owner.page.locator('#smSave').click();
  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:5000});
  assert.equal(owner.getBank().staff.profiles.Jan.station,'Station 3 · SCRAP','SCPL STAFF station reassignment is confirmed in the central data bank');
- await owner.page.locator('#settingsPanelStaff [data-settings-back]').click();
+ await owner.page.locator('#settingsPanelStaff .settings-back').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
+ await owner.page.locator('#launchDowntimeBtn').click();
+ await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
+ await openSettingsHub(owner.page);
  await owner.page.locator('[data-settings-open="stations"]').click();
  assert.equal(await owner.page.locator('#stationManagerList > div').count(),7,'saved station configuration is reloaded in Station Manager');
  await owner.page.locator('#settingsPanelStations [data-settings-back]').click();
@@ -730,9 +774,8 @@ try{
    const rects=Object.fromEntries(cards.map(card=>[card.dataset.settingsOpen,card.getBoundingClientRect()]));
    return {columns:getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length,count:cards.length,reasonsTop:rects.reasons?.top,dailyTasksTop:rects.dailyTasks?.top};
   });
-  assert.equal(layout.count,7,'all seven standard Settings cards are inside the grid at '+width+'px');
+  assert.equal(layout.count,5,'all five operational Settings cards are inside the grid at '+width+'px');
   assert.equal(layout.columns,columns,'Settings grid has '+columns+' columns at '+width+'px');
-  if(width===1280)assert.ok(layout.dailyTasksTop>layout.reasonsTop,'the restored USERS, AREA and REASON cards occupy the first row of the Settings grid');
   await owner.page.screenshot({path:resolve('artifacts/settings-hub/settings-'+width+'px.png')});
  }
  await owner.page.setViewportSize({width:1280,height:900});
@@ -822,8 +865,14 @@ try{
   'ADD DOWNTIME ENTRY uses the same area presets shown in Settings');
  await owner.page.locator('#cancelEntry').click();
  await openSettingsHub(owner.page);
- await owner.page.locator('[data-settings-open="staff"]').click();
- assert.equal(await owner.page.locator('#settingsPanelStaff').isVisible(),true,'OWNER can open the STAFF panel from Settings');
+ await ensureMainMenu(owner.page);
+ await owner.page.locator('#backToYardHub').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
+ await owner.page.locator('#launchStaffManagementBtn').click();
+ await owner.page.locator('#yardHubSettingsScreen').waitFor({state:'visible',timeout:5000});
+ await owner.page.locator('#yardHubSettingsStaff').click();
+ await owner.page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
+ assert.equal(await owner.page.locator('#settingsPanelStaff').isVisible(),true,'OWNER opens STAFF management through YARD HUB Staff Management');
  assert.equal(await owner.page.locator('#addStaffBtn').isEnabled(),true,'OWNER retains STAFF management privileges');
  await ensureMainMenu(owner.page);
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').isVisible(),true,'OWNER can view reports');
@@ -1268,7 +1317,7 @@ await ensureNavigationMenuOpen(owner.page);
  await ensureNavigationMenuOpen(spectator.page);
  assert.equal(await spectator.page.locator('.nav[data-view="staff"]').count(),0,'STAFF is not a standalone navigation item');
  assert.equal(await spectator.page.locator('.nav[data-view="settings"]').isVisible(),false,'SPECTATOR cannot open Settings');
- assert.equal(await spectator.page.locator('[data-settings-open="staff"]').isVisible(),false,'SPECTATOR cannot view STAFF');
+ assert.equal(await spectator.page.locator('[data-settings-open="staff"]').count(),0,'STAFF is not exposed inside DOWNTIME Settings');
  assert.equal(await spectator.page.locator('.nav[data-view="reports"]').isVisible(),false,'SPECTATOR cannot view reports');
  assert.equal(await spectator.page.locator('.overview-link').isVisible(),false,'SPECTATOR cannot view assignments overview');
  assert.equal(await spectator.page.locator('.weeklyKpis').evaluate(el=>getComputedStyle(el).display),'none','SPECTATOR cannot view dashboards');

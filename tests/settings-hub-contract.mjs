@@ -3,15 +3,13 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
-const requiredTiles = ['users', 'areas', 'stations', 'reasons', 'schedule', 'dailyTasks', 'staff'];
+const requiredTiles = ['areas', 'stations', 'reasons', 'schedule', 'dailyTasks'];
 const requiredPanels = {
-  users: 'settingsPanelUsers',
   areas: 'settingsPanelAreas',
   stations: 'settingsPanelStations',
   reasons: 'settingsPanelReasons',
   schedule: 'settingsPanelSchedule',
-  dailyTasks: 'settingsPanelDailyTasks',
-  staff: 'settingsPanelStaff'
+  dailyTasks: 'settingsPanelDailyTasks'
 };
 
 assert.match(html, /<div id="settingsHub" class="settings-hub">/, 'Settings must open on the new hub');
@@ -32,14 +30,15 @@ for (const section of requiredTiles) {
     section + ' tile must identify the panel it opens'
   );
 }
-assert.equal((html.match(/data-settings-open="/g) || []).length, 8,
+assert.equal((html.match(/data-settings-open="/g) || []).length, 6,
   'hub must expose seven standard destinations plus the ADMIN/JAN Access and Rights destination');
-assert.match(html, /data-settings-open="users"/, 'USERS remains directly reachable from DOWNTIME Settings');
-assert.match(html, /data-settings-open="staff"/, 'STAFF remains directly reachable from DOWNTIME Settings');
-assert.equal((html.match(/data-settings-back>/g) || []).length, 8,
-  'every settings panel must provide a back-to-settings control');
+assert.doesNotMatch(html, /data-settings-open="users"/, 'USERS must be removed from DOWNTIME Settings navigation');
+assert.doesNotMatch(html, /data-settings-open="staff"/, 'STAFF must be removed from DOWNTIME Settings navigation');
+assert.equal((html.match(/data-settings-back>/g) || []).length, 7,
+  'operational settings panels retain back-to-settings controls; STAFF returns to YARD HUB');
 assert.doesNotMatch(html, /data-view="staff"/, 'STAFF must no longer have a standalone navigation destination');
-assert.match(html, /id="settingsPanelStaff"[\s\S]*?id="staffRosterList"/, 'STAFF roster management must live inside its Settings panel');
+assert.match(html, /id="settingsPanelStaff"[\s\S]*?id="staffRosterList"/, 'STAFF workspace implementation remains available for the YARD HUB launcher');
+assert.match(html, /id="settingsPanelStaff"[\s\S]*?BACK TO YARD HUB/, 'STAFF workspace returns to YARD HUB rather than DOWNTIME Settings');
 assert.match(html, /id="settingsOwnerAccess"[\s\S]*?data-settings-open="accessRights"/, 'Access and Rights lives in a separate ADMIN/JAN-only Settings area');
 assert.match(html, /id="settingsPanelAccessRights" class="settings-panel" hidden/, 'Access and Rights has its own hidden panel');
 assert.match(html, /id="accessRightsTierList"[\s\S]*?id="saveAccessRights"/, 'ADMIN/JAN have an individual tier rights editor and central save control');
@@ -62,7 +61,7 @@ assert.ok(helpersMatch,'granular Settings permission helpers must be present');
 const accessHelpers=new Function('permission','canManageAccessRights','isStaffModuleAutoAccess','rootsAuthority',helpersMatch[0]+'; return {settingsAccess,canManageSettingsSection};');
 const helper=(permission)=>accessHelpers(permission,()=>false,()=>false,()=>null);
 const managerOnly=helper(name=>({canManageUsers:true,canViewUsers:false}[name]===true));
-assert.equal(managerOnly.settingsAccess('users'),false,'legacy canManageUsers cannot expose the Central Bank USER directory without immutable DEV ROOTS authority');
+assert.equal(managerOnly.settingsAccess('users'),false,'Central USER directory is exclusively managed from YARD HUB');
 assert.equal(managerOnly.settingsAccess('areas'),false);
 assert.equal(managerOnly.settingsAccess('stations'),false,'station configuration is restricted to settings administrators');
 assert.equal(managerOnly.settingsAccess('reasons'),false);
@@ -81,16 +80,16 @@ assert.equal(taskEditor.settingsAccess('dailyTasks'),true);
 assert.equal(taskEditor.canManageSettingsSection('dailyTasks'),true);
 const supervisorStaff=helper(name=>({canViewStaff:true,canManageStaff:true}[name]===true));
 assert.equal(supervisorStaff.settingsAccess('staff'),true,'staff managers can access the STAFF panel');
-assert.equal(supervisorStaff.settingsAccess('users'),false);
+assert.equal(supervisorStaff.settingsAccess('users'),false,'USERS remain outside DOWNTIME Settings');
 assert.equal(supervisorStaff.settingsAccess('stations'),false,'SUPERVISOR assignment rights do not include station configuration rights');
 const staffViewer=helper(name=>name==='canViewStaff');
 assert.equal(staffViewer.settingsAccess('staff'),true,'STAFF visibility preserves existing staff-view privilege');
 const fullAdmin=accessHelpers(()=>true,()=>false,()=>false,()=> 'DEV');
 for(const section of requiredTiles)assert.equal(fullAdmin.settingsAccess(section),true);
-assert.equal(fullAdmin.settingsAccess('users'),true,'legacy USERS permission helper remains for compatibility with internal routing');
+assert.equal(fullAdmin.settingsAccess('users'),false,'even protected ROOTS users manage USERS only from YARD HUB');
 assert.equal(fullAdmin.settingsAccess('staff'),true,'legacy STAFF permission helper remains for compatibility with internal routing');
-assert.match(helpersMatch[0], /function anySettingsAccess\(\)\{return \['users','areas','stations','reasons','schedule','dailyTasks','staff','accessRights'\]/,
-  'USERS and STAFF permissions must keep the Settings entry point available');
+assert.match(helpersMatch[0], /function anySettingsAccess\(\)\{return \['areas','stations','reasons','schedule','dailyTasks','staff','accessRights'\]/,
+  'STAFF workspace access keeps the Settings entry point available while USERS remain separate');
 assert.equal(fullAdmin.settingsAccess('accessRights'),false,'a role without the ADMIN/JAN identity allow-list cannot access tier rights');
 assert.equal(accessHelpers(()=>false,()=>true,()=>false).settingsAccess('accessRights'),true,'ADMIN tier or JAN root OWNER allow-list can access Access and Rights');
 const manageAccessRightsStart=html.indexOf('function canManageAccessRights(){');
@@ -111,6 +110,7 @@ assert.equal(centralBankGate(()=> 'ADMIN')(),false,'protected ADMIN cannot acces
 assert.equal(centralBankGate(()=> null)(),false,'legacy OWNER/DEVACC/ADMIN tiers cannot substitute for immutable DEV ROOTS authority');
 assert.ok(!html.includes('centralUsersAdminLink'),'obsolete Central Data Bank link is removed from the USERS panel');
 
+assert.match(html, /<button class="nav" data-view="settings">⚙ &nbsp; Settings<\/button>/, 'DOWNTIME main menu retains its Settings destination');
 assert.match(html, /function showSettingsHub\(\)/, 'back navigation must return to the Settings hub');
 assert.match(html, /function openSettingsPanel\(section\)/, 'tile navigation must open dedicated panels');
 assert.match(html, /document\.querySelectorAll\('\[data-settings-back\]'\)/,
@@ -139,8 +139,8 @@ assert.match(html, /settings-accent-violet/, 'DOWNTIME violet accent must be pre
 
 const settingsGridStart = html.indexOf('<div class="settings-card-grid">');
 const settingsGridEnd = html.indexOf('</div>', settingsGridStart);
-assert.equal((html.slice(settingsGridStart, settingsGridEnd).match(/data-settings-open="/g) || []).length, 7,
-  'the DOWNTIME Settings grid must expose USERS, STAFF and all five operational configuration destinations');
+assert.equal((html.slice(settingsGridStart, settingsGridEnd).match(/data-settings-open="/g) || []).length, 5,
+  'the DOWNTIME Settings grid exposes only the five operational configuration destinations');
 
 assert.match(html, /id="stationManagerStatus"[^>]*role="status"/, 'Station Manager has an accessible save status');
 assert.match(html, /function saveStationManager\(\)[\s\S]*?persistSettingsConfirmed\(\)/, 'Station Manager saves only after central acknowledgement');
