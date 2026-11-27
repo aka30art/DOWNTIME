@@ -20,7 +20,8 @@ assert.match(hubApi, /rootCapabilities\.canManageYardRoles/);
 assert.match(hubApi, /canAssignYardRoleToTarget\(rootsAuthority, targetRootsAuthority, isImmutableDevTarget\)/);
 assert.match(hubApi, /Only DEV may assign or change a YARD ROLE for another protected ROOTS identity/);
 assert.match(settingsUi, /rootAuthority\(\)==='DEV'/);
-assert.match(hubApi, /if \(!isProtectedRoot\) return json\(\{ error: "YARD HUB SETTINGS is restricted to protected ROOTS identities\."/);
+assert.match(hubApi, /if \(action === "settings-state"\)[\s\S]*?if \(!canViewStaffDirectory\).*USER directory/);
+assert.match(hubApi, /if \(!isProtectedRoot\) return json\(\{ error: "This YARD HUB administration action is restricted to protected ROOTS identities\."/);
 assert.match(hubApi, /yard_role_department_permissions"\)\.select\("yard_role_id,department,can_view,can_enter,can_edit,can_manage"/);
 
 assert.match(centralApi, /resolveRootsAuthority\(currentUser,rootsAssignment,rootsBootstrap\?\.user_id/);
