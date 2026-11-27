@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const html=await readFile('index.html','utf8');
 const central=await readFile('supabase/functions/central-bank/index.ts','utf8');
-assert.match(html,/id="staffRosterList" class="staff-roster-grid"/,'STAFF uses compact profile cards');
+assert.match(html,/id="staffRosterList" class="yard-hub-users-list yard-hub-staff-list"/,'STAFF directory uses the shared YARD HUB row layout');
 assert.match(html,/STAFF PROFILE/,'modal is a dedicated profile editor');
 assert.match(html,/function staffModalOpen\(name=null\)/,'existing member and blank new-member flows share the modal');
 assert.match(html,/label>DEPARTMENT<\/label><select id="smDepartment"/,'staff profile includes a separate department selector');
@@ -51,4 +51,4 @@ assert.match(html,/Historical records will be retained/,'archive action explicit
 assert.match(html,/const previousRoster=allStaffRoster\(\)\.slice\(\)/,'adding staff preserves archived roster entries');
 assert.match(html,/allStaffRoster\(\)\.some\(n=>n\.toLowerCase\(\)===entered\.toLowerCase\(\)\)/,'archived names cannot be recreated as duplicate staff records');
 assert.doesNotMatch(html,/id="newStaffName"/,'old inline add-name input removed');
-console.log('PASS: STAFF modal upgrade contract — cards, Add New Member, photo lifecycle, station lock, plant status and permissions');
+console.log('PASS: STAFF modal upgrade contract — YARD HUB directory rows, Add New Member, photo lifecycle, station lock, plant status and permissions');

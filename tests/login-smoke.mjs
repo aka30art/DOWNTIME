@@ -504,14 +504,18 @@ async function ensureNavigationMenuOpen(page){
  const menu=page.locator('.nav-menu');
  const yardHub=page.locator('#yardHub');
  const shell=page.locator('.shell');
- if(!await shell.isVisible()||await menu.evaluate(node=>node.hidden)){
+ // STAFF workspace hides the DOWNTIME rail; use its own YARD HUB return control.
+ if(!await shell.isVisible()||!await menu.isVisible()){
   if(!await yardHub.isVisible()){
-   await page.locator('#backToYardHub').click();
+   const staffReturn=page.locator('#staffBackToYardHub');
+   if(await staffReturn.isVisible())await staffReturn.click();
+   else await page.locator('#backToYardHub').click();
    await yardHub.waitFor({state:'visible',timeout:5000});
   }
   await page.locator('#launchDowntimeBtn').click();
   await page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:5000});
  }
+ if(!await menu.isVisible())await menu.waitFor({state:'visible',timeout:3000});
  if(!await menu.evaluate(node=>node.open))await menu.locator(':scope > summary').click();
  await page.locator('.nav[data-view]').first().waitFor({state:'visible',timeout:3000});
 }
@@ -556,7 +560,7 @@ async function openStaffSettings(page){
   }));
   throw new Error('STAFF workspace launch timed out: '+JSON.stringify(diagnostic)+'; '+error.message);
  }
- await page.locator('#staffRosterList .staff-settings-icon').first().waitFor({state:'visible',timeout:5000});
+ await page.locator('#staffRosterList .yard-hub-small-button').first().waitFor({state:'visible',timeout:5000});
 }
 
 async function openSettingsHub(page){
@@ -760,7 +764,7 @@ try{
  await owner.page.locator('#yardHubSettingsScreen').waitFor({state:'visible',timeout:5000});
  await owner.page.locator('#yardHubSettingsStaff').click();
  await owner.page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
- await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
+ await owner.page.locator('.yard-hub-small-button[aria-label="Edit staff profile for Jan"]').click();
  await owner.page.locator('#smDepartment').selectOption('SCPL');
  const stationOptionLabels=await owner.page.locator('#smStation option').evaluateAll(options=>options.filter(option=>!option.hidden).map(option=>option.textContent.trim()));
  assert.ok(stationOptionLabels.includes('Bay A · WOOD'),'STAFF profile choices display the renamed station label');
@@ -771,7 +775,7 @@ try{
  await owner.page.locator('#smSave').click();
  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:5000});
  assert.equal(owner.getBank().staff.profiles.Jan.station,'Station 3 · SCRAP','SCPL STAFF station reassignment is confirmed in the central data bank');
- await owner.page.locator('#backToYardHub').click();
+ await owner.page.locator('#staffBackToYardHub').click();
  await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
  await owner.page.locator('#launchDowntimeBtn').click();
  await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
@@ -889,8 +893,8 @@ try{
  assert.equal(await owner.page.locator('#settingsPanelStaff').isVisible(),true,'OWNER opens STAFF management through YARD HUB Staff Management');
  assert.equal(await owner.page.locator('#addStaffBtn').isEnabled(),true,'OWNER retains STAFF management privileges');
  assert.equal(await owner.page.locator('.nav-menu').isVisible(),false,'STAFF workspace hides the MAIN MENU dropdown while the focused page is open');
- assert.equal(await owner.page.locator('#backToYardHub').isVisible(),true,'STAFF workspace retains the dedicated BACK TO YARD HUB route');
- await owner.page.locator('#backToYardHub').click();
+ assert.equal(await owner.page.locator('#staffBackToYardHub').isVisible(),true,'STAFF workspace exposes its compact header BACK TO YARD HUB route');
+ await owner.page.locator('#staffBackToYardHub').click();
  await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
  await owner.page.locator('#launchDowntimeBtn').click();
  await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
@@ -1056,7 +1060,11 @@ try{
   assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.length||0),1,'new-member original image is uploaded to private staff storage');
   assert.equal(await owner.page.evaluate(()=>window.__staffPhotoUploads?.[0]?.bucket),'downtime-staff-photos','original photo is uploaded to the private staff photo bucket');
  assert.equal(owner.getVersion(),versionBeforeDailyTaskFlow+6,'daily tasks, completions, lock and one staff save advance central version');
- // STAFF profile administration lives in Settings; return to Home Page before exercising its Day to Day control.
+ // STAFF profile administration uses its dedicated YARD HUB return route. Relaunch DOWNTIME before exercising its menu.
+ await owner.page.locator('#staffBackToYardHub').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
+ await owner.page.locator('#launchDowntimeBtn').click();
+ await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
  await ensureMainMenu(owner.page);
  const homePageNav=owner.page.locator('.nav[data-view="weekly"]');
  if(!await homePageNav.isVisible()){
@@ -1107,7 +1115,7 @@ await ensureNavigationMenuOpen(owner.page);
   await owner.page.frameLocator('#overviewFrame').locator('#exitOverview').click();
   await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
   await openStaffSettings(owner.page);
-  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
+  await owner.page.locator('.yard-hub-small-button[aria-label="Edit staff profile for Rita"]').click();
   await owner.page.locator('#staffModalBackdrop').waitFor({state:'visible',timeout:3000});
   assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'locked station is disabled when profile reopens');
   await owner.page.locator('#smLock').uncheck();
@@ -1121,13 +1129,18 @@ await ensureNavigationMenuOpen(owner.page);
   assert.equal(owner.getBank().staff.profiles.Rita.station,'Station 5 · GENERAL','OFF PLANT retains assigned station');
   assert.equal(owner.getBank().staff.profiles.Rita.onSite,false,'OFF PLANT status persists centrally');
   assert.equal(owner.getBank().staff.profiles.Rita.stationLocked,false,'manual unlock persists');
-    await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
+    await owner.page.locator('.yard-hub-small-button[aria-label="Edit staff profile for Rita"]').click();
   await owner.page.locator('#smOnPlant').check();
   await owner.page.locator('#smSave').click();
   await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
   for(let attempt=0;attempt<40&&owner.getBank().staff.profiles.Rita?.onSite!==true;attempt++)await owner.page.waitForTimeout(100);
   assert.equal(owner.getBank().staff.profiles.Rita.onSite,true,'ON PLANT status can be restored');
-// Once explicitly unlocked, another device can reassign Rita; Realtime refreshes the Overview.
+// Once explicitly unlocked, return from STAFF to YARD HUB and relaunch DOWNTIME before opening Overview.
+  await owner.page.locator('#staffBackToYardHub').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
+  await owner.page.locator('#launchDowntimeBtn').click();
+  await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
+  // Another device can reassign Rita; Realtime refreshes the Overview.
   await clickOverview(owner.page);
   const unlockedRita=owner.page.frameLocator('#overviewFrame').locator('[data-opprofile="RITA"]');
   await unlockedRita.waitFor({state:'visible',timeout:3000});
@@ -1143,7 +1156,7 @@ await ensureNavigationMenuOpen(owner.page);
   await owner.page.frameLocator('#overviewFrame').locator('#exitOverview').click();
   await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
   await openStaffSettings(owner.page);
-  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
+  await owner.page.locator('.yard-hub-small-button[aria-label="Edit staff profile for Rita"]').click();
   owner.page.once('dialog',dialog=>dialog.accept());
   await owner.page.locator('#smPhotoRemove').click();
   for(let attempt=0;attempt<40&&!owner.getPhotoRemovals().some(x=>x.path?.startsWith('rita/'));attempt++)await owner.page.waitForTimeout(100);
@@ -1171,7 +1184,7 @@ await ensureNavigationMenuOpen(owner.page);
   assert.equal(owner.getBank().staff.profiles.Rita.photoPath,undefined,'replacement original can also be removed');
   await owner.page.locator('#smCancel').click();
   await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
- await owner.page.locator('#backToYardHub').click();
+ await owner.page.locator('#staffBackToYardHub').click();
  assert.equal(await owner.page.locator('#yardHub').isVisible(),true,'YARD HUB is available before sign-out');
  await owner.page.locator('#yardHubLogoutBtn').click();
  await owner.page.waitForFunction(()=>document.querySelector('#authGate').style.display!=='none');
@@ -1202,6 +1215,10 @@ await ensureNavigationMenuOpen(owner.page);
  await openStaffSettings(user.page);
  assert.equal(await user.page.locator('#staffRosterList').isVisible(),true,'USER can view STAFF information inside Settings');
  assert.equal(await user.page.locator('#addStaffBtn').isDisabled(),true,'USER cannot manage STAFF');
+ await user.page.locator('#staffBackToYardHub').click();
+ await user.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
+ await user.page.locator('#launchDowntimeBtn').click();
+ await user.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
  await ensureNavigationMenuOpen(user.page);
  assert.equal(await user.page.locator('#addStaffBtn').isDisabled(),true,'USER cannot manage STAFF after returning to DOWNTIME');
  assert.equal(await user.page.locator('[data-settings-open="dailyTasks"]').isVisible(),false,'USER cannot manage Daily Tasks presets');
@@ -1249,7 +1266,7 @@ await ensureNavigationMenuOpen(owner.page);
   await supervisor.page.locator('#staffRolesCancel').click();
   await supervisor.page.waitForFunction(()=>document.querySelector('#staffRolesModalBackdrop')?.hidden===true,{timeout:3000});
   const userCountBeforeStaffArchive=supervisor.getBank().users.length;
-  await supervisor.page.locator('.staff-settings-icon[aria-label="Staff settings for Supervisor QA"]').click();
+  await supervisor.page.locator('.yard-hub-small-button[aria-label="Edit staff profile for Supervisor QA"]').click();
   supervisor.page.once('dialog',dialog=>dialog.accept());
   await supervisor.page.locator('#smRemove').click();
   await supervisor.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
@@ -1261,7 +1278,7 @@ await ensureNavigationMenuOpen(owner.page);
   assert.match(await supervisor.page.locator('#smMsg').textContent(),/That name already exists/,'archived staff names cannot be re-created as duplicate records');
   await supervisor.page.locator('#smCancel').click();
   assert.equal(supervisor.getBank().users.length,userCountBeforeStaffArchive,'ARCHIVE STAFF does not delete or alter USER accounts');
-  await supervisor.page.locator('.staff-settings-icon[aria-label="Staff settings for Supervisor QA"]').click();
+  await supervisor.page.locator('.yard-hub-small-button[aria-label="Edit staff profile for Supervisor QA"]').click();
   assert.equal(await supervisor.page.locator('#smRemove').textContent(),'RESTORE STAFF','archived profile exposes a restore action');
   supervisor.page.once('dialog',dialog=>dialog.accept());
   await supervisor.page.locator('#smRemove').click();
@@ -1275,7 +1292,7 @@ await ensureNavigationMenuOpen(owner.page);
  await signIn(staffOnly.page,'2468','MICK');
  await openStaffSettings(staffOnly.page);
  assert.equal(await staffOnly.page.locator('#addStaffBtn').isEnabled(),true,'STAFF-only tier can add members');
- await staffOnly.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
+ await staffOnly.page.locator('.yard-hub-small-button[aria-label="Edit staff profile for Jan"]').click();
  assert.equal(await staffOnly.page.locator('#smStation').isDisabled(),true,'STAFF-only tier cannot assign stations');
  assert.equal(await staffOnly.page.locator('#smLock').isDisabled(),true,'STAFF-only tier cannot change station lock');
  assert.equal(await staffOnly.page.locator('#smOnPlant').isEnabled(),true,'STAFF-only tier can change plant availability');
@@ -1294,7 +1311,7 @@ await ensureNavigationMenuOpen(owner.page);
  await signIn(assignmentOnly.page,'2468','MICK');
  await openStaffSettings(assignmentOnly.page);
  assert.equal(await assignmentOnly.page.locator('#addStaffBtn').isDisabled(),true,'ASSIGNMENT-only tier cannot create STAFF members');
- await assignmentOnly.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
+ await assignmentOnly.page.locator('.yard-hub-small-button[aria-label="Edit staff profile for Jan"]').click();
  assert.equal(await assignmentOnly.page.locator('#smName').isDisabled(),true,'ASSIGNMENT-only tier cannot edit staff identity');
  assert.equal(await assignmentOnly.page.locator('#smStation').isEnabled(),true,'ASSIGNMENT-only tier can assign station');
  assert.equal(await assignmentOnly.page.locator('#smLock').isEnabled(),true,'ASSIGNMENT-only tier can lock station');
@@ -1316,7 +1333,7 @@ await ensureNavigationMenuOpen(owner.page);
  const failedSave=await openFor('ASSIGNMENT_ONLY','2468','MICK');
  await signIn(failedSave.page,'2468','MICK');
  await openStaffSettings(failedSave.page);
- await failedSave.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
+ await failedSave.page.locator('.yard-hub-small-button[aria-label="Edit staff profile for Jan"]').click();
  await failedSave.page.locator('#smStation').selectOption('Station 6 · GENERAL');
  failedSave.failNextSettingsSave();
  await failedSave.page.locator('#smSave').click();
