@@ -69,7 +69,9 @@ assert.match(central, /if\(!isRootAuthority&&\(hasCanonicalIdentity\?!moduleRigh
 assert.match(hub, /resolveYardRoleModulePermissions/);
 assert.match(hub, /canManageStaffDirectory = rootCapabilities\.hasAutomaticDepartmentManage \|\| staffRights\.manage === true/);
 assert.match(hub, /if \(!canViewStaffDirectory\).*USER directory/);
-assert.match(hub, /managerAssignsOrdinaryUser = canManageStaffDirectory && !targetRootsAuthority && !isImmutableDevTarget/);
+assert.match(hub, /managerAssignsOrdinaryUser = !isProtectedRoot && canManageStaffDirectory && !targetRootsAuthority && !isImmutableDevTarget/);
+assert.match(hub, /Management MANAGE cannot assign a YARD ROLE to its own USER identity/);
+assert.match(hub, /YARD ROLES whose department permissions do not exceed the assigning user's own authority/);
 assert.match(hub, /canAssignUserRoles: canManageStaffDirectory/);
 assert.match(read("yard-hub-settings.js") ? await read("yard-hub-settings.js") : "", /openStaffUserManagement/);
 
