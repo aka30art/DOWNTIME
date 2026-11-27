@@ -1203,13 +1203,12 @@ function canAccessDowntimeModule(){const canonical=Boolean(centralUser?.userId||
 function syncDowntimeModuleAccess(){const tile=$('launchDowntimeBtn');if(!tile)return;const allowed=canAccessDowntimeModule(),status=tile.querySelector('.yard-tile-status');tile.disabled=!allowed;tile.classList.toggle('yard-tile-active',allowed);tile.classList.toggle('yard-tile-locked',!allowed);if(status)status.textContent=allowed?'LIVE APPLICATION':'RESTRICTED ACCESS'}
 function permission(name){
  const root=rootsAuthority(),departments=centralUser?.yardRolePermissions||{},downtime=departments.SCPL,management=departments.Management;
- if(name==='canManageUsers')return ['DEV','DEV1','ADMIN'].includes(root)||management?.manage===true;
- if(name==='canViewUsers')return ['DEV','DEV1','ADMIN'].includes(root)||management?.view===true||management?.manage===true;
+ if(name==='canManageUsers'||name==='canViewUsers')return root==='DEV';
  if(['DEV','DEV1','ADMIN'].includes(root)){
   if(['canAccessYardHub','canAccessDowntime','canAccessRepairMaintenance'].includes(name))return true;
   if(['canManageUsers','canViewUsers','canManageAccessRights'].includes(name))return root==='DEV';
   if(name==='canManageSettings')return true;
-  if(['canManageStaff','canViewStaff','canEnterStaff','canEditStaff','canManageAssignments','canViewAssignments'].includes(name))return true;
+  if(['canManageStaff','canViewStaff','canEnterStaff','canEditStaff','canManageAssignments','canViewAssignments','canManageStaffUsers','canViewStaffUsers'].includes(name))return true;
   if(['canEditTracker','canDeleteRecords','canExportReports','canViewPlantOverview','canViewDashboards','canViewReports','canControlPlantPower'].includes(name))return true;
  }
  if(centralUser?.userId||centralUser?.staffId){
@@ -1228,6 +1227,8 @@ function permission(name){
    case 'canViewStations':return downtime?.view===true||management?.view===true;
    case 'canViewAreaPresets':case 'canViewReasonPresets':case 'canViewShiftSchedule':case 'canViewDailyTasks':return downtime?.view===true;
    case 'canManageSettings':case 'canManageAreaPresets':case 'canManageReasonPresets':case 'canManageShiftSchedule':case 'canManageDailyTasks':case 'canAddDowntimeReasons':return downtime?.manage===true;
+   case 'canManageStaffUsers':return management?.manage===true;
+   case 'canViewStaffUsers':return management?.view===true||management?.manage===true;
    case 'canEnterStaff':return management?.enter===true;
    case 'canEditStaff':return management?.edit===true;
    case 'canManageStaff':case 'canManageAssignments':return management?.manage===true;
@@ -2105,7 +2106,7 @@ function showCentralApp(){if(!centralUser?.username)return;syncStaffModuleAccess
 function launchDowntime(){if(!centralUser?.username||!canAccessDowntimeModule())return;setStaffWorkspaceNavigation(false);const hub=$('yardHub');if(hub){hub.hidden=true;hub.style.display='none'}const shell=document.querySelector('.shell');if(shell)shell.style.display='';document.querySelectorAll('.nav[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view==='weekly'));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='weekly'));$('subtitle').textContent='Weekly recording sheet · Monday–Saturday';selected=(today.getDay()+6)%7;if(selected>5)selected=0;render();enforceOperatorMode();applyTierVisibility()}
 function launchStaffManagement(){if(isStaffModuleAutoAccess()&&typeof window.openYardHubStaffManagement==='function'){window.openYardHubStaffManagement();return}if(permission('canManageStaff')||permission('canEnterStaff')||permission('canEditStaff')||permission('canManageAssignments')||permission('canViewStaff')||isStaffModuleAutoAccess())launchStaffWorkspace()}
 $('launchStaffManagementBtn')?.addEventListener('click',launchStaffManagement);window.launchStaffManagement=launchStaffManagement;
-function launchStaffWorkspace(){if(!isStaffModuleAutoAccess()&&!permission('canManageStaff')&&!permission('canEnterStaff')&&!permission('canEditStaff')&&!permission('canManageAssignments')&&!permission('canViewStaff'))return;const hub=$('yardHub');if(hub){hub.hidden=true;hub.style.display='none'}const shell=document.querySelector('.shell');if(shell)shell.style.display='';document.querySelectorAll('.nav[data-view]').forEach(button=>button.classList.toggle('active',button.dataset.view==='settings'));document.querySelectorAll('.view').forEach(view=>view.classList.toggle('active',view.id==='settings'));const settings=document.querySelector('#settings');if(!settings)return;settings.style.display='block';const userButton=$('openStaffUserAccounts');if(userButton)userButton.hidden=!permission('canViewUsers');renderOperatorRosterAdmin();openSettingsPanel('staff')}
+function launchStaffWorkspace(){if(!isStaffModuleAutoAccess()&&!permission('canManageStaff')&&!permission('canEnterStaff')&&!permission('canEditStaff')&&!permission('canManageAssignments')&&!permission('canViewStaff'))return;const hub=$('yardHub');if(hub){hub.hidden=true;hub.style.display='none'}const shell=document.querySelector('.shell');if(shell)shell.style.display='';document.querySelectorAll('.nav[data-view]').forEach(button=>button.classList.toggle('active',button.dataset.view==='settings'));document.querySelectorAll('.view').forEach(view=>view.classList.toggle('active',view.id==='settings'));const settings=document.querySelector('#settings');if(!settings)return;settings.style.display='block';const userButton=$('openStaffUserAccounts');if(userButton)userButton.hidden=!permission('canViewStaffUsers');renderOperatorRosterAdmin();openSettingsPanel('staff')}
 window.launchStaffWorkspace=launchStaffWorkspace;
 function returnToYardHub(){setStaffWorkspaceNavigation(false);window.closeYardHubStaffManagement?.();const shell=document.querySelector('.shell');if(shell)shell.style.display='none';const hub=$('yardHub');if(hub){hub.hidden=false;hub.style.display='block';['.yard-hero','.yard-grid','.yard-modules-heading','.yard-hub-footer'].forEach(selector=>{const node=hub.querySelector(selector);if(node)node.hidden=false});const screen=$('yardHubSettingsScreen');if(screen)screen.hidden=true}syncStaffModuleAccess();syncDowntimeModuleAccess();window.dispatchEvent(new Event('yard-hub:shown'))}
 window.returnToYardHub=returnToYardHub;
