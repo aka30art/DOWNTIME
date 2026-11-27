@@ -40,6 +40,7 @@ assert.match(html,/id="yardHubResetAdminPin"/);
 assert.match(html,/id="yardHubResetConfirmation"/);
 assert.match(settings,/executeIdentityReset/);
 assert.match(settings,/window\.launchStaffManagement/);
+assert.match(html,/window\.launchStaffManagement=launchStaffManagement/);
 assert.match(settings,/openSettingsView\('roots'\)/);
 assert.match(packageJson.scripts["test:user-staff-identity"],/identity-reset-cutover-contract\.mjs/);
 console.log("Two-phase identity reset and YARDHUB Staff Management release contract: PASS");
