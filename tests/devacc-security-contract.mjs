@@ -44,7 +44,7 @@ assert.ok(app.includes("function canManageAccessRights(){return false}"),'legacy
 assert.ok(app.includes("function canAssignStandardAccountTiers(){return false}"),'legacy tier assignment UI is retired');
 assert.ok(app.includes("option.disabled=!isRootDevAccount()"),'legacy DEVACC selector remains unavailable to non-DEV accounts');
 assert.ok(!app.includes("username==='DEV'&&tier==='OWNER'"),'frontend does not infer ROOTS authority from username plus OWNER tier');
-assert.ok(!app.includes("tier==='DEVACC'"),'frontend does not infer ROOTS authority from legacy DEVACC tier');
+assert.ok(app.includes("function isRootDevAccount(){return rootsAuthority()==='DEV'}"),'frontend derives root DEV identity only from the server-resolved ROOTS authority');
 assert.ok(!api.includes('const isDevRoot=currentUsername==="DEV"&&tier==="OWNER";'),'backend does not infer DEV from username plus OWNER tier');
 assert.ok(!api.includes('const isDevacc=tier==="DEVACC";'),'backend does not infer ROOTS authority from DEVACC tier');
 assert.ok(client.includes('async saveTiers(tiers,version)'),'legacy client method remains a compatibility call only');
