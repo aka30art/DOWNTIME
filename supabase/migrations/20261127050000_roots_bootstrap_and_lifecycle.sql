@@ -21,14 +21,14 @@ begin
     raise exception 'Central Bank table is required before ROOTS bootstrap';
   end if;
 
-  select count(*), (array_agg((u->>'userId')::uuid))[1]
+  select count(*), (array_agg((user_record->>'userId')::uuid))[1]
     into candidate_count, candidate_user_id
     from public.downtime_central_bank b
-    cross join lateral jsonb_array_elements(coalesce(b.payload->'users','[]'::jsonb)) u
-   where upper(trim(coalesce(u->>'username',''))) = 'DEV'
-     and upper(trim(coalesce(u->>'tier',''))) = 'OWNER'
-     and coalesce((u->>'enabled')::boolean, true) = true
-     and coalesce(u->>'userId','') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+    cross join lateral jsonb_array_elements(coalesce(b.payload->'users','[]'::jsonb)) as accounts(user_record)
+   where upper(trim(coalesce(user_record->>'username',''))) = 'DEV'
+     and upper(trim(coalesce(user_record->>'tier',''))) = 'OWNER'
+     and coalesce((user_record->>'enabled')::boolean, true) = true
+     and coalesce(user_record->>'userId','') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
 
   if candidate_count <> 1 or candidate_user_id is null then
     raise exception 'ROOTS bootstrap requires exactly one enabled immutable DEV USER with a valid UUID';
