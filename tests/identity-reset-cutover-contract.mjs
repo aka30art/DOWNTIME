@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [migration,legacyResetGuard,api,yardApi,html,settings,client,packageJson] = await Promise.all([
+assert.match(legacyResetGuard,/revoke all on function public\.downtime_identity_reset_cutover[\s\S]*from public, anon, authenticated, service_role/);
   readFile("supabase/migrations/20261127100000_preserve_dev_identity_and_rooted_roles.sql","utf8"),
   readFile("supabase/migrations/20261127100001_disable_legacy_identity_reset_rpc.sql","utf8"),
   readFile("supabase/functions/central-bank/index.ts","utf8"),
