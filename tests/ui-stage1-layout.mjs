@@ -117,8 +117,9 @@ try {
   assert.equal(await menu.evaluate(node => node.open), false, 'Menu must start collapsed');
   await menu.locator(':scope > summary').click();
   assert.equal(await page.locator('.nav-items > .nav').count(), 6, 'All remaining navigation choices stay in the main menu after STAFF moves into Settings');
-  assert.equal(await page.locator('[data-settings-open="staff"]').count(), 0, 'STAFF is no longer a legacy DOWNTIME Settings destination');
-  assert.equal(await page.locator('#yardHubSettingsStaff').count(), 1, 'STAFF remains available through YARD HUB Settings');
+  assert.equal(await page.locator('[data-settings-open="users"]').count(), 1, 'USERS remains available in DOWNTIME Settings');
+  assert.equal(await page.locator('[data-settings-open="staff"]').count(), 1, 'STAFF remains available in DOWNTIME Settings');
+  assert.equal(await page.locator('#yardHubSettingsStaff').count(), 1, 'YARD HUB retains its separate STAFF management destination');
   for (const id of ['cloudStatus', 'lastSync', 'manualRefreshBtn', 'plantOperatorToggle', 'onDuty']) {
     assert.equal(await page.locator('#' + id).count(), 1, 'Retained utility control missing: ' + id);
   }

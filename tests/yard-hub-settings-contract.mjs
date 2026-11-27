@@ -229,3 +229,10 @@ assert.ok(ui.includes("some(role=>role.status==='ACTIVE')"),'USER creation remai
 assert.ok(hubApi.includes('const canManageCentralUsers = rootsAuthority === "DEV";'),'only immutable DEV ROOTS authority can create or manage Central Bank USER accounts');
 
 assert.ok(hubApi.includes('const canManageCentralUsers = rootsAuthority === "DEV";'),'only immutable DEV ROOTS authority can create or manage Central Bank USER accounts');
+
+// ROOTS DEV1 / ADMIN classifications belong to normal linked USER/STAFF identities.
+// Such rows must stay in the USER directory; rootsClass is exposed for the protected edit guards.
+assert.match(hubApi, /users: \(Array\.isArray\(bank\.users\) \? bank\.users : \[\]\)\.map\(\(account: any\) => \{/,
+  'canonical USER directory includes DEV1 and ADMIN ROOTS-classified USER/STAFF accounts');
+assert.match(hubApi, /rootsClass: rootAssignmentsByUser\.get\(String\(account\.userId \|\| \"\"\)\.toLowerCase\(\)\)\?\.status === \"ACTIVE\"/,
+  'USER directory exposes ROOTS class metadata so protected rows stay protected');
