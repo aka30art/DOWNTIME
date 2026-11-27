@@ -145,7 +145,7 @@ Deno.serve(async (req: Request) => {
 
   if (action === "settings-state") {
     const [{ data: yardRoles, error: yardRolesError }, { data: roleAssignments, error: roleAssignmentsError }, { data: rolePermissions, error: rolePermissionsError }] = await Promise.all([
-      db.from("yard_roles").select("id,name,description,status").eq("status", "ACTIVE").order("name"),
+      db.from("yard_roles").select("id,name,description,status,version").order("name"),
       db.from("yard_role_assignments").select("user_id,staff_id,yard_role_id,status,version,verified_at"),
       db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage"),
     ]);
@@ -170,7 +170,7 @@ Deno.serve(async (req: Request) => {
           yardRoleId: assignment?.yard_role_id || account.yardRoleId || null,
         };
       }).sort((a: any, b: any) => a.username.localeCompare(b.username)),
-      yardRoles: assignableYardRoles,
+      yardRoles: assignableYardRoles,\n      roleCatalogue: (yardRoles || []).map((role: any) => ({ ...role, permissions: (rolePermissions || []).filter((row: any) => String(row.yard_role_id).toLowerCase() === String(role.id).toLowerCase()).map((row: any) => ({ department: row.department, can_view: row.can_view === true, can_enter: row.can_enter === true, can_edit: row.can_edit === true, can_manage: row.can_manage === true })) })),
       userTiers: configRow.payload?.userTiers || {},
       centralVersion: Number(bankRow.version || 0),
       tierPermissions: normalizeTierPermissions(configRow.payload, configRow.payload, [...tierNames.filter(name => !(configRow.payload.retiredTiers || []).includes(name)), ...(Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [])]),
@@ -180,6 +180,35 @@ Deno.serve(async (req: Request) => {
       editableTiers: isRootAdmin(user, hubTier, legacyTier) ? [...tierNames.filter(name => !(configRow.payload.retiredTiers || []).includes(name)), ...(configRow.payload.customTiers || [])] : [...editableByAdmin],
       canManageCentralUsers,
     });
+  }
+
+  if (action === "yard-role-save") {
+    if (!isRootDev(user, legacyTier)) return json({ error: "Only immutable DEV may create or change canonical YARD ROLE definitions." }, 403);
+    if (!/^[0-9a-f-]{36}$/i.test(String(user.userId || ""))) return json({ error: "Authenticated actor has no immutable USER ID." }, 409);
+    const roleId = String(body.roleId || crypto.randomUUID());
+    if (!/^[0-9a-f-]{36}$/i.test(roleId)) return json({ error: "Canonical YARD ROLE ID is invalid." }, 400);
+    const expectedVersion = Number(body.version ?? 0);
+    if (!Number.isInteger(expectedVersion) || expectedVersion < 0) return json({ error: "A valid YARD ROLE version is required." }, 400);
+    const name = String(body.name || "").trim();
+    const description = String(body.description || "").trim();
+    const status = String(body.status || "DRAFT").toUpperCase();
+    const permissions = Array.isArray(body.permissions) ? body.permissions : null;
+    if (!name || name.length > 80 || description.length > 500 || !["DRAFT", "ACTIVE", "RETIRED"].includes(status) || !permissions) {
+      return json({ error: "YARD ROLE name, description, status and five-department permission matrix are required." }, 400);
+    }
+    const { data: saved, error: saveError } = await db.rpc("yard_role_save_definition", {
+      p_role_id: roleId,
+      p_expected_version: expectedVersion,
+      p_name: name,
+      p_description: description,
+      p_status: status,
+      p_permissions: permissions,
+      p_actor_user_id: user.userId,
+      p_actor_username: String(user.username),
+      p_actor_display_name: String(user.displayName || user.username),
+    });
+    if (saveError || !saved) return json({ error: saveError?.message?.includes("YARD_ROLE_VERSION_CONFLICT") ? "YARD ROLE changed elsewhere. Refresh and try again." : saveError?.message || "YARD ROLE definition could not be saved." }, 409);
+    return json({ ok: true, role: saved });
   }
 
   if (action === "assign-user-role") {
