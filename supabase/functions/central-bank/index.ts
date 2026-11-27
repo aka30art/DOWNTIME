@@ -228,11 +228,11 @@ Deno.serve(async(req)=>{
    Object.assign(priv,{canManageStaff:true,canEnterStaff:true,canEditStaff:true,canViewStaff:true,canManageAssignments:true,canViewAssignments:true});
  }
  // Central Bank USER directory access is an immutable DEV-only control-plane capability.
- priv.canManageUsers=rootsAuthority==="DEV";priv.canViewUsers=rootsAuthority==="DEV";
+ priv.canManageUsers=rootsAuthority==="DEV"||(hasCanonicalIdentity&&resolvedYardRole&&moduleRights["Staff & Management"]?.manage===true);priv.canViewUsers=rootsAuthority==="DEV"||(hasCanonicalIdentity&&resolvedYardRole&&(moduleRights["Staff & Management"]?.view===true||moduleRights["Staff & Management"]?.manage===true));
  const isCentralAdmin=isDevRoot;
  const isCentralBankAccess=isDevRoot;
  if(action==="user-staff-provision"){
-   if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);
+   if(!priv.canManageUsers)return json({error:"Management MANAGE permission or immutable DEV authority is required to provision USER + STAFF identities."},403);
    const username=String(body.username||"").trim(),displayName=String(body.displayName||"").trim(),pin=String(body.pin||"");
    const idempotencyKey=String(body.idempotencyKey||""),requestedYardRoleId=String(body.requestedYardRoleId||"");
    const staffFields=body.staff&&typeof body.staff==="object"&&!Array.isArray(body.staff)?body.staff:{};
@@ -262,7 +262,7 @@ Deno.serve(async(req)=>{
    }catch(error){return json({error:error instanceof Error?error.message:"Invalid USER/STAFF provisioning request."},400)}
  }
  if(action==="user-staff-activate"){
-   if(!isDevRoot)return json({error:"Only immutable DEV may activate newly provisioned USER identities."},403);
+   if(!priv.canManageUsers)return json({error:"Management MANAGE permission or immutable DEV authority is required to activate USER identities."},403);
    if(Deno.env.get("DOWNTIME_CANONICAL_AUTH_READY")!=="true")return json({error:"Canonical USER sessions and YARD ROLE authorization are not yet active. The USER remains disabled."},503);
    const userId=String(body.userId||"");
    if(!/^[0-9a-f-]{36}$/i.test(userId))return json({error:"Immutable USER ID required."},400);
@@ -465,7 +465,7 @@ Deno.serve(async(req)=>{
    return json({records:records||[],history:history||[]});
  }
  if(action==="daily-operator-assign"){
-   if(hasCanonicalIdentity&&!isRootAuthority?!moduleRights.DOWNTIME.manage:!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"SCPL MANAGE permission is required to assign or change the DOWNTIME daily operator"},403);
+   if(!isRootAuthority&&(hasCanonicalIdentity?!moduleRights.DOWNTIME.manage:!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier)))return json({error:"SCPL MANAGE permission is required to assign or change the DOWNTIME daily operator"},403);
    const dutyDate=String(body.dutyDate||""),requested=String(body.operatorName||"").trim();
    if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate)||!Number.isFinite(Date.parse(dutyDate+"T00:00:00Z")))return json({error:"A valid calendar date is required"},400);
    const roster=Array.isArray(bank.staff?.roster)?bank.staff.roster:["Jan","Mick","Gigi","Daz","Shayne"];
@@ -493,7 +493,7 @@ Deno.serve(async(req)=>{
    return json({ok:true,record,centralVersion});
  }
  if(action==="daily-operator-unlock"){
-   if(hasCanonicalIdentity&&!isRootAuthority?!moduleRights.DOWNTIME.manage:!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"SCPL MANAGE permission is required to unlock the DOWNTIME daily operator"},403);
+   if(!isRootAuthority&&(hasCanonicalIdentity?!moduleRights.DOWNTIME.manage:!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier)))return json({error:"SCPL MANAGE permission is required to unlock the DOWNTIME daily operator"},403);
    const dutyDate=String(body.dutyDate||""),reason=String(body.reason||"").trim().slice(0,240);
    if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate))return json({error:"A valid calendar date is required"},400);
    if(reason.length<4)return json({error:"Enter a reason for unlocking this daily assignment"},400);
