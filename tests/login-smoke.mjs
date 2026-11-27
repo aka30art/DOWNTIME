@@ -728,7 +728,7 @@ try{
    const rects=Object.fromEntries(cards.map(card=>[card.dataset.settingsOpen,card.getBoundingClientRect()]));
    return {columns:getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length,count:cards.length,staffTop:rects.staff?.top,dailyTasksTop:rects.dailyTasks?.top};
   });
-  assert.equal(layout.count,7,'all seven Settings cards are inside the grid at '+width+'px');
+  assert.equal(layout.count,7,'all five operational Settings cards are inside the grid at '+width+'px');
   assert.equal(layout.columns,columns,'Settings grid has '+columns+' columns at '+width+'px');
   if(width===1280)assert.ok(Math.abs(layout.staffTop-layout.dailyTasksTop)<2,'STAFF occupies the sixth grid position alongside the other cards');
   await owner.page.screenshot({path:resolve('artifacts/settings-hub/settings-'+width+'px.png')});
