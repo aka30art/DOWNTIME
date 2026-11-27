@@ -1143,7 +1143,7 @@ await ensureNavigationMenuOpen(owner.page);
  await user.page.locator('.nav[data-view="reports"]').click();
  await user.page.locator('[data-report-display="00000000-0000-4000-8000-000000000001"]').waitFor({state:'visible',timeout:5000});
  assert.equal(await user.page.locator('[data-report-display="00000000-0000-4000-8000-000000000001"]').isVisible(),true,'USER can display weekly reports with view permission');
- assert.equal(await user.page.locator('[data-report-download="weekly-report-qa"]').isVisible(),false,'USER cannot download reports without export permission');
+ assert.equal(await user.page.locator('[data-report-download="00000000-0000-4000-8000-000000000001"]').isVisible(),false,'USER cannot download reports without export permission');
  await user.page.locator('[data-report-display="00000000-0000-4000-8000-000000000001"]').click();
  await user.page.waitForFunction(()=>document.querySelector('#reportPreviewFrame')?.src.startsWith('blob:'),{timeout:5000});
  await user.page.keyboard.press('Escape');
