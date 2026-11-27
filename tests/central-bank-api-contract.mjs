@@ -16,6 +16,7 @@ assert.ok(src.includes('if(protectedTarget&&rootsAuthority!=="DEV")'),'ordinary 
 assert.ok(src.includes('Protected ROOTS identities cannot be deleted through ordinary account management.'),'ordinary account deletion cannot remove protected ROOTS identities');
 assert.ok(src.includes('lookupProtectedStaff'),'generic STAFF settings saves preserve protected ROOTS profiles');
 assert.ok(src.includes('hideProtectedRootStaff')&&src.includes('rootDirectory.staffIds'),'Central Bank payloads hide protected ROOTS STAFF identities from non-DEV users');
+assert.ok(src.includes('action==="reports-context"')&&src.includes('canViewReports:priv.canViewReports===true')&&src.includes('canExportReports:priv.canExportReports===true'),'weekly report API receives a minimal server-resolved permission context');
 assert.ok(src.includes('getProtectedRootStaffNames')&&src.includes('visibleRoster'),'daily operator assignment cannot target protected ROOTS STAFF identities');
 assert.ok(src.includes('history:(history||[]).filter')&&src.includes('publicBank.dailyOperators=(dailyOperators||[])'),'daily operator views hide protected ROOTS STAFF records from non-DEV users');
 assert.ok(src.includes('Only immutable DEV may view protected ROOTS STAFF photos.'),'protected ROOTS STAFF photos cannot be inspected by other administrators');
