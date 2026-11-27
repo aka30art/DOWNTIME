@@ -74,7 +74,7 @@ assert.match(settings,/resetStatusAvailable!==true/);
 assert.match(settings,/window\.location\.reload\(\)/);
 assert.doesNotMatch(settings,/DowntimeCentral\.logout\(\)/);
 assert.match(settings,/roleDefinitions\|\|\[\]/);
-assert.match(settings,/roleSection\.hidden=!rootDev\(\)/);
+assert.match(settings,/roleSection\.hidden=!rootDev\(\)\|\|!Array\.isArray\(result\.roleDefinitions\)/);
 const rootsUi = settings.slice(settings.indexOf('async function loadRootsState()'),settings.indexOf('async function assignSelectedRoot()'));
 assert.match(rootsUi,/if\(roleSection\)roleSection\.hidden=true;[\s\S]*if\(dev1\)/,"DEV-only ROOTED role UI is hidden before handling a non-DEV ROOTS authority");
 assert.match(rootsUi,/if\(roleHost\)roleHost\.replaceChildren\(\)/,"cached ROOTED role definitions are cleared when ROOTS authority changes");
