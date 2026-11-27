@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { activatePendingUserStaffProvisioning, buildIdentityMigrationPreview, buildPendingUserStaffProvisioning, renameLinkedStaffDisplayName } from "../_shared/user-staff-identity.mjs";
 import { resolveYardRolePermissions } from "../_shared/yard-role-resolver.mjs";
+import { resolveRootsAuthority } from "../_shared/roots-authority.mjs";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const allowedOrigin="https://aka30art.github.io";
@@ -24,7 +25,7 @@ const hmacDigest=async(secret:string,s:string)=>{
 };
 async function hashPin(pin:string,salt:string){const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(pin),"PBKDF2",false,["deriveBits"]);return cryptoHex(new Uint8Array(await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode(salt),iterations:150000,hash:"SHA-256"},key,256)))}
 async function verifyPin(pin:string,user:any){return user?.pinSalt&&user?.pinHash&&await hashPin(pin,user.pinSalt)===user.pinHash}
-function safeUser(u:any){return {username:u.username,tier:u.tier,enabled:u.enabled!==false,displayName:u.displayName||u.username}}
+function safeUser(u:any){return {username:u.username,tier:u.tier,enabled:u.enabled!==false,displayName:u.displayName||u.username,userId:u.userId||null,staffId:u.staffId||null}}
 const lockedRolePrivileges:Record<string,Record<string,boolean>>={
  OWNER:{canEditTracker:true,canAccessYardHub:true,canAccessRepairMaintenance:true,canEditRepairMaintenance:true,canDeleteRepairMaintenance:true,canExportRepairMaintenanceReports:true,canManageAccessRights:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
  DEVACC:{canEditTracker:true,canAccessYardHub:true,canAccessRepairMaintenance:true,canEditRepairMaintenance:true,canDeleteRepairMaintenance:true,canExportRepairMaintenanceReports:true,canManageAccessRights:true,canManageUsers:true,canManageStaff:true,canManageAssignments:true,canManageSettings:true,canViewUsers:true,canViewAreaPresets:true,canManageAreaPresets:true,canViewReasonPresets:true,canManageReasonPresets:true,canViewShiftSchedule:true,canManageShiftSchedule:true,canViewDailyTasks:true,canManageDailyTasks:true,canAddDowntimeReasons:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewStaff:true,canViewAssignments:true,canViewDashboards:true,canViewReports:true},
@@ -157,12 +158,18 @@ Deno.serve(async(req)=>{
  if(!session)return json({error:"Session expired. Sign in again."},401);
  const currentUser=bank.users.find((u:any)=>u.username===session.username&&u.enabled!==false);
  if(!currentUser)return json({error:"Account disabled"},401);
+ const [{data:rootsBootstrap,error:rootsBootstrapError},{data:rootsAssignment,error:rootsAssignmentError}]=await Promise.all([
+   db.from("downtime_roots_bootstrap").select("user_id").eq("singleton",true).maybeSingle(),
+   currentUser.userId?db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status").eq("user_id",currentUser.userId).maybeSingle():Promise.resolve({data:null,error:null})
+ ]);
+ if(rootsBootstrapError||rootsAssignmentError)return json({error:"Protected ROOTS identity registry is unavailable."},503);
+ const rootsAuthority=resolveRootsAuthority(currentUser,rootsAssignment,rootsBootstrap?.user_id||null);
  const tier=currentUser.tier,storedPrivileges=bank.tiers[tier]||{},priv={...tierDefault[tier],...storedPrivileges};
  if(lockedRolePrivileges[tier])Object.assign(priv,lockedRolePrivileges[tier]);
  const currentUsername=String(currentUser.username||"").trim().toUpperCase();
- const isDevRoot=currentUsername==="DEV"&&tier==="OWNER";
+ const isDevRoot=rootsAuthority==="DEV";
  const isDevacc=tier==="DEVACC";
- const isRootAuthority=isDevRoot||isDevacc;
+ const isRootAuthority=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"");
  const isCentralAdmin=tier==="ADMIN"||isRootAuthority;
  const isCentralBankAccess=isRootAuthority;
  if(action==="user-staff-provision"){
