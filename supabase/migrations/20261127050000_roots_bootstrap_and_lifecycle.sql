@@ -86,13 +86,13 @@ declare
   v_audit_action text;
 begin
   if p_user_id is null or p_staff_id is null or p_user_id = p_staff_id
-     or p_action not in ('ASSIGN','RECLASSIFY','REVOKE')
+     or p_action is null or p_action not in ('ASSIGN','RECLASSIFY','REVOKE')
      or coalesce(trim(p_actor_username),'') = ''
      or p_actor_user_id is null
      or coalesce(trim(p_actor_display_name),'') = '' then
     raise exception 'Invalid protected ROOTS lifecycle request';
   end if;
-  if p_action in ('ASSIGN','RECLASSIFY') and p_roots_class not in ('DEV1','ADMIN') then
+  if p_action in ('ASSIGN','RECLASSIFY') and (p_roots_class is null or p_roots_class not in ('DEV1','ADMIN')) then
     raise exception 'A protected DEV1 or ADMIN classification is required';
   end if;
 
