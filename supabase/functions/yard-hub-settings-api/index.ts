@@ -338,6 +338,14 @@ Deno.serve(async (req: Request) => {
       String(account.userId || "").toLowerCase() === targetUserId.toLowerCase()
     );
     if (!target) return json({ error: "Central USER account not found." }, 404);
+    const [{ data: targetRoots, error: targetRootsError }, { data: devBootstrap, error: devBootstrapError }] = await Promise.all([
+      db.from("downtime_roots_assignments").select("roots_class,status").eq("user_id", targetUserId).eq("status", "ACTIVE").maybeSingle(),
+      db.from("downtime_roots_bootstrap").select("user_id").eq("singleton", true).maybeSingle(),
+    ]);
+    if (targetRootsError || devBootstrapError) return json({ error: "Protected ROOTS registry is unavailable." }, 503);
+    if (String(devBootstrap?.user_id || "").toLowerCase() === targetUserId.toLowerCase() || targetRoots) {
+      return json({ error: "Protected ROOTS identities receive automatic department authority and cannot be assigned an ordinary YARD ROLE." }, 409);
+    }
     const isPending = target.provisioning?.stage === "YARD_ROLE_PENDING";
     if (isPending && target.provisioning.requestedYardRoleId !== yardRoleId) return json({ error: "Selected YARD ROLE does not match the provisioned request." }, 409);
     if (!isPending && (target.enabled !== true || target.status !== "ACTIVE" || !target.staffId)) return json({ error: "Only an active linked USER can receive a direct YARD ROLE reassignment." }, 409);
