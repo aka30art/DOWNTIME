@@ -15,8 +15,10 @@ assert.match(html, /id="yardHubLogoutBtn"/, 'YARD HUB provides a sign-out action
 assert.match(html, /id="launchDowntimeBtn" data-app="downtime"/, 'DOWNTIME has a dedicated application launcher');
 assert.match(html, /id="launchStaffManagementBtn" data-app="staff-management" type="button"/, 'STAFF MANAGEMENT has a dedicated module launcher');
 assert.doesNotMatch(html, /id="launchStaffManagementBtn"[^>]*disabled/, 'STAFF MANAGEMENT is not hard-disabled in the launcher markup');
-assert.match(html, /function isStaffModuleAutoAccess\(\)\{const tier=String\(centralUser\?\.tier\|\|''\)\.trim\(\)\.toUpperCase\(\);return \['DEV','DEV1','ADMIN'\]\.includes\(rootsAuthority\(\)\)\|\|tier==='DEVACC'\|\|tier==='ADMIN'\}/, 'all three protected ROOTS identities and explicitly privileged legacy tiers may access Staff Management');
+assert.match(html, /function isStaffModuleAutoAccess\(\)\{const tier=String\(centralUser\?\.tier\|\|''\)\.trim\(\)\.toUpperCase\(\),canonical=Boolean\(centralUser\?\.userId\|\|centralUser\?\.staffId\);return \['DEV','DEV1','ADMIN'\]\.includes\(rootsAuthority\(\)\)\|\|\(!canonical&&\(\['DEVACC','ADMIN'\]\.includes\(tier\)\)\)\}/, 'legacy Staff Management access applies only to non-canonical identities; canonical identities use Management department rights');
 assert.match(html, /function syncStaffModuleAccess\(\)[\s\S]*?tile\.disabled=!allowed/, 'Staff Management launcher is enabled or restricted from the authenticated central tier');
+assert.match(html,/function syncDowntimeModuleAccess\(\)/,'DOWNTIME launcher is restricted by SCPL module rights');
+assert.match(structure,/window\.syncDowntimeModuleAccess\?\.\(\)/,'published menu rendering reapplies the DOWNTIME gate');
 assert.match(html, /function launchStaffManagement\(\)[\s\S]*?window\.openYardHubStaffManagement\(\)/, 'YARD HUB Staff Management tile opens its dedicated submenu');
 assert.match(html,/window\.launchStaffWorkspace=launchStaffWorkspace/,'STAFF subtile opens the existing central STAFF workspace');
 assert.match(html,/window\.syncStaffModuleAccess=syncStaffModuleAccess/,'Staff Management tile synchronises from server-resolved ROOTS authority');
@@ -27,10 +29,11 @@ assert.doesNotMatch(html,/id="settingsPanelStaff"[\s\S]*?onclick="window\.return
 assert.match(html,/function setStaffWorkspaceNavigation\(hidden\)\{[^}]*menu\.hidden=Boolean\(hidden\)\}/,'STAFF main-menu visibility is controlled by a dedicated navigation helper');
 assert.match(html,/function openSettingsPanel\(section\)[^]*?setStaffWorkspaceNavigation\(section==='staff'\)/,'opening STAFF hides the main-menu dropdown');
 assert.match(html,/function showSettingsHub\(\)\{setStaffWorkspaceNavigation\(false\)/,'returning to the Settings hub restores the main menu');
-assert.match(html,/function launchDowntime\(\)\{if\(!centralUser\?\.username\)return;setStaffWorkspaceNavigation\(false\)/,'launching DOWNTIME restores the main menu');
+assert.match(html,/function launchDowntime\(\)\{if\(!centralUser\?\.username\|\|!canAccessDowntimeModule\(\)\)return;setStaffWorkspaceNavigation\(false\)/,'launching DOWNTIME requires SCPL access and restores the main menu');
 assert.match(html,/function returnToYardHub\(\)\{setStaffWorkspaceNavigation\(false\)/,'returning to YARD HUB resets STAFF-only navigation state');
 assert.match(html, /launchStaffManagementBtn'\)\?\.addEventListener\('click',launchStaffManagement\)/, 'Staff Management launcher has a click handler');
-assert.match(html, /if\(section==='staff'&&isStaffModuleAutoAccess\(\)\)return true/, 'privileged tiers can open STAFF even when granular view flags are unset');
+assert.match(html, /if\(section==='staff'\)return isStaffModuleAutoAccess\(\)\|\|permission\('canViewStaff'\)\|\|permission\('canEnterStaff'\)/, 'Staff panel access follows the Management module, not DOWNTIME Settings rights');
+assert.match(html,/button\.hidden=key==='staff'\|\|!access\[key\]/,'Staff Management does not appear as a tile inside DOWNTIME Settings');
 assert.match(html, /const canonicalIdentity=Boolean\(centralUser\?\.userId\|\|centralUser\?\.staffId\)[\s\S]*?\['DEV','DEV1','ADMIN'\]\.includes\(rootsAuthority\(\)\)[\s\S]*?canonicalIdentity\?permission\('canAccessYardHub'\)/, 'canonical identities cannot inherit YARD HUB access from legacy OWNER/DEVACC/ADMIN tiers');
 const staffAccessSource = html.match(/function isStaffModuleAutoAccess\(\)\{[^}]*\}/)?.[0];
 assert.ok(staffAccessSource, 'Staff Management auto-access policy is explicit and testable');
@@ -47,6 +50,8 @@ for (const user of [
   { username: 'ordinary-user', tier: 'USER', rootsAuthority: null },
   { username: 'supervisor-user', tier: 'SUPERVISOR', rootsAuthority: null }
 ]) assert.equal(staffAccess(user, {DowntimeCentral:{session:{user}}}, () => user.rootsAuthority)(), false, user.username + '/' + user.tier + ' must not receive Staff Management auto-access');
+const canonicalLegacyAdmin={username:'legacy-admin',tier:'ADMIN',userId:'u-1',staffId:'s-1',rootsAuthority:null};
+assert.equal(staffAccess(canonicalLegacyAdmin,{DowntimeCentral:{session:{user:canonicalLegacyAdmin}}},()=>null)(),false,'canonical identities cannot inherit Staff access from a legacy ADMIN tier');
 assert.match(html, /class="yard-tile-copy"><strong>STAFF MANAGEMENT<\/strong>/, 'FLOOR module tile displays the STAFF MANAGEMENT title');
 assert.match(html, /data-app="check-sheets" type="button" disabled/, 'DAILY remains visible but unavailable');
 assert.match(html, /class="yard-tile-copy"><strong>DAILY<\/strong>/, 'CHECK SHEETS module tile displays the DAILY title');

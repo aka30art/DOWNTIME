@@ -170,6 +170,7 @@ Deno.serve(async(req)=>{
  const isDevRoot=rootsAuthority==="DEV";
  const isRootAuthority=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"");
  let resolvedYardRole:any=null;
+ let moduleRights:any=null;
  const hasCanonicalIdentity=Boolean(currentUser.userId||currentUser.staffId);
  if(hasCanonicalIdentity&&!isRootAuthority){
    if(currentUser.enabled!==true||currentUser.status!=="ACTIVE"||!currentUser.userId||!currentUser.staffId)return json({error:"Canonical USER/STAFF identity is not active or complete."},403);
@@ -186,7 +187,7 @@ Deno.serve(async(req)=>{
    if(yardRoleError||departmentRowsError||!yardRole)return json({error:"Canonical YARD ROLE permission profile is unavailable."},503);
    try{resolvedYardRole=resolveYardRolePermissions(yardRole,departmentRows||[])}
    catch(error){return json({error:error instanceof Error?error.message:"Canonical YARD ROLE permission profile is invalid."},503)}
-   const moduleRights=resolveYardRoleModulePermissions(resolvedYardRole);
+   moduleRights=resolveYardRoleModulePermissions(resolvedYardRole);
    const downtime=moduleRights.DOWNTIME;
    const staffManagement=moduleRights["Staff & Management"];
    const hasConnectedModuleAccess=Object.values(moduleRights).some((rights:any)=>rights.view||rights.enter||rights.edit||rights.manage);
