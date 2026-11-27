@@ -12,7 +12,7 @@ const apiPermissionBlock=apiSource.slice(apiSource.indexOf('const tierDefault:')
 assert.ok(pageSource.includes("{key:'canViewPlantOverview'"),'Access & Rights exposes the dedicated Plant Overview right');
 assert.ok(pageSource.includes("if(overview)overview.style.display=spectator||!permission('canViewPlantOverview')?'none':''"),'main navigation uses the dedicated Plant Overview right');
 assert.ok(pageSource.includes("if(!permission('canViewPlantOverview'))return;"),'opening Plant Overview uses the dedicated right only');
-assert.ok(apiSource.includes('const permissionKeys=Object.keys(tierDefault.OWNER)'),'server tier-save whitelist is derived from mirrored permission defaults');
+assert.match(apiSource,/if\(action===\"tiers-save\"\)\{\s*return json\(\{error:\"Legacy account-tier permissions are retired\. Configure department access through canonical YARD ROLE\.\"\},410\);\s*\}/,'legacy tier permission editing is retired; canonical YARD ROLE is authoritative');
 for(const tier of ['OWNER','ADMIN','MANAGER','SUPERVISOR','USER']){
   assert.match(pagePermissionBlock,new RegExp(tier+':\\{[^}]*canViewPlantOverview:true'),'frontend default grants view access to '+tier);
   assert.match(apiPermissionBlock,new RegExp(tier+':\\{[^}]*canViewPlantOverview:true'),'server default grants view access to '+tier);
