@@ -39,7 +39,7 @@ assert.match(html,/window\.YARD_HUB_SETTINGS_API=/,'Hub Settings uses a separate
 assert.match(html,/yard-hub-settings\.js\?v=/,'Hub Settings client asset is versioned');
 assert.match(html,/yard-hub-settings\.css\?v=/,'Hub Settings style asset is versioned');
 assert.match(html,/id="launchStaffManagementBtn" data-app="staff-management" type="button"/,'STAFF MANAGEMENT has a dedicated authenticated launcher');
-assert.match(html,/function isStaffModuleAutoAccess\(\)\{return rootsAuthority\(\)==='DEV'\}/,'STAFF MANAGEMENT is restricted to immutable DEV ROOTS authority');
+assert.match(html,/function isStaffModuleAutoAccess\(\)\{const tier=String\(centralUser\?\.tier\|\|''\)\.trim\(\)\.toUpperCase\(\);return rootsAuthority\(\)==='DEV'\|\|tier==='DEVACC'\|\|tier==='ADMIN'\}/,'DEV ROOTS and explicitly privileged legacy tiers may access Staff Management without inheriting ROOTS authority');
 assert.ok(ui.includes("key:'floor',label:'STAFF MANAGEMENT'"),'STAFF MANAGEMENT is the label shown in the Hub tier editor');
 assert.match(html,/data-app="check-sheets" type="button" disabled/,'DAILY remains unavailable until its application is released');
 assert.ok(ui.includes("key:'checkSheets',label:'DAILY'"),'DAILY is the label shown in the Hub tier editor');
@@ -220,3 +220,9 @@ assert.ok(ui.includes("const dev1=rootAuthority()==='DEV1'"),'ROOTS UI selects t
 assert.ok(ui.includes("if(dev1Form)dev1Form.hidden=false")&&ui.includes("if(directorySection)directorySection.hidden=true"),'DEV1 receives no ROOTS directory data or browsing controls');
 assert.ok(ui.includes("callApi('roots-manage',{userId,staffId,lifecycleAction:'ASSIGN',rootsClass:'ADMIN'})"),'DEV1 can assign ADMIN only through the narrow server-authorized lifecycle action');
 assert.ok(ui.includes("if(rootAuthority()!=='DEV1'||saving)return"),'the DEV1 UI action is unavailable to other identities');
+assert.ok(ui.includes("filter(role=>role.status==='ACTIVE')"),'USER assignment selector exposes only ACTIVE canonical YARD ROLEs');
+assert.ok(ui.includes("some(role=>role.status==='ACTIVE')"),'USER creation remains disabled until at least one ACTIVE canonical YARD ROLE exists');
+
+assert.ok(hubApi.includes('const canManageCentralUsers = rootsAuthority === "DEV";'),'only immutable DEV ROOTS authority can create or manage Central Bank USER accounts');
+
+assert.ok(hubApi.includes('const canManageCentralUsers = rootsAuthority === "DEV";'),'only immutable DEV ROOTS authority can create or manage Central Bank USER accounts');

@@ -102,3 +102,5 @@ assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Central Data
 assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),
   'all global configuration actions share the immutable DEV gate');
 console.log('Central API ROOTS, USER/STAFF lifecycle, Management YARD ROLE and separate record-rights contracts passed (static source checks).');
+
+assert.ok(src.includes('priv.canManageUsers=rootsAuthority==="DEV";priv.canViewUsers=rootsAuthority==="DEV";'),'legacy tier strings cannot grant Central Bank USER directory visibility or mutation');
