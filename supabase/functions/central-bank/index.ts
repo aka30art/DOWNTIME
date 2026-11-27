@@ -166,6 +166,7 @@ Deno.serve(async(req)=>{
  const rootsAuthority=resolveRootsAuthority(currentUser,rootsAssignment,rootsBootstrap?.user_id||null);
  const tier=currentUser.tier,storedPrivileges=bank.tiers[tier]||{},priv={...tierDefault[tier],...storedPrivileges};
  if(lockedRolePrivileges[tier])Object.assign(priv,lockedRolePrivileges[tier]);
+ priv.canEnterRecords=priv.canEditTracker===true;priv.canEditRecords=priv.canEditTracker===true;
  const currentUsername=String(currentUser.username||"").trim().toUpperCase();
  const isDevRoot=rootsAuthority==="DEV";
  const isRootAuthority=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"");
@@ -188,9 +189,10 @@ Deno.serve(async(req)=>{
    catch(error){return json({error:error instanceof Error?error.message:"Canonical YARD ROLE permission profile is invalid."},503)}
    const management=resolvedYardRole.departments.Management;
    const hasManagementAccess=management.view||management.enter||management.edit||management.manage;
-   if(!hasManagementAccess)return json({error:"This USER has no access to the Management department."},403);
+   if(!hasManagementAccess&&action!=="photo-evidence-context")return json({error:"This USER has no access to the Management department."},403);
    Object.assign(priv,{
      canEditTracker:management.enter||management.edit||management.manage,
+     canEnterRecords:management.enter===true,canEditRecords:management.edit===true,
      canDeleteRecords:management.manage,
      canExportReports:management.view,
      canViewPlantOverview:management.view,
@@ -206,7 +208,7 @@ Deno.serve(async(req)=>{
  }
  if(isRootAuthority){
    Object.assign(priv,{
-     canEditTracker:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewDashboards:true,canViewReports:true,
+     canEditTracker:true,canEnterRecords:true,canEditRecords:true,canDeleteRecords:true,canExportReports:true,canViewPlantOverview:true,canViewDashboards:true,canViewReports:true,
      canControlPlantPower:true,
    });
    if(rootsAuthority!=="DEV"){
@@ -320,7 +322,7 @@ Deno.serve(async(req)=>{
    return json({contractVersion:1,centralVersion:Number(row?.version||0),preview});
  }
  if(action==="photo-evidence-context"){
-   return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username,userId:currentUser.userId||null,staffId:currentUser.staffId||null},permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canDeleteRecords:priv.canDeleteRecords===true}});
+   return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username,userId:currentUser.userId||null,staffId:currentUser.staffId||null},permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canEnterRecords:priv.canEnterRecords===true,canEditRecords:priv.canEditRecords===true,canDeleteRecords:priv.canDeleteRecords===true}});
  }
  if(action==="reports-context"){
    return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username,userId:currentUser.userId||null,staffId:currentUser.staffId||null},permissions:{canViewReports:priv.canViewReports===true,canExportReports:priv.canExportReports===true,canDeleteRecords:priv.canDeleteRecords===true}});
