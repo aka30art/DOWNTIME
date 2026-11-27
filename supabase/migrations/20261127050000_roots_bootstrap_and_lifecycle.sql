@@ -199,7 +199,9 @@ grant execute on function public.downtime_roots_assign_identity(uuid,uuid,text,u
 comment on table public.downtime_roots_bootstrap is 'Single immutable DEV USER identity. Its ID is captured once from the existing Central Bank record.';
 comment on table public.downtime_roots_assignments is 'Protected DEV1/ADMIN assignment with revocation and reclassification lifecycle; direct DML is denied.';
 comment on table public.downtime_roots_assignment_audit is 'Append-only audit of ROOTS assignment, reclassification and revocation events.';
-  if coalesce(candidate_record->>'userId','') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
+  if char_length(coalesce(candidate_record->>'userId','')) = 36
+     and coalesce(candidate_record->>'userId','') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' then
+    candidate_user_id := (candidate_record->>'userId')::uuid;
   else
     -- Temporary transition identity: the one-time reset later replaces this old DEV ID
     -- with a different new DEV bootstrap ID and removes the old DEV account.
