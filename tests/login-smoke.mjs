@@ -177,7 +177,7 @@ window.supabase={createClient:()=>({
   }
   if(action==='login'){
    if(req.username.toLowerCase()!==username.toLowerCase()||req.pin!==pin)return ok({error:'Invalid username or PIN'},401);
-   return ok({token,expiresAt:new Date(Date.now()+3600000).toISOString(),user:{username,displayName:username.toUpperCase()==='DEV'?'DEV':username.toLowerCase()==='jan'?'Jan':'Mick',tier}});
+   return ok({token,expiresAt:new Date(Date.now()+3600000).toISOString(),user:{username,displayName:username.toUpperCase()==='DEV'?'DEV':username.toLowerCase()==='jan'?'Jan':'Mick',tier,rootsAuthority:username.toUpperCase()==='DEV'&&tier==='OWNER'?'DEV':null}});
   }
   if(action==='staff-original-upload'){
    const rights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
@@ -212,7 +212,7 @@ window.supabase={createClient:()=>({
     delete copy.appData.operatorProfiles;
     delete copy.appData.archive;
    }
-   return ok({payload:copy,user:{username,displayName:username.toUpperCase()==='DEV'?'DEV':username.toLowerCase()==='jan'?'Jan':'Mick',tier},version,updatedAt:new Date().toISOString()});
+   return ok({payload:copy,user:{username,displayName:username.toUpperCase()==='DEV'?'DEV':username.toLowerCase()==='jan'?'Jan':'Mick',tier,rootsAuthority:username.toUpperCase()==='DEV'&&tier==='OWNER'?'DEV':null},version,updatedAt:new Date().toISOString()});
   }
   if(action==='save-state'){
    const effectiveRights={...(tiers[tier]||{}),...(bank.tiers?.[tier]||{})};
