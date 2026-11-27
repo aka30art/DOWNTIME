@@ -34,7 +34,7 @@ assert.ok(api.includes('if(!isDevRoot)return json({error:"Identity diagnostics a
 const rootsBlock=api.slice(api.indexOf('if(isRootAuthority){'),api.indexOf('// Central Bank USER directory access'));
 assert.ok(rootsBlock.includes('if(rootsAuthority!=="DEV")'),'non-DEV ROOTS classes have delegated capability limits');
 assert.ok(rootsBlock.includes('canManageUsers:false,canViewUsers:false'),'DEV1 and ROOTS ADMIN cannot view or manage the Central Bank USER directory');
-assert.ok(api.includes('canManageYardRoles'),'ROOTS governance remains represented separately from account-tier permissions');
+assert.ok(resolver.includes('canManageYardRoles: ["DEV", "DEV1", "ADMIN"].includes(authority)'),'ROOTS YARD ROLE governance capabilities are defined independently of account tiers');
 
 // The browser trusts only the resolved authority attached to its authenticated session.
 assert.ok(app.includes("function rootsAuthority(){return String(centralUser?.rootsAuthority||'').toUpperCase()}"),'frontend ROOTS helper reads server-resolved identity');
