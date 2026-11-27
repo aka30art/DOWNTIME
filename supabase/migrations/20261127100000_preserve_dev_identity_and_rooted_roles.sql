@@ -26,7 +26,7 @@ select
   roles.display_name,
   'DEV_ONLY',
   roles.description,
-  roles.capabilities,
+  role_caps.capabilities,
   bootstrap.user_id
 from public.downtime_roots_bootstrap bootstrap
 cross join (values
