@@ -414,10 +414,92 @@ Deno.serve(async(req)=>{
    const incoming=body?.appData;if(!incoming||typeof incoming!=="object"||Array.isArray(incoming))return json({error:"appData required"},400);
    const nextAppData={...incoming};
    if(Object.prototype.hasOwnProperty.call(bank.appData||{},"stationConfig"))nextAppData.stationConfig=bank.appData.stationConfig;else delete nextAppData.stationConfig;
-   if(!priv.canDeleteRecords){
-     const oldWeeks=bank.appData?.weeks||{},newWeeks=incoming.weeks||{};
+   const oldWeeks=bank.appData?.weeks||{};
+   const submittedWeeks=incoming.weeks&&typeof incoming.weeks==="object"?incoming.weeks:{};
+   const canonicalManagement=hasCanonicalIdentity&&!isRootAuthority;
+   const managementRights=resolvedYardRole?.departments?.Management||null;
+   const keyForEntry=(entry:any,index:number)=> {
+     const id=typeof entry?.recordId==="string"?entry.recordId:"";
+     return id&&!id.startsWith("legacy-")?"id:"+id:"position:"+index;
+   };
+   const entryValue=(entry:any)=>{
+     const value={...(entry||{})};delete value.recordId;
+     return JSON.stringify(value);
+   };
+   if(canonicalManagement){
+     const canView=managementRights?.view===true;
+     const canEnter=managementRights?.enter===true;
+     const canEdit=managementRights?.edit===true;
+     const canManage=managementRights?.manage===true;
+     if(canView){
+       const weekKeys=new Set([...Object.keys(oldWeeks),...Object.keys(submittedWeeks)]);
+       for(const weekKey of weekKeys){
+         const oldDays=Array.isArray(oldWeeks[weekKey]?.days)?oldWeeks[weekKey].days:[];
+         const newDays=Array.isArray(submittedWeeks[weekKey]?.days)?submittedWeeks[weekKey].days:[];
+         const dayCount=Math.max(oldDays.length,newDays.length);
+         for(let dayIndex=0;dayIndex<dayCount;dayIndex++){
+           const oldEntries=Array.isArray(oldDays[dayIndex]?.entries)?oldDays[dayIndex].entries:[];
+           const newEntries=Array.isArray(newDays[dayIndex]?.entries)?newDays[dayIndex].entries:[];
+           const oldMap=new Map(oldEntries.map((entry:any,index:number)=>[keyForEntry(entry,index),entry]));
+           const newMap=new Map(newEntries.map((entry:any,index:number)=>[keyForEntry(entry,index),entry]));
+           for(const [key,newEntry] of newMap){
+             if(!oldMap.has(key)&&!canEnter)return json({error:"Management ENTER permission is required to add operational records."},403);
+             if(oldMap.has(key)&&entryValue(oldMap.get(key))!==entryValue(newEntry)&&!canEdit)
+               return json({error:"Management EDIT permission is required to change operational records."},403);
+           }
+           for(const key of oldMap.keys()){
+             if(!newMap.has(key)&&!canManage)return json({error:"Management MANAGE permission is required to remove operational records."},403);
+           }
+         }
+       }
+     }else{
+       // Without VIEW, treat omitted records as concealed rather than deleted.
+       // Explicit record IDs can still be edited; new IDs can be entered. Existing
+       // operational data is merged back from the authoritative server snapshot.
+       if(!canEnter&&!canEdit&&!canManage)return json({error:"No Management operational-record write permission is assigned."},403);
+       const mergedWeeks=structuredClone(oldWeeks);
+       for(const [weekKey,submittedWeek] of Object.entries(submittedWeeks) as [string,any][]){
+         const submittedDays=Array.isArray(submittedWeek?.days)?submittedWeek.days:[];
+         const mergedWeek:any=mergedWeeks[weekKey]||{days:[]};
+         mergedWeek.days=Array.isArray(mergedWeek.days)?mergedWeek.days:[];
+         for(let dayIndex=0;dayIndex<submittedDays.length;dayIndex++){
+           const submittedDay=submittedDays[dayIndex]||{};
+           const submittedEntries=Array.isArray(submittedDay.entries)?submittedDay.entries:[];
+           if(!submittedEntries.length)continue;
+           const mergedDay:any=mergedWeek.days[dayIndex]||{date:submittedDay.date||null,entries:[]};
+           mergedDay.entries=Array.isArray(mergedDay.entries)?mergedDay.entries:[];
+           for(const [entryIndex,submittedEntry] of submittedEntries.entries()){
+             const key=keyForEntry(submittedEntry,entryIndex);
+             const existingIndex=mergedDay.entries.findIndex((entry:any,index:number)=>keyForEntry(entry,index)===key);
+             if(existingIndex>=0){
+               if(entryValue(mergedDay.entries[existingIndex])!==entryValue(submittedEntry)){
+                 if(!canEdit)return json({error:"Management EDIT permission is required to change operational records."},403);
+                 mergedDay.entries[existingIndex]={...submittedEntry,recordId:mergedDay.entries[existingIndex].recordId||submittedEntry.recordId||crypto.randomUUID()};
+               }
+             }else{
+               if(!canEnter)return json({error:"Management ENTER permission is required to add operational records."},403);
+               mergedDay.entries.push({...submittedEntry,recordId:submittedEntry.recordId||crypto.randomUUID()});
+             }
+           }
+           mergedWeek.days[dayIndex]=mergedDay;
+         }
+         mergedWeeks[weekKey]=mergedWeek;
+       }
+       nextAppData.weeks=mergedWeeks;
+     }
+     // The Management YARD ROLE is not an editor for global application settings.
+     nextAppData.areas=bank.appData?.areas||[];
+     nextAppData.reasons=bank.appData?.reasons||[];
+     nextAppData.shiftSchedule=bank.appData?.shiftSchedule||{};
+     nextAppData.shiftPresets=bank.appData?.shiftPresets||[];
+     nextAppData.dailyTaskPresets=bank.appData?.dailyTaskPresets||[];
+     nextAppData.stationConfig=bank.appData?.stationConfig||[];
+     nextAppData.staffRoster=bank.appData?.staffRoster||bank.staff?.roster||[];
+     nextAppData.operatorProfiles=bank.appData?.operatorProfiles||bank.staff?.profiles||{};
+     nextAppData.archive=bank.appData?.archive||[];
+   }else if(!priv.canDeleteRecords){
      for(const [weekKey,oldWeek] of Object.entries(oldWeeks) as [string,any][]){
-       const newWeek=(newWeeks as any)[weekKey];
+       const newWeek=(submittedWeeks as any)[weekKey];
        const oldDays=Array.isArray(oldWeek?.days)?oldWeek.days:[];
        const newDays=Array.isArray(newWeek?.days)?newWeek.days:[];
        for(let dayIndex=0;dayIndex<oldDays.length;dayIndex++){
