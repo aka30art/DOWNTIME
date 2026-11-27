@@ -30,7 +30,10 @@ assert.match(centralBank, /lockedRolePrivileges/);
 assert.match(yardHubApi, /yard_hub_tier_config/);
 assert.match(yardHubApi, /settings-state/);
 assert.match(yardHubApi, /isHubSettingsAdmin/);
-assert.match(cdbApi, /DEVACC/);
-assert.match(cdbApi, /OWNER/);
+assert.match(cdbApi, /from\("downtime_roots_bootstrap"\)/, "CDB access resolves the immutable DEV bootstrap USER");
+assert.match(cdbApi, /resolveRootsAuthority\(user, null, rootsBootstrap\.user_id\)/, "CDB authorization uses the protected ROOTS resolver");
+assert.match(cdbApi, /const isDevRoot = rootsAuthority === "DEV"/, "only immutable bootstrap DEV becomes CDB authority");
+assert.match(cdbApi, /if \(!isDevRoot\) return json\(\{ error: "Central Data Bank access is restricted to immutable DEV\." \}, 403\)/, "all non-DEV identities are denied by the CDB API");
+assert.doesNotMatch(cdbApi, /\\b(?:DEVACC|OWNER)\\b/, "legacy tier labels cannot grant CDB configuration authority");
 
 console.log("Phase 11 Access & Governance boundary contract: PASS");
