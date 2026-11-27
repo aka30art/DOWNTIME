@@ -141,6 +141,7 @@ Deno.serve(async (req: Request) => {
     const canEdit = canYardRolePerform(resolvedYardRole, "R&M", "EDIT");
     const canManage = canYardRolePerform(resolvedYardRole, "R&M", "DELETE");
     Object.assign(permissions, {
+      canAccessYardHub: true,
       canAccessRepairMaintenance: canRead,
       canCreateRepairMaintenance: canInput,
       canEditRepairMaintenance: canEdit,
