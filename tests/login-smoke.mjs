@@ -150,6 +150,8 @@ window.supabase={createClient:()=>({
  });
  let bank=initialBank?JSON.parse(JSON.stringify(initialBank)):makeBank(),version=initialVersion,token='central-session-'+username,failNextSettingsSave=false;
  const actions=[];
+ const weeklyReportApiCalls=[];
+ const weeklyReportFileFetches=[];
  const staffPhotoRemovals=[];
  let staffPhotoSequence=1;
  await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/central-bank',async route=>{
@@ -267,6 +269,25 @@ window.supabase={createClient:()=>({
   }
   if(action==='logout')return ok({ok:true});
   return ok({error:'Unknown action'},400);
+ });
+ await context.route('https://ygwfipksbbprqynvbklk.supabase.co/functions/v1/downtime-reports-api',async route=>{
+  const origin='http://127.0.0.1:4173';
+  const cors={'access-control-allow-origin':origin,'access-control-allow-headers':'apikey, content-type, x-downtime-session','access-control-allow-methods':'POST, OPTIONS','vary':'Origin'};
+  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors});
+  const req=route.request().postDataJSON(),headers=route.request().headers();
+  const hasSession=headers['x-downtime-session']===token,hasApiKey=Boolean(headers.apikey);
+  weeklyReportApiCalls.push({action:req.action,reportId:req.reportId||null,hasSession,hasApiKey});
+  const ok=(data,status=200)=>route.fulfill({status,contentType:'application/json',headers:cors,body:JSON.stringify(data)});
+  if(!hasSession||!hasApiKey)return ok({error:'A valid DOWNTIME session is required.'},401);
+  if(req.action==='list')return ok({reports:[{id:'00000000-0000-4000-8000-000000000001',week_start:'2026-11-16',created_at:'2026-11-17T09:00:00.000Z',file_name:'Downtime_2026-11-16_Weekly.pdf',file_size_bytes:18432,operators:{Monday:'Jan'}}]});
+  if(req.action==='download'&&req.reportId==='00000000-0000-4000-8000-000000000001')return ok({url:'https://storage.test/downtime-pdfs/2026-11-16/weekly-report-qa.pdf',fileName:'Downtime_2026-11-16_Weekly.pdf',expiresIn:60});
+  return ok({error:'Unknown weekly report test action'},400);
+ });
+ await context.route('https://storage.test/**',async route=>{
+  weeklyReportFileFetches.push(route.request().url());
+  const stream='BT /F1 26 Tf 70 760 Td (WEEKLY REPORT PREVIEW QA) Tj 0 -45 Td /F1 15 Tf (Week of 16 November 2026) Tj ET\n';
+  let pdf='%PDF-1.4\n';const offsets=[0];const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Length '+stream.length+' >>\nstream\n'+stream+'endstream'];objects.forEach((object,index)=>{offsets.push(pdf.length);pdf+=(index+1)+' 0 obj\n'+object+'\nendobj\n'});const xref=pdf.length;pdf+='xref\n0 6\n0000000000 65535 f \n'+offsets.slice(1).map(offset=>String(offset).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';
+  return route.fulfill({status:200,headers:{'access-control-allow-origin':'http://127.0.0.1:4173','content-type':'application/pdf'},body:Buffer.from(pdf)});
  });
  const yardHubConfig={
   schemaVersion:1,
@@ -422,7 +443,7 @@ window.supabase={createClient:()=>({
   loginPresentationVerified=true;
  }
 
- return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,getYardHubConfig:()=>yardHubConfig,getYardRoles:()=>yardRoles,getYardHubApiActions:()=>yardHubApiActions,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
+ return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,getWeeklyReportApiCalls:()=>weeklyReportApiCalls,getWeeklyReportFileFetches:()=>weeklyReportFileFetches,getYardHubConfig:()=>yardHubConfig,getYardRoles:()=>yardRoles,getYardHubApiActions:()=>yardHubApiActions,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
 let repairMaintenanceBootTested=false;
@@ -640,6 +661,7 @@ try{
 
  await ensureMainMenu(owner.page);
  await ensureNavigationMenuOpen(owner.page);
+ const weeklyReportCallsBefore=owner.getWeeklyReportApiCalls().length;
  assert.equal(await owner.page.locator('.nav[data-view="reports"]').textContent().then(value=>value.includes('WEEKLY Reports')),true,'navigation label is renamed to WEEKLY Reports');
  await ensureMainMenu(owner.page);
  await owner.page.locator('.nav[data-view="reports"]').click();
@@ -661,11 +683,14 @@ try{
   throw new Error('Weekly report archive did not render. Diagnostics: '+JSON.stringify(diagnostic)+'; '+error.message);
  }
  assert.equal(await owner.page.locator('#reports h2').textContent(),'WEEKLY REPORTS','reports section uses the new heading');
- await owner.page.locator('[data-report-display="weekly-report-qa"]').click();
+ await owner.page.locator('[data-report-display="00000000-0000-4000-8000-000000000001"]').click();
  await owner.page.waitForFunction(()=>document.querySelector('#reportPreviewModal')?.classList.contains('show')&&document.querySelector('#reportPreviewFrame')?.src.startsWith('blob:'),{timeout:5000});
  await owner.page.waitForTimeout(1200); // Allow Chromium's built-in PDF renderer to paint the loaded page before screenshots.
  assert.equal(await owner.page.locator('#reportPreviewTitle').textContent(),'WEEK OF 16/11/2026','Display opens the selected report, not the current tracker week');
- assert.deepEqual(await owner.page.evaluate(()=>window.__weeklyReportDownloads),[{bucket:'downtime-pdfs',path:'2026-11-16/weekly-report-qa.pdf'}],'Display downloads only the selected weekly PDF from the existing shared archive');
+ const weeklyReportCalls=owner.getWeeklyReportApiCalls().slice(weeklyReportCallsBefore);
+ assert.deepEqual(weeklyReportCalls,[{action:'list',reportId:null,hasSession:true,hasApiKey:true},{action:'download',reportId:'00000000-0000-4000-8000-000000000001',hasSession:true,hasApiKey:true}],'weekly archive list and selected PDF download use the authenticated Central Bank-session API');
+ assert.deepEqual(owner.getWeeklyReportFileFetches(),['https://storage.test/downtime-pdfs/2026-11-16/weekly-report-qa.pdf'],'preview fetches only the short-lived signed URL returned for the selected report');
+ assert.equal(await owner.page.evaluate(()=>window.__supabaseCalls.some(call=>call.table==='downtime_reports')),false,'browser does not query the protected weekly report table directly');
  await mkdir(resolve('artifacts/weekly-reports'),{recursive:true});
  for(const width of [320,390,600,601,768,1280]){
   await owner.page.setViewportSize({width,height:900});
