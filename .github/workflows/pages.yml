@@ -89,13 +89,16 @@ jobs:
           ! grep -q 'yard-tile-index' /tmp/live-site.html
           grep -q 'id="yardHubSettingsBtn"' /tmp/live-site.html
           grep -q 'id="yardHubSettingsUsers"' /tmp/live-site.html
+          grep -q 'id="yardHubSettingsStaff"' /tmp/live-site.html
+          grep -q 'ACCESS AND RIGHTS' /tmp/live-site.html
+          grep -q 'id="yardHubIdentityReset"' /tmp/live-site.html
           grep -q 'id="yardHubSettingsTiers"' /tmp/live-site.html
           grep -q 'yard-hub-settings.js' /tmp/live-site.html
           grep -q 'yard-hub-settings.css' /tmp/live-site.html
           grep -q 'id="launchGatelogBtn"' /tmp/live-site.html
           grep -q 'gatelog-app.js' /tmp/live-site.html
           grep -q 'gatelog-app.css' /tmp/live-site.html
-          curl --fail --silent --show-error --location "$LIVE_URL/yard-hub-settings.js?v=20261127-1" -o /tmp/live-yard-hub-settings.js
+          curl --fail --silent --show-error --location "$LIVE_URL/yard-hub-settings.js?v=20261127-2" -o /tmp/live-yard-hub-settings.js
           grep -q 'my-access' /tmp/live-yard-hub-settings.js
           grep -q 'MECHANIC' /tmp/live-yard-hub-settings.js
           grep -q 'yard-hub-structure.js' /tmp/live-site.html

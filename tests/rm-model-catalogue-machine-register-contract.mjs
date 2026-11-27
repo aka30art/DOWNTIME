@@ -24,7 +24,7 @@ assert.doesNotMatch(migration,/delete\s+from\s+public\.repair_maintenance_faults
 assert.match(api,/action === "model-list"[\s\S]*from\("repair_maintenance_assets"\)/);
 assert.match(api,/action === "model-add"[\s\S]*from\("repair_maintenance_assets"\)/);
 assert.match(api,/action === "model-add"[\s\S]*canAddRepairMaintenanceMachinery !== true/,'machine creation requires machinery INPUT permission');
-assert.match(api,/action === "model-delete"[\s\S]*canManageRepairMaintenanceMachinery !== true/,'machine archiving requires machinery EDIT permission');
+assert.match(api,/action === "model-delete"[\s\S]*canDeleteRepairMaintenance !== true/,'machine archiving requires machinery MANAGE permission');
 assert.match(api,/action === "model-delete"[\s\S]*status: "ARCHIVED"/);
 assert.match(app,/function renderMachineModelManager\(\)[\s\S]*settingsAssets\.filter\(asset=>asset\.status==='ACTIVE'\)/);
 assert.match(app,/function renderMachineModelManager\(\)[\s\S]*settingsAssets\.filter\(asset=>asset\.status==='ACTIVE'\)[\s\S]*openAssetEditor\(asset\)/,'the register lists active machines and routes EDIT to the shared editor');

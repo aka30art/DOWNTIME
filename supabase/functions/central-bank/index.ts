@@ -279,6 +279,39 @@ Deno.serve(async(req)=>{
    if(commitError||!commit)return json({error:commitError?.message?.includes("VERSION_CONFLICT")?"Central USER directory changed. Refresh before activation.":"USER activation commit failed."},409);
    return json({ok:true,replayed:false,version:Number(commit.version),userId:activation.user.userId,username:activation.user.username,enabled:true,yardRoleId:roleAssignment.yardRoleId});
  }
+ if(action==="identity-reset"){
+   if(!isDevRoot)return json({error:"Only the currently authenticated immutable DEV may perform the one-time identity reset."},403);
+   if(String(body.confirmation||"")!=="RESET ALL IDENTITIES")return json({error:"Type RESET ALL IDENTITIES to confirm the permanent reset."},400);
+   const devPin=String(body.devPin||""),dev1Pin=String(body.dev1Pin||""),adminPin=String(body.adminPin||"");
+   if(![devPin,dev1Pin,adminPin].every(pin=>/^[0-9]{4,8}$/.test(pin)))return json({error:"New DEV, DEV1 and ADMIN PINs must each contain 4–8 digits."},400);
+   if(!Number.isInteger(Number(row?.version)))return json({error:"Central USER directory version is unavailable."},503);
+   const makeCredentials=async(username:string,staffId:string|null)=>{
+     const pinSalt=cryptoHex(crypto.getRandomValues(new Uint8Array(16)));
+     const pinHash=await hashPin(username==="DEV"?devPin:username==="DEV1"?dev1Pin:adminPin,pinSalt);
+     return {username,displayName:username,enabled:true,status:"ACTIVE",userId:crypto.randomUUID(),staffId,pinSalt,pinHash};
+   };
+   const dev=await makeCredentials("DEV",null);
+   const dev1StaffId=crypto.randomUUID(),adminStaffId=crypto.randomUUID();
+   const dev1=await makeCredentials("DEV1",dev1StaffId);
+   const admin=await makeCredentials("ADMIN",adminStaffId);
+   const makeRootStaff=(name:string,staffId:string,userId:string)=>({
+     name,displayName:name,staffId,linkedUserId:userId,department:"Management",onSiteRole:"Manager",
+     station:"",stationLocked:false,onSite:false,status:"ACTIVE",isSystemIdentity:true
+   });
+   const {data:reset,error:resetError}=await db.rpc("downtime_identity_reset_cutover",{
+     p_expected_version:Number(row.version),
+     p_actor_user_id:currentUser.userId,
+     p_actor_username:currentUser.username,
+     p_actor_display_name:currentUser.displayName||currentUser.username,
+     p_new_dev_user:dev,
+     p_new_dev1_user:dev1,
+     p_new_admin_user:admin,
+     p_dev1_staff:makeRootStaff("DEV1",dev1StaffId,dev1.userId),
+     p_admin_staff:makeRootStaff("ADMIN",adminStaffId,admin.userId)
+   });
+   if(resetError||!reset?.ok)return json({error:resetError?.message?.includes("already been completed")?"The one-time identity reset has already been completed.":resetError?.message?.includes("VERSION_CONFLICT")?"The USER directory changed. Refresh and retry the reset.":resetError?.message||"The atomic identity reset failed."},409);
+   return json(reset);
+ }
  if(action==="identity-diagnostics"){
    if(!isDevRoot)return json({error:"Identity diagnostics are restricted to immutable DEV."},403);
    const preview=buildIdentityMigrationPreview(bank);

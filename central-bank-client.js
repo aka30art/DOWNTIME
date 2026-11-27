@@ -22,6 +22,7 @@
     async logout(){try{if(session?.token)await call("logout",{},session.token)}finally{session=null;sessionStorage.removeItem(SESSION_KEY)}},
     async state(){return call("get-state")},
     async identityDiagnostics(){return call("identity-diagnostics")},
+    async resetIdentities(data){return call("identity-reset",data)},
     async provisionUserStaff(data,version,idempotencyKey){return call("user-staff-provision",{...data,version,idempotencyKey})},
     async activateProvisionedUser(userId,version){return call("user-staff-activate",{userId,version})},
     async dailyOperators(fromDate,toDate){return call("daily-operator-list",{fromDate,toDate})},

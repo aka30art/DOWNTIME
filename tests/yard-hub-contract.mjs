@@ -64,7 +64,10 @@ assert.match(html, /\.yard-wordmark strong\{color:#f5f7fa\}/, 'HUB wordmark uses
 assert.match(html, /@media\(max-width:540px\)[\s\S]*?\.yard-grid\{grid-template-columns:1fr;/, 'mobile hub stacks the application tiles');
 assert.match(loginSmoke, /successful login lands on YARD HUB first/, 'browser smoke verifies the post-login landing route');
 assert.match(loginSmoke, /launching DOWNTIME closes YARD HUB/, 'browser smoke verifies module launch');
-assert.ok(packageJson.scripts['test:smoke'].includes('tests/yard-hub-contract.mjs'), 'YARD HUB contract is part of the full smoke suite');
+assert.ok(packageJson.scripts['test:smoke:steps'].includes('tests/yard-hub-contract.mjs'), 'YARD HUB contract is part of the full smoke suite');
+assert.match(html, /id="yardHubSettingsStaff"/, 'YARD HUB Staff Management exposes a separate STAFF tile');
+assert.match(html, /<strong>ACCESS AND RIGHTS<\/strong>/, 'YARD HUB Staff Management exposes the Access and Rights tile');
+assert.match(html, /id="yardHubIdentityReset"/, 'DEV has a controlled Phase 1 identity reset surface');
 
 assert.doesNotMatch(html, /yard-tile-index|<span[^>]*>0[1-5]<\/span>/, 'YARD HUB application tiles do not display sequence numbering');
 

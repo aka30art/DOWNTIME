@@ -50,7 +50,7 @@
   }
   function setBusy(value){
     saving=value;
-    ['yardHubUserSave','yardHubUserStatus','yardHubTierSave','yardHubRoleSave','yardHubRoleAdd'].forEach(id=>{const b=$(id);if(b)b.disabled=value});
+    ['yardHubUserSave','yardHubUserStatus','yardHubTierSave','yardHubRoleSave','yardHubRoleAdd','yardHubIdentityResetExecute'].forEach(id=>{const b=$(id);if(b)b.disabled=value});
     const addUser=$('yardHubUserAdd');
     if(addUser)addUser.disabled=value||state?.canManageCentralUsers!==true||!rootDev()||!(state?.yardRoles||[]).some(role=>role.status==='ACTIVE');
   }
@@ -107,7 +107,9 @@
     if(addUser)addUser.disabled=saving||result.canManageCentralUsers!==true||!rootDev()||!(result.yardRoles||[]).some(role=>role.status==='ACTIVE');
     const addRole=$('yardHubRoleAdd');if(addRole)addRole.hidden=!isProtectedRoot();
     const roleHome=$('yardHubSettingsRoles');if(roleHome)roleHome.hidden=!isProtectedRoot();
-    const rootsHome=$('yardHubSettingsRoots');if(rootsHome)rootsHome.hidden=!(rootDev()||rootAuthority()==='DEV1');
+    const rootsHome=$('yardHubSettingsRoots');if(rootsHome)rootsHome.hidden=true;
+    const accessRoots=$('yardHubAccessRoots');if(accessRoots)accessRoots.hidden=!(rootDev()||rootAuthority()==='DEV1');
+    const resetPanel=$('yardHubIdentityReset');if(resetPanel)resetPanel.hidden=!rootDev();
     const addTier=$('yardHubCustomTierAdd');
     if(addTier)addTier.hidden=!isRootAdmin();
     return result;
@@ -144,7 +146,7 @@
     $('yardHubTiersView').hidden=view!=='tiers';
     $('yardHubUserModal').hidden=true;
     $('yardHubRoleModal').hidden=true;
-    $('yardHubSettingsTitle').textContent=view==='users'?'USERS':view==='roles'?'YARD ROLES':view==='roots'?'PROTECTED ROOTS':'TIERS';
+    $('yardHubSettingsTitle').textContent=view==='users'?'USERS':view==='roles'?'ACCESS AND RIGHTS':view==='roots'?'PROTECTED ROOTS':'TIERS';
     setStatus('');
     if(view==='users')renderUsers();
     if(view==='tiers')renderTierCards();
@@ -670,13 +672,46 @@
       if(error.status===409){try{await loadState()}catch{}}
     }finally{setBusy(false);updateTierSaveState()}
   }
+  async function executeIdentityReset(){
+    if(saving||!rootDev())return;
+    const devPin=String($('yardHubResetDevPin')?.value||'');
+    const dev1Pin=String($('yardHubResetDev1Pin')?.value||'');
+    const adminPin=String($('yardHubResetAdminPin')?.value||'');
+    const confirmation=String($('yardHubResetConfirmation')?.value||'').trim();
+    if(![devPin,dev1Pin,adminPin].every(pin=>/^[0-9]{4,8}$/.test(pin))){
+      setStatus('Enter a new 4–8 digit PIN for DEV, DEV1 and ADMIN.','error');return;
+    }
+    if(confirmation!=='RESET ALL IDENTITIES'){
+      setStatus('Type RESET ALL IDENTITIES exactly to confirm the permanent reset.','error');return;
+    }
+    if(!window.confirm('PERMANENT IDENTITY RESET: all existing USER accounts, STAFF profiles and old DEV authority will be replaced. Operational records, audit history and shared photo evidence will remain. Continue?'))return;
+    setBusy(true);setStatus('PERFORMING THE ONE-TIME IDENTITY RESET…');
+    try{
+      if(!window.DowntimeCentral?.resetIdentities)throw new Error('Central identity reset action is unavailable. Refresh the application.');
+      const result=await window.DowntimeCentral.resetIdentities({confirmation,devPin,dev1Pin,adminPin});
+      const ids=result.identities||{};
+      window.alert('IDENTITY RESET COMPLETE.\n\nNew DEV USER ID: '+(ids.DEV?.userId||'created')+'\nNew DEV1 USER ID: '+(ids.DEV1?.userId||'created')+'\nNew ADMIN USER ID: '+(ids.ADMIN?.userId||'created')+'\n\nAll previous sessions have been revoked. Sign in again as DEV using the new DEV PIN you entered.');
+      await window.DowntimeCentral.logout().catch(()=>{});
+      window.location.reload();
+    }catch(error){
+      setStatus(error.message||'Identity reset failed. Verify the server response before retrying.','error');
+    }finally{setBusy(false)}
+  }
   function bind(){
     const button=$('yardHubSettingsBtn');
     if(button){button.hidden=true;button.addEventListener('click',openSettings)}
     $('yardHubSettingsBack')?.addEventListener('click',closeSettings);
     $('yardHubSettingsUsers')?.addEventListener('click',()=>openSettingsView('users'));
     $('yardHubSettingsRoles')?.addEventListener('click',()=>openSettingsView('roles'));
+    $('yardHubSettingsStaff')?.addEventListener('click',()=>{
+      if(!['DEV','DEV1','ADMIN'].includes(rootAuthority()))return;
+      setHomeVisible(false);
+      if(typeof window.launchStaffManagement==='function')window.launchStaffManagement();
+      else setStatus('STAFF MANAGEMENT workspace is unavailable.','error');
+    });
     $('yardHubSettingsRoots')?.addEventListener('click',()=>openSettingsView('roots'));
+    $('yardHubAccessRoots')?.addEventListener('click',()=>openSettingsView('roots'));
+    $('yardHubIdentityResetExecute')?.addEventListener('click',executeIdentityReset);
     $('yardHubRootAssign')?.addEventListener('click',assignSelectedRoot);
     $('yardHubDev1AssignAdmin')?.addEventListener('click',assignAdminAsDev1);
     $('yardHubRoleAdd')?.addEventListener('click',()=>openYardRoleModal());
