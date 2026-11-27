@@ -351,8 +351,9 @@ if(action==="roots-state"){
    const {data:existingAssignment,error:existingError}=await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status,version").or("user_id.eq."+target.userId+",staff_id.eq."+target.staffId).maybeSingle();
    if(existingError)return json({error:"Protected ROOTS registry is unavailable."},503);
    if(existingAssignment&&(String(existingAssignment.user_id).toLowerCase()!==String(target.userId).toLowerCase()||String(existingAssignment.staff_id).toLowerCase()!==String(target.staffId).toLowerCase()||(existingAssignment.status==="ACTIVE"&&existingAssignment.roots_class!==requestedClass)))return json({error:"This USER or STAFF identity already has a different protected ROOTS assignment."},409);
-   const {data:assignment,error:assignmentError}=await db.rpc("downtime_roots_assign_identity",{
-     p_user_id:target.userId,p_staff_id:target.staffId,p_roots_class:requestedClass,
+   const {data:assignment,error:assignmentError}=await db.rpc("downtime_roots_manage_identity",{
+     p_user_id:target.userId,p_staff_id:target.staffId,p_roots_class:requestedClass,p_action:"ASSIGN",
+     p_expected_version:existingAssignment?.status==="REVOKED"?Number(body.version):null,
      p_actor_user_id:currentUser.userId||null,p_actor_username:String(currentUser.username),
      p_actor_display_name:String(currentUser.displayName||currentUser.username)
    });
