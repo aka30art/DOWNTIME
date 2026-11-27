@@ -18,7 +18,7 @@ export function resolveRootsAuthority(user, assignment = null, immutableDevUserI
 
   const staffId = String(user.staffId || "");
   if (!UUID.test(staffId) || norm(userId) === norm(staffId)) return null;
-  if (!assignment || String(assignment.status || "ACTIVE").toUpperCase() !== "ACTIVE") return null;
+  if (!assignment || String(assignment.status || "").toUpperCase() !== "ACTIVE") return null;
   if (!["DEV1", "ADMIN"].includes(String(assignment.roots_class || ""))) return null;
   if (norm(assignment.user_id) !== norm(userId) || norm(assignment.staff_id) !== norm(staffId)) return null;
   return String(assignment.roots_class);
@@ -39,7 +39,7 @@ export function rootsCapabilities(authority) {
 export function canInteractWithRootsTarget(actorAuthority, targetAuthority) {
   if (!targetAuthority) return true;
   if (targetAuthority === "DEV") return actorAuthority === "DEV";
-  if (targetAuthority === "DEV1" && actorAuthority !== "DEV") return false;
-  if (targetAuthority === "ADMIN" && actorAuthority === "ADMIN") return false;
-  return true;
+  if (targetAuthority === "DEV1") return actorAuthority === "DEV";
+  if (targetAuthority === "ADMIN") return actorAuthority === "DEV" || actorAuthority === "DEV1";
+  return false;
 }
