@@ -141,7 +141,7 @@ try{
  await returnToDepartmentMenu(page);
  assert.equal(await page.locator('#publishedKpi').textContent(),'v1');
  assert.equal(await page.locator('#draftKpi').textContent(),'v1');
- assert.ok(await page.locator('text=Access & Rights stays separate').count(),'separate responsibilities are explained');
+ assert.ok(await page.locator('text=YARD ROLE permissions stay separate').count(),'canonical operational permissions remain separate from the DEV-only configuration control plane');
 
  // Phase 03: create and persist a fully parented site → plant → area → station hierarchy.
  await returnToDepartmentMenu(page);
