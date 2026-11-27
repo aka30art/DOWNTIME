@@ -366,7 +366,8 @@ Deno.serve(async(req)=>{
  if(action==="identity-diagnostics"){
    if(!isDevRoot)return json({error:"Identity diagnostics are restricted to immutable DEV."},403);
    const preview=buildIdentityMigrationPreview(bank);
-   return json({contractVersion:1,centralVersion:Number(row?.version||0),preview});
+   const {count:resetCount,error:resetStatusError}=await db.from("downtime_identity_reset_runs").select("singleton",{count:"exact",head:true});
+   return json({contractVersion:1,centralVersion:Number(row?.version||0),preview,resetCompleted:!resetStatusError&&(resetCount||0)>0,resetStatusAvailable:!resetStatusError});
  }
  if(action==="photo-evidence-context"){
    return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username},permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canDeleteRecords:priv.canDeleteRecords===true}});
