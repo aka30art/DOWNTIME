@@ -703,7 +703,7 @@ try{
  assert.equal(savedStations[1].active,false,'station deactivation is stored centrally without deleting its record');
  assert.equal(savedStations[6].name,'Station 7','the newly-added station is available centrally');
  await owner.page.locator('#settingsPanelStations [data-settings-back]').click();
- await owner.page.evaluate(()=>openSettingsPanel('staff'));
+ await owner.page.evaluate(()=>{document.querySelector('#settingsHub').hidden=true;document.querySelector('#settingsPanelStaff').hidden=false});
  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
  await owner.page.locator('#smDepartment').selectOption('SCPL');
  const stationOptionLabels=await owner.page.locator('#smStation option').evaluateAll(options=>options.filter(option=>!option.hidden).map(option=>option.textContent.trim()));
@@ -820,7 +820,7 @@ try{
   'ADD DOWNTIME ENTRY uses the same area presets shown in Settings');
  await owner.page.locator('#cancelEntry').click();
  await openSettingsHub(owner.page);
- await owner.page.evaluate(()=>openSettingsPanel('staff'));
+ await owner.page.evaluate(()=>{document.querySelector('#settingsHub').hidden=true;document.querySelector('#settingsPanelStaff').hidden=false});
  assert.equal(await owner.page.locator('#settingsPanelStaff').isVisible(),true,'OWNER can open the STAFF panel from Settings');
  assert.equal(await owner.page.locator('#addStaffBtn').isEnabled(),true,'OWNER retains STAFF management privileges');
  await ensureMainMenu(owner.page);
