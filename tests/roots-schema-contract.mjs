@@ -11,6 +11,8 @@ assert.match(migration,/grant select on public\.downtime_roots_assignments to se
 assert.match(migration,/downtime_roots_assignment_audit/);
 assert.match(migration,/prevent_downtime_roots_audit_mutation/);
 assert.match(migration,/prevent_downtime_roots_assignment_mutation/);
+assert.match(migration,/as \$roots\$/,"ROOTS assignment trigger function has valid dollar quoting");
+assert.doesNotMatch(migration,/insert into public\.downtime_roots_assignments\s*\(\s*user_id\s*,\s*staff_id\s*,\s*roots_class\s*\)\s*values\s*\(/,"ROOTS classifications are not seeded by migration");
 assert.match(migration,/revoke insert, update, delete on public.downtime_roots_assignments from service_role/);
 assert.match(migration,/downtime_roots_assign_identity/);
 assert.match(migration,/on conflict do nothing/);
