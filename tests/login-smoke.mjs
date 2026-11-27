@@ -703,6 +703,7 @@ try{
  assert.equal(savedStations[1].active,false,'station deactivation is stored centrally without deleting its record');
  assert.equal(savedStations[6].name,'Station 7','the newly-added station is available centrally');
  await owner.page.locator('#settingsPanelStations [data-settings-back]').click();
+ await ensureMainMenu(owner.page);
  await owner.page.locator('#backToYardHub').click();
  await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
  await owner.page.locator('#launchStaffManagementBtn').click();
