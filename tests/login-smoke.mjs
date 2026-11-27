@@ -746,9 +746,9 @@ try{
    const rects=Object.fromEntries(cards.map(card=>[card.dataset.settingsOpen,card.getBoundingClientRect()]));
    return {columns:getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length,count:cards.length,reasonsTop:rects.reasons?.top,dailyTasksTop:rects.dailyTasks?.top};
   });
-  assert.equal(layout.count,7,'all seven standard Settings cards are inside the grid at '+width+'px');
+  assert.equal(layout.count,5,'all five operational Settings cards are inside the grid at '+width+'px');
   assert.equal(layout.columns,columns,'Settings grid has '+columns+' columns at '+width+'px');
-  if(width===1280)assert.ok(layout.dailyTasksTop>layout.reasonsTop,'the restored USERS, AREA and REASON cards occupy the first row of the Settings grid');
+  if(width===1280)assert.ok(layout.dailyTasksTop>layout.reasonsTop,'Daily Tasks appears after the first row of operational configuration cards');
   await owner.page.screenshot({path:resolve('artifacts/settings-hub/settings-'+width+'px.png')});
  }
  await owner.page.setViewportSize({width:1280,height:900});
