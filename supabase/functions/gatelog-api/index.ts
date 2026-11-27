@@ -48,17 +48,15 @@ Deno.serve(async (req: Request) => {
   }
   const legacyTier=String(user.tier||"USER").toUpperCase();
   let resolvedYardRole:any=null;
-  if(user.yardRoleId&&!isProtectedRoot){
+  if(!isProtectedRoot&&user.userId&&user.staffId){
     if(user.enabled!==true||user.status!=="ACTIVE")return json({error:"Canonical USER identity is not active."},403);
-    if(!user.userId||!user.staffId)return json({error:"Canonical USER/STAFF identity is incomplete."},403);
     const {data:assignment,error:assignmentError}=await db.from("yard_role_assignments")
       .select("user_id,staff_id,yard_role_id,status").eq("user_id",user.userId).eq("status","ACTIVE").maybeSingle();
     if(assignmentError)return json({error:"Canonical YARD ROLE assignment is unavailable."},503);
-    if(!assignment||String(assignment.staff_id).toLowerCase()!==String(user.staffId).toLowerCase()||
-       String(assignment.yard_role_id).toLowerCase()!==String(user.yardRoleId).toLowerCase())return json({error:"An active linked canonical YARD ROLE assignment is required."},403);
+    if(!assignment||String(assignment.staff_id).toLowerCase()!==String(user.staffId).toLowerCase())return json({error:"An active linked canonical YARD ROLE assignment is required."},403);
     const [{data:role,error:roleError},{data:rolePermissions,error:rolePermissionsError}]=await Promise.all([
-      db.from("yard_roles").select("id,name,description,status").eq("id",user.yardRoleId).eq("status","ACTIVE").maybeSingle(),
-      db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage").eq("yard_role_id",user.yardRoleId)
+      db.from("yard_roles").select("id,name,description,status").eq("id",assignment.yard_role_id).eq("status","ACTIVE").maybeSingle(),
+      db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage").eq("yard_role_id",assignment.yard_role_id)
     ]);
     if(roleError||rolePermissionsError||!role)return json({error:"Canonical YARD ROLE permission profile is unavailable."},503);
     try{resolvedYardRole=resolveYardRolePermissions(role,rolePermissions||[])}catch{return json({error:"Canonical YARD ROLE permission profile is invalid."},503)}
