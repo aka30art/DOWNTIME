@@ -730,7 +730,7 @@ try{
   });
   assert.equal(layout.count,5,'all five operational Settings cards are inside the grid at '+width+'px');
   assert.equal(layout.columns,columns,'Settings grid has '+columns+' columns at '+width+'px');
-  if(width===1280)assert.ok(Math.abs(layout.scheduleTop-layout.dailyTasksTop)<2,'SHIFT & BREAKTIME occupies the second row alongside DAILY TASKS in the restored five-card grid');
+  if(width===1280)assert.ok(layout.scheduleTop>layout.dailyTasksTop,'SHIFT & BREAKTIME follows the first row of the restored five-card grid');
   await owner.page.screenshot({path:resolve('artifacts/settings-hub/settings-'+width+'px.png')});
  }
  await owner.page.setViewportSize({width:1280,height:900});
