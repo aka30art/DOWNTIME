@@ -1002,14 +1002,9 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
     <div class="settings-hub-heading">
       <div class="settings-eyebrow">DOWNTIME · ADMINISTRATION</div>
       <h2>SETTINGS</h2>
-      <p class="muted">Manage accounts, plant presets and operational schedules.</p>
+      <p class="muted">Manage plant presets and operational schedules.</p>
     </div>
     <div class="settings-card-grid">
-      <button class="settings-card settings-accent-blue" type="button" data-settings-open="users" aria-controls="settingsPanelUsers" aria-expanded="false">
-        <span class="settings-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20"/><circle cx="9" cy="7" r="4"/><path d="M20 20v-1.5a4 4 0 0 0-3-3.87M16 3.2a4 4 0 0 1 0 7.6"/></svg></span>
-        <span class="settings-card-copy"><strong>USERS</strong><small>Accounts, PINs, tiers and access</small><em>ACCESS MANAGEMENT</em></span>
-        <span class="settings-card-arrow" aria-hidden="true">›</span>
-      </button>
       <button class="settings-card settings-accent-yellow" type="button" data-settings-open="areas" aria-controls="settingsPanelAreas" aria-expanded="false">
         <span class="settings-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.6"/></svg></span>
         <span class="settings-card-copy"><strong>AREA PRESETS</strong><small>Plant locations and entry areas</small><em>PLANT CONFIGURATION</em></span>
@@ -1031,7 +1026,6 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
         <span class="settings-card-copy"><strong>SHIFT &amp; BREAKTIME</strong><small>Daily shift times and break presets</small><em>OPERATING SCHEDULE</em></span>
         <span class="settings-card-arrow" aria-hidden="true">›</span>
       </button>
-          <button class="settings-card settings-accent-blue" type="button" data-settings-open="staff" aria-controls="settingsPanelStaff" aria-expanded="false"><span class="settings-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2 20v-1.2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4V20"/><circle cx="17.5" cy="8.5" r="2.4"/><path d="M18 15h1a3 3 0 0 1 3 3v2"/></svg></span><span class="settings-card-copy"><strong>STAFF</strong><small>Roster, presence and station assignments</small><em>STAFF MANAGEMENT</em></span><span class="settings-card-arrow" aria-hidden="true">›</span></button>
       <button class="settings-card settings-accent-violet" type="button" data-settings-open="stations" aria-controls="settingsPanelStations" aria-expanded="false">
         <span class="settings-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20V8l8-4 8 4v12M8 20v-5h8v5M8 9h.01M16 9h.01M12 9h.01"/></svg></span>
         <span class="settings-card-copy"><strong>STATION MANAGER</strong><small>Add, rename and deactivate stations</small><em>PLANT CONFIGURATION</em></span>
@@ -1525,7 +1519,7 @@ function settingsAccess(section){
  const view={users:'canViewUsers',areas:'canViewAreaPresets',reasons:'canViewReasonPresets',schedule:'canViewShiftSchedule',dailyTasks:'canViewDailyTasks',staff:'canViewStaff'};
  return !!view[section]&&(permission(view[section])||canManageSettingsSection(section))||(section==='reasons'&&permission('canAddDowntimeReasons'));
 }
-function anySettingsAccess(){return ['users','areas','stations','reasons','schedule','dailyTasks','staff','accessRights'].some(settingsAccess)}
+function anySettingsAccess(){return ['areas','stations','reasons','schedule','dailyTasks','accessRights'].some(settingsAccess)}
 function renderSettingsHub(){const access={users:settingsAccess('users'),areas:settingsAccess('areas'),stations:settingsAccess('stations'),reasons:settingsAccess('reasons'),schedule:settingsAccess('schedule'),dailyTasks:settingsAccess('dailyTasks'),staff:settingsAccess('staff'),accessRights:settingsAccess('accessRights')};document.querySelectorAll('[data-settings-open]').forEach(button=>{const key=button.dataset.settingsOpen;button.hidden=!access[key]});const ownerAccess=$('settingsOwnerAccess');if(ownerAccess)ownerAccess.hidden=!access.accessRights;const areasControls=$('settingsAreasAdminControls');if(areasControls)areasControls.style.display=settingsAccess('areas')?'block':'none';const empty=$('settingsHubEmpty');if(empty)empty.hidden=Object.values(access).some(Boolean);const openPanel=document.querySelector('.settings-panel:not([hidden])');if(openPanel){const section=({settingsPanelUsers:'users',settingsPanelAreas:'areas',settingsPanelStations:'stations',settingsPanelReasons:'reasons',settingsPanelSchedule:'schedule',settingsPanelDailyTasks:'dailyTasks',settingsPanelStaff:'staff',settingsPanelAccessRights:'accessRights'})[openPanel.id];if(!section||!settingsAccess(section))showSettingsHub()}}
 function showSettingsHub(){const hub=$('settingsHub');if(hub)hub.hidden=false;document.querySelectorAll('.settings-panel').forEach(panel=>panel.hidden=true);document.querySelectorAll('[data-settings-open]').forEach(button=>button.setAttribute('aria-expanded','false'));$('subtitle').textContent='Settings hub · Administration and configuration';renderSettingsHub()}
 function openSettingsPanel(section){if(!settingsAccess(section))return;const ids={users:'settingsPanelUsers',areas:'settingsPanelAreas',stations:'settingsPanelStations',reasons:'settingsPanelReasons',schedule:'settingsPanelSchedule',dailyTasks:'settingsPanelDailyTasks',staff:'settingsPanelStaff',accessRights:'settingsPanelAccessRights'};const titles={users:'Users',areas:'Area Presets',stations:'Station Manager',reasons:'Reason Presets',schedule:'Shift & Breaktime Schedule',dailyTasks:'Daily Tasks',staff:'Staff',accessRights:'Access and Rights'};const panel=$(ids[section]);if(!panel)return;const hub=$('settingsHub');if(hub)hub.hidden=true;document.querySelectorAll('.settings-panel').forEach(item=>item.hidden=item!==panel);document.querySelectorAll('[data-settings-open]').forEach(button=>button.setAttribute('aria-expanded',String(button.dataset.settingsOpen===section)));$('subtitle').textContent='Settings · '+titles[section];if(section==='areas')renderAreaPresetSettings();if(section==='stations')renderStationManager();if(section==='accessRights')renderAccessRights();}
