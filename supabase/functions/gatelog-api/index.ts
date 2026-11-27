@@ -162,7 +162,7 @@ Deno.serve(async (req: Request) => {
     return json({period,from,to,visits:reportRows.map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)})),assignments:assignments||[]});
   }
   if(action==="report-save"){
-    if(!canManageGateman)return json({error:"Traffic MANAGE permission is required to archive reports."},403);
+    if(resolvedYardRole?!canManageGateman:!canExportReports)return json({error:"Traffic report archive permission is required."},403);
     const period=clean(body.period,10),from=clean(body.from,10),to=clean(body.to,10);
     if(!["daily","weekly","monthly"].includes(period)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(from)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(to)||!Array.isArray(body.visits)||body.visits.length>10000)return json({error:"Invalid report snapshot."},400);
     const snapshot={period,from,to,visits:body.visits,assignments:Array.isArray(body.assignments)?body.assignments:[]};
@@ -194,7 +194,7 @@ Deno.serve(async (req: Request) => {
     if(error)return fail(error);return json({wasteType:data});
   }
   if(action==="waste-type-update"){
-    if(bank.payload.tiers?.[legacyTier]?.canManageAssignments!==true)return json({error:"Your YARD HUB role cannot manage waste types."},403);
+    if(!canManageGateman)return json({error:"Traffic MANAGE permission is required to manage waste types."},403);
     const id=clean(body.wasteTypeId,60),label=clean(body.label,80),active=body.active===true;
     if(!id||!label)return json({error:"Waste type and label are required."},400);
     const {data,error}=await db.from("gatelog_waste_types").update({label,active}).eq("id",id).select("id,label,active").single();
