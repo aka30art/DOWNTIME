@@ -71,7 +71,7 @@ Deno.serve(async (req: Request) => {
   if (!user) return json({ error: "This account is disabled or no longer exists." }, 401);
   let rootsAssignment: any = null;
   if (user.userId) {
-    const rootsLookup = await db.from("downtime_roots_effective_assignments").select("user_id,staff_id,roots_class").eq("user_id", user.userId).maybeSingle();
+    const rootsLookup = await db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status").eq("status", "ACTIVE").eq("user_id", user.userId).maybeSingle();
     if (rootsLookup.error) return json({ error: "Protected identity registry is unavailable." }, 503);
     rootsAssignment = rootsLookup.data;
   }
