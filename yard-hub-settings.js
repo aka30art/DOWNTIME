@@ -204,6 +204,13 @@
     // Returning from STAFF must not trigger the separate Settings discard prompt.
     setHomeVisible(false);showSettingsHome();setStatus('');
   }
+  function returnToStaffManagementHome(){
+    // Return from the operational STAFF directory to the STAFF AND MANAGEMENT submenu hub.
+    const shell=document.querySelector('.shell');if(shell)shell.style.display='none';
+    const hub=$('yardHub');if(hub){hub.hidden=false;hub.style.display='block'}
+    setHomeVisible(true);showSettingsHome();setStatus('');
+    window.dispatchEvent(new Event('yard-hub:shown'));
+  }
   function hasUnsavedTierChanges(){return !!state&&JSON.stringify(workingPayload)!==JSON.stringify(state.tierPermissions)}
   function canEditRole(role){
     if(['OWNER','DEVACC'].includes(role))return false;
@@ -775,6 +782,7 @@
     const button=$('yardHubSettingsBtn');
     if(button){button.hidden=true;button.addEventListener('click',openSettings)}
     $('yardHubSettingsBack')?.addEventListener('click',closeSettings);
+    $('staffManagementBackBtn')?.addEventListener('click',returnToStaffManagementHome);
     window.openYardHubStaffManagement=openSettings;
     window.closeYardHubStaffManagement=closeStaffManagementWorkspace;
     $('yardHubSettingsUsers')?.addEventListener('click',()=>openSettingsView('users'));
