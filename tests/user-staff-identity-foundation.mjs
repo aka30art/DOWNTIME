@@ -417,7 +417,7 @@ assert.match(yardHubApi, /yard_role_assignments/);
 assert.match(yardHubApi, /resolveYardRolePermissions/);
 assert.match(yardHubApi, /assignableYardRoles/, "only roles with a valid permission matrix are offered for assignment");
 assert.match(yardHubApi, /Canonical YARD ROLE identities cannot be assigned legacy YARD HUB tiers/);
-assert.match(yardHubApi, /const canAccessYardHub = !hasCanonicalYardRole/, "canonical identities fail closed until unified authorization is active");
+assert.match(yardHubApi, /const canAccessYardHub = isProtectedRoot[\s\S]*!hasCanonicalYardRole/, "ordinary canonical identities cannot access YARD HUB settings through legacy tiers, while protected ROOTS is resolved separately");
 assert.match(yardHubApi, /legacyTier: account\.tier \? String\(account\.tier\)\.toUpperCase\(\) : null/, "no legacy tier is fabricated for canonical USERs");
 
 assert.match(yardHubUi, /yardHubUserYardRole/);
