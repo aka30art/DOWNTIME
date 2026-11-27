@@ -16,11 +16,12 @@ assert.match(migration,/grant all on public\.downtime_daily_operator_assignments
 assert.match(api,/if\(action==="daily-operator-list"\)/);
 assert.match(api,/if\(action==="daily-operator-assign"\)/);
 assert.match(api,/if\(action==="daily-operator-unlock"\)/);
-assert.match(api,/!\["OWNER","DEVACC","ADMIN","SUPERVISOR"\]\.includes\(tier\)/,'only authorised supervisor-level tiers can change assignments');
+assert.match(api,/hasCanonicalIdentity&&!isRootAuthority\?!moduleRights\.DOWNTIME\.manage:!\["OWNER","DEVACC","ADMIN","SUPERVISOR"\]\.includes\(tier\)/,'canonical identities require SCPL MANAGE; legacy non-canonical tiers retain their compatibility gate');
 assert.match(api,/already has a locked operator/i,'locked records cannot be overwritten');
 assert.match(api,/Enter a reason for unlocking this daily assignment/i,'unlock requires a reason');
 assert.match(api,/downtime_daily_operator_audit/,'server records an immutable audit event');
-assert.match(api,/publicBank\.dailyOperators=dailyOperators\|\|\[\]/,'live shared state carries date-specific operator assignments');
+assert.match(api,/SCPL VIEW permission is required to read the DOWNTIME daily operator register/,'daily operator list is protected by SCPL VIEW');
+assert.match(api,/const scopedDailyOperators=hasCanonicalIdentity&&!isRootAuthority&&!moduleRights\.DOWNTIME\.view\?\[\]:\(dailyOperators\|\|\[\]\);publicBank\.dailyOperators=scopedDailyOperators/,'live shared state carries date-specific operator assignments only to users with SCPL VIEW or protected ROOTS authority');
 
 assert.match(client,/dailyOperators\(fromDate,toDate\)/);
 assert.match(client,/assignDailyOperator\(dutyDate,operatorName,reason=""/);
