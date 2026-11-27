@@ -185,6 +185,11 @@
     if(hasUnsavedTierChanges()&&!window.confirm('Discard unsaved YARD HUB permission changes?'))return;
     setHomeVisible(false);showSettingsHome();setStatus('');
   }
+  function closeStaffManagementWorkspace(){
+    // The STAFF workspace has no pending YARD HUB permission editor state.
+    // Returning from STAFF must not trigger the separate Settings discard prompt.
+    setHomeVisible(false);showSettingsHome();setStatus('');
+  }
   function hasUnsavedTierChanges(){return !!state&&JSON.stringify(workingPayload)!==JSON.stringify(state.tierPermissions)}
   function canEditRole(role){
     if(['OWNER','DEVACC'].includes(role))return false;
@@ -757,7 +762,7 @@
     if(button){button.hidden=true;button.addEventListener('click',openSettings)}
     $('yardHubSettingsBack')?.addEventListener('click',closeSettings);
     window.openYardHubStaffManagement=openSettings;
-    window.closeYardHubStaffManagement=closeSettings;
+    window.closeYardHubStaffManagement=closeStaffManagementWorkspace;
     $('yardHubSettingsUsers')?.addEventListener('click',()=>openSettingsView('users'));
     $('yardHubSettingsRoles')?.addEventListener('click',()=>openSettingsView('roles'));
     $('yardHubSettingsStaff')?.addEventListener('click',()=>{
