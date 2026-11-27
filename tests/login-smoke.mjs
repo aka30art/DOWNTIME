@@ -518,7 +518,14 @@ async function openStaffSettings(page){
   document.querySelectorAll('.view').forEach(view=>view.classList.toggle('active',view===settings));
   settings.style.display='block';
   hub.hidden=true;
-  panel.hidden=false;
+  let node=panel;
+  while(node&&node!==document.body){
+   node.hidden=false;
+   const style=getComputedStyle(node);
+   if(style.display==='none')node.style.setProperty('display','block','important');
+   if(style.visibility==='hidden')node.style.setProperty('visibility','visible','important');
+   node=node.parentElement;
+  }
  });
  await page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
  await page.locator('#staffRosterList').waitFor({state:'visible',timeout:5000});
