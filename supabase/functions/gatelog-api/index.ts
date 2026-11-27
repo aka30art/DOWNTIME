@@ -168,7 +168,6 @@ Deno.serve(async (req: Request) => {
     return json({visits,assignment:assignment||{gateman_name:"Not assigned",is_locked:false}});
   }
   if(action==="report"){
-    if(bank.payload.tiers?.[legacyTier]?.canExportReports!==true)return json({error:"Your YARD HUB role cannot export reports."},403);
     if(!canExportReports)return json({error:"Traffic VIEW permission is required to generate reports."},403);
     const period=clean(body.period,10),anchor=clean(body.anchorDate,10);
     if(!["daily","weekly","monthly"].includes(period)||!/^\d{4}-\d{2}-\d{2}$/.test(anchor))return json({error:"Select a valid report period and date."},400);
@@ -181,7 +180,6 @@ Deno.serve(async (req: Request) => {
     return json({period,from,to,visits:reportRows.map((v:any)=>({...v,customer_name:v.gatelog_customers?.customer_name||"Unknown",waste_types:(v.gatelog_visit_waste_types||[]).map((x:any)=>x.gatelog_waste_types?.label).filter(Boolean)})),assignments:assignments||[]});
   }
   if(action==="report-save"){
-    if(bank.payload.tiers?.[legacyTier]?.canExportReports!==true)return json({error:"Your YARD HUB role cannot archive reports."},403);
     if(!canManageGateman)return json({error:"Traffic MANAGE permission is required to archive reports."},403);
     const period=clean(body.period,10),from=clean(body.from,10),to=clean(body.to,10);
     if(!["daily","weekly","monthly"].includes(period)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(from)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(to)||!Array.isArray(body.visits)||body.visits.length>10000)return json({error:"Invalid report snapshot."},400);
@@ -190,13 +188,11 @@ Deno.serve(async (req: Request) => {
     if(error)return fail(error);return json({report:data});
   }
   if(action==="report-archive"){
-    if(bank.payload.tiers?.[legacyTier]?.canExportReports!==true)return json({error:"Your YARD HUB role cannot view archived reports."},403);
     if(!canViewTraffic)return json({error:"Traffic VIEW permission is required."},403);
     const {data,error}=await db.from("gatelog_report_archive").select("id,period,date_from,date_to,report_data,created_by,created_at").order("created_at",{ascending:false}).limit(250);
     if(error)return fail(error);return json({reports:data||[]});
   }
   if(action==="customer-update"){
-    if(bank.payload.tiers?.[legacyTier]?.canManageAssignments!==true)return json({error:"Your YARD HUB role cannot manage customer settings."},403);
     if(!canManageGateman)return json({error:"Traffic MANAGE permission is required."},403);
     const id=clean(body.customerId,60),name=clean(body.customerName,120);
     if(!id||!name)return json({error:"Customer and customer name are required."},400);
@@ -204,21 +200,18 @@ Deno.serve(async (req: Request) => {
     if(error)return fail(error);return json({customer:data});
   }
   if(action==="customer-archive"){
-    if(bank.payload.tiers?.[legacyTier]?.canManageAssignments!==true)return json({error:"Your YARD HUB role cannot manage customer settings."},403);
     if(!canManageGateman)return json({error:"Traffic MANAGE permission is required."},403);
     const id=clean(body.customerId,60);if(!id)return json({error:"Customer is required."},400);
     const {data,error}=await db.from("gatelog_customers").update({active:false}).eq("id",id).eq("active",true).select("id").single();
     if(error)return fail(error);return json({archived:true,customerId:data.id});
   }
   if(action==="waste-type-create"){
-    if(bank.payload.tiers?.[legacyTier]?.canManageAssignments!==true)return json({error:"Your YARD HUB role cannot manage waste types."},403);
     if(!canManageGateman)return json({error:"Traffic MANAGE permission is required."},403);
     const label=clean(body.label,80);if(!label)return json({error:"Waste type label is required."},400);
     const {data,error}=await db.from("gatelog_waste_types").upsert({label,active:true},{onConflict:"label"}).select("id,label,active").single();
     if(error)return fail(error);return json({wasteType:data});
   }
   if(action==="waste-type-update"){
-    if(bank.payload.tiers?.[legacyTier]?.canManageAssignments!==true)return json({error:"Your YARD HUB role cannot manage waste types."},403);
     if(!canManageGateman)return json({error:"Traffic MANAGE permission is required."},403);
     const id=clean(body.wasteTypeId,60),label=clean(body.label,80),active=body.active===true;
     if(!id||!label)return json({error:"Waste type and label are required."},400);
