@@ -1673,6 +1673,8 @@ $('cancelReset').onclick=()=>$('resetModal').classList.remove('show');
 function renderLocalArchive(){let a=state.archive||[];$('reportsList').innerHTML=a.length?a.map((r,i)=>'<div class="reportitem"><div><b>Week of '+prettyDate(r.week)+'</b><div class="muted">'+fmt(r.totalDown)+' downtime · '+r.totalPct.toFixed(1)+'%</div></div><div class="reportactions"><span class="pill">Archived</span><button class="danger reportdelete" data-archive-delete="'+i+'" aria-label="Delete archived report">DELETE</button></div></div>').join(''):'No archived reports yet.';if(!permission('canDeleteRecords'))document.querySelectorAll('.reportdelete').forEach(b=>b.style.display='none');document.querySelectorAll('[data-archive-delete]').forEach(b=>b.onclick=()=>{if(!permission('canDeleteRecords'))return;let i=Number(b.dataset.archiveDelete);if(confirm('Delete this archived report permanently?')){state.archive.splice(i,1);persist();renderArchive()}})}
 
 
+// Supabase anonymous Auth is retained only for the private read-only Realtime version/timestamp signal.
+// All tracker state and weekly PDF archive data are accessed through Central Bank-session APIs.
 // SUPABASE LIVE SYNC
 // Supabase constants initialized above to support photo endpoint; retained shared client configuration.
 let sb=null;
