@@ -277,6 +277,8 @@ window.supabase={createClient:()=>({
   userTiers:{dev:'OWNER',jan:'USER',mick:username.toUpperCase()==='MICK'?tier:'USER'}
  };
  let yardHubPermissionVersion=1;
+ let yardRoles=[];
+ let yardRoleVersion=1;
  const yardHubApiActions=[];
  const getMockUsers=()=>{
   const result=bank.users?.length?bank.users.map(user=>({username:user.username,displayName:user.displayName||user.username,tier:user.tier,enabled:user.enabled!==false})): [
@@ -308,9 +310,21 @@ window.supabase={createClient:()=>({
     centralVersion:version,
     canManageCentralUsers:tiers[tier]?.canManageUsers===true,
     tierPermissions:JSON.parse(JSON.stringify(yardHubConfig)),
+    yardRoles:JSON.parse(JSON.stringify(yardRoles)),
     permissionVersion:yardHubPermissionVersion,
     editableTiers:root||hubTier==='DEVACC'?Object.keys(yardHubConfig.tiers):['MANAGER','SUPERVISOR','USER','SPECTATOR']
    });
+  }
+  if(action==='yard-role-save'){
+   if(!root)return ok({error:'Permission denied'},403);
+   const departments=['SCPL','R&M','Management','SCFL','Traffic'];
+   if(!Array.isArray(req.permissions)||req.permissions.length!==5||departments.some(department=>!req.permissions.some(row=>row.department===department)))return ok({error:'All five departments are required'},400);
+   if(!['DRAFT','ACTIVE','RETIRED'].includes(req.status))return ok({error:'Invalid role status'},400);
+   const existing=yardRoles.find(role=>role.id===req.roleId);
+   const role={id:existing?.id||'yard-role-'+(yardRoles.length+1),version:(existing?.version||0)+1,name:req.name,description:req.description||'',status:req.status,permissions:JSON.parse(JSON.stringify(req.permissions))};
+   if(existing)yardRoles=yardRoles.map(item=>item.id===role.id?role:item);else yardRoles.push(role);
+   yardRoleVersion++;
+   return ok({ok:true,role,version:yardRoleVersion});
   }
   if(action==='save-tier-settings'){
    if(!canManage)return ok({error:'Permission denied'},403);
@@ -403,7 +417,7 @@ window.supabase={createClient:()=>({
   loginPresentationVerified=true;
  }
 
- return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,getYardHubConfig:()=>yardHubConfig,getYardHubApiActions:()=>yardHubApiActions,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
+ return {context,page,actions,getBank:()=>bank,getVersion:()=>version,getPhotoRemovals:()=>staffPhotoRemovals,getYardHubConfig:()=>yardHubConfig,getYardRoles:()=>yardRoles,getYardHubApiActions:()=>yardHubApiActions,setVersion:value=>{version=value},failNextSettingsSave:()=>{failNextSettingsSave=true}};
 }
 async function pinpad(page,pin){for(const digit of pin)await page.locator('[data-pinpad="teamPin"] [data-key="'+digit+'"]').click()}
 let repairMaintenanceBootTested=false;
@@ -519,28 +533,43 @@ try{
  await owner.page.locator('#backToYardHub').click();
  await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsBtn')?.dataset.accessChecked==='true',{timeout:5000});
  assert.equal(await owner.page.locator('#yardHub').isVisible(),true,'returning from DOWNTIME restores YARD HUB before testing Hub Settings');
- // YARD HUB SETTINGS is additive: section tiers and Hub user assignments never alter DOWNTIME tier data.
+ // Canonical YARD ROLE catalogue: all five departments expose four independent flags.
  await owner.page.waitForFunction(()=>{const button=document.querySelector('#yardHubSettingsBtn');return button?.dataset.accessChecked==='true'&&!button.hidden},{timeout:5000});
-  assert.equal(await owner.page.locator('#yardHubSettingsBtn').isVisible(),true,'DEV root can open YARD HUB Settings');
+ assert.equal(await owner.page.locator('#yardHubSettingsBtn').isVisible(),true,'DEV root can open YARD HUB Settings');
  const originalDowntimeTierPayload=JSON.stringify(owner.getBank().tiers);
+ const originalLegacyHubTiers=JSON.stringify(owner.getYardHubConfig().tiers);
  const originalDowntimeCentralVersion=owner.getVersion();
  await owner.page.locator('#yardHubSettingsBtn').click();
  await owner.page.locator('#yardHubSettingsScreen').waitFor({state:'visible',timeout:5000});
  assert.equal(await owner.page.locator('#yardHubSettingsUsers').isVisible(),true,'YARD HUB Settings exposes USERS');
- assert.equal(await owner.page.locator('#yardHubSettingsTiers').isVisible(),true,'YARD HUB Settings exposes TIERS');
- await owner.page.locator('#yardHubSettingsTiers').click();
- const managerRead=owner.page.locator('input[data-hub-tier="MANAGER"][data-hub-section="floor"][data-hub-mode="READ"]');
- const managerEdit=owner.page.locator('input[data-hub-tier="MANAGER"][data-hub-section="floor"][data-hub-mode="EDIT"]');
- await managerRead.check();
- assert.equal(await managerEdit.isChecked(),false,'READ and EDIT are mutually exclusive');
- await managerEdit.check();
- assert.equal(await managerRead.isChecked(),false,'EDIT implicitly includes READ and clears the separate READ checkbox');
- await owner.page.locator('#yardHubTierSave').click();
- await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsStatus')?.textContent.includes('TIER PERMISSIONS SAVED'),{timeout:5000});
- assert.equal(owner.getYardHubConfig().tiers.MANAGER.floor,'EDIT','Hub tier save writes the isolated Hub permission matrix');
- assert.equal(JSON.stringify(owner.getBank().tiers),originalDowntimeTierPayload,'YARD HUB tier edits do not modify the DOWNTIME tier payload');
- assert.equal(owner.getVersion(),originalDowntimeCentralVersion,'YARD HUB tier edits do not increment the DOWNTIME Central Bank version');
- await owner.page.locator('#yardHubTiersView [data-yard-settings-home]').click();
+ assert.equal(await owner.page.locator('#yardHubSettingsRoles').isVisible(),true,'YARD HUB Settings exposes canonical YARD ROLES');
+ assert.equal(await owner.page.locator('#yardHubSettingsTiers').isVisible(),false,'legacy tier editor remains hidden from the canonical role workflow');
+ await owner.page.locator('#yardHubSettingsRoles').click();
+ await owner.page.locator('#yardHubRoleAdd').click();
+ await owner.page.locator('#yardHubRoleName').fill('Manager QA');
+ await owner.page.locator('#yardHubRoleDescription').fill('Smoke-test canonical permission profile');
+ await owner.page.locator('#yardHubRoleStatus').selectOption('DRAFT');
+ const managementView=owner.page.locator('#yardHubRolePermissions input[data-department="Management"][data-permission="can_view"]');
+ const managementEnter=owner.page.locator('#yardHubRolePermissions input[data-department="Management"][data-permission="can_enter"]');
+ const managementEdit=owner.page.locator('#yardHubRolePermissions input[data-department="Management"][data-permission="can_edit"]');
+ const managementManage=owner.page.locator('#yardHubRolePermissions input[data-department="Management"][data-permission="can_manage"]');
+ await managementView.check();await managementEnter.check();
+ assert.equal(await managementEdit.isChecked(),false,'Management EDIT remains independent from VIEW and ENTER');
+ assert.equal(await managementManage.isChecked(),false,'Management MANAGE remains independent from VIEW and ENTER');
+ await owner.page.locator('#yardHubRolePermissions input[data-department="R&M"][data-permission="can_manage"]').check();
+ await owner.page.locator('#yardHubRolePermissions input[data-department="Traffic"][data-permission="can_enter"]').check();
+ await owner.page.locator('#yardHubRoleSave').click();
+ await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsStatus')?.textContent.includes('YARD ROLE SAVED.'),{timeout:5000});
+ assert.equal(owner.getYardRoles().length,1,'DEV can create a canonical YARD ROLE');
+ assert.equal(owner.getYardRoles()[0].permissions.length,5,'a role persists all five department records');
+ const management=owner.getYardRoles()[0].permissions.find(row=>row.department==='Management');
+ assert.deepEqual([management.can_view,management.can_enter,management.can_edit,management.can_manage],[true,true,false,false],'Management flags persist independently');
+ assert.equal(owner.getYardRoles()[0].permissions.find(row=>row.department==='R&M').can_manage,true,'R&M MANAGE is independently selectable');
+ assert.equal(owner.getYardRoles()[0].permissions.find(row=>row.department==='Traffic').can_enter,true,'Traffic ENTER is independently selectable');
+ assert.equal(JSON.stringify(owner.getBank().tiers),originalDowntimeTierPayload,'canonical YARD ROLE edits do not modify the DOWNTIME tier payload');
+ assert.equal(JSON.stringify(owner.getYardHubConfig().tiers),originalLegacyHubTiers,'canonical YARD ROLE edits do not mutate legacy YARD HUB tiers');
+ assert.equal(owner.getVersion(),originalDowntimeCentralVersion,'canonical YARD ROLE edits do not increment the DOWNTIME Central Bank version');
+ await owner.page.locator('#yardHubRolesView [data-yard-settings-home]').click();
  await owner.page.locator('#yardHubSettingsUsers').click();
  const originalYardHubUserTiers=JSON.stringify(owner.getYardHubConfig().userTiers);
  const yardHubApiCallsBeforeCreate=owner.getYardHubApiActions().length;
