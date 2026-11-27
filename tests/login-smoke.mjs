@@ -446,8 +446,9 @@ async function signIn(page,pin='2468',username='DEV'){
  const authenticatedUsername=String(authenticatedIdentity?.username||'').trim().toUpperCase();
  const authenticatedTier=String(authenticatedIdentity?.tier||'').trim().toUpperCase();
  const expectsStaffAutoAccess=authenticatedIdentity?.rootsAuthority==='DEV'||authenticatedTier==='DEVACC'||authenticatedTier==='ADMIN';
- const expectsStaffWorkspaceAccess=expectsStaffAutoAccess||['SUPERVISOR','STAFF_ONLY','ASSIGNMENT_ONLY'].includes(authenticatedTier);
- assert.equal(await page.locator('.yard-tile[data-app="staff-management"]').isEnabled(),expectsStaffWorkspaceAccess,authenticatedUsername+'/'+authenticatedTier+' receives STAFF access only through the ROOTS module or explicit STAFF management permissions');
+ const staffTierRights=tiers[authenticatedTier]||{};
+ const expectsStaffWorkspaceAccess=expectsStaffAutoAccess||Boolean(staffTierRights.canViewStaff||staffTierRights.canManageStaff||staffTierRights.canManageAssignments);
+ assert.equal(await page.locator('.yard-tile[data-app="staff-management"]').isEnabled(),expectsStaffWorkspaceAccess,authenticatedUsername+'/'+authenticatedTier+' receives STAFF access only when the tier grants staff visibility, staff management, assignment management or ROOTS access');
  assert.equal(await page.locator('.yard-tile[data-app="check-sheets"]').isDisabled(),true,'CHECK SHEETS stays unavailable until released');
  await page.waitForFunction(()=>{const tile=document.querySelector('.yard-tile[data-app="repair-maintenance"]');return tile&&!tile.disabled},{timeout:5000});
  assert.equal(await page.locator('.yard-tile[data-app="repair-maintenance"]').isEnabled(),true,'R&M unlocks after the existing DOWNTIME session passes its module permission check');
