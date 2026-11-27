@@ -411,6 +411,11 @@ assert.match(legacyUserSave, /New accounts must use the canonical USER \+ STAFF 
 
 assert.match(yardHubApi, /action === "assign-user-role"/);
 assert.match(yardHubApi, /yard_role_assign_user/);
+assert.match(yardHubApi, /yard_role_save_definition/, "YARD ROLE definitions use the audited service-role save RPC");
+assert.match(yardHubApi, /yard_role_reassign_user/, "existing USERs can receive version-checked YARD ROLE reassignment");
+assert.match(yardHubApi, /linkedProfile/, "YARD ROLE assignment verifies the reciprocal USER/STAFF profile");
+assert.match(yardHubUi, /yardRoleChanged/, "YARD HUB user editor supports changing an existing canonical USER's role");
+
 assert.match(yardHubApi, /const targetUserId = String\(body\.userId \|\| ""\)/, "YARD ROLE assignment addresses the immutable USER ID rather than a username");
 assert.match(yardHubApi, /yardRoles/);
 assert.match(yardHubApi, /yard_role_assignments/);
