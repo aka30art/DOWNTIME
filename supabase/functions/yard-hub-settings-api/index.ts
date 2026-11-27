@@ -375,13 +375,13 @@ Deno.serve(async (req: Request) => {
     );
     if (!target) return json({ error: "Central USER account not found." }, 404);
     const [{ data: targetRoots, error: targetRootsError }, { data: devBootstrap, error: devBootstrapError }] = await Promise.all([
-      db.from("downtime_roots_assignments").select("roots_class,status").eq("user_id", targetUserId).eq("status", "ACTIVE").maybeSingle(),
+      db.from("downtime_roots_assignments").select("roots_class,status").eq("user_id", targetUserId).maybeSingle(),
       db.from("downtime_roots_bootstrap").select("user_id").eq("singleton", true).maybeSingle(),
     ]);
     if (targetRootsError || devBootstrapError) return json({ error: "Protected ROOTS registry is unavailable." }, 503);
     const targetRootsAuthority = targetRoots?.status === "ACTIVE" ? String(targetRoots.roots_class || "") : null;
     const isImmutableDevTarget = String(devBootstrap?.user_id || "").toLowerCase() === targetUserId.toLowerCase();
-    const managerAssignsOrdinaryUser = !isProtectedRoot && canManageStaffDirectory && !targetRootsAuthority && !isImmutableDevTarget;
+    const managerAssignsOrdinaryUser = !isProtectedRoot && canManageStaffDirectory && !targetRoots && !isImmutableDevTarget;
     if (managerAssignsOrdinaryUser && String(targetUserId).toLowerCase() === String(user.userId).toLowerCase()) {
       return json({ error: "Management MANAGE cannot assign a YARD ROLE to its own USER identity." }, 403);
     }
