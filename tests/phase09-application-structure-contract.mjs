@@ -37,7 +37,7 @@ assert.match(admin, /function removeRmsCategory\(/, "Administrator can hide or r
 assert.match(edge, /action === "yard-hub-menu"/, "Authenticated read-only launcher action exists");
 assert.match(edge, /publishedVersion: Number\(configState\.published_version\)/, "Runtime receives published version only");
 const publicRead = edge.indexOf('if (action === "yard-hub-menu")');
-const adminGate = edge.indexOf('if (!isDevRoot && !isDevacc)');
+const adminGate = edge.indexOf('if (!isDevRoot)');
 assert.ok(publicRead > -1 && adminGate > publicRead, "Read-only published menu action is handled before the CDB administrator-only gate");
 
 assert.match(index, /CENTRAL_CONFIG_ADMIN_API/, "Runtime receives the central configuration endpoint");
