@@ -77,6 +77,8 @@ jobs:
         run: deno check --node-modules-dir=auto supabase/functions/central-bank/index.ts
       - name: Type-check the photo evidence Supabase Edge Function
         run: deno check --node-modules-dir=auto supabase/functions/photo-evidence/index.ts
+      - name: Type-check the Central Bank-session report archive Edge Function
+        run: deno check --node-modules-dir=auto supabase/functions/downtime-reports-api/index.ts
       - name: Type-check the isolated CDB configuration function
         run: deno check --node-modules-dir=auto supabase/functions/central-config-admin/index.ts
       - name: Type-check the R&M Supabase Edge Function

@@ -607,7 +607,7 @@ body.overview-overlay-open{overflow:hidden}
 @media(prefers-reduced-motion:reduce){.yard-tile{transition:none}.yard-tile-active:hover{transform:none}}
 
 </style>
-<link rel="stylesheet" href="yard-hub-settings.css?v=20261123-1">
+<link rel="stylesheet" href="yard-hub-settings.css?v=20261127-1">
 <link rel="stylesheet" href="shared-ui-system.css?v=20261124-1">
 <style id="phase-08-operator-friendly-navigation">
 /* Phase 08 · Main application navigation: simple, obvious and touch-first. */
@@ -1657,11 +1657,59 @@ async function exportDailyPDF(){
  finally{button.disabled=!permission('canExportReports');button.textContent='⇩ Export Daily PDF'}
 }
 $('exportDailyBtn').onclick=exportDailyPDF;
-async function saveCloudReport(){if(!permission('canExportReports'))return;if(!cloudReady){alert('Central data is not connected.');return}if(!sb)await legacyCloudClient();if(!sb){alert('PDF archive service is unavailable.');return}const btn=$('exportBtn');btn.disabled=true;btn.textContent='SAVING PDF…';try{const reportWeekStart=parseWeek(key()),reportWeekEnd=plus(reportWeekStart,6);await loadDailyOperatorRange(iso(reportWeekStart),iso(reportWeekEnd));const data=reportData(),blob=await buildReportPDF(data),fileName='Downtime_'+data.week+'_Weekly.pdf',path=data.week+'/'+Date.now()+'_'+fileName;const {error:uploadError}=await sb.storage.from('downtime-pdfs').upload(path,blob,{contentType:'application/pdf',upsert:false});if(uploadError)throw uploadError;const operators=Object.fromEntries(data.days.map(d=>[d.name,d.operator||'Not assigned']));const {error:insertError}=await sb.from('downtime_reports').insert({week_start:data.week,operators,file_name:fileName,storage_path:path,file_size_bytes:blob.size});if(insertError){await sb.storage.from('downtime-pdfs').remove([path]);throw insertError}await enforceArchiveLimit();await renderArchive();alert('Weekly PDF saved to the shared cloud archive.')}catch(e){console.error(e);alert('PDF archive save failed: '+(e.message||e))}finally{btn.disabled=false;btn.textContent='⇩ SAVE WEEKLY PDF TO CLOUD';}}
+async function downtimeReportsApi(action,options={}){
+ const token=window.DowntimeCentral?.session?.token;
+ if(!token)throw new Error('Your DOWNTIME session has expired. Sign in again.');
+ const headers={'apikey':SB_KEY,'x-downtime-session':token};
+ let body;
+ if(options.file){
+  const form=new FormData();
+  form.set('action',action);
+  form.set('weekStart',options.weekStart);
+  form.set('fileName',options.fileName);
+  form.set('operators',JSON.stringify(options.operators||{}));
+  form.set('file',new File([options.file],options.fileName,{type:'application/pdf'}));
+  body=form;
+ }else{
+  headers['Content-Type']='application/json';
+  body=JSON.stringify({action,...options});
+ }
+ const response=await fetch(SB_URL.replace(/\/$/,'')+'/functions/v1/downtime-reports-api',{method:'POST',headers,body});
+ let result={};try{result=await response.json()}catch{}
+ if(!response.ok)throw new Error(result.error||'Weekly report archive request failed.');
+ return result;
+}
+async function saveCloudReport(){
+ if(!permission('canExportReports'))return;
+ if(!cloudReady){alert('Central data is not connected.');return}
+ const btn=$('exportBtn');btn.disabled=true;btn.textContent='SAVING PDF…';
+ try{
+  const reportWeekStart=parseWeek(key()),reportWeekEnd=plus(reportWeekStart,6);
+  await loadDailyOperatorRange(iso(reportWeekStart),iso(reportWeekEnd));
+  const data=reportData(),blob=await buildReportPDF(data),fileName='Downtime_'+data.week+'_Weekly.pdf';
+  const operators=Object.fromEntries(data.days.map(d=>[d.name,d.operator||'Not assigned']));
+  await downtimeReportsApi('upload',{weekStart:data.week,operators,fileName,file:blob});
+  await renderArchive();alert('Weekly PDF saved to the shared cloud archive.');
+ }catch(e){console.error(e);alert('PDF archive save failed: '+(e.message||e))}
+ finally{btn.disabled=false;btn.textContent='⇩ SAVE WEEKLY PDF TO CLOUD';}
+}
 $('exportBtn').onclick=saveCloudReport;
-async function enforceArchiveLimit(){const limit=12;const {data,error}=await sb.from('downtime_reports').select('id,storage_path').order('created_at',{ascending:false});if(error)throw error;if(data.length<=limit)return;const old=data.slice(limit),paths=old.map(x=>x.storage_path);const {error:removeError}=await sb.storage.from('downtime-pdfs').remove(paths);if(removeError)throw removeError;const ids=old.map(x=>x.id);const {error:deleteError}=await sb.from('downtime_reports').delete().in('id',ids);if(deleteError)throw deleteError;}
-async function downloadCloudReport(path,name){const {data,error}=await sb.storage.from('downtime-pdfs').download(path);if(error){alert('Download failed: '+error.message);return}const url=URL.createObjectURL(data),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)}
-async function deleteCloudReport(id,path){if(!permission('canDeleteRecords'))return;if(!confirm('Delete this PDF report from the cloud archive?'))return;const {error:removeError}=await sb.storage.from('downtime-pdfs').remove([path]);if(removeError){alert('File delete failed: '+removeError.message);return}const {error}=await sb.from('downtime_reports').delete().eq('id',id);if(error){alert('Archive record delete failed: '+error.message);return}await renderArchive()}
+async function downloadCloudReport(reportId,name){
+ try{
+  const {url,fileName}=await downtimeReportsApi('download',{reportId});
+  const response=await fetch(url);if(!response.ok)throw new Error('Temporary report download failed.');
+  const data=await response.blob();
+  const objectUrl=URL.createObjectURL(data),a=document.createElement('a');
+  a.href=objectUrl;a.download=fileName||name||'weekly-report.pdf';a.click();
+  setTimeout(()=>URL.revokeObjectURL(objectUrl),10000);
+ }catch(error){alert('Download failed: '+(error?.message||error))}
+}
+async function deleteCloudReport(id){
+ if(!permission('canDeleteRecords'))return;
+ if(!confirm('Delete this PDF report from the cloud archive?'))return;
+ try{await downtimeReportsApi('delete',{reportId:id});await renderArchive()}
+ catch(error){alert('Report delete failed: '+(error?.message||error))}
+}
 let reportPreviewObjectUrl=null,reportPreviewTrigger=null,reportPreviewRequest=0;
 function closeReportPreview(){
  ++reportPreviewRequest;
@@ -1675,9 +1723,7 @@ function closeReportPreview(){
  reportPreviewTrigger=null;
 }
 async function displayCloudReport(report,trigger){
- if(!permission('canViewReports')||!report?.storage_path)return;
- if(!sb)await legacyCloudClient();
- if(!sb){alert('Weekly report service is unavailable.');return}
+ if(!permission('canViewReports')||!report?.id)return;
  const modal=$('reportPreviewModal'),frame=$('reportPreviewFrame'),status=$('reportPreviewStatus');
  const request=++reportPreviewRequest;
  const title='WEEK OF '+prettyDate(report.week_start);
@@ -1687,14 +1733,15 @@ async function displayCloudReport(report,trigger){
  modal.classList.add('show');modal.setAttribute('aria-hidden','false');$('closeReportPreview').focus();
  if(trigger)trigger.disabled=true;
  try{
-  const {data,error}=await sb.storage.from('downtime-pdfs').download(report.storage_path);
-  if(error)throw error;
+  const {url,fileName}=await downtimeReportsApi('download',{reportId:report.id});
+  const response=await fetch(url);if(!response.ok)throw new Error('Temporary report download failed.');
+  const data=await response.blob();
   if(request!==reportPreviewRequest||!modal.classList.contains('show'))return;
   if(!(data instanceof Blob))throw new Error('The stored report could not be read as a PDF file.');
   if(reportPreviewObjectUrl)URL.revokeObjectURL(reportPreviewObjectUrl);
   reportPreviewObjectUrl=URL.createObjectURL(data);
   frame.src=reportPreviewObjectUrl;frame.hidden=false;
-  status.textContent=report.file_name||title;
+  status.textContent=fileName||report.file_name||title;
  }catch(error){
   if(request!==reportPreviewRequest||!modal.classList.contains('show'))return;
   console.error('Weekly report preview failed.',error);
@@ -1707,15 +1754,14 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('reportPr
 async function renderArchive(){
  const el=$('reportsList');el.innerHTML='Loading cloud archive…';
  if(!cloudReady){renderLocalArchive();return}
- if(!sb)await legacyCloudClient();
- if(!sb){el.textContent='Shared weekly reports are currently unavailable.';return}
- const {data,error}=await sb.from('downtime_reports').select('*').order('created_at',{ascending:false});
- if(error){el.textContent='Cloud archive error: '+error.message;return}
- if(!data.length){el.innerHTML='<div class="empty">No weekly reports saved yet.</div>';return}
- el.innerHTML=data.map(r=>'<div class="reportitem"><div><b>Week of '+prettyDate(r.week_start)+'</b><div class="muted">'+safe(r.file_name)+' · '+Math.round((r.file_size_bytes||0)/1024)+' KB · '+safe(Object.values(r.operators||{}).filter(x=>x!=='Not assigned').join(', ')||'No operators listed')+'</div></div><div class="reportactions"><button type="button" class="secondary reportdisplay" data-report-display="'+safe(r.id)+'" aria-label="Display weekly report for week of '+safe(prettyDate(r.week_start))+'">DISPLAY</button><button class="primary" data-report-download="'+safe(r.id)+'">DOWNLOAD</button><button class="danger reportdelete" data-report-delete="'+safe(r.id)+'">DELETE</button></div></div>').join('');
- el.querySelectorAll('[data-report-display]').forEach(button=>button.onclick=()=>{const report=data.find(item=>String(item.id)===button.dataset.reportDisplay);if(report)displayCloudReport(report,button)});
- el.querySelectorAll('[data-report-download]').forEach(button=>button.onclick=()=>{if(!permission('canExportReports'))return;const report=data.find(item=>String(item.id)===button.dataset.reportDownload);if(report)downloadCloudReport(report.storage_path,report.file_name)});
- el.querySelectorAll('[data-report-delete]').forEach(button=>button.onclick=()=>{if(!permission('canDeleteRecords'))return;const report=data.find(item=>String(item.id)===button.dataset.reportDelete);if(report)deleteCloudReport(report.id,report.storage_path)});
+ let reports;
+ try{({reports}=await downtimeReportsApi('list'))}
+ catch(error){el.textContent='Cloud archive error: '+(error?.message||error);return}
+ if(!reports?.length){el.innerHTML='<div class="empty">No weekly reports saved yet.</div>';return}
+ el.innerHTML=reports.map(r=>'<div class="reportitem"><div><b>Week of '+prettyDate(r.week_start)+'</b><div class="muted">'+safe(r.file_name)+' · '+Math.round((r.file_size_bytes||0)/1024)+' KB · '+safe(Object.values(r.operators||{}).filter(x=>x!=='Not assigned').join(', ')||'No operators listed')+'</div></div><div class="reportactions"><button type="button" class="secondary reportdisplay" data-report-display="'+safe(r.id)+'" aria-label="Display weekly report for week of '+safe(prettyDate(r.week_start))+'">DISPLAY</button><button class="primary" data-report-download="'+safe(r.id)+'">DOWNLOAD</button><button class="danger reportdelete" data-report-delete="'+safe(r.id)+'">DELETE</button></div></div>').join('');
+ el.querySelectorAll('[data-report-display]').forEach(button=>button.onclick=()=>{const report=reports.find(item=>String(item.id)===button.dataset.reportDisplay);if(report)displayCloudReport(report,button)});
+ el.querySelectorAll('[data-report-download]').forEach(button=>button.onclick=()=>{if(!permission('canExportReports'))return;const report=reports.find(item=>String(item.id)===button.dataset.reportDownload);if(report)downloadCloudReport(report.id,report.file_name)});
+ el.querySelectorAll('[data-report-delete]').forEach(button=>button.onclick=()=>{if(!permission('canDeleteRecords'))return;const report=reports.find(item=>String(item.id)===button.dataset.reportDelete);if(report)deleteCloudReport(report.id)});
  if(!permission('canDeleteRecords'))el.querySelectorAll('.reportdelete').forEach(button=>button.style.display='none');
  if(!permission('canExportReports'))el.querySelectorAll('[data-report-download]').forEach(button=>button.style.display='none');
 }
@@ -1724,6 +1770,8 @@ $('cancelReset').onclick=()=>$('resetModal').classList.remove('show');
 function renderLocalArchive(){let a=state.archive||[];$('reportsList').innerHTML=a.length?a.map((r,i)=>'<div class="reportitem"><div><b>Week of '+prettyDate(r.week)+'</b><div class="muted">'+fmt(r.totalDown)+' downtime · '+r.totalPct.toFixed(1)+'%</div></div><div class="reportactions"><span class="pill">Archived</span><button class="danger reportdelete" data-archive-delete="'+i+'" aria-label="Delete archived report">DELETE</button></div></div>').join(''):'No archived reports yet.';if(!permission('canDeleteRecords'))document.querySelectorAll('.reportdelete').forEach(b=>b.style.display='none');document.querySelectorAll('[data-archive-delete]').forEach(b=>b.onclick=()=>{if(!permission('canDeleteRecords'))return;let i=Number(b.dataset.archiveDelete);if(confirm('Delete this archived report permanently?')){state.archive.splice(i,1);persist();renderArchive()}})}
 
 
+// Supabase anonymous Auth is retained only for the private read-only Realtime version/timestamp signal.
+// All tracker state and weekly PDF archive data are accessed through Central Bank-session APIs.
 // SUPABASE LIVE SYNC
 // Supabase constants initialized above to support photo endpoint; retained shared client configuration.
 let sb=null;
@@ -2036,7 +2084,7 @@ function renderOperatorRosterAdmin(){const staffBox=$('staffRosterList');if(!sta
 $('crewSwitchboardBtn').onclick=crewSwitchboardOpen;
 $('unlockStartBtn').onclick=()=>{if(!isAdmin()||!day().startLocked)return;if(!confirm('Unlock Daily Setup for '+DAYS[selected]+'?'))return;day().startLocked=false;day().startLockedAt=null;persistSettings();render();enforceOperatorMode();$('operatorAdminMsg').textContent='Daily setup unlocked by '+activeOperator+'.'};document.querySelectorAll('[data-pinpad]').forEach(pad=>{const input=$(pad.dataset.pinpad);if(!input)return;input.readOnly=true;pad.querySelectorAll('[data-key]').forEach(btn=>btn.onclick=()=>{const key=btn.dataset.key;if(key==='clear')input.value='';else if(key==='back')input.value=input.value.slice(0,-1);else if(input.value.length<input.maxLength)input.value+=key;});});
 async function loadCentralUsers(){centralUsers=[];const username=$('centralUsername'),pin=$('teamPin');if(username)username.value='';if(pin)pin.value='';$('authMsg').textContent='Enter your username and PIN.';return centralUsers}
-async function legacyCloudClient(){const client=await loadSupabaseClient();if(!client)return null;try{const current=await client.auth.getSession();if(!current?.data?.session){const auth=await client.auth.signInAnonymously();if(auth.error)throw auth.error}await startCentralRealtimeSync(client)}catch(error){console.warn('Ancillary report/evidence cloud session unavailable.',error)}return client}
+async function legacyCloudClient(){const client=await loadSupabaseClient();if(!client)return null;try{const current=await client.auth.getSession();if(!current?.data?.session){const auth=await client.auth.signInAnonymously();if(auth.error)throw auth.error}await startCentralRealtimeSync(client)}catch(error){console.warn('Read-only Realtime notification session unavailable.',error)}return client}
 function isStaffModuleAutoAccess(){return rootsAuthority()==='DEV'}
 function syncStaffModuleAccess(){const tile=$('launchStaffManagementBtn'),status=$('yardFloorStatus');if(!tile)return;const allowed=isStaffModuleAutoAccess();tile.disabled=!allowed;tile.classList.toggle('yard-tile-active',allowed);tile.classList.toggle('yard-tile-locked',!allowed);if(status)status.textContent=allowed?'LIVE APPLICATION':'RESTRICTED ACCESS'}
 function showCentralApp(){if(!centralUser?.username)return;syncStaffModuleAccess();const canonicalIdentity=Boolean(centralUser?.userId||centralUser?.staffId);const hubTier=String(centralUser?.tier||'').toUpperCase();const hubAllowed=['DEV','DEV1','ADMIN'].includes(rootsAuthority())||(canonicalIdentity?permission('canAccessYardHub'):['OWNER','DEVACC','ADMIN'].includes(hubTier)||permission('canAccessYardHub'));if(!hubAllowed){$('operatorGate').style.display='none';$('authGate').style.display='grid';$('authMsg').textContent='YARD HUB ACCESS IS DISABLED FOR THIS ACCOUNT · CONTACT AN ADMINISTRATOR';const shell=document.querySelector('.shell');if(shell)shell.style.display='none';const hub=$('yardHub');if(hub){hub.hidden=true;hub.style.display='none'}return}$('authGate').style.display='none';$('operatorGate').style.display='none';const shell=document.querySelector('.shell');if(shell)shell.style.display='none';const hub=$('yardHub');if(hub){hub.hidden=false;hub.style.display='block'}const identity=centralUser?.displayName||centralUser?.username||activeOperator||'USER';const label=$('yardHubUsername');if(label)label.textContent=String(identity).toUpperCase();window.dispatchEvent(new Event('yard-hub:shown'))}
