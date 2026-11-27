@@ -251,7 +251,7 @@ Deno.serve(async(req)=>{
      .eq("user_id",target.userId).eq("status","ACTIVE").maybeSingle();
    if(assignmentError||!assignment)return json({error:"A persisted active canonical YARD ROLE assignment is required; USER remains inactive."},409);
    const {data:role,error:roleError}=await db.from("yard_roles").select("id,name,description,status").eq("id",assignment.yard_role_id).eq("status","ACTIVE").maybeSingle();
-   const {data:permissions,error:permissionsError}=await db.from("yard_role_department_permissions").select("yard_role_id,department,access_level").eq("yard_role_id",assignment.yard_role_id);
+   const {data:permissions,error:permissionsError}=await db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage").eq("yard_role_id",assignment.yard_role_id);
    if(roleError||permissionsError||!role)return json({error:"Assigned canonical YARD ROLE is no longer active."},409);
    try{resolveYardRolePermissions(role,permissions||[])}catch(error){return json({error:error instanceof Error?error.message:"Assigned YARD ROLE permission matrix is no longer valid."},409)}
    const roleAssignment={userId:assignment.user_id,staffId:assignment.staff_id,yardRoleId:assignment.yard_role_id,status:assignment.status,version:Number(assignment.version),verifiedAt:assignment.verified_at};
