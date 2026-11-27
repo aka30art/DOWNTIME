@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const html = await readFile('index.html', 'utf8');
+const yardHubSettings = await readFile('yard-hub-settings.js', 'utf8');
 const packageJson = JSON.parse(await readFile('package.json', 'utf8'));
 const loginSmoke = await readFile('tests/login-smoke.mjs', 'utf8');
 const structure = await readFile('yard-hub-structure.js', 'utf8');
@@ -29,7 +30,7 @@ assert.doesNotMatch(html,/id="settingsPanelStaff"[\s\S]*?onclick="window\.return
 assert.match(html,/function setStaffWorkspaceNavigation\(hidden\)\{[^}]*menu\.hidden=Boolean\(hidden\)\}/,'STAFF main-menu visibility is controlled by a dedicated navigation helper');
 assert.match(html,/function openSettingsPanel\(section\)[^]*?setStaffWorkspaceNavigation\(section==='staff'\)/,'opening STAFF hides the main-menu dropdown');
 assert.match(html,/\.shell\.staff-workspace-active #backToYardHub\{position:fixed/,'YARD HUB return remains visible while STAFF navigation rail is hidden');
-assert.match(html,/staffManagementBackBtn'\)\?\.addEventListener\('click',returnToStaffManagementHome\)/,'STAFF submenu back button returns to STAFF AND MANAGEMENT');
+assert.match(yardHubSettings,/\$\('staffManagementBackBtn'\)\?\.addEventListener\('click',returnToStaffManagementHome\)/,'STAFF submenu back button returns to STAFF AND MANAGEMENT');
 assert.match(html,/function showSettingsHub\(\)\{setStaffWorkspaceNavigation\(false\)/,'returning to the Settings hub restores the main menu');
 assert.match(html,/function launchDowntime\(\)\{if\(!centralUser\?\.username\|\|!canAccessDowntimeModule\(\)\)return;setStaffWorkspaceNavigation\(false\)/,'launching DOWNTIME requires SCPL access and restores the main menu');
 assert.match(html,/function returnToYardHub\(\)\{setStaffWorkspaceNavigation\(false\)/,'returning to YARD HUB resets STAFF-only navigation state');
