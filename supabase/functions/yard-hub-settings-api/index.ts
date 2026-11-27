@@ -157,7 +157,7 @@ Deno.serve(async (req: Request) => {
       db.from("yard_roles").select("id,name,description,status,version").order("name"),
       db.from("yard_role_assignments").select("user_id,staff_id,yard_role_id,status,version,verified_at"),
       db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage"),
-      db.from("downtime_roots_assignments").select("user_id,staff_id"),
+      db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class"),
     ]);
     if (yardRolesError || roleAssignmentsError || rolePermissionsError) return json({ error: "Canonical YARD ROLE registry is unavailable." }, 503);
     if (rootsAssignmentsError) return json({ error: "Protected identity registry is unavailable." }, 503);
