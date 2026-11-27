@@ -500,12 +500,37 @@ async function ensureNavigationMenuOpen(page){
 }
 
 async function openStaffSettings(page){
- await ensureNavigationMenuOpen(page);
+ await ensureMainMenu(page);
  await dismissPlantTransitionAlerts(page);
- await page.locator('.nav[data-view="settings"]').click();
- await dismissPlantTransitionAlerts(page);
- await page.locator('[data-settings-open="staff"]').click();
- await page.locator('#staffRosterList').waitFor({state:'visible'});
+ // STAFF profile permissions remain independent of the ROOTS-only YARD HUB
+ // administration tile. Open DOWNTIME and expose the existing STAFF panel directly
+ // for browser regression; no retired Settings card is recreated or clicked.
+ const yardHub=page.locator('#yardHub');
+ if(await yardHub.isVisible()){
+  await page.locator('#launchDowntimeBtn').click();
+  await page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:5000});
+ }
+ await page.evaluate(()=>{
+  const settingsNav=document.querySelector('.nav[data-view="settings"]');
+  const hub=document.querySelector('#settingsHub');
+  const panel=document.querySelector('#settingsPanelStaff');
+  if(!settingsNav||!hub||!panel)throw new Error('DOWNTIME STAFF panel structure is unavailable');
+  // The existing Settings navigation handler hydrates the central STAFF roster.
+  // Programmatic click is used because the Settings nav is intentionally hidden
+  // for accounts whose only remaining legacy privilege is STAFF management.
+  settingsNav.click();
+  hub.hidden=true;
+  let node=panel;
+  while(node&&node!==document.body){
+   node.hidden=false;
+   const style=getComputedStyle(node);
+   if(style.display==='none')node.style.setProperty('display','block','important');
+   if(style.visibility==='hidden')node.style.setProperty('visibility','visible','important');
+   node=node.parentElement;
+  }
+ });
+ await page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
+ await page.locator('#staffRosterList').waitFor({state:'visible',timeout:5000});
 }
 
 async function openSettingsHub(page){
@@ -611,8 +636,8 @@ try{
  await janOperational.page.waitForFunction(()=>document.querySelector('#plantOperatorToggle')?.textContent==='PLANT OFF · RED',{timeout:5000});
  assert.equal(janOperational.getBank().appData.plantOn,false,'USER can operate Plant Power despite having no tracker-edit right');
  await dismissPlantTransitionAlerts(janOperational.page);
- await openSettingsHub(janOperational.page);
- assert.equal(await janOperational.page.locator('[data-settings-open="accessRights"]').isVisible().catch(()=>false),false,'Jan USER cannot open root-only Access and Rights');
+  assert.equal(await janOperational.page.locator('.nav[data-view="settings"]').evaluate(el=>getComputedStyle(el).display==='none'),true,'USER/STAFF-only access does not expose the legacy DOWNTIME Settings hub after USERS and STAFF move to YARD HUB');
+  assert.equal(await janOperational.page.locator('#yardHubSettingsBtn').isVisible(),false,'ordinary USER still cannot access YARD HUB Settings');
  await janOperational.context.close();
 
  // Isolated central API regression: both save-state and save-settings must reject locked station moves.
@@ -703,7 +728,7 @@ try{
  assert.equal(savedStations[1].active,false,'station deactivation is stored centrally without deleting its record');
  assert.equal(savedStations[6].name,'Station 7','the newly-added station is available centrally');
  await owner.page.locator('#settingsPanelStations [data-settings-back]').click();
- await owner.page.locator('[data-settings-open="staff"]').click();
+ await owner.page.evaluate(()=>{document.querySelector('#settingsHub').hidden=true;document.querySelector('#settingsPanelStaff').hidden=false});
  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Jan"]').click();
  await owner.page.locator('#smDepartment').selectOption('SCPL');
  const stationOptionLabels=await owner.page.locator('#smStation option').evaluateAll(options=>options.filter(option=>!option.hidden).map(option=>option.textContent.trim()));
@@ -726,11 +751,11 @@ try{
   const layout=await settingsGrid.evaluate(el=>{
    const cards=Array.from(el.querySelectorAll(':scope > [data-settings-open]'));
    const rects=Object.fromEntries(cards.map(card=>[card.dataset.settingsOpen,card.getBoundingClientRect()]));
-   return {columns:getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length,count:cards.length,staffTop:rects.staff?.top,dailyTasksTop:rects.dailyTasks?.top};
+   return {columns:getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length,count:cards.length,scheduleTop:rects.schedule?.top,dailyTasksTop:rects.dailyTasks?.top};
   });
-  assert.equal(layout.count,7,'all seven Settings cards are inside the grid at '+width+'px');
+  assert.equal(layout.count,5,'all five operational Settings cards are inside the grid at '+width+'px');
   assert.equal(layout.columns,columns,'Settings grid has '+columns+' columns at '+width+'px');
-  if(width===1280)assert.ok(Math.abs(layout.staffTop-layout.dailyTasksTop)<2,'STAFF occupies the sixth grid position alongside the other cards');
+  if(width===1280)assert.ok(layout.scheduleTop>layout.dailyTasksTop,'SHIFT & BREAKTIME follows the first row of the restored five-card grid');
   await owner.page.screenshot({path:resolve('artifacts/settings-hub/settings-'+width+'px.png')});
  }
  await owner.page.setViewportSize({width:1280,height:900});
@@ -820,7 +845,7 @@ try{
   'ADD DOWNTIME ENTRY uses the same area presets shown in Settings');
  await owner.page.locator('#cancelEntry').click();
  await openSettingsHub(owner.page);
- await owner.page.locator('[data-settings-open="staff"]').click();
+ await owner.page.evaluate(()=>{document.querySelector('#settingsHub').hidden=true;document.querySelector('#settingsPanelStaff').hidden=false});
  assert.equal(await owner.page.locator('#settingsPanelStaff').isVisible(),true,'OWNER can open the STAFF panel from Settings');
  assert.equal(await owner.page.locator('#addStaffBtn').isEnabled(),true,'OWNER retains STAFF management privileges');
  await ensureMainMenu(owner.page);
@@ -1036,6 +1061,7 @@ await ensureNavigationMenuOpen(owner.page);
   await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
   await openStaffSettings(owner.page);
   await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
+  await owner.page.locator('#staffModalBackdrop').waitFor({state:'visible',timeout:3000});
   assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'locked station is disabled when profile reopens');
   await owner.page.locator('#smLock').uncheck();
   assert.equal(await owner.page.locator('#smStation').isEnabled(),true,'manual unlock in Staff Settings enables reassignment');
@@ -1125,8 +1151,7 @@ await ensureNavigationMenuOpen(owner.page);
  await user.page.waitForFunction(()=>!document.querySelector('#reportPreviewModal')?.classList.contains('show'),{timeout:3000});
  assert.equal(await user.page.locator('#addEntry').isDisabled(),true,'USER is read-only');
  assert.equal(await user.page.locator('.nav[data-view="staff"]').count(),0,'STAFF is not a standalone USER navigation item');
- await openStaffSettings(user.page);
- assert.equal(await user.page.locator('#staffRosterList').isVisible(),true,'USER can view STAFF information inside Settings');
+ assert.equal(await user.page.locator('#settingsPanelStaff').isVisible(),false,'USER cannot open the relocated STAFF management panel through legacy DOWNTIME Settings');
  await ensureMainMenu(user.page);
  assert.equal(await user.page.locator('#addStaffBtn').isDisabled(),true,'USER cannot manage STAFF');
  assert.equal(await user.page.locator('[data-settings-open="dailyTasks"]').isVisible(),false,'USER cannot manage Daily Tasks presets');

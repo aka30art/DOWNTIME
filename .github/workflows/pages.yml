@@ -174,7 +174,8 @@ jobs:
           grep -q 'overview-link' /tmp/live-site.html
           grep -q 'plant-overview-preview.html' /tmp/live-site.html
           grep -q 'id="settingsHub"' /tmp/live-site.html
-          grep -q 'data-settings-open="users"' /tmp/live-site.html
+          ! grep -q 'data-settings-open="users"' /tmp/live-site.html
+          ! grep -q 'data-settings-open="staff"' /tmp/live-site.html
           grep -q 'data-settings-open="areas"' /tmp/live-site.html
           grep -q 'data-settings-open="stations"' /tmp/live-site.html
           grep -q 'data-settings-open="reasons"' /tmp/live-site.html

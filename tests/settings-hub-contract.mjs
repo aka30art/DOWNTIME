@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
-const requiredTiles = ['users', 'areas', 'stations', 'reasons', 'schedule', 'dailyTasks', 'staff'];
+const requiredTiles = ['areas', 'stations', 'reasons', 'schedule', 'dailyTasks'];
 const requiredPanels = {
   users: 'settingsPanelUsers',
   areas: 'settingsPanelAreas',
@@ -32,8 +32,10 @@ for (const section of requiredTiles) {
     section + ' tile must identify the panel it opens'
   );
 }
-assert.equal((html.match(/data-settings-open="/g) || []).length, 8,
-  'hub must expose seven standard destinations plus the ADMIN/JAN Access and Rights destination');
+assert.equal((html.match(/data-settings-open="/g) || []).length, 6,
+  'hub must expose five operational destinations plus the ADMIN/JAN Access and Rights destination');
+assert.doesNotMatch(html, /data-settings-open="users"/, 'USERS is managed from YARD HUB, not the legacy DOWNTIME Settings hub');
+assert.doesNotMatch(html, /data-settings-open="staff"/, 'STAFF is managed from YARD HUB, not the legacy DOWNTIME Settings hub');
 assert.equal((html.match(/data-settings-back>/g) || []).length, 8,
   'every settings panel must provide a back-to-settings control');
 assert.doesNotMatch(html, /data-view="staff"/, 'STAFF must no longer have a standalone navigation destination');
@@ -85,6 +87,10 @@ const staffViewer=helper(name=>name==='canViewStaff');
 assert.equal(staffViewer.settingsAccess('staff'),true,'STAFF visibility preserves existing staff-view privilege');
 const fullAdmin=accessHelpers(()=>true,()=>false,()=>false,()=> 'DEV');
 for(const section of requiredTiles)assert.equal(fullAdmin.settingsAccess(section),true);
+assert.equal(fullAdmin.settingsAccess('users'),true,'legacy USERS permission helper remains for compatibility with internal routing');
+assert.equal(fullAdmin.settingsAccess('staff'),true,'legacy STAFF permission helper remains for compatibility with internal routing');
+assert.match(helpersMatch[0], /function anySettingsAccess\(\)\{return \['areas','stations','reasons','schedule','dailyTasks','accessRights'\]/,
+  'the legacy Settings navigation must not remain visible solely because USERS or STAFF moved to YARD HUB');
 assert.equal(fullAdmin.settingsAccess('accessRights'),false,'a role without the ADMIN/JAN identity allow-list cannot access tier rights');
 assert.equal(accessHelpers(()=>false,()=>true,()=>false).settingsAccess('accessRights'),true,'ADMIN tier or JAN root OWNER allow-list can access Access and Rights');
 const manageAccessRightsStart=html.indexOf('function canManageAccessRights(){');
@@ -129,15 +135,12 @@ assert.match(html, /@media\(max-width:1050px\)\{\.settings-card-grid\{grid-templ
 assert.match(html, /@media\(max-width:650px\)\{\.settings-card-grid\{grid-template-columns:1fr/,
   'settings cards must stack on mobile');
 assert.match(html, /settings-accent-yellow/, 'DOWNTIME yellow accent must be present');
-assert.match(html, /settings-accent-blue/, 'DOWNTIME blue accent must be present');
+assert.match(html, /settings-accent-violet/, 'DOWNTIME violet accent must be present on Shift & Breaktime / Station Manager');
 
 const settingsGridStart = html.indexOf('<div class="settings-card-grid">');
 const settingsGridEnd = html.indexOf('</div>', settingsGridStart);
-const staffCardPosition = html.indexOf('data-settings-open="staff"', settingsGridStart);
-assert.ok(settingsGridStart >= 0 && staffCardPosition > settingsGridStart && staffCardPosition < settingsGridEnd,
-  'STAFF must be the sixth card inside the Settings grid');
-assert.equal((html.slice(settingsGridStart, settingsGridEnd).match(/data-settings-open="/g) || []).length, 7,
-  'all seven operational Settings destinations must be direct grid cards');
+assert.equal((html.slice(settingsGridStart, settingsGridEnd).match(/data-settings-open="/g) || []).length, 5,
+  'the legacy DOWNTIME Settings grid must retain the five operational configuration destinations only');
 
 assert.match(html, /id="stationManagerStatus"[^>]*role="status"/, 'Station Manager has an accessible save status');
 assert.match(html, /function saveStationManager\(\)[\s\S]*?persistSettingsConfirmed\(\)/, 'Station Manager saves only after central acknowledgement');
