@@ -20,7 +20,7 @@ assert.match(api,/resolveRootsAuthority\(currentUser,rootsAssignment\)/);
 assert.match(api,/if\(action==="roots-state"\)[\s\S]*rootsAuthority!=="DEV"/);
 assert.match(api,/requestedClass==="DEV1"&&rootsAuthority!=="DEV"/);
 assert.match(api,/action==="roots-assign-admin"&&requestedClass!=="ADMIN"/);
-assert.match(api,/linkedProfile\.linkedUserId/);
+assert.match(api,/profiles\.find\(\(profile:any\)=>profile&&String\(profile\.staffId\|\|""\)\.toLowerCase\(\)===String\(target\.staffId\)\.toLowerCase\(\)&&String\(profile\.linkedUserId\|\|""\)\.toLowerCase\(\)===String\(target\.userId\)\.toLowerCase\(\)/,"ROOTS assignment requires reciprocal immutable USER/STAFF IDs");
 assert.match(api,/downtime_roots_assign_identity/);
 assert.match(helper,/Legacy tier strings are deliberately not authority evidence/);
 assert.match(helper,/assignment\.roots_class/);
