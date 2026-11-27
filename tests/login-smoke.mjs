@@ -726,11 +726,11 @@ try{
   const layout=await settingsGrid.evaluate(el=>{
    const cards=Array.from(el.querySelectorAll(':scope > [data-settings-open]'));
    const rects=Object.fromEntries(cards.map(card=>[card.dataset.settingsOpen,card.getBoundingClientRect()]));
-   return {columns:getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length,count:cards.length,staffTop:rects.staff?.top,dailyTasksTop:rects.dailyTasks?.top};
+   return {columns:getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length,count:cards.length,scheduleTop:rects.schedule?.top,dailyTasksTop:rects.dailyTasks?.top};
   });
   assert.equal(layout.count,5,'all five operational Settings cards are inside the grid at '+width+'px');
   assert.equal(layout.columns,columns,'Settings grid has '+columns+' columns at '+width+'px');
-  if(width===1280)assert.ok(Math.abs(layout.staffTop-layout.dailyTasksTop)<2,'STAFF occupies the sixth grid position alongside the other cards');
+  if(width===1280)assert.ok(Math.abs(layout.scheduleTop-layout.dailyTasksTop)<2,'SHIFT & BREAKTIME occupies the second row alongside DAILY TASKS in the restored five-card grid');
   await owner.page.screenshot({path:resolve('artifacts/settings-hub/settings-'+width+'px.png')});
  }
  await owner.page.setViewportSize({width:1280,height:900});
