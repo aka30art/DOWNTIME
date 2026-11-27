@@ -200,7 +200,6 @@ Deno.serve(async(req)=>{
      canViewDashboards:downtime.view,
      canViewReports:downtime.view,
      canControlPlantPower:false,
-     canManageUsers:false,canViewUsers:false,
      canManageStaff:staffManagement.manage===true,
      canEnterStaff:staffManagement.enter===true,
      canEditStaff:staffManagement.edit===true,
@@ -223,16 +222,16 @@ Deno.serve(async(req)=>{
      canControlPlantPower:true,
    });
    if(rootsAuthority!=="DEV"){
-     Object.assign(priv,{canManageUsers:false,canViewUsers:false,canManageSettings:true,canManageAccessRights:false});
+     Object.assign(priv,{canManageSettings:true,canManageAccessRights:false});
    }
    Object.assign(priv,{canManageStaff:true,canEnterStaff:true,canEditStaff:true,canViewStaff:true,canManageAssignments:true,canViewAssignments:true});
  }
- // Central Bank USER directory access is an immutable DEV-only control-plane capability.
- priv.canManageUsers=rootsAuthority==="DEV";priv.canViewUsers=rootsAuthority==="DEV";
+ // Ordinary USER directory operations follow Staff Management MANAGE; protected control-plane governance remains immutable DEV-only.
+ priv.canManageUsers=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"")||(hasCanonicalIdentity&&resolvedYardRole&&moduleRights["Staff & Management"]?.manage===true);priv.canViewUsers=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"")||(hasCanonicalIdentity&&resolvedYardRole&&(moduleRights["Staff & Management"]?.view===true||moduleRights["Staff & Management"]?.manage===true));
  const isCentralAdmin=isDevRoot;
  const isCentralBankAccess=isDevRoot;
  if(action==="user-staff-provision"){
-   if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);
+   if(!priv.canManageUsers)return json({error:"Management MANAGE permission or immutable DEV authority is required to provision USER + STAFF identities."},403);
    const username=String(body.username||"").trim(),displayName=String(body.displayName||"").trim(),pin=String(body.pin||"");
    const idempotencyKey=String(body.idempotencyKey||""),requestedYardRoleId=String(body.requestedYardRoleId||"");
    const staffFields=body.staff&&typeof body.staff==="object"&&!Array.isArray(body.staff)?body.staff:{};
@@ -262,7 +261,7 @@ Deno.serve(async(req)=>{
    }catch(error){return json({error:error instanceof Error?error.message:"Invalid USER/STAFF provisioning request."},400)}
  }
  if(action==="user-staff-activate"){
-   if(!isDevRoot)return json({error:"Only immutable DEV may activate newly provisioned USER identities."},403);
+   if(!priv.canManageUsers)return json({error:"Management MANAGE permission or immutable DEV authority is required to activate USER identities."},403);
    if(Deno.env.get("DOWNTIME_CANONICAL_AUTH_READY")!=="true")return json({error:"Canonical USER sessions and YARD ROLE authorization are not yet active. The USER remains disabled."},503);
    const userId=String(body.userId||"");
    if(!/^[0-9a-f-]{36}$/i.test(userId))return json({error:"Immutable USER ID required."},400);
@@ -465,7 +464,7 @@ Deno.serve(async(req)=>{
    return json({records:records||[],history:history||[]});
  }
  if(action==="daily-operator-assign"){
-   if(hasCanonicalIdentity&&!isRootAuthority?!moduleRights.DOWNTIME.manage:!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"SCPL MANAGE permission is required to assign or change the DOWNTIME daily operator"},403);
+   if(!isRootAuthority&&(hasCanonicalIdentity?!moduleRights.DOWNTIME.manage:!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier)))return json({error:"SCPL MANAGE permission is required to assign or change the DOWNTIME daily operator"},403);
    const dutyDate=String(body.dutyDate||""),requested=String(body.operatorName||"").trim();
    if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate)||!Number.isFinite(Date.parse(dutyDate+"T00:00:00Z")))return json({error:"A valid calendar date is required"},400);
    const roster=Array.isArray(bank.staff?.roster)?bank.staff.roster:["Jan","Mick","Gigi","Daz","Shayne"];
@@ -493,7 +492,7 @@ Deno.serve(async(req)=>{
    return json({ok:true,record,centralVersion});
  }
  if(action==="daily-operator-unlock"){
-   if(hasCanonicalIdentity&&!isRootAuthority?!moduleRights.DOWNTIME.manage:!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier))return json({error:"SCPL MANAGE permission is required to unlock the DOWNTIME daily operator"},403);
+   if(!isRootAuthority&&(hasCanonicalIdentity?!moduleRights.DOWNTIME.manage:!["OWNER","DEVACC","ADMIN","SUPERVISOR"].includes(tier)))return json({error:"SCPL MANAGE permission is required to unlock the DOWNTIME daily operator"},403);
    const dutyDate=String(body.dutyDate||""),reason=String(body.reason||"").trim().slice(0,240);
    if(!/^\d{4}-\d{2}-\d{2}$/.test(dutyDate))return json({error:"A valid calendar date is required"},400);
    if(reason.length<4)return json({error:"Enter a reason for unlocking this daily assignment"},400);
@@ -878,18 +877,30 @@ Deno.serve(async(req)=>{
    return json({users:bank.users.map(safeUser),tiers:bank.tiers});
  }
  if(action==="user-save"){
-   if(!isDevRoot)return json({error:"Only immutable DEV may maintain existing USER identities."},403);
+   if(!priv.canManageUsers)return json({error:"Staff Management MANAGE or immutable DEV authority is required to maintain ordinary USER identities."},403);
    const username=String(body.username||"").trim(),displayName=String(body.displayName||username).trim(),pin=String(body.pin||"");
    if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username))return json({error:"Invalid username"},400);
+   if(!displayName||displayName.length>80)return json({error:"Display name must contain 1–80 characters."},400);
    const idx=bank.users.findIndex((u:any)=>u.username.toLowerCase()===username.toLowerCase());
    const existing=idx>=0?bank.users[idx]:null;
    if(!existing)return json({error:"New accounts must use the canonical USER + STAFF + YARD ROLE provisioning workflow."},409);
    const canonicalIdentity=!!existing.userId&&!!existing.staffId;
    if(canonicalIdentity&&body.tier!=null)return json({error:"Canonical YARD ROLE identities cannot receive legacy tier claims."},400);
    const newTier=canonicalIdentity?undefined:String(body.tier||existing.tier||"USER");
-   if(!canonicalIdentity&&(!newTier||!tiers.includes(newTier)))return json({error:"Invalid user/tier"},400);
    const isRootName=username.toUpperCase()==="DEV";
-   if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only immutable DEV can create accounts or assign user tiers."},403);
+   if(!isDevRoot){
+     if(!canonicalIdentity||!existing.userId||!existing.staffId||body.tier!=null)return json({error:"Management MANAGE can maintain only ordinary canonical USER + STAFF identities; legacy tiers and protected identities remain DEV-controlled."},403);
+     if(username.toLowerCase()===currentUser.username.toLowerCase())return json({error:"You cannot change your own USER account."},403);
+     const [{data:targetRoots,error:targetRootsError},{data:bootstrap,error:bootstrapError}]=await Promise.all([
+       db.from("downtime_roots_assignments").select("roots_class,status").eq("user_id",existing.userId).maybeSingle(),
+       db.from("downtime_roots_bootstrap").select("user_id").eq("singleton",true).maybeSingle(),
+     ]);
+     if(targetRootsError||bootstrapError)return json({error:"Protected ROOTS registry is unavailable."},503);
+     if(targetRoots||String(bootstrap?.user_id||"").toLowerCase()===String(existing.userId).toLowerCase())return json({error:"Protected ROOTS identities can only be maintained by immutable DEV."},403);
+   }else{
+     if(!canonicalIdentity&&(!newTier||!tiers.includes(newTier)))return json({error:"Invalid user/tier"},400);
+     if((!existing||newTier!==existing.tier)&&!isCentralAdmin)return json({error:"Only immutable DEV can create accounts or assign user tiers."},403);
+   }
    if(isRootName){
      if(!isDevRoot)return json({error:"Only root DEV can update root credentials."},403);
      if(!existing||existing.tier!=="OWNER"||newTier!=="OWNER"||body.enabled===false)return json({error:"DEV is the immutable root OWNER and cannot be created, demoted or disabled."},400);

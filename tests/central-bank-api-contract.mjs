@@ -76,7 +76,7 @@ assert.ok(src.includes('action:"central-config-restore-draft"'),'restoring histo
 
 assert.ok(src.includes('const isCentralAdmin=isDevRoot;')&&src.includes('const isCentralBankAccess=isDevRoot;'),
   'the immutable DEV USER is the only central control-plane administrator');
-assert.ok(src.includes('if(action==="user-save"){\n   if(!isDevRoot)'), 'only immutable DEV may maintain existing USER identities');
+assert.ok(src.includes('if(action==="user-save"){\n   if(!priv.canManageUsers)'), 'Staff Management MANAGE may maintain ordinary canonical USER identities');
 assert.ok(src.includes('if(action==="user-delete"){\n   if(!isDevRoot)'), 'only immutable DEV may perform USER lifecycle operations');
 assert.ok(src.includes('if(action==="staff-save"){\n   if(!priv.canManageStaff)'), 'only Management MANAGE may maintain STAFF identities through the Staff module; protected ROOTS receive that capability through the separate ROOTS overlay');
 assert.ok(src.includes('if(action==="tiers-save"){\n   return json({error:"Legacy account-tier permissions are retired. Configure department access through canonical YARD ROLE."},410);'),
@@ -105,7 +105,7 @@ assert.ok(src.includes('canViewStaff:staffManagement.view===true')&&src.includes
 assert.ok(src.includes('SCPL INPUT permission is required to add DOWNTIME records.')&&src.includes('SCPL EDIT permission is required to change DOWNTIME records.')&&src.includes('SCPL MANAGE permission is required to remove DOWNTIME records.'),'all operational record mutations enforce SCPL rights');
 assert.ok(src.includes('scplRights?.enter===true')&&src.includes('scplRights?.edit===true')&&src.includes('scplRights?.manage===true'),'DOWNTIME save route checks each SCPL record permission');
 assert.ok(src.includes('hasCanonicalIdentity&&!isRootAuthority&&!moduleRights.DOWNTIME.view'),'daily operator register is hidden without SCPL VIEW');
-assert.ok(src.includes('canManageUsers:false,canViewUsers:false')&&src.includes('canManageAccessRights:false'),'ordinary YARD ROLE rights cannot grant account lifecycle or ROOTS control');
+assert.ok(src.includes('canManageAccessRights:false')&&src.includes('priv.canManageUsers=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"")'),'only Management MANAGE or protected ROOTS grants ordinary USER management; ordinary DOWNTIME rights cannot grant ROOTS governance');
 assert.ok(src.includes('canEnterStaff=!!priv.canEnterStaff')&&src.includes('canEditStaff=!!priv.canEditStaff'),'save-settings supports Staff INPUT and EDIT independently of MANAGE');
 assert.ok(src.includes('Management MANAGE permission is required to maintain STAFF role definitions.'),'Staff role catalogue requires Management MANAGE');
 assert.ok(src.includes('if(!priv.canManageStaff)return json({error:"Management MANAGE permission is required to maintain STAFF profiles."},403);'),'legacy staff-save path enforces Management MANAGE');
@@ -114,12 +114,12 @@ assert.ok(src.includes('if(hasCanonicalIdentity&&!isRootAuthority&&!moduleRights
 assert.ok(src.includes('!priv.canViewDashboards'),'dashboard redaction remains enforced');
 assert.ok(src.includes('if(!priv.canViewReports)delete restrictedData.archive'),'report redaction remains enforced');
 assert.ok(src.includes('Without VIEW, treat omitted records as concealed rather than deleted.'),'users without VIEW cannot overwrite or delete concealed operational history');
-assert.ok(src.includes('if(!isDevRoot)return json({error:"Only immutable DEV may provision new USER + STAFF identities."},403);'),
-  'only immutable DEV can provision linked USER + STAFF identities');
+assert.ok(src.includes('if(!priv.canManageUsers)return json({error:"Management MANAGE permission or immutable DEV authority is required to provision USER + STAFF identities."},403);'),
+  'Staff Management MANAGE or protected ROOTS may provision ordinary linked USER + STAFF identities');
 assert.ok(src.includes('if(!isCentralBankAccess)return json({error:"Central Data Bank access is restricted to immutable DEV."},403);'),
   'whole-bank state is restricted to immutable DEV');
 assert.ok(src.includes('action.startsWith("central-config-")&&!isCentralBankAccess'),
   'all global configuration actions share the immutable DEV gate');
 console.log('Central API ROOTS, USER/STAFF lifecycle, Management YARD ROLE and separate record-rights contracts passed (static source checks).');
 
-assert.ok(src.includes('priv.canManageUsers=rootsAuthority==="DEV";priv.canViewUsers=rootsAuthority==="DEV";'),'legacy tier strings cannot grant Central Bank USER directory visibility or mutation');
+assert.ok(src.includes('priv.canManageUsers=["DEV","DEV1","ADMIN"].includes(rootsAuthority||"")||(hasCanonicalIdentity&&resolvedYardRole&&moduleRights["Staff & Management"]?.manage===true);'),'ordinary USER management follows Staff Management MANAGE or protected ROOTS authority, never legacy tier labels');

@@ -388,7 +388,7 @@ const provisioningRoutes = centralApi.slice(
   centralApi.indexOf('if(action==="identity-diagnostics")'),
 );
 assert.ok(provisioningRoutes.length > 0, "staged USER/STAFF provisioning routes are registered");
-assert.match(provisioningRoutes, /if\(!isDevRoot\)/, "only immutable DEV can provision and activate new identities");
+assert.match(provisioningRoutes, /if\(!priv\.canManageUsers\)/, "Staff Management MANAGE or protected ROOTS can provision and activate ordinary new identities");
 assert.match(provisioningRoutes, /buildPendingUserStaffProvisioning\(bank/);
 assert.match(provisioningRoutes, /requestedYardRoleId/);
 assert.match(provisioningRoutes, /yard_role_assignments/, "activation reads the canonical YARD ROLE assignment store");
@@ -422,7 +422,7 @@ assert.match(yardHubApi, /yard_role_assignments/);
 assert.match(yardHubApi, /resolveYardRolePermissions/);
 assert.match(yardHubApi, /assignableYardRoles/, "only roles with a valid permission matrix are offered for assignment");
 assert.match(yardHubApi, /Canonical YARD ROLE identities cannot be assigned legacy YARD HUB tiers/);
-assert.match(yardHubApi, /const canAccessYardHub = isProtectedRoot \|\| \(!hasCanonicalYardRole/, "canonical identities fail closed until unified authorization is active");
+assert.match(yardHubApi, /const canAccessYardHub = isProtectedRoot \|\| \(hasCanonicalIdentity \? hasAnyDepartmentAccess/, "canonical identities receive YARD HUB access only through connected YARD ROLE departments while ROOTS takes precedence");
 assert.match(yardHubApi, /legacyTier: account\.tier \? String\(account\.tier\)\.toUpperCase\(\) : null/, "no legacy tier is fabricated for canonical USERs");
 
 assert.match(yardHubUi, /yardHubUserYardRole/);

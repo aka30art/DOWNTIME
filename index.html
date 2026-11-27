@@ -1106,7 +1106,7 @@ body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;ga
     </div>
   </div>
 
-  <div id="settingsPanelStaff" class="settings-panel" hidden><div class="settings-detail-head"><div class="settings-back" aria-current="page">STAFF MANAGEMENT</div></div><div class="panel settings-content-panel"><h2>STAFF</h2><p class="muted">Manage profiles, station assignments, plant availability and photos.</p><div class="staff-roster-toolbar"><button id="addStaffBtn" class="primary" type="button">＋ ADD NEW MEMBER</button><button id="manageStaffRolesBtn" type="button">VIEW YARD ROLES</button><div id="staffAdminMsg" class="muted" role="status"></div></div><div id="staffRosterList" class="staff-roster-grid"></div></div></div>
+  <div id="settingsPanelStaff" class="settings-panel" hidden><div class="settings-detail-head"><div class="settings-back" aria-current="page">STAFF MANAGEMENT</div></div><div class="panel settings-content-panel"><h2>STAFF</h2><p class="muted">Manage profiles, station assignments, plant availability and photos.</p><div class="staff-roster-toolbar"><button id="addStaffBtn" class="primary" type="button">＋ ADD NEW MEMBER</button><button id="manageStaffRolesBtn" type="button">VIEW YARD ROLES</button><button id="openStaffUserAccounts" type="button" hidden>USER ACCOUNTS</button><div id="staffAdminMsg" class="muted" role="status"></div></div><div id="staffRosterList" class="staff-roster-grid"></div></div></div>
   <div id="settingsPanelSchedule" class="settings-panel" hidden>
     <div class="settings-detail-head"><button class="settings-back" type="button" data-settings-back>‹ <span>BACK TO SETTINGS</span></button><div class="settings-detail-tag">OPERATING SCHEDULE</div></div>
     <div class="panel settings-content-panel">
@@ -1208,7 +1208,7 @@ function permission(name){
   if(['canAccessYardHub','canAccessDowntime','canAccessRepairMaintenance'].includes(name))return true;
   if(['canManageUsers','canViewUsers','canManageAccessRights'].includes(name))return root==='DEV';
   if(name==='canManageSettings')return true;
-  if(['canManageStaff','canViewStaff','canEnterStaff','canEditStaff','canManageAssignments','canViewAssignments'].includes(name))return true;
+  if(['canManageStaff','canViewStaff','canEnterStaff','canEditStaff','canManageAssignments','canViewAssignments','canManageStaffUsers','canViewStaffUsers'].includes(name))return true;
   if(['canEditTracker','canDeleteRecords','canExportReports','canViewPlantOverview','canViewDashboards','canViewReports','canControlPlantPower'].includes(name))return true;
  }
  if(centralUser?.userId||centralUser?.staffId){
@@ -1227,6 +1227,8 @@ function permission(name){
    case 'canViewStations':return downtime?.view===true||management?.view===true;
    case 'canViewAreaPresets':case 'canViewReasonPresets':case 'canViewShiftSchedule':case 'canViewDailyTasks':return downtime?.view===true;
    case 'canManageSettings':case 'canManageAreaPresets':case 'canManageReasonPresets':case 'canManageShiftSchedule':case 'canManageDailyTasks':case 'canAddDowntimeReasons':return downtime?.manage===true;
+   case 'canManageStaffUsers':return management?.manage===true;
+   case 'canViewStaffUsers':return management?.view===true||management?.manage===true;
    case 'canEnterStaff':return management?.enter===true;
    case 'canEditStaff':return management?.edit===true;
    case 'canManageStaff':case 'canManageAssignments':return management?.manage===true;
@@ -2104,7 +2106,7 @@ function showCentralApp(){if(!centralUser?.username)return;syncStaffModuleAccess
 function launchDowntime(){if(!centralUser?.username||!canAccessDowntimeModule())return;setStaffWorkspaceNavigation(false);const hub=$('yardHub');if(hub){hub.hidden=true;hub.style.display='none'}const shell=document.querySelector('.shell');if(shell)shell.style.display='';document.querySelectorAll('.nav[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view==='weekly'));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='weekly'));$('subtitle').textContent='Weekly recording sheet · Monday–Saturday';selected=(today.getDay()+6)%7;if(selected>5)selected=0;render();enforceOperatorMode();applyTierVisibility()}
 function launchStaffManagement(){if(isStaffModuleAutoAccess()&&typeof window.openYardHubStaffManagement==='function'){window.openYardHubStaffManagement();return}if(permission('canManageStaff')||permission('canEnterStaff')||permission('canEditStaff')||permission('canManageAssignments')||permission('canViewStaff')||isStaffModuleAutoAccess())launchStaffWorkspace()}
 $('launchStaffManagementBtn')?.addEventListener('click',launchStaffManagement);window.launchStaffManagement=launchStaffManagement;
-function launchStaffWorkspace(){if(!isStaffModuleAutoAccess()&&!permission('canManageStaff')&&!permission('canEnterStaff')&&!permission('canEditStaff')&&!permission('canManageAssignments')&&!permission('canViewStaff'))return;const hub=$('yardHub');if(hub){hub.hidden=true;hub.style.display='none'}const shell=document.querySelector('.shell');if(shell)shell.style.display='';document.querySelectorAll('.nav[data-view]').forEach(button=>button.classList.toggle('active',button.dataset.view==='settings'));document.querySelectorAll('.view').forEach(view=>view.classList.toggle('active',view.id==='settings'));const settings=document.querySelector('#settings');if(!settings)return;settings.style.display='block';renderOperatorRosterAdmin();openSettingsPanel('staff')}
+function launchStaffWorkspace(){if(!isStaffModuleAutoAccess()&&!permission('canManageStaff')&&!permission('canEnterStaff')&&!permission('canEditStaff')&&!permission('canManageAssignments')&&!permission('canViewStaff'))return;const hub=$('yardHub');if(hub){hub.hidden=true;hub.style.display='none'}const shell=document.querySelector('.shell');if(shell)shell.style.display='';document.querySelectorAll('.nav[data-view]').forEach(button=>button.classList.toggle('active',button.dataset.view==='settings'));document.querySelectorAll('.view').forEach(view=>view.classList.toggle('active',view.id==='settings'));const settings=document.querySelector('#settings');if(!settings)return;settings.style.display='block';const userButton=$('openStaffUserAccounts');if(userButton)userButton.hidden=!permission('canViewStaffUsers');renderOperatorRosterAdmin();openSettingsPanel('staff')}
 window.launchStaffWorkspace=launchStaffWorkspace;
 function returnToYardHub(){setStaffWorkspaceNavigation(false);window.closeYardHubStaffManagement?.();const shell=document.querySelector('.shell');if(shell)shell.style.display='none';const hub=$('yardHub');if(hub){hub.hidden=false;hub.style.display='block';['.yard-hero','.yard-grid','.yard-modules-heading','.yard-hub-footer'].forEach(selector=>{const node=hub.querySelector(selector);if(node)node.hidden=false});const screen=$('yardHubSettingsScreen');if(screen)screen.hidden=true}syncStaffModuleAccess();syncDowntimeModuleAccess();window.dispatchEvent(new Event('yard-hub:shown'))}
 window.returnToYardHub=returnToYardHub;
@@ -2353,7 +2355,7 @@ if(window.DowntimeCentral?.session?.token)resumeCentralSession();
 })();
 </script>
 <script src="repair-maintenance-launch.js"></script>
-<script src="yard-hub-settings.js?v=20261127-2"></script>
+<script src="yard-hub-settings.js?v=20261127-3"></script>
 <script id="section-page-navigation-script">
 (function(){
  const back=document.getElementById('returnMainMenu');

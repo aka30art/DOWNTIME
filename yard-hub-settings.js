@@ -52,7 +52,7 @@
     saving=value;
     ['yardHubUserSave','yardHubUserStatus','yardHubTierSave','yardHubRoleSave','yardHubRoleAdd','yardHubIdentityResetExecute'].forEach(id=>{const b=$(id);if(b)b.disabled=value});
     const addUser=$('yardHubUserAdd');
-    if(addUser)addUser.disabled=value||state?.canManageCentralUsers!==true||!rootDev()||!(state?.yardRoles||[]).some(role=>role.status==='ACTIVE');
+    if(addUser)addUser.disabled=value||state?.canManageStaffUsers!==true||!(state?.yardRoles||[]).some(role=>role.status==='ACTIVE');
   }
   async function callApi(action,body={}){
     const session=currentSession();
@@ -108,7 +108,7 @@
     workingPayload=JSON.parse(JSON.stringify(result.tierPermissions));
     renderUsers();renderTierCards();renderYardRoleCards();updateTierSaveState();
     const addUser=$('yardHubUserAdd');
-    if(addUser)addUser.disabled=saving||result.canManageCentralUsers!==true||!rootDev()||!(result.yardRoles||[]).some(role=>role.status==='ACTIVE');
+    if(addUser)addUser.disabled=saving||result.canManageStaffUsers!==true||!(result.yardRoles||[]).some(role=>role.status==='ACTIVE');
     const addRole=$('yardHubRoleAdd');if(addRole)addRole.hidden=!isProtectedRoot();
     const roleHome=$('yardHubSettingsRoles');if(roleHome)roleHome.hidden=!isProtectedRoot();
     const rootsHome=$('yardHubSettingsRoots');if(rootsHome)rootsHome.hidden=true;
@@ -181,6 +181,20 @@
       setStatus(error.message||'Unable to open YARD HUB Settings.','error');
     }
   }
+  async function openStaffUserManagement(){
+    setStatus('VERIFYING STAFF MANAGEMENT ACCESS…');
+    try{
+      await loadState();
+      if(state?.canViewStaffUsers!==true)throw new Error('Management VIEW permission is required to access USER accounts.');
+      const hub=$('yardHub');if(hub){hub.hidden=false;hub.style.display='block'}
+      const shell=document.querySelector('.shell');if(shell)shell.style.display='none';
+      setHomeVisible(true);openSettingsView('users');
+      const addUser=$('yardHubUserAdd');
+      if(addUser)addUser.hidden=state?.canManageStaffUsers!==true;
+      setStatus('');
+    }catch(error){setStatus(error.message||'Unable to open USER management.','error')}
+  }
+  window.openYardHubStaffManagementUsers=openStaffUserManagement;
   function closeSettings(){
     if(hasUnsavedTierChanges()&&!window.confirm('Discard unsaved YARD HUB permission changes?'))return;
     setHomeVisible(false);showSettingsHome();setStatus('');
@@ -203,7 +217,7 @@
     return node;
   }
   function userIsProtected(user){
-    return String(user.username||'').toUpperCase()==='DEV'||Boolean(user.rootsClass);
+    return String(user.username||'').toUpperCase()==='DEV'||Boolean(user.rootsClass||user.rootsStatus);
   }
   function renderUsers(){
     const host=$('yardHubUsersList');if(!host||!state)return;
@@ -226,12 +240,12 @@
       const protectedUser=userIsProtected(user)&&!rootDev();
       const isSelf=String(user.username).toLowerCase()===me;
       const edit=element('button','yard-hub-small-button','EDIT');
-      edit.type='button';edit.disabled=saving||isSelf||protectedUser;
+      edit.type='button';edit.disabled=saving||isSelf||protectedUser||(!state.canManageUserAccounts&&state.canAssignUserRoles!==true);
       edit.title=isSelf?'Use a different administrator account to edit this account.':protectedUser?'Protected tier account.':'Edit user';
       edit.addEventListener('click',()=>openUserModal(user));
       actions.appendChild(edit);
       const status=element('button','yard-hub-small-button '+(user.enabled===false?'':'danger'),user.provisioningState==='YARD_ROLE_PENDING'?'COMPLETE SETUP':user.enabled===false?'RE-ENABLE':'DISABLE');
-      status.type='button';status.disabled=saving||state.canManageCentralUsers!==true||isSelf||protectedUser||(String(user.username).toUpperCase()==='DEV');
+      status.type='button';status.disabled=saving||state.canManageUserAccounts!==true||isSelf||protectedUser||(String(user.username).toUpperCase()==='DEV');
       status.addEventListener('click',()=>setUserEnabled(user,user.enabled===false));
       actions.appendChild(status);
       row.append(identity,meta,actions);
@@ -285,8 +299,8 @@
     const canManageCentralUsers=state?.canManageCentralUsers===true;
     const isPending=user?.provisioningState==='YARD_ROLE_PENDING';
     const isCanonical=Boolean(user?.yardRoleId);
-    if(!user&&!rootDev()){setStatus('Only immutable DEV may create new USER identities.','error');return}
-    if(user&&!canManageCentralUsers){setStatus('Your account cannot manage Central USER records.','error');return}
+    if(!user&&state?.canManageStaffUsers!==true){setStatus('Management MANAGE permission is required to create USER identities.','error');return}
+    if(user&&state?.canManageUserAccounts!==true&&state?.canAssignUserRoles!==true){setStatus('Your account cannot manage this USER identity.','error');return}
     editingUsername=user?String(user.username):null;
     $('yardHubUserForm').reset();
     $('yardHubStaffFields').hidden=!!user;
@@ -296,19 +310,19 @@
     $('yardHubStaffRole').value='Main Operator';$('yardHubStaffStation').value='';
     $('yardHubStaffStationLocked').checked=false;$('yardHubStaffOnSite').checked=true;
     const hasRoles=populateYardRoles(user?.requestedYardRoleId||user?.yardRoleId||'');
-    $('yardHubUserYardRole').disabled=isPending||!rootDev();
+    $('yardHubUserYardRole').disabled=isPending||state?.canAssignUserRoles!==true;
     $('yardHubUserModal').hidden=false;
     $('yardHubUserModalTitle').textContent=user?'EDIT USER':'ADD USER';
     $('yardHubUserUsername').value=user?.username||'';
-    $('yardHubUserUsername').disabled=!!user||!canManageCentralUsers;
+    $('yardHubUserUsername').disabled=!!user||(!canManageCentralUsers&&state?.canManageStaffUsers!==true);
     $('yardHubUserDisplay').value=user?.displayName||'';
-    $('yardHubUserDisplay').disabled=!canManageCentralUsers||isPending;
+    $('yardHubUserDisplay').disabled=state?.canManageUserAccounts!==true||isPending;
     $('yardHubUserPin').value='';
     $('yardHubUserPin').required=!user;
-    $('yardHubUserPin').disabled=!canManageCentralUsers||isPending;
+    $('yardHubUserPin').disabled=state?.canManageUserAccounts!==true||isPending;
     $('yardHubUserPin').placeholder=user?'Leave blank to keep current PIN':'4–8 digit PIN';
     $('yardHubUserEnabled').checked=user?.enabled!==false;
-    $('yardHubUserEnabled').disabled=!canManageCentralUsers;
+    $('yardHubUserEnabled').disabled=state?.canManageUserAccounts!==true;
     $('yardHubUserDowntimeTier').textContent=user?(user.legacyTier||'NO LEGACY TIER'):'NO LEGACY TIER · NEW IDENTITY';
     $('yardHubUserHubTier').replaceChildren();
     allowedHubTiers(user?.hubTier,user?.username||'').forEach(role=>{
@@ -328,7 +342,7 @@
             :'No active canonical YARD ROLE is configured. Account creation remains disabled.';
     $('yardHubUserSave').textContent=user?'SAVE USER':'ADD USER';
     $('yardHubUserSave').disabled=!user&&!hasRoles;
-    $('yardHubUserStatus').hidden=!user||!canManageCentralUsers;
+    $('yardHubUserStatus').hidden=!user||state?.canManageUserAccounts!==true;
     if(user)$('yardHubUserStatus').textContent=user.enabled===false?'RE-ENABLE ACCOUNT':'DISABLE ACCOUNT';
     $('yardHubUserUsername').focus();
   }
@@ -357,8 +371,8 @@
       displayName!==(existing.displayName||existing.username)||
       pin.length>0||
       enabled!==(existing.enabled!==false));
-    if(centralChanges&&state.canManageCentralUsers!==true){
-      setStatus('Central account details are controlled by the existing Central Users permission. YARD HUB tier assignment remains separate.','error');return;
+    if(centralChanges&&state.canManageUserAccounts!==true){
+      setStatus('Staff Management MANAGE is required to maintain ordinary USER account details. Protected accounts remain DEV-controlled.','error');return;
     }
     if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username)){setStatus('Username must be 2–32 letters, numbers, dots, underscores or hyphens.','error');return}
     if(!displayName||displayName.length>80){setStatus('Enter a display name of up to 80 characters.','error');return}
@@ -367,7 +381,7 @@
     if(isNew||pendingProvisioning||yardRoleChanged){
       if(!requestedYardRoleId||!(state?.yardRoles||[]).some(role=>role.id===requestedYardRoleId)){setStatus('Select an active canonical YARD ROLE.','error');return}
     }else if(!canonicalIdentity&&!allRoles().includes(hubTier)){setStatus('Select a valid legacy YARD HUB tier.','error');return}
-    if(!isRootAdmin()&&!editableByAdmin.includes(hubTier)&&(hubTier!==existing?.hubTier)){
+    if(!canonicalIdentity&&!isRootAdmin()&&!editableByAdmin.includes(hubTier)&&(hubTier!==existing?.hubTier)){
       setStatus('ADMIN may assign only MANAGER, SUPERVISOR, USER and SPECTATOR YARD HUB tiers.','error');return;
     }
     if(hubTier==='OWNER'&&username.toUpperCase()!=='DEV'){setStatus('DEV is the only OWNER account.','error');return}
@@ -420,14 +434,14 @@
         :yardRoleChanged?'CANONICAL YARD ROLE REASSIGNED.':canonicalIdentity?'CANONICAL USER AND LINKED STAFF DETAILS SAVED.':'LEGACY USER AND YARD HUB SETTINGS SAVED.','ok');
     }catch(error){
       const detail=centralSaved||error?.centralUserSaved
-        ?'Central USER + STAFF record was saved, but canonical YARD ROLE assignment or activation did not complete. The account remains inactive. Refresh the user list before retrying. '
+        ?'Central USER + STAFF record was saved, but YARD ROLE assignment or activation did not complete. Refresh the user list before retrying. '
         :'';
       setStatus(detail+(error.message||'Unable to save the user account.'),'error');
       try{await loadState()}catch{}
     }finally{setBusy(false)}
   }
   async function setUserEnabled(user,enabled){
-    if(saving||!state||state.canManageCentralUsers!==true||String(user.username).toLowerCase()===String(currentUser()?.username||'').toLowerCase())return;
+    if(saving||!state||state.canManageUserAccounts!==true||String(user.username).toLowerCase()===String(currentUser()?.username||'').toLowerCase())return;
     const action=enabled?'RE-ENABLE':'DISABLE';
     if(!window.confirm(action+' '+user.username+'? This will revoke their current sessions.'))return;
     setBusy(true);setStatus((enabled?'RE-ENABLING ':'DISABLING ')+user.username+'…');
@@ -764,6 +778,7 @@
     window.openYardHubStaffManagement=openSettings;
     window.closeYardHubStaffManagement=closeStaffManagementWorkspace;
     $('yardHubSettingsUsers')?.addEventListener('click',()=>openSettingsView('users'));
+    $('openStaffUserAccounts')?.addEventListener('click',()=>openStaffUserManagement());
     $('yardHubSettingsRoles')?.addEventListener('click',()=>openSettingsView('roles'));
     $('yardHubSettingsStaff')?.addEventListener('click',()=>{
       if(!['DEV','DEV1','ADMIN'].includes(rootAuthority()))return;

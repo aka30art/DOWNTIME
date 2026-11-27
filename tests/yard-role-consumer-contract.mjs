@@ -29,7 +29,7 @@ assert.match(central, /canEditStaff:staffManagement\.edit===true/);
 assert.match(central, /canManageStaff:staffManagement\.manage===true/);
 assert.match(central, /canViewStaff:staffManagement\.view===true/);
 assert.match(central, /canManageAssignments:staffManagement\.manage===true/);
-assert.match(central, /canManageUsers:false,canViewUsers:false/);
+assert.match(central, /priv\.canManageUsers=\["DEV","DEV1","ADMIN"\]\.includes\(rootsAuthority\|\|""\)\|\|\(hasCanonicalIdentity&&resolvedYardRole&&moduleRights\["Staff & Management"\]\?\.manage===true\)/);
 assert.match(central, /canManageAccessRights:false/);
 assert.match(rm, /canYardRolePerform\(resolvedYardRole, "R&M", "VIEW"\)/);
 assert.match(rm, /canYardRolePerform\(resolvedYardRole, "R&M", "ENTER"\)/);
@@ -57,4 +57,22 @@ for (const [name, source] of [["Central Bank", central], ["R&M", rm], ["GATELOG"
   assert.doesNotMatch(source, /canYardRolePerform\(resolvedYardRole,\s*["']SCFL["']/,
     name + " must not treat SCFL as a connected application module");
 }
+
+assert.match(central, /priv\.canManageUsers=\["DEV","DEV1","ADMIN"\]\.includes\(rootsAuthority\|\|""\)\|\|\(hasCanonicalIdentity&&resolvedYardRole&&moduleRights\["Staff & Management"\]\?\.manage===true\)/,
+  "Management MANAGE delegates ordinary USER directory administration without granting ROOTS governance");
+assert.match(central, /if\(!priv\.canManageUsers\).*provision USER \+ STAFF identities/,
+  "ordinary USER/STAFF provisioning is gated by Management MANAGE or DEV");
+assert.match(central, /if\(!priv\.canManageUsers\).*activate USER identities/,
+  "ordinary USER activation is gated by Management MANAGE or DEV");
+assert.match(central, /if\(!isRootAuthority&&\(hasCanonicalIdentity\?!moduleRights\.DOWNTIME\.manage/,
+  "DEV1 and protected ROOTS bypass legacy tier checks for daily operator assignment and unlock");
+assert.match(hub, /resolveYardRoleModulePermissions/);
+assert.match(hub, /canManageStaffDirectory = rootCapabilities\.hasAutomaticDepartmentManage \|\| staffRights\.manage === true/);
+assert.match(hub, /if \(!canViewStaffDirectory\).*USER directory/);
+assert.match(hub, /managerAssignsOrdinaryUser = !isProtectedRoot && canManageStaffDirectory && !targetRoots && !isImmutableDevTarget/);
+assert.match(hub, /Management MANAGE cannot assign a YARD ROLE to its own USER identity/);
+assert.match(hub, /YARD ROLES whose department permissions do not exceed the assigning user's own authority/);
+assert.match(hub, /canAssignUserRoles: canManageStaffDirectory/);
+assert.match(read("yard-hub-settings.js") ? await read("yard-hub-settings.js") : "", /openStaffUserManagement/);
+
 console.log("PASS: YARD ROLE department-to-module mapping is isolated; DOWNTIME uses SCPL, Staff & Management uses Management, R&M uses R&M, GATELOG uses Traffic, SCFL and DAILY remain unconnected.");
