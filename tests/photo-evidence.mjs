@@ -38,11 +38,16 @@ assert.match(fn,/Photo evidence is visible only to its uploader or a Manage-auth
 assert.match(fn,/Legacy photo evidence has no verified owner; Manage permission is required/,'Legacy ownerless attachments fail closed for non-Managers');
 assert.match(fn,/actorUserId:user\.userId/,'Photo audit events record immutable actor USER IDs');
 assert.match(central,/userId:currentUser\.userId\|\|null,staffId:currentUser\.staffId\|\|null/,'Central Bank provides immutable authenticated identity to photo authorization');
+assert.match(central,/canEnterRecords:priv\.canEnterRecords===true,canEditRecords:priv\.canEditRecords===true,canDeleteRecords:priv\.canDeleteRecords===true/,'Central Bank exposes independent Management ENTER, EDIT and MANAGE photo capabilities');
+assert.match(central,/if\(!hasManagementAccess&&action!==\"photo-evidence-context\"\)/,'original uploader photo ownership remains verifiable even without Management VIEW/WRITE permissions');
 assert.match(config,/\[functions\.photo-evidence\][\s\S]*?verify_jwt\s*=\s*false/,'Photo endpoint delegates authentication to its own Central Bank session and cleanup-secret checks');
 assert.match(fn,/functions\/v1\/central-bank/,'Photo authorization delegates session validation to the Central Bank');
 assert.match(fn,/photo-evidence-context/,'Photo authorization requests only a minimal Central Bank permission context');
-assert.match(fn,/permissions\.canViewDashboards!==true/,'Photo viewing requires server-side DOWNTIME read permission');
-assert.match(fn,/permissions\.canEditTracker!==true/,'Photo upload requires server-side DOWNTIME input permission');
+assert.doesNotMatch(fn,/permissions\.canViewDashboards!==true/,'photo ownership viewing is independent from Management VIEW permission');
+assert.match(fn,/permissions\.canEnterRecords!==true/,'new-record photo upload requires Management ENTER');
+assert.match(fn,/permissions\.canEditRecords!==true/,'existing-record photo upload requires Management EDIT or MANAGE');
+assert.match(fn,/permissions\.canDeleteRecords!==true/,'Manage-only authority remains independent for photo administration');
+assert.doesNotMatch(fn,/permissions\.canDeleteRecords!==true\|\|permissions\.canViewDashboards!==true/,'Manage-only photo deletion does not require VIEW');
 assert.match(fn,/permissions\.canDeleteRecords!==true/,'Photo deletion requires server-side DOWNTIME Manage permission');
 assert.match(fn,/findOperationalRecord/,'Photo access is scoped to a live operational record');
 assert.match(fn,/photo-evidence-delete-authorized/,'Photo deletion actor and target are audited before storage mutation');
