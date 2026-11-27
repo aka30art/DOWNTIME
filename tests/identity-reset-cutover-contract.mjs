@@ -70,7 +70,7 @@ assert.match(settings,/window\.DowntimeCentral\.resetIdentities\(\{confirmation,
 assert.match(settings,/staffOriginalsDeleted/);
 assert.match(settings,/identityDiagnostics\(\)/);
 assert.match(settings,/resetCompleted===true/);
-assert.match(settings,/resetStatusAvailable===false/);
+assert.match(settings,/resetStatusAvailable!==true/);
 assert.match(settings,/window\.location\.reload\(\)/);
 assert.doesNotMatch(settings,/DowntimeCentral\.logout\(\)/);
 assert.match(settings,/roleDefinitions\|\|\[\]/);
