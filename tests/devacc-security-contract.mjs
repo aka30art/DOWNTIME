@@ -37,7 +37,7 @@ assert.ok(rootsBlock.includes('canManageUsers:false,canViewUsers:false'),'DEV1 a
 assert.ok(resolver.includes('canManageYardRoles: ["DEV", "DEV1", "ADMIN"].includes(authority)'),'ROOTS YARD ROLE governance capabilities are defined independently of account tiers');
 
 // The browser trusts only the resolved authority attached to its authenticated session.
-assert.ok(app.includes("function rootsAuthority(){return String(centralUser?.rootsAuthority||'').toUpperCase()}"),'frontend ROOTS helper reads server-resolved identity');
+assert.ok(app.includes("function rootsAuthority(){return String(centralUser?.rootsAuthority||window.DOWNTIME_ROOTS_AUTHORITY||'').toUpperCase()}"),'frontend ROOTS helper reads server-resolved identity with verified YARD HUB fallback');
 assert.ok(app.includes("function canAccessCentralBank(){return rootsAuthority()==='DEV'}"),'frontend Central Bank access is immutable-DEV only');
 assert.ok(app.includes('if(name===\'canManageUsers\'||name===\'canViewUsers\')return root===\'DEV\';'),'frontend USER directory access is immutable-DEV only');
 assert.ok(app.includes("function canManageAccessRights(){return false}"),'legacy account-tier Access and Rights editor is retired');

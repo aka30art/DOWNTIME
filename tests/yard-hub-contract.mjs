@@ -68,6 +68,7 @@ assert.match(loginSmoke, /launching DOWNTIME closes YARD HUB/, 'browser smoke ve
 assert.ok(packageJson.scripts['test:smoke:steps'].includes('tests/yard-hub-contract.mjs'), 'YARD HUB contract is part of the full smoke suite');
 assert.match(html, /id="yardHubSettingsStaff"/, 'YARD HUB Staff Management exposes a separate STAFF tile');
 assert.match(html,/window\.launchStaffWorkspace=launchStaffWorkspace/,'STAFF tile can open the existing Staff Management workspace');
+assert.match(html,/window\.closeYardHubStaffManagement\?\.\(\)/,'returning from the STAFF workspace restores the Staff Management menu');
 assert.match(html, /<strong>ACCESS AND RIGHTS<\/strong>/, 'YARD HUB Staff Management exposes the Access and Rights tile');
 assert.match(html, /id="yardHubIdentityReset"/, 'DEV has a controlled Phase 1 identity reset surface');
 

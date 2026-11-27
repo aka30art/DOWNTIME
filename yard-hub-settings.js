@@ -731,6 +731,7 @@
     if(button){button.hidden=true;button.addEventListener('click',openSettings)}
     $('yardHubSettingsBack')?.addEventListener('click',closeSettings);
     window.openYardHubStaffManagement=openSettings;
+    window.closeYardHubStaffManagement=closeSettings;
     $('yardHubSettingsUsers')?.addEventListener('click',()=>openSettingsView('users'));
     $('yardHubSettingsRoles')?.addEventListener('click',()=>openSettingsView('roles'));
     $('yardHubSettingsStaff')?.addEventListener('click',()=>{

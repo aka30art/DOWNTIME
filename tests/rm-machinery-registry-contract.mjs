@@ -168,7 +168,7 @@ assert.match(app,/openRmsSettingsShortcut'\)\.hidden=!canOpenMachineryConfigurat
 assert.match(app,/async function openMachineSettings\(key\)[\s\S]*if\(!canOpenMachineryConfiguration\(\)\)/,'category settings route accepts machinery managers without granting preset rights');
 assert.match(app,/function setRmsSettingsTab\(tab='machinery'\)[\s\S]*tab==='area-parts'&&canManageRmsPresets\(\)/,'Area & Parts remains restricted to preset managers');
 assert.match(app,/settingsRegistrationSection[\s\S]*!canManageRmsPresets\(\)/,'general R&M configuration controls remain hidden from machinery-only managers');
-assert.match(app,/section\.hidden=!canRead/,'machinery register visibility follows machinery READ permission');
+assert.match(app,/section\.hidden=!\(canRead\|\|canAdd\|\|canEdit\|\|canManage\)/,'machinery register visibility follows the assigned YARD ROLE access level');
 for(const id of ['settingsRegistrationSection','settingsModelDropdownSection','settingsAssetSelectorSection'])assert.ok(html.includes('id="'+id+'"'),'general configuration section has an explicit permission boundary: '+id);
 assert.ok(html.includes('repair-maintenance-app.js?v=20261125-4'),'R&M script cache version advances with permission fix');
 console.log('R&M machinery registry, category registration setting, asset identity and safe deletion regression: PASS');
