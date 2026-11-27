@@ -15,6 +15,9 @@ assert.match(base, /downtime_roots_assignment_audit/);
 assert.match(base, /prevent_downtime_roots_audit_mutation/);
 assert.doesNotMatch(base, /insert into public\.downtime_roots_assignments\s*\([^)]*\)\s*values\s*\(/i, "ROOTS classifications are not seeded");
 
+assert.equal((lifecycle.match(/do \$bootstrap\$/g)||[]).length,1,'ROOTS bootstrap runs exactly once');
+assert.equal((lifecycle.match(/create or replace function public\.downtime_roots_manage_identity/g)||[]).length,1,'ROOTS lifecycle RPC is defined exactly once');
+assert.equal((lifecycle.match(/create or replace function public\.downtime_roots_assign_identity/g)||[]).length,1,'ROOTS assignment wrapper is defined exactly once');
 assert.match(lifecycle, /create table if not exists public\.downtime_roots_bootstrap/);
 assert.match(lifecycle, /candidate_record jsonb/);
 assert.match(lifecycle, /char_length\(coalesce\(candidate_record->>'userId',''\)\) = 36/, 'existing DEV UUID length is validated before reuse');
