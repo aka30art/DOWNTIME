@@ -1131,7 +1131,12 @@ await ensureNavigationMenuOpen(owner.page);
   await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:3000});
   for(let attempt=0;attempt<40&&owner.getBank().staff.profiles.Rita?.onSite!==true;attempt++)await owner.page.waitForTimeout(100);
   assert.equal(owner.getBank().staff.profiles.Rita.onSite,true,'ON PLANT status can be restored');
-// Once explicitly unlocked, another device can reassign Rita; Realtime refreshes the Overview.
+// Once explicitly unlocked, return from STAFF to YARD HUB and relaunch DOWNTIME before opening Overview.
+  await owner.page.locator('#staffBackToYardHub').click();
+  await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
+  await owner.page.locator('#launchDowntimeBtn').click();
+  await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
+  // Another device can reassign Rita; Realtime refreshes the Overview.
   await clickOverview(owner.page);
   const unlockedRita=owner.page.frameLocator('#overviewFrame').locator('[data-opprofile="RITA"]');
   await unlockedRita.waitFor({state:'visible',timeout:3000});
