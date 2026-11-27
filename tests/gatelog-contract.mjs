@@ -91,6 +91,11 @@ assert.match(api,/const canExportReports=isProtectedRoot/,'ROOTS identities rece
 assert.match(api,/resolveYardRolePermissions/,'GATELOG validates canonical YARD ROLE permission matrices');
 assert.match(api,/yard_role_assignments/,'GATELOG verifies the active immutable USER/STAFF role assignment');
 assert.match(api,/canYardRolePerform\(resolvedYardRole,"Traffic","VIEW"\)/,'GATELOG Traffic READ access uses the canonical resolver');
+assert.match(api,/canTrafficInput=!!resolvedYardRole&&canYardRolePerform\(resolvedYardRole,"Traffic","ADD"\)/,'Traffic ENTER is independent from EDIT');
+assert.match(api,/canAccess=isProtectedRoot\|\|\(resolvedYardRole\?\(canTrafficView\|\|canTrafficInput\|\|canTrafficEdit\|\|canTrafficManage\)/,'any independently enabled Traffic permission grants the module entry point');
+assert.match(api,/activeVisits:canTrafficView\?visits\.map/,'Traffic operational records are withheld without VIEW');
+assert.match(api,/day-register"[\s\S]*canTrafficView/,'the day register requires VIEW even when another permission grants module access');
+
 assert.match(api,/Traffic INPUT permission is required/,'GATELOG creation actions require Traffic INPUT or MANAGE');
 assert.match(api,/Traffic MANAGE permission is required/,'GATELOG administrative actions require Traffic MANAGE');
 assert.doesNotMatch(api,/Canonical YARD ROLE authorization is not yet enabled/,'canonical YARD ROLE identities no longer receive a blanket denial');
