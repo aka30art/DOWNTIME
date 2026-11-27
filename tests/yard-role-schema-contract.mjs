@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 const migration = await readFile("supabase/migrations/20261126233000_canonical_yard_role_registry.sql", "utf8");
 const definitionMigration = await readFile("supabase/migrations/20261127030000_yard_role_definition_management.sql", "utf8");
 const reassignmentMigration = await readFile("supabase/migrations/20261127040000_yard_role_assignment_reassignment.sql", "utf8");
+const accessLevelsMigration = await readFile("supabase/migrations/20261127061000_yard_role_access_levels.sql", "utf8");
 
 assert.match(migration, /status text not null default 'DRAFT'/, "new YARD ROLEs start as drafts");
 assert.match(migration, /version integer not null default 1/, "YARD ROLE definitions are versioned");
@@ -33,4 +34,7 @@ assert.match(reassignmentMigration, /YARD_ROLE_ASSIGNMENT_VERSION_CONFLICT/);
 assert.match(reassignmentMigration, /USER_YARD_ROLE_REASSIGNED/);
 assert.match(reassignmentMigration, /USER_YARD_ROLE_RESTORED/);
 assert.match(reassignmentMigration, /actor_user_id/);
+assert.match(accessLevelsMigration, /create or replace function public\.enforce_yard_role_access_level/);
+assert.match(accessLevelsMigration, /before insert or update on public\.yard_role_department_permissions/);
+assert.match(accessLevelsMigration, /OFF, READ ONLY, INPUT or MANAGE/);
 console.log("PASS: canonical YARD ROLE schema enforces approved departments, levels, audit and service-role boundaries.");

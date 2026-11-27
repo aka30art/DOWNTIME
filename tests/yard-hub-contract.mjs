@@ -14,7 +14,7 @@ assert.match(html, /id="yardHubLogoutBtn"/, 'YARD HUB provides a sign-out action
 assert.match(html, /id="launchDowntimeBtn" data-app="downtime"/, 'DOWNTIME has a dedicated application launcher');
 assert.match(html, /id="launchStaffManagementBtn" data-app="staff-management" type="button"/, 'STAFF MANAGEMENT has a dedicated module launcher');
 assert.doesNotMatch(html, /id="launchStaffManagementBtn"[^>]*disabled/, 'STAFF MANAGEMENT is not hard-disabled in the launcher markup');
-assert.match(html, /function isStaffModuleAutoAccess\(\)\{const tier=String\(centralUser\?\.tier\|\|''\)\.trim\(\)\.toUpperCase\(\);return rootsAuthority\(\)==='DEV'\|\|tier==='DEVACC'\|\|tier==='ADMIN'\}/, 'DEV ROOTS and explicitly privileged legacy tiers may access Staff Management without inheriting ROOTS authority');
+assert.match(html, /function isStaffModuleAutoAccess\(\)\{const tier=String\(centralUser\?\.tier\|\|''\)\.trim\(\)\.toUpperCase\(\);return \['DEV','DEV1','ADMIN'\]\.includes\(rootsAuthority\(\)\)\|\|tier==='DEVACC'\|\|tier==='ADMIN'\}/, 'all three protected ROOTS identities and explicitly privileged legacy tiers may access Staff Management');
 assert.match(html, /function syncStaffModuleAccess\(\)[\s\S]*?tile\.disabled=!allowed/, 'Staff Management launcher is enabled or restricted from the authenticated central tier');
 assert.match(html, /function launchStaffManagement\(\)[\s\S]*?openSettingsPanel\('staff'\)/, 'Staff Management launcher opens the existing central STAFF workspace');
 assert.match(html, /launchStaffManagementBtn'\)\?\.addEventListener\('click',launchStaffManagement\)/, 'Staff Management launcher has a click handler');
@@ -26,12 +26,12 @@ const staffAccess = new Function('centralUser', 'window', 'rootsAuthority', staf
 for (const user of [
   { username: 'DEV', tier: 'OWNER', rootsAuthority: 'DEV' },
   { username: 'devacc-user', tier: 'DEVACC', rootsAuthority: null },
-  { username: 'admin-user', tier: 'ADMIN', rootsAuthority: null }
+  { username: 'admin-user', tier: 'ADMIN', rootsAuthority: null },
+  { username: 'dev1-root', tier: 'USER', rootsAuthority: 'DEV1' },
+  { username: 'admin-root', tier: 'USER', rootsAuthority: 'ADMIN' }
 ]) assert.equal(staffAccess(user, {DowntimeCentral:{session:{user}}}, () => user.rootsAuthority)(), true, user.username + '/' + user.tier + ' has the configured Staff Management capability');
 for (const user of [
   { username: 'dev-lookalike', tier: 'OWNER', rootsAuthority: null },
-  { username: 'admin-root', tier: 'USER', rootsAuthority: 'ADMIN' },
-  { username: 'dev1-root', tier: 'USER', rootsAuthority: 'DEV1' },
   { username: 'ordinary-user', tier: 'USER', rootsAuthority: null },
   { username: 'supervisor-user', tier: 'SUPERVISOR', rootsAuthority: null }
 ]) assert.equal(staffAccess(user, {DowntimeCentral:{session:{user}}}, () => user.rootsAuthority)(), false, user.username + '/' + user.tier + ' must not receive Staff Management auto-access');

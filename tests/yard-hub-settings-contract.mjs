@@ -41,7 +41,7 @@ assert.match(html,/window\.YARD_HUB_SETTINGS_API=/,'Hub Settings uses a separate
 assert.match(html,/yard-hub-settings\.js\?v=/,'Hub Settings client asset is versioned');
 assert.match(html,/yard-hub-settings\.css\?v=/,'Hub Settings style asset is versioned');
 assert.match(html,/id="launchStaffManagementBtn" data-app="staff-management" type="button"/,'STAFF MANAGEMENT has a dedicated authenticated launcher');
-assert.match(html,/function isStaffModuleAutoAccess\(\)\{const tier=String\(centralUser\?\.tier\|\|''\)\.trim\(\)\.toUpperCase\(\);return rootsAuthority\(\)==='DEV'\|\|tier==='DEVACC'\|\|tier==='ADMIN'\}/,'DEV ROOTS and explicitly privileged legacy tiers may access Staff Management without inheriting ROOTS authority');
+assert.match(html,/function isStaffModuleAutoAccess\(\)\{const tier=String\(centralUser\?\.tier\|\|''\)\.trim\(\)\.toUpperCase\(\);return \['DEV','DEV1','ADMIN'\]\.includes\(rootsAuthority\(\)\)\|\|tier==='DEVACC'\|\|tier==='ADMIN'\}/,'all three protected ROOTS identities may access Staff Management');
 assert.ok(ui.includes("key:'floor',label:'STAFF MANAGEMENT'"),'STAFF MANAGEMENT is the label shown in the Hub tier editor');
 assert.match(html,/data-app="check-sheets" type="button" disabled/,'DAILY remains unavailable until its application is released');
 assert.ok(ui.includes("key:'checkSheets',label:'DAILY'"),'DAILY is the label shown in the Hub tier editor');
