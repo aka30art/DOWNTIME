@@ -1184,6 +1184,7 @@ function hasAnyDepartmentPermission(department){
 }
 function permission(name){
  const root=rootsAuthority(),departments=centralUser?.yardRolePermissions||{},management=departments.Management;
+ if(name==='canManageUsers'||name==='canViewUsers')return root==='DEV';
  if(['DEV','DEV1','ADMIN'].includes(root)){
   if(name==='canAccessYardHub'||name==='canAccessRepairMaintenance')return true;
   if(['canManageUsers','canViewUsers','canManageStaff','canViewStaff','canManageAssignments','canViewAssignments','canManageSettings','canManageAccessRights'].includes(name))return root==='DEV';
