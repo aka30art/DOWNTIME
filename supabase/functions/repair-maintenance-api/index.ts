@@ -1,5 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { canYardRolePerform, resolveYardRolePermissions } from "../_shared/yard-role-resolver.mjs";
+import { resolveRootsAuthority } from "../_shared/roots-authority.mjs";
 import { buildRepairMaintenancePdf } from "./pdf.ts";
 import { RM_FAULT_PRIORITIES, isFaultUpdateValid } from "./update-contract.js";
 
@@ -63,71 +65,113 @@ Deno.serve(async (req: Request) => {
   if (sessionError || !session) return json({ error: "YARD HUB session expired. Sign in again." }, 401);
 
   const { data: bankRow, error: bankError } = await db.from("downtime_central_bank").select("payload").eq("id", 1).maybeSingle();
-  if (bankError || !bankRow?.payload) return json({ error: "Central account data is unavailable." }, 503);
+  if (bankError || !bankRow?.payload) return json({ error: "Central user directory is unavailable." }, 503);
   const bank = bankRow.payload as Record<string, any>;
   const user = (Array.isArray(bank.users) ? bank.users : []).find((item: any) => String(item.username).toLowerCase() === String(session.username).toLowerCase() && item.enabled !== false);
   if (!user) return json({ error: "This account is disabled or no longer exists." }, 401);
-  const tier = String(user.tier || "USER").toUpperCase();
-  const stored = bank.tiers?.[tier] || {};
-  const permissions = { ...(tierDefault[tier] || tierDefault.USER), ...stored };
-  if (tier === "OWNER" || tier === "DEVACC") Object.assign(permissions, tierDefault[tier]);
 
-  // R&M section permissions use the separate YARD HUB tier assignment and matrix.
-  // Before migration, retain the exact previous R&M behaviour. Other database errors
-  // fail closed, rather than accidentally granting access.
-  const { data: hubAccessRow, error: hubAccessError } = await db.from("yard_hub_tier_config")
-    .select("payload").eq("id", 1).maybeSingle();
-  const missingHubTable = hubAccessError?.code === "42P01" || hubAccessError?.code === "PGRST205";
-  if (hubAccessError && !missingHubTable) {
-    return json({ error: "YARD HUB permissions are temporarily unavailable." }, 503);
-  }
-  // Only the pre-migration missing-table case may use legacy R&M rights.
-  // A present table with a missing seed row is a configuration failure and must deny access.
-  if (!hubAccessError && !hubAccessRow?.payload) {
-    return json({ error: "YARD HUB permissions are temporarily unavailable." }, 503);
-  }
-  const hubTier = String(
-    hubAccessRow?.payload?.userTiers?.[String(user.username).toLowerCase()] ||
-    (tier === "OWNER" ? "OWNER" : tier)
-  ).toUpperCase();
-  if (!hubAccessError && hubAccessRow?.payload) {
-    const profile = hubAccessRow.payload?.tiers?.[hubTier] || {};
-    const mode = profile.repairMaintenance;
-    if (!["NONE", "READ", "INPUT", "EDIT"].includes(mode)) {
-      return json({ error: "YARD HUB R&M permission profile is invalid." }, 503);
+  const [{ data: rootsBootstrap, error: rootsBootstrapError }, { data: rootsAssignment, error: rootsAssignmentError }] = await Promise.all([
+    db.from("downtime_roots_bootstrap").select("user_id").eq("singleton", true).maybeSingle(),
+    user.userId ? db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status").eq("user_id", user.userId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+  ]);
+  if (rootsBootstrapError || rootsAssignmentError || !rootsBootstrap?.user_id) return json({ error: "Protected ROOTS identity registry is unavailable." }, 503);
+  const rootsAuthority = resolveRootsAuthority(user, rootsAssignment, rootsBootstrap.user_id);
+  const isProtectedRoot = ["DEV", "DEV1", "ADMIN"].includes(rootsAuthority || "");
+  const isCanonicalIdentity = Boolean(user.userId || user.staffId);
+
+  let resolvedYardRole: any = null;
+  if (user.userId && user.staffId && !isProtectedRoot) {
+    if (user.enabled !== true || user.status !== "ACTIVE") return json({ error: "Canonical USER/STAFF identity is not active." }, 403);
+    const { data: assignment, error: assignmentError } = await db.from("yard_role_assignments")
+      .select("user_id,staff_id,yard_role_id,status").eq("user_id", user.userId).eq("status", "ACTIVE").maybeSingle();
+    if (assignmentError) return json({ error: "Canonical YARD ROLE assignment is unavailable." }, 503);
+    if (!assignment || String(assignment.staff_id).toLowerCase() !== String(user.staffId).toLowerCase()) {
+      return json({ error: "An active linked canonical YARD ROLE assignment is required." }, 403);
     }
-    const machineryMode = profile.repairMaintenanceMachinery ?? mode;
-    if (!["NONE", "READ", "INPUT", "EDIT"].includes(machineryMode)) {
-      return json({ error: "YARD HUB R&M Machinery permission profile is invalid." }, 503);
-    }
-    permissions.canAccessRepairMaintenance = mode !== "NONE";
-    permissions.canCreateRepairMaintenance = mode === "INPUT" || mode === "EDIT";
-    permissions.canEditRepairMaintenance = mode === "EDIT";
-    permissions.canDeleteRepairMaintenance = mode === "EDIT";
-    permissions.canExportRepairMaintenanceReports = mode === "READ" || mode === "EDIT";
-    permissions.canReadRepairMaintenanceMachinery = machineryMode !== "NONE";
-    permissions.canAddRepairMaintenanceMachinery = machineryMode === "INPUT" || machineryMode === "EDIT";
-    permissions.canManageRepairMaintenanceMachinery = machineryMode === "EDIT";
-  } else {
-    // Preserve all legacy R&M capabilities until the YARD HUB matrix is available.
-    permissions.canReadRepairMaintenanceMachinery = permissions.canAccessRepairMaintenance === true;
-    permissions.canManageRepairMaintenanceMachinery = permissions.canEditRepairMaintenance === true;
+    const [{ data: role, error: roleError }, { data: rolePermissions, error: rolePermissionsError }] = await Promise.all([
+      db.from("yard_roles").select("id,name,description,status").eq("id", assignment.yard_role_id).eq("status", "ACTIVE").maybeSingle(),
+      db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage").eq("yard_role_id", assignment.yard_role_id),
+    ]);
+    if (roleError || rolePermissionsError || !role) return json({ error: "Canonical YARD ROLE permission profile is unavailable." }, 503);
+    try { resolvedYardRole = resolveYardRolePermissions(role, rolePermissions || []); }
+    catch { return json({ error: "Canonical YARD ROLE permission profile is invalid." }, 503); }
   }
-  const rootOperator = (String(user.username).trim().toUpperCase() === "DEV" && tier === "OWNER") || tier === "DEVACC" || hubTier === "DEVACC";
-  if (rootOperator) {
+  if (isCanonicalIdentity && !isProtectedRoot && !resolvedYardRole) {
+    return json({ error: "An active canonical YARD ROLE assignment is required for R&M access." }, 403);
+  }
+
+  const tier = String(user.tier || "USER").toUpperCase();
+  const effectiveTier = isCanonicalIdentity && !isProtectedRoot ? "USER" : tier;
+  const stored = bank.tiers?.[effectiveTier] || {};
+  const permissions = { ...(tierDefault[effectiveTier] || tierDefault.USER), ...stored };
+  if (!isCanonicalIdentity && (effectiveTier === "OWNER" || effectiveTier === "DEVACC")) Object.assign(permissions, tierDefault[effectiveTier]);
+
+  let hubTier = "USER";
+  if (!resolvedYardRole && !isProtectedRoot) {
+    // Legacy YARD HUB matrix is retained only for non-canonical transitional accounts.
+    const { data: hubAccessRow, error: hubAccessError } = await db.from("yard_hub_tier_config")
+      .select("payload").eq("id", 1).maybeSingle();
+    const missingHubTable = hubAccessError?.code === "42P01" || hubAccessError?.code === "PGRST205";
+    if (hubAccessError && !missingHubTable) return json({ error: "YARD HUB permissions are temporarily unavailable." }, 503);
+    if (!hubAccessError && !hubAccessRow?.payload) return json({ error: "YARD HUB permissions are temporarily unavailable." }, 503);
+    hubTier = String(hubAccessRow?.payload?.userTiers?.[String(user.username).toLowerCase()] || (effectiveTier === "OWNER" ? "OWNER" : effectiveTier)).toUpperCase();
+    if (!hubAccessError && hubAccessRow?.payload) {
+      const profile = hubAccessRow.payload?.tiers?.[hubTier] || {};
+      const mode = profile.repairMaintenance;
+      if (!["NONE", "READ", "INPUT", "EDIT"].includes(mode)) return json({ error: "YARD HUB R&M permission profile is invalid." }, 503);
+      const machineryMode = profile.repairMaintenanceMachinery ?? mode;
+      if (!["NONE", "READ", "INPUT", "EDIT"].includes(machineryMode)) return json({ error: "YARD HUB R&M Machinery permission profile is invalid." }, 503);
+      permissions.canAccessRepairMaintenance = mode !== "NONE";
+      permissions.canCreateRepairMaintenance = mode === "INPUT" || mode === "EDIT";
+      permissions.canEditRepairMaintenance = mode === "EDIT";
+      permissions.canDeleteRepairMaintenance = mode === "EDIT";
+      permissions.canExportRepairMaintenanceReports = mode === "READ" || mode === "EDIT";
+      permissions.canReadRepairMaintenanceMachinery = machineryMode !== "NONE";
+      permissions.canAddRepairMaintenanceMachinery = machineryMode === "INPUT" || machineryMode === "EDIT";
+      permissions.canManageRepairMaintenanceMachinery = machineryMode === "EDIT";
+    } else {
+      permissions.canReadRepairMaintenanceMachinery = permissions.canAccessRepairMaintenance === true;
+      permissions.canManageRepairMaintenanceMachinery = permissions.canEditRepairMaintenance === true;
+    }
+  }
+
+  if (resolvedYardRole) {
+    const canView = canYardRolePerform(resolvedYardRole, "R&M", "VIEW");
+    const canEnter = canYardRolePerform(resolvedYardRole, "R&M", "ENTER");
+    const canEdit = canYardRolePerform(resolvedYardRole, "R&M", "EDIT");
+    const canManage = canYardRolePerform(resolvedYardRole, "R&M", "MANAGE");
+    Object.assign(permissions, {
+      canAccessYardHub: canView || canEnter || canEdit || canManage,
+      canAccessRepairMaintenance: canView || canEnter || canEdit || canManage,
+      canCreateRepairMaintenance: canEnter,
+      canEditRepairMaintenance: canEdit,
+      canDeleteRepairMaintenance: canManage,
+      canExportRepairMaintenanceReports: canView,
+      canReadRepairMaintenanceMachinery: canView,
+      canAddRepairMaintenanceMachinery: canEnter,
+      canManageRepairMaintenanceMachinery: canManage,
+      canManageRepairMaintenancePresets: canManage,
+    });
+  }
+
+  if (isProtectedRoot) {
     Object.assign(permissions, {
       canAccessYardHub: true,
       canAccessRepairMaintenance: true,
+      canCreateRepairMaintenance: true,
       canEditRepairMaintenance: true,
       canDeleteRepairMaintenance: true,
       canExportRepairMaintenanceReports: true,
       canReadRepairMaintenanceMachinery: true,
+      canAddRepairMaintenanceMachinery: true,
       canManageRepairMaintenanceMachinery: true,
+      canManageRepairMaintenancePresets: true,
     });
+  } else if (!resolvedYardRole) {
+    permissions.canCreateRepairMaintenance = permissions.canCreateRepairMaintenance === true || permissions.canEditRepairMaintenance === true;
+    permissions.canAddRepairMaintenanceMachinery = permissions.canAddRepairMaintenanceMachinery === true || permissions.canManageRepairMaintenanceMachinery === true;
+    permissions.canManageRepairMaintenancePresets = permissions.canEditRepairMaintenance === true;
   }
-  permissions.canCreateRepairMaintenance = permissions.canCreateRepairMaintenance === true || permissions.canEditRepairMaintenance === true;
-  permissions.canAddRepairMaintenanceMachinery = permissions.canAddRepairMaintenanceMachinery === true || permissions.canManageRepairMaintenanceMachinery === true;
-  permissions.canManageRepairMaintenancePresets = permissions.canEditRepairMaintenance === true;
   if (!permissions.canAccessYardHub) return json({ error: "YARD HUB access is not enabled for this account." }, 403);
   if (!permissions.canAccessRepairMaintenance) return json({ error: "R&M access is not enabled for this account." }, 403);
 
@@ -184,7 +228,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "asset-update") {
-      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
+      if (permissions.canEditRepairMaintenance !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
       const assetId = cleanText(body.assetId, "Machine ID", 64);
       const makeModel = cleanText(body.makeModel, "Make / model", 120);
@@ -202,7 +246,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "asset-delete") {
-      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to permanently delete R&M Machinery." }, 403);
+      if (permissions.canDeleteRepairMaintenance !== true) return json({ error: "You do not have MANAGE access to permanently delete R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
       const assetId = cleanText(body.assetId, "Machine ID", 64);
       const { count, error: faultCountError } = await db.from("repair_maintenance_faults")
@@ -221,7 +265,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "asset-archive") {
-      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
+      if (permissions.canDeleteRepairMaintenance !== true) return json({ error: "You do not have MANAGE access to archive R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
       const assetId = cleanText(body.assetId, "Machine ID", 64);
       const { data, error } = await db.from("repair_maintenance_assets").update({
@@ -235,6 +279,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "preset-list") {
+      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canAddRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have permission to view R&M presets." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
       const { data, error } = await db.from("repair_maintenance_machine_presets").select("id,machine_type,name,is_other,created_at")
         .eq("machine_type", body.machineType).order("is_other", { ascending: true }).order("created_at", { ascending: true });
@@ -295,7 +340,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "model-list") {
-      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have READ access to R&M settings." }, 403);
+      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canAddRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have READ access to R&M settings." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
       const { data, error } = await db.from("repair_maintenance_assets")
         .select("id,machine_type,name,asset_code,make_model,status,created_at,updated_at")
@@ -322,7 +367,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "model-delete") {
-      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
+      if (permissions.canDeleteRepairMaintenance !== true) return json({ error: "You do not have MANAGE access to archive the registered machine." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
       const modelId = cleanText(body.modelId, "Registered machine ID", 64);
       const { data, error } = await db.from("repair_maintenance_assets").update({ status: "ARCHIVED", updated_by: actor, updated_at: new Date().toISOString() })
@@ -497,7 +542,6 @@ Deno.serve(async (req: Request) => {
 
     if (action === "create") {
       if (permissions.canCreateRepairMaintenance !== true) return json({ error: "You do not have INPUT access to create R&M faults." }, 403);
-      if (permissions.canReadRepairMaintenanceMachinery !== true) return json({ error: "You do not have READ access to R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes) || !isOneOf(body.priority, RM_FAULT_PRIORITIES)) return json(fail("Machine or priority is invalid."), 400);
       const assetId = cleanText(body.assetId, "Machine", 64);
       const { data: asset, error: assetError } = await db.from("repair_maintenance_assets")

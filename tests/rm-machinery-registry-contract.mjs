@@ -41,15 +41,15 @@ assert.doesNotMatch(migration,/update public\.repair_maintenance_faults[\s\S]*FO
 
 for(const action of ['asset-list','asset-add','asset-update','asset-delete','asset-archive'])assert.ok(api.includes('action === "'+action+'"'),'missing asset API action '+action);
 assert.match(api,/canReadRepairMaintenanceMachinery !== true/);
-assert.match(api,/canManageRepairMaintenanceMachinery !== true/);
+assert.match(api,/canDeleteRepairMaintenance !== true/);
 assert.match(api,/action === "export-url"[\s\S]*canReadRepairMaintenanceMachinery!==true/,'opening PDF exports requires Machinery READ');
 assert.match(api,/action === "export-delete"[\s\S]*canReadRepairMaintenanceMachinery!==true/,'deleting PDF exports requires Machinery READ');
 assert.match(api,/\.eq\("asset_id", assetId\)/);
 assert.match(api,/\.is\("asset_id", null\)/);
 assert.match(api,/asset_id: assetId/);
 assert.match(api,/status !== "ACTIVE"/);
-assert.match(api,/hubTier === "DEVACC"/);
-assert.match(api,/tier === "DEVACC" \|\| hubTier === "DEVACC"/,'legacy and Hub DEVACC accounts retain root machinery access');
+assert.match(api,/const isProtectedRoot = \["DEV", "DEV1", "ADMIN"\]\.includes\(rootsAuthority \|\| ""\)/);
+assert.match(api,/if \(isProtectedRoot\)/,'all protected ROOTS identities retain automatic machinery access');
 
 for(const id of ['machineAssetControls','machineAssetSelect','settingsMachinerySection','machineModelItems','settingsAddMachineryButton','saveModelDropdownSettings','assetSelectorEnabled','saveAssetSelectorSettings','assetOverlay','assetForm','assetCode','assetMakeModel','registrationEnabled','saveRegistrationSettings','assetSaveButton','archiveAssetButton','reportAssetId','pdfExportsAssetId'])assert.ok(html.includes('id="'+id+'"'),'missing asset UI element '+id);
 assert.match(app,/api\('asset-list'/);
@@ -163,12 +163,12 @@ assert.ok(api.includes('linked fault history and cannot be permanently deleted')
 assert.ok(api.includes('audit("rm-machinery-delete"'),'permanent machinery deletion is audited');
 assert.ok(app.includes("remove.textContent='DELETE'")&&app.includes('deleteRegisteredMachine(asset)'),'every registered machine row exposes a DELETE action');
 assert.ok(app.includes("api('asset-delete'"),'DELETE uses the protected API endpoint');
-assert.match(app,/function canOpenMachineryConfiguration\(\)[\s\S]*canAddRepairMaintenanceMachinery===true\|\|access\?\.canManageRepairMaintenanceMachinery===true\|\|access\?\.canManageRepairMaintenancePresets===true/,'machinery INPUT and EDIT users can enter configuration independently of preset permissions');
+assert.match(app,/function canOpenMachineryConfiguration\(\)[\s\S]*canReadRepairMaintenanceMachinery===true\|\|access\?\.canAddRepairMaintenanceMachinery===true\|\|access\?\.canEditRepairMaintenance===true\|\|access\?\.canManageRepairMaintenanceMachinery===true\|\|access\?\.canManageRepairMaintenancePresets===true/,'machinery READ, INPUT, EDIT and MANAGE rights open the relevant configuration independently of preset permissions');
 assert.match(app,/openRmsSettingsShortcut'\)\.hidden=!canOpenMachineryConfiguration\(\)/,'configuration navigation follows the dedicated machinery permission');
 assert.match(app,/async function openMachineSettings\(key\)[\s\S]*if\(!canOpenMachineryConfiguration\(\)\)/,'category settings route accepts machinery managers without granting preset rights');
 assert.match(app,/function setRmsSettingsTab\(tab='machinery'\)[\s\S]*tab==='area-parts'&&canManageRmsPresets\(\)/,'Area & Parts remains restricted to preset managers');
 assert.match(app,/settingsRegistrationSection[\s\S]*!canManageRmsPresets\(\)/,'general R&M configuration controls remain hidden from machinery-only managers');
-assert.match(app,/section\.hidden=!canRead/,'machinery register visibility follows machinery READ permission');
+assert.match(app,/section\.hidden=!\(canRead\|\|canAdd\|\|canEdit\|\|canManage\)/,'machinery register visibility follows the assigned YARD ROLE access level');
 for(const id of ['settingsRegistrationSection','settingsModelDropdownSection','settingsAssetSelectorSection'])assert.ok(html.includes('id="'+id+'"'),'general configuration section has an explicit permission boundary: '+id);
 assert.ok(html.includes('repair-maintenance-app.js?v=20261125-4'),'R&M script cache version advances with permission fix');
 console.log('R&M machinery registry, category registration setting, asset identity and safe deletion regression: PASS');

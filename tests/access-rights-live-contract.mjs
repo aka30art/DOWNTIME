@@ -20,7 +20,7 @@ for(const key of settingsRights){
   assert.ok(api.includes(key+':'),'central API default permission '+key);
 }
 assert.ok(page.includes("{key:'canControlPlantPower',label:'PLANT POWER'"),'PLANT POWER is exposed as a dedicated Access & Rights checkbox');
-assert.ok(page.includes("const root=canAccessCentralBank(),visibleTiers=root?USER_TIERS:['MANAGER','SUPERVISOR','USER','SPECTATOR'];")&&page.includes('visibleTiers.forEach(tier=>{'),'root sees all tier profiles while delegated ADMIN sees only MANAGER, SUPERVISOR, USER and SPECTATOR');
+assert.ok(page.includes("const root=canAccessCentralBank(),visibleTiers=root?USER_TIERS:['MANAGER','SUPERVISOR','USER','SPECTATOR'];")&&page.includes('visibleTiers.forEach(tier=>{'),'the immutable DEV view is the only one that includes protected tier profiles');
 assert.ok(page.includes("rootProfile.canControlPlantPower=plantPower.checked"),'root tier Plant Power is editable without exposing other root privileges');
 assert.ok(page.includes("const allowed=!!centralUser&&centralReady&&permission('canControlPlantPower')"),'main page Plant Power visibility uses the dedicated permission');
 assert.ok(page.includes('window.DowntimeCentral.setPlantStatus(nextOn,centralVersion)'),'main page updates plant status through the dedicated API action');
@@ -38,8 +38,8 @@ for(const tier of ['OWNER','DEVACC','ADMIN','MANAGER','SUPERVISOR','USER','SPECT
   assert.match(api,new RegExp(tier+':\\{[^}]*canViewAreaPresets:'),'server default profile for '+tier);
 }
 
-assert.ok(page.includes("function canManageAccessRights(){const tier=String(centralUser?.tier||privilegeFor(activeOperator)).toUpperCase();return canAccessCentralBank()||(tier==='ADMIN'&&permission('canManageAccessRights'))}"),'Access and Rights requires root authority or an explicitly delegated ADMIN tier');
-assert.match(page,/return \(username==='DEV'&&tier==='OWNER'\)\|\|tier==='DEVACC'/,'DEVACC has the same Access and Rights authority as root DEV');
+assert.ok(page.includes("function canManageAccessRights(){return false}"),'legacy tier-based Access and Rights editing is retired');
+assert.ok(page.includes("function canAccessCentralBank(){return rootsAuthority()==='DEV'}"),'Central Data Bank access requires the immutable DEV ROOTS identity; DEVACC does not receive it');
 assert.doesNotMatch(api,/isLegacyJanRoot|root-account-split/,'legacy JAN migration path is retired');
 assert.match(page,/function canManageSettingsSection\(section\)/,'shared Settings edit permission resolver');
 assert.match(page,/function settingsAccess\(section\)/,'shared Settings section visibility resolver');
@@ -57,13 +57,13 @@ assert.match(api,/if\(action==="save-settings"\)[\s\S]*const canManageAreas=priv
 assert.match(api,/const canManageSchedule=priv\.canManageSettings\|\|priv\.canManageShiftSchedule/,'server enforces schedule edit permission');
 assert.match(api,/const canManageTasks=priv\.canManageSettings\|\|priv\.canManageDailyTasks/,'server enforces daily-task edit permission');
 assert.match(api,/const canManageReasons=priv\.canManageSettings\|\|priv\.canManageReasonPresets/,'server enforces reason preset edit permission');
-assert.match(api,/if\(!isCentralBankAccess&&!isAccessRightsAdmin\)return json\(\{error:"Access and Rights management permission required\."\},403\)/,'tier permission changes require root authority or explicit delegated ADMIN permission');
+assert.match(api,/if\(action==="tiers-save"\)\{\s*return json\(\{error:"Legacy account-tier permissions are retired\. Configure department access through canonical YARD ROLE\."\},410\);/,'legacy tier permission editing is retired in favour of canonical YARD ROLE');
 assert.match(api,/OWNER:\{canEditTracker:true/,'OWNER default permissions remain fixed in the central API');
 
 const overviewPermissionBlock=page.slice(page.indexOf('const tierDefaults={'),page.indexOf('function permission(name)'));
 const apiOverviewPermissionBlock=api.slice(api.indexOf('const tierDefault:'),api.indexOf('const cryptoHex='));
 assert.ok(page.includes("{key:'canViewPlantOverview'"),'dedicated Plant Overview right is exposed in the existing editor');
-assert.ok(api.includes('const permissionKeys=Object.keys(tierDefault.OWNER)'),'server tier updates validate the permission against the existing permission whitelist');
+assert.ok(!api.includes('const permissionKeys=Object.keys(tierDefault.OWNER)')&&api.includes('Legacy account-tier permissions are retired. Configure department access through canonical YARD ROLE.'),'server rejects legacy tier permission writes in favour of canonical YARD ROLE');
 function permissionRole(source,tier){
   const start=source.indexOf(tier+':{');if(start<0)return '';
   const end=source.indexOf('}',start);return end<0?'':source.slice(start,end+1);

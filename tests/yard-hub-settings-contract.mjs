@@ -18,11 +18,22 @@ const rmStructure=fs.readFileSync('repair-maintenance-structure.js','utf8');
 
 // YARD HUB Settings is an additive surface inside the Hub, not inside the DOWNTIME application shell.
 assert.match(html,/id="yardHubSettingsBtn" data-app="settings" type="button"[^>]*hidden/,'Settings must be the fifth, access-gated application tile');
+assert.ok(html.includes('id="yardHubSettingsRoles"'), 'Settings exposes the Access and Rights view');
+assert.ok(html.includes('id="yardHubSettingsStaff"'), 'Staff Management exposes a separate STAFF tile');
+assert.ok(html.includes('<strong>ACCESS AND RIGHTS</strong>'), 'the third Staff Management tile is Access and Rights');
+assert.ok(html.includes('id="yardHubRolesView"') && html.includes('id="yardHubRoleModal"'), 'YARD ROLE catalogue and editor are present');
+assert.ok(html.includes('id="yardHubRolePermissions"'), 'YARD ROLE editor exposes the department permission matrix');
+assert.ok(ui.includes("yardPermissionLevels=['OFF','READ ONLY','INPUT','MANAGE']"), 'YARD ROLE editor uses one of the four established access levels per department');
+assert.ok(ui.includes("callApi('yard-role-save'"), 'YARD ROLE definitions are saved through the authenticated server API');
+assert.ok(hubApi.includes('yard_role_save_definition'), 'YARD ROLE definition changes are persisted through the audited service-role RPC');
+assert.ok(hubApi.includes('roleCatalogue: rootCapabilities.canManageYardRoles ? (yardRoles || []).map'), 'YARD ROLE catalogue details are returned to DEV, DEV1 and protected ADMIN ROOTS identities');
+
 assert.match(html,/\.yard-tile\[hidden\][^{]*\{display:none!important\}/,'the Settings tile must remain hidden until access is verified');
 assert.doesNotMatch(html,/yard-logout yard-hub-settings-trigger/,'Settings must not remain in the authenticated-user header');
 assert.match(ui,/const hero=hub\.querySelector\('\.yard-hero'\)/,'opening Settings must hide the HUB hero as well as the application menu');
 assert.match(ui,/\[hero,grid,heading,footer\]\.forEach/,'Settings must replace the HUB menu instead of appearing beneath it');
 assert.match(css,/\.yard-hub-settings-home\[hidden\],\.yard-hub-settings-view\[hidden\]\{display:none!important\}/,'settings home and subviews must honor hidden state so they never stack');
+assert.match(css,/\.yard-hub-settings-card\[hidden\]\{display:none!important\}/,'hidden legacy and ROOTS cards cannot override the three-tile Staff Management menu');
 
 for(const id of ['yardHubSettingsBtn','yardHubSettingsScreen','yardHubSettingsUsers','yardHubSettingsTiers','yardHubUsersList','yardHubTierCards','yardHubUserHubTier','yardHubUserDowntimeTier']) {
   assert.ok(html.includes('id="'+id+'"'),'missing YARD HUB Settings element '+id);
@@ -31,15 +42,15 @@ assert.match(html,/window\.YARD_HUB_SETTINGS_API=/,'Hub Settings uses a separate
 assert.match(html,/yard-hub-settings\.js\?v=/,'Hub Settings client asset is versioned');
 assert.match(html,/yard-hub-settings\.css\?v=/,'Hub Settings style asset is versioned');
 assert.match(html,/id="launchStaffManagementBtn" data-app="staff-management" type="button"/,'STAFF MANAGEMENT has a dedicated authenticated launcher');
-assert.match(html,/function isStaffModuleAutoAccess\(\)[\s\S]*?tier==='DEVACC'\|\|tier==='ADMIN'/,'DEV OWNER, DEVACC and ADMIN automatically access STAFF MANAGEMENT');
+assert.match(html,/function isStaffModuleAutoAccess\(\)\{const tier=String\(centralUser\?\.tier\|\|''\)\.trim\(\)\.toUpperCase\(\);return \['DEV','DEV1','ADMIN'\]\.includes\(rootsAuthority\(\)\)\|\|tier==='DEVACC'\|\|tier==='ADMIN'\}/,'all three protected ROOTS identities may access Staff Management');
 assert.ok(ui.includes("key:'floor',label:'STAFF MANAGEMENT'"),'STAFF MANAGEMENT is the label shown in the Hub tier editor');
 assert.match(html,/data-app="check-sheets" type="button" disabled/,'DAILY remains unavailable until its application is released');
 assert.ok(ui.includes("key:'checkSheets',label:'DAILY'"),'DAILY is the label shown in the Hub tier editor');
 assert.match(html,/id="launchDowntimeBtn" data-app="downtime" type="button"/,'DOWNTIME launcher remains present and enabled');
-assert.ok(html.includes('yard-hub-settings.js?v=20261126-1'),'YARD HUB settings client cache is refreshed');
+assert.ok(html.includes('yard-hub-settings.js?v=20261127-2'),'YARD HUB settings client cache is refreshed');
 assert.ok(pagesWorkflow.includes("if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'"),'Pages artifact build runs on PRs for pre-merge validation');
 assert.ok(pagesWorkflow.includes("if: github.ref == 'refs/heads/main'"),'Pages deployment remains restricted to main');
-assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261126-1'),'live deployment smoke test verifies the updated Hub settings asset');
+assert.ok(pagesWorkflow.includes('yard-hub-settings.js?v=20261127-2'),'live deployment smoke test verifies the updated Hub settings asset');
 assert.ok(pagesWorkflow.includes('repair-maintenance-app.js?v=20261125-4'),'live deployment smoke test verifies the updated R&M app asset');
 assert.ok(pagesWorkflow.includes('yard-hub-structure.js?v=phase09-1'),'live deployment smoke test verifies the YARD HUB structure runtime');
 assert.ok(pagesWorkflow.includes('repair-maintenance-structure.js?v=phase09-1'),'live deployment smoke test verifies the R&M structure runtime');
@@ -59,7 +70,7 @@ assert.ok(ui.includes("if(typeof saveCentralUser!=='function')throw new Error('C
 assert.ok(!ui.includes('window.DowntimeCentral.saveUser('),'Hub UI cannot bypass the serialized central-user bridge');
 assert.match(ui,/window\.DowntimeCentral\?\.session/,'Hub Settings uses the existing opaque central session');
 assert.match(ui,/tier:downtimeTier/,'editing a user preserves the legacy DOWNTIME tier');
-assert.match(ui,/const downtimeTier=existing\?\.legacyTier\|\|'USER'/,'new accounts default to restricted DOWNTIME USER while existing DOWNTIME tiers are preserved');
+assert.match(ui,/const downtimeTier=existing\?\.legacyTier\?\?null/,'canonical USERs do not receive an invented legacy DOWNTIME tier');
 assert.match(ui,/save-user-tier/,'Hub tier assignment is stored through the separate Hub API');
 assert.match(ui,/legacyTier/,'DOWNTIME tier is displayed separately from Hub tier');
 assert.match(ui,/DISABLE ACCOUNT|DISABLE/,'Hub user management supports disabling accounts');
@@ -133,16 +144,19 @@ assert.match(centralClient,/async saveTiers\(tiers,version\)/);
 
 
  // Regression: Hub-only tier changes must never write the legacy DOWNTIME user bank or revoke sessions.
- assert.ok(hubApi.includes('const canAccessYardHub = legacyPermissions.canAccessYardHub !== false'), 'YARD HUB entry rights are checked separately');
+ assert.ok(hubApi.includes('const hasCanonicalYardRole = Boolean(user.yardRoleId)'), 'canonical YARD ROLE identities are distinguished from legacy tiers');
+ assert.ok(hubApi.includes('const canAccessYardHub = isProtectedRoot || (!hasCanonicalYardRole && (legacyPermissions.canAccessYardHub !== false || isRootDev(user, legacyTier)))'), 'protected ROOTS retain access while canonical non-ROOTS identities never inherit legacy YARD HUB entry rights');
  assert.ok(hubApi.includes('if (!canAccessYardHub)'), 'server denies Hub settings access when Yard Hub entry access is disabled');
  assert.ok(hubApi.includes('canManageCentralUsers'), 'settings API returns the existing Central Users management capability');
  assert.ok(hubApi.includes('["DEVACC", "OWNER", "ADMIN"].includes(previousTier)'), 'non-root administrators cannot demote protected OWNER/DEVACC/ADMIN tiers');
  assert.ok(hubApi.includes('Administrators cannot change their own YARD HUB tier.'), 'admins cannot change their own Hub tier directly');
  assert.ok(hubApi.includes('Administrators cannot remove their own YARD HUB tier assignment.'), 'admins cannot remove their own Hub tier directly');
+assert.match(hubApi,/if \(action === "remove-user-tier"\)[\s\S]*?if \(target\.provisioning \|\| target\.yardRoleId\)/,'legacy YARD HUB tier removal is blocked for canonical YARD ROLE identities');
  assert.doesNotMatch(hubApi,/\.from\("downtime_central_bank"\)\.(update|insert|delete)/,'Hub settings service cannot mutate the DOWNTIME user bank');
- assert.ok(ui.includes('const centralChanges=!existing'), 'client detects whether central account fields actually changed');
+ assert.ok(ui.includes('const centralChanges=!pendingProvisioning&&(!existing'), 'client detects central changes while keeping pending provisioning idempotent');
+ assert.ok(ui.includes('requestedYardRoleId')&&ui.includes('assign-user-role')&&ui.includes('activateDowntimeCentralUserFromYardHub'), 'new USER creation uses staged canonical YARD ROLE provisioning');
  assert.ok(ui.includes('if(centralChanges){'), 'the legacy user API call is conditional on a real central account change');
- assert.ok(ui.includes('YARD HUB TIER SAVED. DOWNTIME USER DATA WAS NOT CHANGED.'), 'Hub-only tier save confirms no DOWNTIME mutation');
+ assert.ok(ui.includes('LEGACY USER AND YARD HUB SETTINGS SAVED.'), 'legacy Hub tier edits remain compatibility-only');
  assert.ok(ui.includes('state?.canManageCentralUsers!==true'), 'new user creation requires the existing Central Users right');
 assert.match(config,/\[functions\.yard-hub-settings-api\][\s\S]*?verify_jwt\s*=\s*false/,'YARD HUB API validates the existing opaque session itself');
 
@@ -166,7 +180,7 @@ assert.ok(ui.includes("key:'repairMaintenanceMachinery',label:'R&M MACHINERY'"),
 assert.ok(hubApi.includes('repairMaintenanceMachinery'),'Hub Settings normalizes and persists the new machinery permission');
 assert.ok(hubApi.includes('value[key] ?? value.repairMaintenance'),'existing tier values safely seed the new permission');
 assert.ok(rmApi.includes('permissions.canReadRepairMaintenanceMachinery')&&rmApi.includes('permissions.canManageRepairMaintenanceMachinery'),'R&M API enforces separate machinery READ / EDIT permissions');
-assert.ok(rmApi.includes('const rootOperator =')&&rmApi.includes('hubTier === "DEVACC"'),'DEV and DEVACC retain root machinery permissions');
+assert.ok(rmApi.includes('if (isProtectedRoot)')&&rmApi.includes('canManageRepairMaintenanceMachinery: true'),'DEV, DEV1 and protected ADMIN receive automatic R&M MANAGE authority through ROOTS, not legacy DEVACC tiers');
 
 console.log('YARD HUB Settings isolation, identity compatibility, permission enforcement and DOWNTIME protection contracts passed.');
 
@@ -196,9 +210,22 @@ assert.ok(ui.includes("remove.type='button'"), 'custom tier delete control is an
 assert.ok(ui.includes("setStatus('REASSIGN '"), 'client warns when a custom tier still has assigned users');
 
 // Tier assignment accepts every active tier; tier removal protects DEV and DEVACC.
-assert.ok(ui.includes("if(!allRoles().includes(hubTier))"), 'custom and built-in active tiers pass user assignment validation');
+assert.ok(ui.includes("!allRoles().includes(hubTier)"), 'legacy custom and built-in Hub tiers remain validated only for legacy users');
 assert.ok(ui.includes("!['OWNER','DEVACC'].includes(role)"), 'only OWNER/DEV and DEVACC tier profiles are protected from deletion');
 assert.ok(ui.includes('function deleteTier(role)'), 'all other tiers can be removed through one workflow');
 assert.ok(hubApi.includes('retiredTiers'), 'built-in tier removals persist as retired tier profiles');
 assert.ok(hubApi.includes('removedBuiltInTiers'), 'backend validates built-in tier removals');
 assert.ok(hubApi.includes('activeTierNames.filter(name => ![\"OWNER\", \"DEVACC\"].includes(name))'), 'backend prevents root admins from modifying protected OWNER and DEVACC permission profiles');
+
+assert.ok(html.includes('id="yardHubDev1AdminAssignment"')&&html.includes('id="yardHubDev1UserId"')&&html.includes('id="yardHubDev1StaffId"'),'DEV1 has a narrow manual USER/STAFF ID form for ADMIN assignment');
+assert.ok(ui.includes("accessRoots.hidden=!(rootDev()||rootAuthority()==='DEV1')"),'DEV1 can open the restricted ROOTS assignment surface from Access and Rights');
+assert.ok(ui.includes("const dev1=rootAuthority()==='DEV1'"),'ROOTS UI selects the DEV1 restricted mode without loading the directory');
+assert.ok(ui.includes("if(dev1Form)dev1Form.hidden=false")&&ui.includes("if(directorySection)directorySection.hidden=true"),'DEV1 receives no ROOTS directory data or browsing controls');
+assert.ok(ui.includes("callApi('roots-manage',{userId,staffId,lifecycleAction:'ASSIGN',rootsClass:'ADMIN'})"),'DEV1 can assign ADMIN only through the narrow server-authorized lifecycle action');
+assert.ok(ui.includes("if(rootAuthority()!=='DEV1'||saving)return"),'the DEV1 UI action is unavailable to other identities');
+assert.ok(ui.includes("filter(role=>role.status==='ACTIVE')"),'USER assignment selector exposes only ACTIVE canonical YARD ROLEs');
+assert.ok(ui.includes("some(role=>role.status==='ACTIVE')"),'USER creation remains disabled until at least one ACTIVE canonical YARD ROLE exists');
+
+assert.ok(hubApi.includes('const canManageCentralUsers = rootsAuthority === "DEV";'),'only immutable DEV ROOTS authority can create or manage Central Bank USER accounts');
+
+assert.ok(hubApi.includes('const canManageCentralUsers = rootsAuthority === "DEV";'),'only immutable DEV ROOTS authority can create or manage Central Bank USER accounts');

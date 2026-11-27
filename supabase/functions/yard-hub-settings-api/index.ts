@@ -1,5 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { resolveYardRolePermissions } from "../_shared/yard-role-resolver.mjs";
+import { canInteractWithRootsTarget, resolveRootsAuthority, rootsCapabilities } from "../_shared/roots-authority.mjs";
 
 const allowedOrigin = "https://aka30art.github.io";
 const tierNames = ["OWNER", "DEVACC", "ADMIN", "MANAGER", "SUPERVISOR", "MECHANIC", "USER", "SPECTATOR"] as const;
@@ -21,6 +23,8 @@ const safeUser = (user: any) => ({
   displayName: String(user.displayName || user.username || ""),
   tier: String(user.tier || "USER"),
   enabled: user.enabled !== false,
+  userId: user.userId || null,
+  staffId: user.staffId || null,
 });
 
 function isRootDev(user: any, legacyTier: string) {
@@ -107,6 +111,14 @@ Deno.serve(async (req: Request) => {
     String(item.username).toLowerCase() === String(session.username).toLowerCase() && item.enabled !== false
   );
   if (!user) return json({ error: "This account is disabled or no longer exists." }, 401);
+  const [{ data: bootstrapRow, error: bootstrapError }, { data: rootsAssignment, error: rootsAssignmentError }] = await Promise.all([
+    db.from("downtime_roots_bootstrap").select("user_id").eq("singleton", true).maybeSingle(),
+    user.userId ? db.from("downtime_roots_assignments").select("user_id,staff_id,roots_class,status,version,revoked_at").eq("user_id", user.userId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+  ]);
+  if (bootstrapError || rootsAssignmentError) return json({ error: "Protected ROOTS identity registry is unavailable." }, 503);
+  const rootsAuthority = resolveRootsAuthority(user, rootsAssignment, bootstrapRow?.user_id || null);
+  const rootCapabilities = rootsCapabilities(rootsAuthority);
+  const isProtectedRoot = rootCapabilities.hasAutomaticDepartmentManage;
   const { data: configRow, error: configError } = await db.from("yard_hub_tier_config")
     .select("payload,version,updated_by,updated_at")
     .eq("id", 1)
@@ -115,19 +127,22 @@ Deno.serve(async (req: Request) => {
 
   const legacyTier = String(user.tier || "USER").toUpperCase();
   const hubTier = assignedHubTier(configRow.payload, user.username);
-  const isAdmin = isHubSettingsAdmin(user, hubTier, legacyTier);
+  const isAdmin = isProtectedRoot || isHubSettingsAdmin(user, hubTier, legacyTier);
   const legacyPermissions = bank.tiers?.[legacyTier] || {};
-  const canAccessYardHub = legacyPermissions.canAccessYardHub !== false || isRootDev(user, legacyTier);
-  const canManageCentralUsers = legacyPermissions.canManageUsers === true ||
-    legacyTier === "OWNER" || legacyTier === "DEVACC";
+  const hasCanonicalYardRole = Boolean(user.yardRoleId);
+  const canAccessYardHub = isProtectedRoot || (!hasCanonicalYardRole && (legacyPermissions.canAccessYardHub !== false || isRootDev(user, legacyTier)));
+  const canManageCentralUsers = rootsAuthority === "DEV";
 
   if (action === "my-access") {
     const myPermissions = configRow.payload?.tiers?.[hubTier] || { floor: "NONE", checkSheets: "NONE", repairMaintenance: "NONE" };
     return json({
       user: { ...safeUser(user), legacyTier, hubTier },
-      canManageSettings: isAdmin && canAccessYardHub,
+      canManageSettings: isProtectedRoot && canAccessYardHub,
       canManageCentralUsers,
       canAccessYardHub,
+      rootsAuthority,
+      canManageYardRoles: rootCapabilities.canManageYardRoles,
+      canManageRoots: rootCapabilities.canBrowseRoots,
       sections: {
         floor: myPermissions.floor,
         checkSheets: myPermissions.checkSheets,
@@ -138,17 +153,136 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  if (action === "roots-state") {
+    if (!rootCapabilities.canBrowseRoots) return json({ error: "The protected ROOTS directory is restricted to DEV." }, 403);
+    const { data: assignments, error: assignmentsError } = await db.from("downtime_roots_assignments")
+      .select("user_id,staff_id,roots_class,status,version,assigned_by_username,created_at,updated_at,revoked_at")
+      .order("created_at");
+    if (assignmentsError) return json({ error: "Protected ROOTS registry is unavailable." }, 503);
+    const usersById = new Map((Array.isArray(bank.users) ? bank.users : []).filter((account: any) => account.userId).map((account: any) => [String(account.userId).toLowerCase(), account]));
+    const activeRootUserIds = new Set((assignments || []).filter((assignment: any) => assignment.status === "ACTIVE").map((assignment: any) => String(assignment.user_id).toLowerCase()));
+    const profiles = Object.values(bank.staff?.profiles || {}) as any[];
+    const eligibleUsers = (Array.isArray(bank.users) ? bank.users : []).filter((account: any) => {
+      if (activeRootUserIds.has(String(account.userId || "").toLowerCase())) return false;
+      if (String(account.username || "").trim().toUpperCase() === "DEV" || account.enabled !== true ||
+          account.status !== "ACTIVE" || account.provisioning || account.tier != null ||
+          !account.userId || !account.staffId) return false;
+      return profiles.some((profile: any) => profile &&
+        String(profile.linkedUserId || "").toLowerCase() === String(account.userId).toLowerCase() &&
+        String(profile.staffId || "").toLowerCase() === String(account.staffId).toLowerCase() &&
+        String(profile.status || "").toUpperCase() === "ACTIVE");
+    }).map((account: any) => ({ userId: account.userId, staffId: account.staffId, username: account.username,
+      displayName: account.displayName || account.username }));
+    return json({ assignments: (assignments || []).map((assignment: any) => {
+      const target: any = usersById.get(String(assignment.user_id).toLowerCase());
+      return { userId: assignment.user_id, staffId: assignment.staff_id, rootsClass: assignment.roots_class,
+        status: assignment.status, version: assignment.version, username: target?.username || "IDENTITY NOT FOUND",
+        displayName: target?.displayName || target?.username || "Identity not found",
+        assignedBy: assignment.assigned_by_username, createdAt: assignment.created_at,
+        updatedAt: assignment.updated_at, revokedAt: assignment.revoked_at };
+    }), eligibleUsers });
+  }
+
+  if (action === "roots-manage") {
+    const lifecycleAction = String(body.lifecycleAction || "").toUpperCase();
+    const requestedClass = String(body.rootsClass || "").toUpperCase();
+    if (!["ASSIGN", "RECLASSIFY", "REVOKE"].includes(lifecycleAction)) return json({ error: "Invalid ROOTS lifecycle action." }, 400);
+    if (lifecycleAction === "ASSIGN") {
+      if (requestedClass === "DEV1" && !rootCapabilities.canAssignDev1) return json({ error: "Only DEV may assign DEV1." }, 403);
+      if (requestedClass === "ADMIN" && !rootCapabilities.canAssignAdmin) return json({ error: "Only DEV or DEV1 may assign protected ADMIN." }, 403);
+      if (!["DEV1", "ADMIN"].includes(requestedClass)) return json({ error: "A DEV1 or ADMIN classification is required." }, 400);
+    } else if (!rootCapabilities.canReclassifyRoots || !rootCapabilities.canRevokeRoots) {
+      return json({ error: "Only DEV may reclassify or revoke protected ROOTS identities." }, 403);
+    }
+    const targetUserId = String(body.userId || "");
+    const targetStaffId = String(body.staffId || "");
+    if (!/^[0-9a-f-]{36}$/i.test(targetUserId) || !/^[0-9a-f-]{36}$/i.test(targetStaffId)) return json({ error: "Immutable USER and STAFF IDs are required." }, 400);
+    const target = (Array.isArray(bank.users) ? bank.users : []).find((account: any) =>
+      String(account.userId || "").toLowerCase() === targetUserId.toLowerCase());
+    if (!target || String(target.username || "").trim().toUpperCase() === "DEV" ||
+        target.enabled !== true || target.status !== "ACTIVE" || target.provisioning || target.tier != null ||
+        String(target.staffId || "").toLowerCase() !== targetStaffId.toLowerCase()) {
+      return json({ error: "Target must be an active canonical USER/STAFF pair and cannot be immutable DEV." }, 409);
+    }
+    const profiles = Object.values(bank.staff?.profiles || {}) as any[];
+    const linkedProfile = profiles.find((profile: any) => profile &&
+      String(profile.staffId || "").toLowerCase() === targetStaffId.toLowerCase() &&
+      String(profile.linkedUserId || "").toLowerCase() === targetUserId.toLowerCase() &&
+      String(profile.status || "").toUpperCase() === "ACTIVE");
+    if (!linkedProfile) return json({ error: "A reciprocal active USER/STAFF link is required." }, 409);
+
+    const { data: existingRoot, error: existingRootError } = await db.from("downtime_roots_assignments")
+      .select("user_id,staff_id,roots_class,status,version").eq("user_id", targetUserId).maybeSingle();
+    if (existingRootError) return json({ error: "Protected ROOTS registry is unavailable." }, 503);
+    const targetAuthority = existingRoot?.status === "ACTIVE" ? String(existingRoot.roots_class) : null;
+    if (!canInteractWithRootsTarget(rootsAuthority, targetAuthority)) return json({ error: "You cannot interact with this protected ROOTS identity." }, 403);
+    if (lifecycleAction === "ASSIGN" && targetAuthority && targetAuthority !== requestedClass && rootsAuthority !== "DEV") {
+      return json({ error: "Only DEV may reclassify an existing protected ROOTS identity." }, 403);
+    }
+    if (lifecycleAction === "RECLASSIFY" && (!existingRoot || existingRoot.status !== "ACTIVE")) return json({ error: "An active ROOTS assignment is required for reclassification." }, 409);
+    if (lifecycleAction === "REVOKE" && (!existingRoot || existingRoot.status !== "ACTIVE")) return json({ error: "An active ROOTS assignment is required for revocation." }, 409);
+    const expectedVersion = body.version == null ? 0 : Number(body.version);
+    if (existingRoot && lifecycleAction !== "ASSIGN" && (expectedVersion === null || !Number.isInteger(expectedVersion) || expectedVersion < 1)) return json({ error: "A current ROOTS assignment version is required." }, 400);
+    if (existingRoot && lifecycleAction === "ASSIGN" && existingRoot.status === "REVOKED" && (!Number.isInteger(expectedVersion) || expectedVersion < 1)) return json({ error: "A current ROOTS assignment version is required to restore this identity." }, 400);
+    const { data: result, error: manageError } = await db.rpc("downtime_roots_manage_identity", {
+      p_user_id: targetUserId,
+      p_staff_id: targetStaffId,
+      p_roots_class: lifecycleAction === "REVOKE" ? existingRoot?.roots_class : requestedClass,
+      p_action: lifecycleAction,
+      p_expected_version: expectedVersion,
+      p_actor_user_id: user.userId,
+      p_actor_username: String(user.username || ""),
+      p_actor_display_name: String(user.displayName || user.username || ""),
+    });
+    if (manageError || !result) return json({ error: manageError?.message?.includes("ROOTS_ASSIGNMENT_VERSION_CONFLICT") ?
+      "ROOTS assignment changed elsewhere. Refresh and try again." : manageError?.message || "ROOTS lifecycle operation failed." }, 409);
+    return json({ ok: true, assignment: result });
+  }
+
   if (!canAccessYardHub) return json({ error: "YARD HUB access is not enabled for this account." }, 403);
-  if (!isAdmin) return json({ error: "YARD HUB SETTINGS is restricted to DEV, DEVACC and ADMIN." }, 403);
+  if (!isProtectedRoot) return json({ error: "YARD HUB SETTINGS is restricted to protected ROOTS identities." }, 403);
 
   if (action === "settings-state") {
+    const [{ data: yardRoles, error: yardRolesError }, { data: roleAssignments, error: roleAssignmentsError }, { data: rolePermissions, error: rolePermissionsError }] = await Promise.all([
+      db.from("yard_roles").select("id,name,description,status,version").order("name"),
+      db.from("yard_role_assignments").select("user_id,staff_id,yard_role_id,status,version,verified_at"),
+      db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage"),
+    ]);
+    if (yardRolesError || roleAssignmentsError || rolePermissionsError) return json({ error: "Canonical YARD ROLE registry is unavailable." }, 503);
+    const { data: rootsAssignmentsForDirectory, error: rootsDirectoryError } = await db.from("downtime_roots_assignments")
+      .select("user_id,staff_id,roots_class,status,version");
+    if (rootsDirectoryError) return json({ error: "Protected ROOTS registry is unavailable." }, 503);
+    const rootAssignmentsByUser = new Map((rootsAssignmentsForDirectory || []).map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));
+    const activeRootUserIds = new Set((rootsAssignmentsForDirectory || []).filter((assignment: any) => assignment.status === "ACTIVE").map((assignment: any) => String(assignment.user_id).toLowerCase()));
+    const assignableYardRoles = (yardRoles || []).filter((role: any) => {
+      try { return Object.keys(resolveYardRolePermissions(role, rolePermissions || []).departments).length > 0; }
+      catch { return false; }
+    });
+    const roleByUser = new Map((roleAssignments || []).map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));
     return json({
       user: { ...safeUser(user), legacyTier, hubTier },
-      users: (Array.isArray(bank.users) ? bank.users : []).map((account: any) => ({
-        ...safeUser(account),
-        legacyTier: String(account.tier || "USER").toUpperCase(),
-        hubTier: assignedHubTier(configRow.payload, account.username),
-      })).sort((a: any, b: any) => a.username.localeCompare(b.username)),
+      users: (Array.isArray(bank.users) ? bank.users : []).filter((account: any) => rootsAuthority === "DEV" || !activeRootUserIds.has(String(account.userId || "").toLowerCase())).map((account: any) => {
+        const assignment: any = roleByUser.get(String(account.userId || "").toLowerCase());
+        return {
+          ...safeUser(account),
+          legacyTier: account.tier ? String(account.tier).toUpperCase() : null,
+          hubTier: assignedHubTier(configRow.payload, account.username),
+          provisioningState: account.provisioning?.stage || null,
+          userId: account.userId || null,
+          staffId: account.staffId || null,
+          requestedYardRoleId: account.provisioning?.requestedYardRoleId || null,
+          yardRoleId: assignment?.yard_role_id || account.yardRoleId || null,
+          yardRoleVersion: assignment?.version || null,
+          rootsClass: rootAssignmentsByUser.get(String(account.userId || "").toLowerCase())?.status === "ACTIVE" ? rootAssignmentsByUser.get(String(account.userId || "").toLowerCase())?.roots_class || null : null,
+          rootsVersion: rootAssignmentsByUser.get(String(account.userId || "").toLowerCase())?.version || null,
+          rootsStatus: rootAssignmentsByUser.get(String(account.userId || "").toLowerCase())?.status || null,
+        };
+      }).sort((a: any, b: any) => a.username.localeCompare(b.username)),
+      yardRoles: assignableYardRoles,
+      roleCatalogue: rootCapabilities.canManageYardRoles ? (yardRoles || []).map((role: any) => ({ ...role, permissions: (rolePermissions || []).filter((row: any) => String(row.yard_role_id).toLowerCase() === String(role.id).toLowerCase()).map((row: any) => ({ department: row.department, can_view: row.can_view === true, can_enter: row.can_enter === true, can_edit: row.can_edit === true, can_manage: row.can_manage === true })) })) : [],
+      rootsAuthority,
+      canManageYardRoles: rootCapabilities.canManageYardRoles,
+      canManageRoots: rootCapabilities.canBrowseRoots,
       userTiers: configRow.payload?.userTiers || {},
       centralVersion: Number(bankRow.version || 0),
       tierPermissions: normalizeTierPermissions(configRow.payload, configRow.payload, [...tierNames.filter(name => !(configRow.payload.retiredTiers || []).includes(name)), ...(Array.isArray(configRow.payload.customTiers) ? configRow.payload.customTiers : [])]),
@@ -158,6 +292,103 @@ Deno.serve(async (req: Request) => {
       editableTiers: isRootAdmin(user, hubTier, legacyTier) ? [...tierNames.filter(name => !(configRow.payload.retiredTiers || []).includes(name)), ...(configRow.payload.customTiers || [])] : [...editableByAdmin],
       canManageCentralUsers,
     });
+  }
+
+  if (["save-user-tier", "remove-user-tier", "save-tier-settings"].includes(String(action))) {
+    return json({ error: "Legacy YARD HUB tiers are retired. Configure canonical department permissions through YARD ROLE." }, 410);
+  }
+
+  if (action === "yard-role-save") {
+    if (!rootCapabilities.canManageYardRoles) return json({ error: "Only protected ROOTS identities may create or change canonical YARD ROLE definitions." }, 403);
+    if (!/^[0-9a-f-]{36}$/i.test(String(user.userId || ""))) return json({ error: "Authenticated actor has no immutable USER ID." }, 409);
+    const roleId = String(body.roleId || crypto.randomUUID());
+    if (!/^[0-9a-f-]{36}$/i.test(roleId)) return json({ error: "Canonical YARD ROLE ID is invalid." }, 400);
+    const expectedVersion = Number(body.version ?? 0);
+    if (!Number.isInteger(expectedVersion) || expectedVersion < 0) return json({ error: "A valid YARD ROLE version is required." }, 400);
+    const name = String(body.name || "").trim();
+    const description = String(body.description || "").trim();
+    const status = String(body.status || "DRAFT").toUpperCase();
+    const permissions = Array.isArray(body.permissions) ? body.permissions : null;
+    if (!name || name.length > 80 || description.length > 500 || !["DRAFT", "ACTIVE", "RETIRED"].includes(status) || !permissions) {
+      return json({ error: "YARD ROLE name, description, status and five-department permission matrix are required." }, 400);
+    }
+    const { data: saved, error: saveError } = await db.rpc("yard_role_save_definition", {
+      p_role_id: roleId,
+      p_expected_version: expectedVersion,
+      p_name: name,
+      p_description: description,
+      p_status: status,
+      p_permissions: permissions,
+      p_actor_user_id: user.userId,
+      p_actor_username: String(user.username),
+      p_actor_display_name: String(user.displayName || user.username),
+    });
+    if (saveError || !saved) return json({ error: saveError?.message?.includes("YARD_ROLE_VERSION_CONFLICT") ? "YARD ROLE changed elsewhere. Refresh and try again." : saveError?.message || "YARD ROLE definition could not be saved." }, 409);
+    return json({ ok: true, role: saved });
+  }
+
+  if (action === "assign-user-role") {
+    if (!rootCapabilities.canManageYardRoles) return json({ error: "Only protected ROOTS identities may assign canonical YARD ROLES." }, 403);
+    const targetUserId = String(body.userId || "");
+    const yardRoleId = String(body.yardRoleId || "");
+    if (!/^[0-9a-f-]{36}$/i.test(targetUserId)) return json({ error: "Immutable USER ID required." }, 400);
+    if (!/^[0-9a-f-]{36}$/i.test(yardRoleId)) return json({ error: "A canonical YARD ROLE ID is required." }, 400);
+    if (!/^[0-9a-f-]{36}$/i.test(String(user.userId || ""))) return json({ error: "Authenticated actor has no immutable USER ID." }, 409);
+    const target = (Array.isArray(bank.users) ? bank.users : []).find((account: any) =>
+      String(account.userId || "").toLowerCase() === targetUserId.toLowerCase()
+    );
+    if (!target) return json({ error: "Central USER account not found." }, 404);
+    const [{ data: targetRoots, error: targetRootsError }, { data: devBootstrap, error: devBootstrapError }] = await Promise.all([
+      db.from("downtime_roots_assignments").select("roots_class,status").eq("user_id", targetUserId).eq("status", "ACTIVE").maybeSingle(),
+      db.from("downtime_roots_bootstrap").select("user_id").eq("singleton", true).maybeSingle(),
+    ]);
+    if (targetRootsError || devBootstrapError) return json({ error: "Protected ROOTS registry is unavailable." }, 503);
+    if (String(devBootstrap?.user_id || "").toLowerCase() === targetUserId.toLowerCase() || targetRoots) {
+      return json({ error: "Protected ROOTS identities receive automatic department authority and cannot be assigned an ordinary YARD ROLE." }, 409);
+    }
+    const isPending = target.provisioning?.stage === "YARD_ROLE_PENDING";
+    if (isPending && target.provisioning.requestedYardRoleId !== yardRoleId) return json({ error: "Selected YARD ROLE does not match the provisioned request." }, 409);
+    if (!isPending && (target.enabled !== true || target.status !== "ACTIVE" || !target.staffId)) return json({ error: "Only an active linked USER can receive a direct YARD ROLE reassignment." }, 409);
+    const profiles = Object.values(bank.staff?.profiles || {}) as any[];
+    const linkedProfile = profiles.find((profile: any) =>
+      profile && String(profile.staffId || "").toLowerCase() === String(target.staffId || "").toLowerCase() &&
+      String(profile.linkedUserId || "").toLowerCase() === String(target.userId || "").toLowerCase()
+    );
+    const expectedStaffStatus = isPending ? "PROVISIONING" : "ACTIVE";
+    if (!linkedProfile || String(linkedProfile.status || "").toUpperCase() !== expectedStaffStatus) {
+      return json({ error: "The USER and STAFF identities must have a reciprocal linked profile in the expected lifecycle state." }, 409);
+    }
+    const { data: role, error: roleError } = await db.from("yard_roles").select("id,name,description,status").eq("id", yardRoleId).eq("status", "ACTIVE").maybeSingle();
+    const { data: permissions, error: permissionsError } = await db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage").eq("yard_role_id", yardRoleId);
+    if (roleError || permissionsError || !role) return json({ error: "Selected canonical YARD ROLE is unavailable." }, 409);
+    try { resolveYardRolePermissions(role, permissions || []); }
+    catch (error) { return json({ error: error instanceof Error ? error.message : "YARD ROLE permission matrix is invalid." }, 409); }
+
+    let assignment: any = null, assignmentError: any = null;
+    if (!isPending && Number.isInteger(Number(body.assignmentVersion)) && Number(body.assignmentVersion) > 0) {
+      const reassigned = await db.rpc("yard_role_reassign_user", {
+        p_user_id: target.userId,
+        p_staff_id: target.staffId,
+        p_yard_role_id: yardRoleId,
+        p_expected_version: Number(body.assignmentVersion),
+        p_actor_user_id: user.userId,
+        p_actor_username: String(user.username),
+        p_actor_display_name: String(user.displayName || user.username),
+      });
+      assignment = reassigned.data; assignmentError = reassigned.error;
+    } else {
+      const assigned = await db.rpc("yard_role_assign_user", {
+        p_user_id: target.userId,
+        p_staff_id: target.staffId,
+        p_yard_role_id: yardRoleId,
+        p_actor_user_id: user.userId,
+        p_actor_username: String(user.username),
+        p_actor_display_name: String(user.displayName || user.username),
+      });
+      assignment = assigned.data; assignmentError = assigned.error;
+    }
+    if (assignmentError || !assignment) return json({ error: assignmentError?.message?.includes("YARD_ROLE_ASSIGNMENT_VERSION_CONFLICT") ? "YARD ROLE assignment changed elsewhere. Refresh and try again." : assignmentError?.message || "Canonical YARD ROLE assignment failed." }, 409);
+    return json({ ok: true, assignment });
   }
 
   if (action === "save-user-tier") {
@@ -174,6 +405,7 @@ Deno.serve(async (req: Request) => {
       String(account.username || "").toLowerCase() === targetUsername.toLowerCase()
     );
     if (!target) return json({ error: "Central user account not found." }, 404);
+    if (target.provisioning || target.yardRoleId) return json({ error: "Canonical YARD ROLE identities cannot be assigned legacy YARD HUB tiers." }, 409);
     const targetLegacyTier = String(target.tier || "USER").toUpperCase();
     if (String(target.username).trim().toUpperCase() === "DEV" && targetLegacyTier === "OWNER" && nextTier !== "OWNER") {
       return json({ error: "The DEV root account must remain assigned to the OWNER YARD HUB tier." }, 403);
@@ -219,6 +451,7 @@ Deno.serve(async (req: Request) => {
       String(account.username || "").toLowerCase() === targetUsername.toLowerCase()
     );
     if (!target) return json({ error: "Central user account not found." }, 404);
+    if (target.provisioning || target.yardRoleId) return json({ error: "Canonical YARD ROLE identities cannot have legacy YARD HUB tier assignments removed." }, 409);
     const root = isRootAdmin(user, hubTier, legacyTier);
     if (!root && !editableByAdmin.includes(assignedHubTier(configRow.payload, target.username) as any)) {
       return json({ error: "ADMIN cannot remove protected YARD HUB tier assignments." }, 403);

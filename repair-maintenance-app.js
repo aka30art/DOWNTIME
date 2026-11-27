@@ -90,7 +90,7 @@
   function closeOverlay(id){$(id)?.classList.remove('open');if(!document.querySelector('.overlay.open'))document.body.style.overflow=''}
   function setBusy(value){busy=value;document.querySelectorAll('button').forEach(b=>{if(b.dataset.busyControl==='true')b.disabled=value})}
   function renderSelector(){setView('selectorView');$('selectorStatus').textContent='Select a machinery category to view its fault register.';}
-  function canOpenMachineryConfiguration(){return access?.canAddRepairMaintenanceMachinery===true||access?.canManageRepairMaintenanceMachinery===true||access?.canManageRepairMaintenancePresets===true;}
+  function canOpenMachineryConfiguration(){return access?.canReadRepairMaintenanceMachinery===true||access?.canAddRepairMaintenanceMachinery===true||access?.canEditRepairMaintenance===true||access?.canManageRepairMaintenanceMachinery===true||access?.canManageRepairMaintenancePresets===true;}
   function canManageRmsPresets(){return access?.canManageRepairMaintenancePresets===true;}
   function renderSettingsSelector(){if(!canOpenMachineryConfiguration()){say('R&M MACHINERY EDIT or R&M SETTINGS permission is required to manage configuration.','selectorStatus','error');return}setView('settingsView');$('settingsStatus').textContent='Select a machinery category to configure its R&M settings.';}
   async function openMachineSettings(key){
@@ -203,9 +203,10 @@
     const section=$('settingsMachinerySection');
     if(!section)return;
     const canRead=access?.canReadRepairMaintenanceMachinery===true;
-    const canManage=access?.canManageRepairMaintenanceMachinery===true;
-    const canAdd=access?.canAddRepairMaintenanceMachinery===true||canManage;
-    section.hidden=!canRead;
+    const canEdit=access?.canEditRepairMaintenance===true;
+    const canManage=access?.canDeleteRepairMaintenance===true;
+    const canAdd=access?.canAddRepairMaintenanceMachinery===true;
+    section.hidden=!(canRead||canAdd||canEdit||canManage);
     const add=$('settingsAddMachineryButton');
     if(add)add.hidden=!canAdd;
     ['settingsRegistrationSection','settingsModelDropdownSection','settingsAssetSelectorSection'].forEach(id=>{const option=$(id);if(option)option.hidden=!canManageRmsPresets();});
@@ -300,15 +301,17 @@
   function renderMachineModelManager(){
     const host=$('machineModelItems');if(!host)return;host.replaceChildren();
     const canRead=access?.canReadRepairMaintenanceMachinery===true;
-    const canManage=access?.canManageRepairMaintenanceMachinery===true;
-    const canAdd=access?.canAddRepairMaintenanceMachinery===true||canManage;
+    const canEdit=access?.canEditRepairMaintenance===true;
+    const canManage=access?.canDeleteRepairMaintenance===true;
     if(canRead)settingsAssets.filter(asset=>asset.status==='ACTIVE').forEach(asset=>{
       const row=document.createElement('div');row.className='rms-unified-asset-row';
       const copy=document.createElement('div');copy.className='rms-unified-asset-copy';
       const name=document.createElement('strong');name.textContent=asset.make_model||asset.name||'UNNAMED MACHINE';copy.appendChild(name);
       const meta=document.createElement('small');meta.textContent=[asset.asset_code,asset.make_model].filter(Boolean).join(' · ')||'REGISTERED MACHINE';copy.appendChild(meta);row.appendChild(copy);
-      if(canManage){
+      if(canEdit){
         const edit=document.createElement('button');edit.type='button';edit.className='btn compact';edit.textContent='EDIT';edit.addEventListener('click',()=>openAssetEditor(asset));row.appendChild(edit);
+      }
+      if(canManage){
         const remove=document.createElement('button');remove.type='button';remove.className='btn danger compact';remove.textContent='DELETE';remove.setAttribute('aria-label','Delete '+(asset.make_model||asset.name||'machine'));remove.addEventListener('click',()=>deleteRegisteredMachine(asset));row.appendChild(remove);
       }
       host.appendChild(row);
@@ -316,7 +319,7 @@
     if(!host.children.length){const empty=document.createElement('p');empty.className='empty';empty.textContent='No registered machines have been added for this category yet.';host.appendChild(empty)}
   }
   async function deleteRegisteredMachine(asset){
-    if(!currentMachine||!asset||access?.canManageRepairMaintenanceMachinery!==true)return;
+    if(!currentMachine||!asset||access?.canDeleteRepairMaintenance!==true)return;
     const name=asset.make_model||asset.name||'this machine';
     if(!window.confirm('Permanently delete “'+name+'” from '+currentMachine.label+'? This is only allowed when the machine has no linked fault history. Machines with history must be archived instead.'))return;
     try{

@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 const html = await readFile('index.html', 'utf8');
 const packageJson = JSON.parse(await readFile('package.json', 'utf8'));
 const loginSmoke = await readFile('tests/login-smoke.mjs', 'utf8');
+const structure = await readFile('yard-hub-structure.js', 'utf8');
 const visualSystem = await readFile('yard-hub-visual-system.css', 'utf8');
 const rmHtml = await readFile('repair-maintenance.html', 'utf8');
 
@@ -14,29 +15,34 @@ assert.match(html, /id="yardHubLogoutBtn"/, 'YARD HUB provides a sign-out action
 assert.match(html, /id="launchDowntimeBtn" data-app="downtime"/, 'DOWNTIME has a dedicated application launcher');
 assert.match(html, /id="launchStaffManagementBtn" data-app="staff-management" type="button"/, 'STAFF MANAGEMENT has a dedicated module launcher');
 assert.doesNotMatch(html, /id="launchStaffManagementBtn"[^>]*disabled/, 'STAFF MANAGEMENT is not hard-disabled in the launcher markup');
-assert.match(html, /function isStaffModuleAutoAccess\(\)[\s\S]*?tier==='DEVACC'\|\|tier==='ADMIN'/, 'DEV OWNER, DEVACC and ADMIN receive automatic Staff Management access');
+assert.match(html, /function isStaffModuleAutoAccess\(\)\{const tier=String\(centralUser\?\.tier\|\|''\)\.trim\(\)\.toUpperCase\(\);return \['DEV','DEV1','ADMIN'\]\.includes\(rootsAuthority\(\)\)\|\|tier==='DEVACC'\|\|tier==='ADMIN'\}/, 'all three protected ROOTS identities and explicitly privileged legacy tiers may access Staff Management');
 assert.match(html, /function syncStaffModuleAccess\(\)[\s\S]*?tile\.disabled=!allowed/, 'Staff Management launcher is enabled or restricted from the authenticated central tier');
-assert.match(html, /function launchStaffManagement\(\)[\s\S]*?openSettingsPanel\('staff'\)/, 'Staff Management launcher opens the existing central STAFF workspace');
+assert.match(html, /function launchStaffManagement\(\)[\s\S]*?window\.openYardHubStaffManagement\(\)/, 'YARD HUB Staff Management tile opens its dedicated submenu');
+assert.match(html,/window\.launchStaffWorkspace=launchStaffWorkspace/,'STAFF subtile opens the existing central STAFF workspace');
+assert.match(html,/window\.syncStaffModuleAccess=syncStaffModuleAccess/,'Staff Management tile synchronises from server-resolved ROOTS authority');
+assert.match(html,/function returnToYardHub\(\)\{window\.closeYardHubStaffManagement\?\.\(\)/,'returning from the STAFF workspace restores the Staff Management menu');
 assert.match(html, /launchStaffManagementBtn'\)\?\.addEventListener\('click',launchStaffManagement\)/, 'Staff Management launcher has a click handler');
 assert.match(html, /if\(section==='staff'&&isStaffModuleAutoAccess\(\)\)return true/, 'privileged tiers can open STAFF even when granular view flags are unset');
-assert.match(html, /hubTier==='OWNER'\|\|hubTier==='DEVACC'\|\|hubTier==='ADMIN'\|\|permission\('canAccessYardHub'\)/, 'ADMIN tier can reach YARD HUB for its automatic Staff Management access');
+assert.match(html, /const canonicalIdentity=Boolean\(centralUser\?\.userId\|\|centralUser\?\.staffId\)[\s\S]*?\['DEV','DEV1','ADMIN'\]\.includes\(rootsAuthority\(\)\)[\s\S]*?canonicalIdentity\?permission\('canAccessYardHub'\)/, 'canonical identities cannot inherit YARD HUB access from legacy OWNER/DEVACC/ADMIN tiers');
 const staffAccessSource = html.match(/function isStaffModuleAutoAccess\(\)\{[^}]*\}/)?.[0];
 assert.ok(staffAccessSource, 'Staff Management auto-access policy is explicit and testable');
-const staffAccess = new Function('centralUser', 'window', staffAccessSource + '; return isStaffModuleAutoAccess;');
+const staffAccess = new Function('centralUser', 'window', 'rootsAuthority', staffAccessSource + '; return isStaffModuleAutoAccess;');
 for (const user of [
-  { username: 'DEV', tier: 'OWNER' },
-  { username: 'devacc-user', tier: 'DEVACC' },
-  { username: 'admin-user', tier: 'ADMIN' }
-]) assert.equal(staffAccess(user, {DowntimeCentral:{session:{user}}})(), true, user.tier + ' must receive automatic Staff Management access');
+  { username: 'DEV', tier: 'OWNER', rootsAuthority: 'DEV' },
+  { username: 'devacc-user', tier: 'DEVACC', rootsAuthority: null },
+  { username: 'admin-user', tier: 'ADMIN', rootsAuthority: null },
+  { username: 'dev1-root', tier: 'USER', rootsAuthority: 'DEV1' },
+  { username: 'admin-root', tier: 'USER', rootsAuthority: 'ADMIN' }
+]) assert.equal(staffAccess(user, {DowntimeCentral:{session:{user}}}, () => user.rootsAuthority)(), true, user.username + '/' + user.tier + ' has the configured Staff Management capability');
 for (const user of [
-  { username: 'ordinary-user', tier: 'USER' },
-  { username: 'supervisor-user', tier: 'SUPERVISOR' },
-  { username: 'dev-lookalike', tier: 'USER' }
-]) assert.equal(staffAccess(user, {DowntimeCentral:{session:{user}}})(), false, user.username + '/' + user.tier + ' must not receive root/privileged auto-access');
+  { username: 'dev-lookalike', tier: 'OWNER', rootsAuthority: null },
+  { username: 'ordinary-user', tier: 'USER', rootsAuthority: null },
+  { username: 'supervisor-user', tier: 'SUPERVISOR', rootsAuthority: null }
+]) assert.equal(staffAccess(user, {DowntimeCentral:{session:{user}}}, () => user.rootsAuthority)(), false, user.username + '/' + user.tier + ' must not receive Staff Management auto-access');
 assert.match(html, /class="yard-tile-copy"><strong>STAFF MANAGEMENT<\/strong>/, 'FLOOR module tile displays the STAFF MANAGEMENT title');
 assert.match(html, /data-app="check-sheets" type="button" disabled/, 'DAILY remains visible but unavailable');
 assert.match(html, /class="yard-tile-copy"><strong>DAILY<\/strong>/, 'CHECK SHEETS module tile displays the DAILY title');
-assert.match(html, /STAFF MANAGEMENT is available to DEV OWNER, DEVACC and ADMIN accounts[\s\S]*?DAILY remains unavailable/, 'module availability note documents privileged STAFF access and the remaining DAILY restriction');
+assert.match(html, /data-app="check-sheets" type="button" disabled/, 'DAILY remains unavailable while Staff Management access is separately ROOTS-controlled');
 assert.doesNotMatch(html, /<strong>FLOOR<\/strong>|<strong>CHECK SHEETS<\/strong>/, 'old module titles are absent from the YARD HUB tile labels');
 assert.match(html, /id="launchRepairMaintenanceBtn" data-app="repair-maintenance" type="button"/, 'R&M has an active dedicated module launcher');
 assert.doesNotMatch(html, /id="launchRepairMaintenanceBtn"[^>]*disabled/, 'R&M is not hard-disabled in the HUB markup');
@@ -62,7 +68,13 @@ assert.match(html, /\.yard-wordmark strong\{color:#f5f7fa\}/, 'HUB wordmark uses
 assert.match(html, /@media\(max-width:540px\)[\s\S]*?\.yard-grid\{grid-template-columns:1fr;/, 'mobile hub stacks the application tiles');
 assert.match(loginSmoke, /successful login lands on YARD HUB first/, 'browser smoke verifies the post-login landing route');
 assert.match(loginSmoke, /launching DOWNTIME closes YARD HUB/, 'browser smoke verifies module launch');
-assert.ok(packageJson.scripts['test:smoke'].includes('tests/yard-hub-contract.mjs'), 'YARD HUB contract is part of the full smoke suite');
+assert.ok(packageJson.scripts['test:smoke:steps'].includes('tests/yard-hub-contract.mjs'), 'YARD HUB contract is part of the full smoke suite');
+assert.match(html, /id="yardHubSettingsStaff"/, 'YARD HUB Staff Management exposes a separate STAFF tile');
+assert.match(html,/window\.launchStaffWorkspace=launchStaffWorkspace/,'STAFF tile can open the existing Staff Management workspace');
+assert.match(html,/window\.closeYardHubStaffManagement\?\.\(\)/,'returning from the STAFF workspace restores the Staff Management menu');
+assert.match(html,/\['\.yard-hero','\.yard-grid','\.yard-modules-heading','\.yard-hub-footer'\]\.forEach/,'YARDHUB return always restores the home application tiles');
+assert.match(html, /<strong>ACCESS AND RIGHTS<\/strong>/, 'YARD HUB Staff Management exposes the Access and Rights tile');
+assert.match(html, /id="yardHubIdentityReset"/, 'DEV has a controlled Phase 1 identity reset surface');
 
 assert.doesNotMatch(html, /yard-tile-index|<span[^>]*>0[1-5]<\/span>/, 'YARD HUB application tiles do not display sequence numbering');
 

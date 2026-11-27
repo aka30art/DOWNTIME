@@ -57,10 +57,10 @@ for (const id of [
 
 const helpersMatch=html.match(/function canManageSettingsSection\(section\)\{[\s\S]*?function anySettingsAccess\(\)\{[^}]*\}/);
 assert.ok(helpersMatch,'granular Settings permission helpers must be present');
-const accessHelpers=new Function('permission','canManageAccessRights','isStaffModuleAutoAccess',helpersMatch[0]+'; return {settingsAccess,canManageSettingsSection};');
-const helper=(permission)=>accessHelpers(permission,()=>false,()=>false);
+const accessHelpers=new Function('permission','canManageAccessRights','isStaffModuleAutoAccess','rootsAuthority',helpersMatch[0]+'; return {settingsAccess,canManageSettingsSection};');
+const helper=(permission)=>accessHelpers(permission,()=>false,()=>false,()=>null);
 const managerOnly=helper(name=>({canManageUsers:true,canViewUsers:false}[name]===true));
-assert.equal(managerOnly.settingsAccess('users'),true);
+assert.equal(managerOnly.settingsAccess('users'),false,'legacy canManageUsers cannot expose the Central Bank USER directory without immutable DEV ROOTS authority');
 assert.equal(managerOnly.settingsAccess('areas'),false);
 assert.equal(managerOnly.settingsAccess('stations'),false,'station configuration is restricted to settings administrators');
 assert.equal(managerOnly.settingsAccess('reasons'),false);
@@ -83,7 +83,7 @@ assert.equal(supervisorStaff.settingsAccess('users'),false);
 assert.equal(supervisorStaff.settingsAccess('stations'),false,'SUPERVISOR assignment rights do not include station configuration rights');
 const staffViewer=helper(name=>name==='canViewStaff');
 assert.equal(staffViewer.settingsAccess('staff'),true,'STAFF visibility preserves existing staff-view privilege');
-const fullAdmin=helper(()=>true);
+const fullAdmin=accessHelpers(()=>true,()=>false,()=>false,()=> 'DEV');
 for(const section of requiredTiles)assert.equal(fullAdmin.settingsAccess(section),true);
 assert.equal(fullAdmin.settingsAccess('accessRights'),false,'a role without the ADMIN/JAN identity allow-list cannot access tier rights');
 assert.equal(accessHelpers(()=>false,()=>true,()=>false).settingsAccess('accessRights'),true,'ADMIN tier or JAN root OWNER allow-list can access Access and Rights');
@@ -92,18 +92,17 @@ assert.notEqual(manageAccessRightsStart,-1,'Access and Rights permission gate mu
 const manageAccessRightsEnd=html.indexOf('}',manageAccessRightsStart)+1;
 const manageAccessRightsSource=html.slice(manageAccessRightsStart,manageAccessRightsEnd);
 assert.ok(manageAccessRightsSource.endsWith('}'),'Access and Rights permission gate source must be complete');
-const accessRightsGate=new Function('centralUser','activeOperator','privilegeFor','canAccessCentralBank','permission',
-  manageAccessRightsSource+'; return canManageAccessRights;');
-const rightsGate=(tier,delegated,root=false)=>accessRightsGate(
-  {tier},'contract-user',()=>tier,()=>root,name=>name==='canManageAccessRights'&&delegated
-)();
-assert.equal(rightsGate('ADMIN',true),true,'ADMIN with explicit delegation permission can manage lower-tier profiles');
-assert.equal(rightsGate('ADMIN',false),false,'ADMIN without delegation permission cannot manage tier profiles');
-for(const tier of ['MANAGER','SUPERVISOR','USER','SPECTATOR']){
-  assert.equal(rightsGate(tier,true),false,tier+' cannot inherit delegated Access and Rights management from a copied permission profile');
-}
-assert.equal(rightsGate('OWNER',false,true),true,'root OWNER retains unrestricted Access and Rights authority');
-assert.equal(rightsGate('DEVACC',false,true),true,'root DEVACC retains unrestricted Access and Rights authority');
+assert.equal(accessHelpers(()=>false,()=>false,()=>false).settingsAccess('accessRights'),false,'legacy Access and Rights editing remains disabled during canonical identity cutover');
+assert.match(html,/function canManageAccessRights\(\)\{return false\}/,'legacy Access and Rights mutation remains fail-closed until a separately approved cutover');
+const centralBankGateStart=html.indexOf('function canAccessCentralBank(){');
+assert.notEqual(centralBankGateStart,-1,'Central Bank access gate must be present');
+const centralBankGateEnd=html.indexOf('}',centralBankGateStart)+1;
+const centralBankGateSource=html.slice(centralBankGateStart,centralBankGateEnd);
+const centralBankGate=new Function('rootsAuthority',centralBankGateSource+'; return canAccessCentralBank;');
+assert.equal(centralBankGate(()=> 'DEV')(),true,'immutable DEV ROOTS authority can access the Central Bank');
+assert.equal(centralBankGate(()=> 'DEV1')(),false,'DEV1 cannot access the DEV-only Central Bank');
+assert.equal(centralBankGate(()=> 'ADMIN')(),false,'protected ADMIN cannot access the DEV-only Central Bank');
+assert.equal(centralBankGate(()=> null)(),false,'legacy OWNER/DEVACC/ADMIN tiers cannot substitute for immutable DEV ROOTS authority');
 assert.ok(!html.includes('centralUsersAdminLink'),'obsolete Central Data Bank link is removed from the USERS panel');
 
 assert.match(html, /function showSettingsHub\(\)/, 'back navigation must return to the Settings hub');
