@@ -666,7 +666,7 @@ try{
  await ensureMainMenu(owner.page);
  await owner.page.locator('.nav[data-view="reports"]').click();
  try{
-  await owner.page.locator('[data-report-display="weekly-report-qa"]').waitFor({state:'visible',timeout:10000});
+  await owner.page.locator('[data-report-display="00000000-0000-4000-8000-000000000001"]').waitFor({state:'visible',timeout:10000});
  }catch(error){
   const diagnostic=await owner.page.evaluate(()=>({
    reportNavDisplay:document.querySelector('.nav[data-view="reports"]')?getComputedStyle(document.querySelector('.nav[data-view="reports"]')).display:null,
