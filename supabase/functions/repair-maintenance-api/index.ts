@@ -169,8 +169,10 @@ Deno.serve(async (req: Request) => {
       canManageRepairMaintenanceMachinery: true,
     });
   }
-  permissions.canCreateRepairMaintenance = permissions.canCreateRepairMaintenance === true || permissions.canEditRepairMaintenance === true;
-  permissions.canAddRepairMaintenanceMachinery = permissions.canAddRepairMaintenanceMachinery === true || permissions.canManageRepairMaintenanceMachinery === true;
+  if (!resolvedYardRole) {
+    permissions.canCreateRepairMaintenance = permissions.canCreateRepairMaintenance === true || permissions.canEditRepairMaintenance === true;
+    permissions.canAddRepairMaintenanceMachinery = permissions.canAddRepairMaintenanceMachinery === true || permissions.canManageRepairMaintenanceMachinery === true;
+  }
   permissions.canManageRepairMaintenancePresets = resolvedYardRole
     ? canYardRolePerform(resolvedYardRole, "R&M", "DELETE")
     : permissions.canEditRepairMaintenance === true;
@@ -184,7 +186,6 @@ Deno.serve(async (req: Request) => {
   const requireEdit = () => permissions.canEditRepairMaintenance === true;
   const requireDelete = () => permissions.canDeleteRepairMaintenance === true;
   const loadFault = async (faultId: unknown) => {
-    if (permissions.canReadRepairMaintenanceMachinery !== true) throw new Error("You do not have READ access to R&M Machinery.");
     const id = cleanText(faultId, "Fault ID", 64);
     const { data, error } = await db.from("repair_maintenance_faults").select("*").eq("id", id).maybeSingle();
     if (error) throw new Error("Unable to load fault record.");
@@ -196,7 +197,7 @@ Deno.serve(async (req: Request) => {
     if (action === "access") return json({ user: { username: actor, displayName: user.displayName || actor, tier }, permissions });
 
     if (action === "asset-list") {
-      if (permissions.canReadRepairMaintenanceMachinery !== true) return json({ error: "You do not have READ access to R&M Machinery." }, 403);
+      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canAddRepairMaintenanceMachinery !== true) return json({ error: "You need VIEW or ENTER permission to select R&M machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
       const [{ data, error }, { count: unassignedCount, error: unassignedError }] = await Promise.all([
         db.from("repair_maintenance_assets")
@@ -281,6 +282,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "preset-list") {
+      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canCreateRepairMaintenance !== true) return json({ error: "You need VIEW or ENTER permission to select R&M presets." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
       const { data, error } = await db.from("repair_maintenance_machine_presets").select("id,machine_type,name,is_other,created_at")
         .eq("machine_type", body.machineType).order("is_other", { ascending: true }).order("created_at", { ascending: true });
@@ -341,7 +343,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "model-list") {
-      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have READ access to R&M settings." }, 403);
+      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canCreateRepairMaintenance !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You need VIEW, ENTER or MANAGE permission to read R&M settings." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
       const { data, error } = await db.from("repair_maintenance_assets")
         .select("id,machine_type,name,asset_code,make_model,status,created_at,updated_at")
@@ -512,7 +514,6 @@ Deno.serve(async (req: Request) => {
     }
     if (action === "export-url"){
       if(permissions.canExportRepairMaintenanceReports!==true)return json({error:"You do not have permission to open R&M PDF exports."},403);
-      if(permissions.canReadRepairMaintenanceMachinery!==true)return json({error:"You do not have READ access to R&M Machinery."},403);
       const id=cleanText(body.reportId,"PDF export ID",64),{data:report,error}=await db.from("repair_maintenance_pdf_exports").select("id,storage_path,file_name").eq("id",id).maybeSingle();if(error)return json({error:"Unable to load the selected PDF export."},503);if(!report)return json({error:"PDF export not found."},404);
       const {data,error:signedError}=await db.storage.from(reportBucket).createSignedUrl(report.storage_path,300);if(signedError||!data?.signedUrl)return json({error:"Unable to create a secure PDF link."},503);return json({signedUrl:data.signedUrl,fileName:report.file_name})
     }
@@ -542,8 +543,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "create") {
-      if (permissions.canCreateRepairMaintenance !== true) return json({ error: "You do not have INPUT access to create R&M faults." }, 403);
-      if (permissions.canReadRepairMaintenanceMachinery !== true) return json({ error: "You do not have READ access to R&M Machinery." }, 403);
+      if (permissions.canCreateRepairMaintenance !== true) return json({ error: "You do not have ENTER access to create R&M faults." }, 403);
       if (!isOneOf(body.machineType, machineTypes) || !isOneOf(body.priority, RM_FAULT_PRIORITIES)) return json(fail("Machine or priority is invalid."), 400);
       const assetId = cleanText(body.assetId, "Machine", 64);
       const { data: asset, error: assetError } = await db.from("repair_maintenance_assets")
