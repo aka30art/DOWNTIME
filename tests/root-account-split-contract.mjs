@@ -13,7 +13,9 @@ for(const [source,label] of [[api,'Central Bank API'],[app,'application UI'],[cl
 }
 assert.ok(api.includes('username="DEV"'),'bootstrap creates DEV as the root OWNER');
 assert.ok(api.includes('The root OWNER username is fixed as DEV'),'bootstrap fixes the root identity');
-assert.ok(api.includes('const isDevRoot=currentUsername==="DEV"&&tier==="OWNER"'),'root authority requires the exact DEV OWNER identity');
+assert.ok(api.includes('const rootsAuthority=resolveRootsAuthority(currentUser,rootsAssignment,rootsBootstrap?.user_id||null);'),'ROOTS authority is derived from the immutable DEV bootstrap identity and canonical ROOTS assignment');
+assert.ok(api.includes('const isDevRoot=rootsAuthority==="DEV"'),'DEV authority is resolved from canonical ROOTS identity rather than a legacy username/tier string');
+assert.ok(!api.includes('currentUsername==="DEV"&&tier==="OWNER"'),'legacy username and tier strings cannot grant DEV ROOTS authority');
 assert.ok(api.includes('if(isRootName){'),'root credential updates use a protected branch');
 assert.ok(api.includes('if(!isDevRoot)return json({error:"Only root DEV can update root credentials."},403);'),'DEVACC cannot alter DEV root credentials');
 assert.ok(api.includes('Additional OWNER accounts are prohibited'),'no second OWNER can be created');
