@@ -513,7 +513,7 @@ Deno.serve(async (req: Request) => {
       publishedBy: configState.published_by,
       publishedAt: configState.published_at,
       versions,
-      user: { username: user.username, displayName: user.displayName || user.username, tier },
+      user: { username: user.username, displayName: user.displayName || user.username, tier: String(user.tier || "USER") },
     });
   }
 
