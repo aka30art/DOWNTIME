@@ -240,12 +240,12 @@
       const protectedUser=userIsProtected(user)&&!rootDev();
       const isSelf=String(user.username).toLowerCase()===me;
       const edit=element('button','yard-hub-small-button','EDIT');
-      edit.type='button';edit.disabled=saving||isSelf||protectedUser||(!state.canManageCentralUsers&&state.canAssignUserRoles!==true);
+      edit.type='button';edit.disabled=saving||isSelf||protectedUser||(!state.canManageUserAccounts&&state.canAssignUserRoles!==true);
       edit.title=isSelf?'Use a different administrator account to edit this account.':protectedUser?'Protected tier account.':'Edit user';
       edit.addEventListener('click',()=>openUserModal(user));
       actions.appendChild(edit);
       const status=element('button','yard-hub-small-button '+(user.enabled===false?'':'danger'),user.provisioningState==='YARD_ROLE_PENDING'?'COMPLETE SETUP':user.enabled===false?'RE-ENABLE':'DISABLE');
-      status.type='button';status.disabled=saving||state.canManageCentralUsers!==true||isSelf||protectedUser||(String(user.username).toUpperCase()==='DEV');
+      status.type='button';status.disabled=saving||state.canManageUserAccounts!==true||isSelf||protectedUser||(String(user.username).toUpperCase()==='DEV');
       status.addEventListener('click',()=>setUserEnabled(user,user.enabled===false));
       actions.appendChild(status);
       row.append(identity,meta,actions);
@@ -300,7 +300,7 @@
     const isPending=user?.provisioningState==='YARD_ROLE_PENDING';
     const isCanonical=Boolean(user?.yardRoleId);
     if(!user&&state?.canManageStaffUsers!==true){setStatus('Management MANAGE permission is required to create USER identities.','error');return}
-    if(user&&!canManageCentralUsers&&state?.canAssignUserRoles!==true){setStatus('Your account cannot manage this USER identity.','error');return}
+    if(user&&state?.canManageUserAccounts!==true&&state?.canAssignUserRoles!==true){setStatus('Your account cannot manage this USER identity.','error');return}
     editingUsername=user?String(user.username):null;
     $('yardHubUserForm').reset();
     $('yardHubStaffFields').hidden=!!user;
@@ -316,13 +316,13 @@
     $('yardHubUserUsername').value=user?.username||'';
     $('yardHubUserUsername').disabled=!!user||(!canManageCentralUsers&&state?.canManageStaffUsers!==true);
     $('yardHubUserDisplay').value=user?.displayName||'';
-    $('yardHubUserDisplay').disabled=(!canManageCentralUsers&&state?.canManageStaffUsers!==true)||isPending;
+    $('yardHubUserDisplay').disabled=state?.canManageUserAccounts!==true||isPending;
     $('yardHubUserPin').value='';
     $('yardHubUserPin').required=!user;
-    $('yardHubUserPin').disabled=(!canManageCentralUsers&&state?.canManageStaffUsers!==true)||isPending;
+    $('yardHubUserPin').disabled=state?.canManageUserAccounts!==true||isPending;
     $('yardHubUserPin').placeholder=user?'Leave blank to keep current PIN':'4–8 digit PIN';
     $('yardHubUserEnabled').checked=user?.enabled!==false;
-    $('yardHubUserEnabled').disabled=!canManageCentralUsers;
+    $('yardHubUserEnabled').disabled=state?.canManageUserAccounts!==true;
     $('yardHubUserDowntimeTier').textContent=user?(user.legacyTier||'NO LEGACY TIER'):'NO LEGACY TIER · NEW IDENTITY';
     $('yardHubUserHubTier').replaceChildren();
     allowedHubTiers(user?.hubTier,user?.username||'').forEach(role=>{
@@ -342,7 +342,7 @@
             :'No active canonical YARD ROLE is configured. Account creation remains disabled.';
     $('yardHubUserSave').textContent=user?'SAVE USER':'ADD USER';
     $('yardHubUserSave').disabled=!user&&!hasRoles;
-    $('yardHubUserStatus').hidden=!user||!canManageCentralUsers;
+    $('yardHubUserStatus').hidden=!user||state?.canManageUserAccounts!==true;
     if(user)$('yardHubUserStatus').textContent=user.enabled===false?'RE-ENABLE ACCOUNT':'DISABLE ACCOUNT';
     $('yardHubUserUsername').focus();
   }
@@ -371,7 +371,7 @@
       displayName!==(existing.displayName||existing.username)||
       pin.length>0||
       enabled!==(existing.enabled!==false));
-    if(centralChanges&&state.canManageCentralUsers!==true&&!isNew){
+    if(centralChanges&&state.canManageUserAccounts!==true){
       setStatus('Central account details are controlled by the existing Central Users permission. YARD HUB tier assignment remains separate.','error');return;
     }
     if(!/^[A-Za-z0-9_.-]{2,32}$/.test(username)){setStatus('Username must be 2–32 letters, numbers, dots, underscores or hyphens.','error');return}
@@ -441,7 +441,7 @@
     }finally{setBusy(false)}
   }
   async function setUserEnabled(user,enabled){
-    if(saving||!state||state.canManageCentralUsers!==true||String(user.username).toLowerCase()===String(currentUser()?.username||'').toLowerCase())return;
+    if(saving||!state||state.canManageUserAccounts!==true||String(user.username).toLowerCase()===String(currentUser()?.username||'').toLowerCase())return;
     const action=enabled?'RE-ENABLE':'DISABLE';
     if(!window.confirm(action+' '+user.username+'? This will revoke their current sessions.'))return;
     setBusy(true);setStatus((enabled?'RE-ENABLING ':'DISABLING ')+user.username+'…');
