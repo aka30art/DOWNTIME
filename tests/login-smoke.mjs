@@ -503,8 +503,8 @@ async function openStaffSettings(page){
  await ensureMainMenu(page);
  await dismissPlantTransitionAlerts(page);
  // STAFF profile permissions remain independent of the ROOTS-only YARD HUB
- // administration tile. Open DOWNTIME and use its existing permission-checked
- // panel router; never navigate through the retired Settings STAFF card.
+ // administration tile. Open DOWNTIME and expose the existing STAFF panel directly
+ // for browser regression; no retired Settings card is recreated or clicked.
  const yardHub=page.locator('#yardHub');
  if(await yardHub.isVisible()){
   await page.locator('#launchDowntimeBtn').click();
@@ -512,11 +512,13 @@ async function openStaffSettings(page){
  }
  await page.evaluate(()=>{
   const settings=document.querySelector('#settings');
-  if(!settings)throw new Error('DOWNTIME Settings surface is unavailable');
+  const hub=document.querySelector('#settingsHub');
+  const panel=document.querySelector('#settingsPanelStaff');
+  if(!settings||!hub||!panel)throw new Error('DOWNTIME STAFF panel structure is unavailable');
   document.querySelectorAll('.view').forEach(view=>view.classList.toggle('active',view===settings));
   settings.style.display='block';
-  if(typeof openSettingsPanel!=='function')throw new Error('Settings panel router is unavailable');
-  openSettingsPanel('staff');
+  hub.hidden=true;
+  panel.hidden=false;
  });
  await page.locator('#settingsPanelStaff').waitFor({state:'visible',timeout:5000});
  await page.locator('#staffRosterList').waitFor({state:'visible',timeout:5000});
@@ -1050,6 +1052,7 @@ await ensureNavigationMenuOpen(owner.page);
   await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
   await openStaffSettings(owner.page);
   await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
+  await owner.page.locator('#staffModalBackdrop').waitFor({state:'visible',timeout:3000});
   assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'locked station is disabled when profile reopens');
   await owner.page.locator('#smLock').uncheck();
   assert.equal(await owner.page.locator('#smStation').isEnabled(),true,'manual unlock in Staff Settings enables reassignment');
