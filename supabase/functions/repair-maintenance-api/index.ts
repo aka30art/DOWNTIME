@@ -91,7 +91,7 @@ Deno.serve(async (req: Request) => {
     }
     const [{ data: role, error: roleError }, { data: rolePermissions, error: rolePermissionsError }] = await Promise.all([
       db.from("yard_roles").select("id,name,description,status").eq("id", user.yardRoleId).eq("status", "ACTIVE").maybeSingle(),
-      db.from("yard_role_department_permissions").select("yard_role_id,department,access_level").eq("yard_role_id", user.yardRoleId),
+      db.from("yard_role_department_permissions").select("yard_role_id,department,can_view,can_enter,can_edit,can_manage").eq("yard_role_id", user.yardRoleId),
     ]);
     if (roleError || rolePermissionsError || !role) return json({ error: "Canonical YARD ROLE permission profile is unavailable." }, 503);
     try { resolvedYardRole = resolveYardRolePermissions(role, rolePermissions || []); }
