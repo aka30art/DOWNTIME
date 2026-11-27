@@ -740,7 +740,9 @@ try{
  assert.equal(await devacc.page.locator('#centralUsersManager').isVisible().catch(()=>false),false,'legacy DEVACC cannot manage Central Bank USER accounts');
  assert.equal(await devacc.page.locator('#yardHubSettingsBtn').isVisible().catch(()=>false),false,'legacy DEVACC cannot manage canonical YARD ROLE settings');
  await devacc.context.close();
- const manager=await openFor('MANAGER','2468','MICK',owner.getBank(),owner.getVersion());
+ const managerBank=JSON.parse(JSON.stringify(owner.getBank()));
+ managerBank.tiers.MANAGER.canViewAreaPresets=true;
+ const manager=await openFor('MANAGER','2468','MICK',managerBank,owner.getVersion());
  await signIn(manager.page,'2468','MICK');
  assert.equal(await manager.page.locator('#centralAdminNav').evaluate(el=>getComputedStyle(el).display!=='none'),false,'MANAGER with ADMIN-equivalent configurable rights cannot see Central Data Bank');
  await openSettingsHub(manager.page);
