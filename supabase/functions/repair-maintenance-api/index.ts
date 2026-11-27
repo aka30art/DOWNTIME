@@ -229,7 +229,7 @@ cess is not enabled for this account." }, 403);
     }
 
     if (action === "asset-update") {
-      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
+      if (permissions.canEditRepairMaintenance !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
       const assetId = cleanText(body.assetId, "Machine ID", 64);
       const makeModel = cleanText(body.makeModel, "Make / model", 120);
@@ -247,7 +247,7 @@ cess is not enabled for this account." }, 403);
     }
 
     if (action === "asset-delete") {
-      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to permanently delete R&M Machinery." }, 403);
+      if (permissions.canDeleteRepairMaintenance !== true) return json({ error: "You do not have MANAGE access to permanently delete R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
       const assetId = cleanText(body.assetId, "Machine ID", 64);
       const { count, error: faultCountError } = await db.from("repair_maintenance_faults")
@@ -266,7 +266,7 @@ cess is not enabled for this account." }, 403);
     }
 
     if (action === "asset-archive") {
-      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
+      if (permissions.canDeleteRepairMaintenance !== true) return json({ error: "You do not have MANAGE access to archive R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
       const assetId = cleanText(body.assetId, "Machine ID", 64);
       const { data, error } = await db.from("repair_maintenance_assets").update({
@@ -280,6 +280,7 @@ cess is not enabled for this account." }, 403);
     }
 
     if (action === "preset-list") {
+      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canAddRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have permission to view R&M presets." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
       const { data, error } = await db.from("repair_maintenance_machine_presets").select("id,machine_type,name,is_other,created_at")
         .eq("machine_type", body.machineType).order("is_other", { ascending: true }).order("created_at", { ascending: true });
@@ -340,7 +341,7 @@ cess is not enabled for this account." }, 403);
     }
 
     if (action === "model-list") {
-      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have READ access to R&M settings." }, 403);
+      if (permissions.canReadRepairMaintenanceMachinery !== true && permissions.canAddRepairMaintenanceMachinery !== true && permissions.canManageRepairMaintenancePresets !== true) return json({ error: "You do not have READ access to R&M settings." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine type."), 400);
       const { data, error } = await db.from("repair_maintenance_assets")
         .select("id,machine_type,name,asset_code,make_model,status,created_at,updated_at")
@@ -367,7 +368,7 @@ cess is not enabled for this account." }, 403);
     }
 
     if (action === "model-delete") {
-      if (permissions.canManageRepairMaintenanceMachinery !== true) return json({ error: "You do not have EDIT access to R&M Machinery." }, 403);
+      if (permissions.canDeleteRepairMaintenance !== true) return json({ error: "You do not have MANAGE access to archive the registered machine." }, 403);
       if (!isOneOf(body.machineType, machineTypes)) return json(fail("Select a valid machine category."), 400);
       const modelId = cleanText(body.modelId, "Registered machine ID", 64);
       const { data, error } = await db.from("repair_maintenance_assets").update({ status: "ARCHIVED", updated_by: actor, updated_at: new Date().toISOString() })
@@ -542,7 +543,6 @@ cess is not enabled for this account." }, 403);
 
     if (action === "create") {
       if (permissions.canCreateRepairMaintenance !== true) return json({ error: "You do not have INPUT access to create R&M faults." }, 403);
-      if (permissions.canReadRepairMaintenanceMachinery !== true) return json({ error: "You do not have READ access to R&M Machinery." }, 403);
       if (!isOneOf(body.machineType, machineTypes) || !isOneOf(body.priority, RM_FAULT_PRIORITIES)) return json(fail("Machine or priority is invalid."), 400);
       const assetId = cleanText(body.assetId, "Machine", 64);
       const { data: asset, error: assetError } = await db.from("repair_maintenance_assets")
