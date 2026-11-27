@@ -17,7 +17,7 @@
   }
   window.DowntimeCentral={
     get session(){return session},
-    async listUsers(){return call("list-users")},
+    async listUsers(){return call("list-users",{},null)},
     async login(username,pin){const result=await call("login",{username,pin},null);session={token:result.token,expiresAt:result.expiresAt,user:result.user};sessionStorage.setItem(SESSION_KEY,JSON.stringify(session));return result.user},
     async logout(){try{if(session?.token)await call("logout",{},session.token)}finally{session=null;sessionStorage.removeItem(SESSION_KEY)}},
     async state(){return call("get-state")},
