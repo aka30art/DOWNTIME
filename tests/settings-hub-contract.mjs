@@ -34,8 +34,8 @@ assert.equal((html.match(/data-settings-open="/g) || []).length, 6,
   'hub must expose seven standard destinations plus the ADMIN/JAN Access and Rights destination');
 assert.doesNotMatch(html, /data-settings-open="users"/, 'USERS must be removed from DOWNTIME Settings navigation');
 assert.doesNotMatch(html, /data-settings-open="staff"/, 'STAFF must be removed from DOWNTIME Settings navigation');
-assert.equal((html.match(/data-settings-back>/g) || []).length, 8,
-  'every settings panel must provide a back-to-settings control');
+assert.equal((html.match(/data-settings-back>/g) || []).length, 7,
+  'operational settings panels retain back-to-settings controls; STAFF returns to YARD HUB');
 assert.doesNotMatch(html, /data-view="staff"/, 'STAFF must no longer have a standalone navigation destination');
 assert.match(html, /id="settingsPanelStaff"[\s\S]*?id="staffRosterList"/, 'STAFF workspace implementation remains available for the YARD HUB launcher');
 assert.match(html, /id="settingsPanelStaff"[\s\S]*?BACK TO YARD HUB/, 'STAFF workspace returns to YARD HUB rather than DOWNTIME Settings');
@@ -89,7 +89,7 @@ for(const section of requiredTiles)assert.equal(fullAdmin.settingsAccess(section
 assert.equal(fullAdmin.settingsAccess('users'),false,'even protected ROOTS users manage USERS only from YARD HUB');
 assert.equal(fullAdmin.settingsAccess('staff'),true,'legacy STAFF permission helper remains for compatibility with internal routing');
 assert.match(helpersMatch[0], /function anySettingsAccess\(\)\{return \['areas','stations','reasons','schedule','dailyTasks','staff','accessRights'\]/,
-  'USERS and STAFF permissions must keep the Settings entry point available');
+  'STAFF workspace access keeps the Settings entry point available while USERS remain separate');
 assert.equal(fullAdmin.settingsAccess('accessRights'),false,'a role without the ADMIN/JAN identity allow-list cannot access tier rights');
 assert.equal(accessHelpers(()=>false,()=>true,()=>false).settingsAccess('accessRights'),true,'ADMIN tier or JAN root OWNER allow-list can access Access and Rights');
 const manageAccessRightsStart=html.indexOf('function canManageAccessRights(){');
@@ -110,6 +110,7 @@ assert.equal(centralBankGate(()=> 'ADMIN')(),false,'protected ADMIN cannot acces
 assert.equal(centralBankGate(()=> null)(),false,'legacy OWNER/DEVACC/ADMIN tiers cannot substitute for immutable DEV ROOTS authority');
 assert.ok(!html.includes('centralUsersAdminLink'),'obsolete Central Data Bank link is removed from the USERS panel');
 
+assert.match(html, /<button class="nav" data-view="settings">⚙ &nbsp; Settings<\/button>/, 'DOWNTIME main menu retains its Settings destination');
 assert.match(html, /function showSettingsHub\(\)/, 'back navigation must return to the Settings hub');
 assert.match(html, /function openSettingsPanel\(section\)/, 'tile navigation must open dedicated panels');
 assert.match(html, /document\.querySelectorAll\('\[data-settings-back\]'\)/,
