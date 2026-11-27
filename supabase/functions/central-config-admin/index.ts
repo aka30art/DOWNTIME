@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { resolveRootsAuthority } from "../_shared/roots-authority.mjs";
 
 const allowedOrigin = "https://aka30art.github.io";
 const headers = {
@@ -461,16 +462,18 @@ Deno.serve(async (req: Request) => {
   const user = users.find((item: any) => item && item.username === session.username && item.enabled !== false);
   if (!user) return json({ error: "Account disabled" }, 401);
   const username = String(user.username || "").trim().toUpperCase();
-  const tier = String(user.tier || "");
-  const isDevRoot = username === "DEV" && tier === "OWNER";
-  const isDevacc = tier === "DEVACC";
+  const { data: rootsBootstrap, error: rootsBootstrapError } = await db.from("downtime_roots_bootstrap")
+    .select("user_id").eq("singleton", true).maybeSingle();
+  if (rootsBootstrapError || !rootsBootstrap?.user_id) return json({ error: "Immutable DEV bootstrap identity is unavailable." }, 503);
+  const rootsAuthority = resolveRootsAuthority(user, null, rootsBootstrap.user_id);
+  const isDevRoot = rootsAuthority === "DEV";
   const actor = String(user.username || username);
   const action = body?.action;
   const { data: configState, error: configError } = await db.from("downtime_central_config_state").select("*").eq("id", 1).maybeSingle();
   if (configError || !configState) return json({ error: "Configuration control plane is not installed" }, 503);
 
   // Authenticated users may read only the published launcher structure. Drafts and all
-  // administrative configuration actions remain restricted to DEV OWNER / DEVACC.
+  // administrative configuration actions remain restricted to immutable DEV.
   if (action === "yard-hub-menu") {
     try {
       const publishedYardHubMenu = normalizeYardHubMenu(configState.published_payload?.yardHubMenu);
@@ -480,7 +483,7 @@ Deno.serve(async (req: Request) => {
       return json({ error: error instanceof Error ? error.message : "Published YARD HUB menu is invalid" }, 503);
     }
   }
-  if (!isDevRoot && !isDevacc) return json({ error: "Central Data Bank access is restricted to DEV and DEVACC only." }, 403);
+  if (!isDevRoot) return json({ error: "Central Data Bank access is restricted to immutable DEV." }, 403);
 
   if (action === "central-config-state") {
     let draft: any;
