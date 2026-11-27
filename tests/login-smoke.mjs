@@ -1139,6 +1139,7 @@ await ensureNavigationMenuOpen(owner.page);
   assert.equal(await owner.page.frameLocator('#overviewFrame').locator('[data-stationassigned="5"]').textContent(),'SHAYNE','previous station is cleared after unlocked reassignment');
   await owner.page.frameLocator('#overviewFrame').locator('#exitOverview').click();
   await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
+  await openStaffSettings(owner.page);
   await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
   owner.page.once('dialog',dialog=>dialog.accept());
   await owner.page.locator('#smPhotoRemove').click();
