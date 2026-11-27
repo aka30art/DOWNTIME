@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const migration = await readFile("supabase/migrations/20261126233000_canonical_yard_role_registry.sql", "utf8");
+const definitionMigration = await readFile("supabase/migrations/20261127030000_yard_role_definition_management.sql", "utf8");
 
 assert.match(migration, /status text not null default 'DRAFT'/, "new YARD ROLEs start as drafts");
 assert.match(migration, /version integer not null default 1/, "YARD ROLE definitions are versioned");
@@ -20,4 +21,10 @@ assert.match(migration, /enable row level security/, "all canonical role tables 
 assert.match(migration, /revoke all on public\.yard_roles from anon, authenticated/, "browser roles cannot read or mutate the role registry directly");
 assert.doesNotMatch(migration, /insert into public\.yard_roles/i, "no unapproved role catalogue entries are seeded");
 
+assert.match(definitionMigration, /yard_role_save_definition/);
+assert.match(definitionMigration, /yard_role_definition_audit/);
+assert.match(definitionMigration, /YARD_ROLE_VERSION_CONFLICT/);
+assert.match(definitionMigration, /is distinct from/);
+assert.match(definitionMigration, /Reassign every USER before retiring this YARD ROLE/);
+assert.match(definitionMigration, /prevent_yard_role_definition_audit_mutation/);
 console.log("PASS: canonical YARD ROLE schema enforces approved departments, levels, audit and service-role boundaries.");
