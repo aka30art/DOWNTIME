@@ -757,7 +757,7 @@ try{
  await owner.page.locator('#smSave').click();
  await owner.page.waitForFunction(()=>document.querySelector('#staffModalBackdrop')?.hidden===true,{timeout:5000});
  assert.equal(owner.getBank().staff.profiles.Jan.station,'Station 3 · SCRAP','SCPL STAFF station reassignment is confirmed in the central data bank');
- await owner.page.locator('#settingsPanelStaff .settings-back').click();
+ await owner.page.locator('#backToYardHub').click();
  await owner.page.waitForFunction(()=>document.querySelector('#yardHub')&&!document.querySelector('#yardHub').hidden,{timeout:5000});
  await owner.page.locator('#launchDowntimeBtn').click();
  await owner.page.waitForFunction(()=>getComputedStyle(document.querySelector('.shell')).display!=='none',{timeout:3000});
