@@ -40,6 +40,8 @@ Implemented in this branch:
 - Non-DEV account listings, Central Bank STAFF payloads, daily-operator views and GATELOG STAFF rosters hide protected ROOTS identities. Ordinary account/tier/STAFF/photo paths cannot modify or inspect protected ROOTS identities.
 - ROOTS authority is resolved independently and grants protected Manage capabilities to the current Central Bank Management, GATELOG Traffic, R&M and YARD HUB ROOTS consumers. It does not grant the separate DEV-only configuration control plane.
 
+DEV1's ADMIN assignment is exposed through a restricted manual-ID form: it accepts one immutable USER ID and its linked STAFF ID, invokes only the ADMIN assignment action, and never loads or displays the ROOTS directory. DEV remains the only identity that can browse the directory, assign DEV1, reclassify or revoke ROOTS identities.
+
 Outstanding provisioning decision: ROOTS assignment routes operate on an existing active canonical USER/STAFF pair. A dedicated ROOTS-only provisioning/activation path is still needed if DEV1 or protected ADMIN must be created without first completing the ordinary canonical USER/STAFF provisioning workflow.
 
 ## F6 — Canonical YARD ROLE consumers and legacy fallback
