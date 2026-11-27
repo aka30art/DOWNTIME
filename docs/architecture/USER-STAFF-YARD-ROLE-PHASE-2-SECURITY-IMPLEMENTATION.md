@@ -50,7 +50,7 @@ Canonical YARD ROLE resolution is now wired into the current GATELOG Traffic and
 - R&M actions distinguish READ, INPUT/EDIT and MANAGE; preset/machinery management requires MANAGE.
 - ROOTS authority is a separate override and is never derived from an ordinary YARD ROLE matrix.
 
-Legacy tier/YARD HUB permission fallback remains only for identities without a canonical YARD ROLE assignment and without protected ROOTS authority. It is transitional. Do not set `DOWNTIME_CANONICAL_AUTH_READY`, seed the role catalogue or treat the YARD ROLE resolver as application-wide authority until all live consumers, the direct Supabase Auth boundary, audit attribution and acceptance gates have been reviewed.
+The live backend consumers currently covered are GATELOG Traffic and R&M. SCPL, Management and SCFL do not yet have corresponding live authorization APIs integrated in this branch; any such consumer must use the same resolver before global activation. Legacy tier/YARD HUB permission fallback remains only for identities without a canonical YARD ROLE assignment and without protected ROOTS authority. It is transitional. Do not set `DOWNTIME_CANONICAL_AUTH_READY`, seed the role catalogue or treat the YARD ROLE resolver as application-wide authority until all live consumers, the direct Supabase Auth boundary, audit attribution and acceptance gates have been reviewed.
 
 ## Release boundary
 
