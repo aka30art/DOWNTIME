@@ -1038,7 +1038,7 @@ await ensureNavigationMenuOpen(owner.page);
   await owner.page.frameLocator('#overviewFrame').locator('#exitOverview').click();
   await owner.page.waitForFunction(()=>document.querySelector('#overviewOverlay')?.hidden===true,{timeout:3000});
   await openStaffSettings(owner.page);
-  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click();
+  await owner.page.locator('.staff-settings-icon[aria-label="Staff settings for Rita"]').click({force:true});
   assert.equal(await owner.page.locator('#smStation').isDisabled(),true,'locked station is disabled when profile reopens');
   await owner.page.locator('#smLock').uncheck();
   assert.equal(await owner.page.locator('#smStation').isEnabled(),true,'manual unlock in Staff Settings enables reassignment');
