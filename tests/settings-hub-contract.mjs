@@ -58,8 +58,48 @@ for (const id of [
 
 const helpersMatch=html.match(/function canManageSettingsSection\(section\)\{[\s\S]*?function anySettingsAccess\(\)\{[^}]*\}/);
 assert.ok(helpersMatch,'granular Settings permission helpers must be present');
-const accessHelpers=new Function('permission','canManageAccessRights','isStaffModuleAutoAccess','rootsAuthority',helpersMatch[0]+'; return {settingsAccess,canManageSettingsSection};');
+const accessHelpers=new Function('permission','canManageAccessRights','isStaffModuleAutoAccess','rootsAuthority',helpersMatch[0]+'; return {settingsAccess,canManageSettingsSection,anySettingsAccess};');
 const helper=(permission)=>accessHelpers(permission,()=>false,()=>false,()=>null);
+const permissionStart=html.indexOf('function permission(name){');
+const permissionEnd=html.indexOf('\nfunction canManageAccessRights()',permissionStart);
+assert.ok(permissionStart>=0&&permissionEnd>permissionStart,'canonical permission resolver must be available for direct permission tests');
+const permissionSource=html.slice(permissionStart,permissionEnd);
+function resolvePermission(user,root=''){
+  const hasDepartment=department=>{
+    const rights=user?.yardRolePermissions?.[department];
+    return !!rights&&['view','enter','edit','manage'].some(key=>rights[key]===true);
+  };
+  return new Function('centralUser','window','activeOperator','privilegeFor','lockedTierPermissions','tierDefaults','rootsAuthority','hasAnyDepartmentPermission',permissionSource+'; return permission;')(
+    user,{},'legacy-test',()=> 'USER',{}, {},()=>root,hasDepartment
+  );
+}
+const readOnlyIdentity={userId:'user-read-only',staffId:'staff-read-only',yardRolePermissions:{Management:{view:true,enter:false,edit:false,manage:false}}};
+const readOnlyPermission=resolvePermission(readOnlyIdentity);
+assert.equal(readOnlyPermission('canViewAreaPresets'),true,'Management READ ONLY can view Area Presets');
+assert.equal(readOnlyPermission('canViewReasonPresets'),true,'Management READ ONLY can view Reason Presets');
+assert.equal(readOnlyPermission('canViewShiftSchedule'),true,'Management READ ONLY can view Shift & Breaktime');
+assert.equal(readOnlyPermission('canViewDailyTasks'),true,'Management READ ONLY can view Daily Tasks');
+assert.equal(readOnlyPermission('canViewStations'),true,'Management READ ONLY can view Station Manager');
+assert.equal(readOnlyPermission('canManageSettings'),false,'Management READ ONLY cannot manage settings');
+assert.equal(readOnlyPermission('canManageAreaPresets'),false,'Management READ ONLY cannot modify Area Presets');
+const inputIdentity={...readOnlyIdentity,yardRolePermissions:{Management:{view:true,enter:true,edit:false,manage:false}}};
+const inputPermission=resolvePermission(inputIdentity);
+assert.equal(inputPermission('canViewAreaPresets'),true,'Management INPUT inherits read access');
+assert.equal(inputPermission('canManageSettings'),false,'Management INPUT does not inherit settings management');
+const manageIdentity={...readOnlyIdentity,yardRolePermissions:{Management:{view:true,enter:true,edit:true,manage:true}}};
+const managePermission=resolvePermission(manageIdentity);
+assert.equal(managePermission('canManageSettings'),true,'Management MANAGE can manage operational settings');
+assert.equal(managePermission('canManageAreaPresets'),true,'Management MANAGE can manage area presets');
+assert.equal(managePermission('canManageReasonPresets'),true,'Management MANAGE can manage reason presets');
+assert.equal(managePermission('canManageShiftSchedule'),true,'Management MANAGE can manage shift schedule');
+assert.equal(managePermission('canManageDailyTasks'),true,'Management MANAGE can manage daily tasks');
+assert.equal(managePermission('canManageUsers'),false,'Management MANAGE cannot manage central USER accounts');
+for(const root of ['DEV','DEV1','ADMIN']){
+  const rootPermission=resolvePermission({userId:'root-user',staffId:'root-staff'},root);
+  assert.equal(rootPermission('canManageSettings'),true,root+' retains DOWNTIME operational Settings management');
+  assert.equal(rootPermission('canManageUsers'),root==='DEV',root+' Central USER lifecycle stays DEV-only');
+}
+
 const managerOnly=helper(name=>({canManageUsers:true,canViewUsers:false}[name]===true));
 assert.equal(managerOnly.settingsAccess('users'),false,'Central USER directory is exclusively managed from YARD HUB');
 assert.equal(managerOnly.settingsAccess('areas'),false);
@@ -84,12 +124,18 @@ assert.equal(supervisorStaff.settingsAccess('users'),false,'USERS remain outside
 assert.equal(supervisorStaff.settingsAccess('stations'),false,'SUPERVISOR assignment rights do not include station configuration rights');
 const staffViewer=helper(name=>name==='canViewStaff');
 assert.equal(staffViewer.settingsAccess('staff'),true,'STAFF visibility preserves existing staff-view privilege');
+assert.equal(staffViewer.anySettingsAccess(),false,'STAFF-only access must not expose an empty DOWNTIME Settings destination after STAFF moved to YARD HUB');
+const stationViewer=helper(name=>name==='canViewStations');
+assert.equal(stationViewer.settingsAccess('stations'),true,'Management READ ONLY/INPUT roles can inspect Station Manager');
+assert.equal(stationViewer.canManageSettingsSection('stations'),false,'view-only Station Manager access cannot edit station configuration');
 const fullAdmin=accessHelpers(()=>true,()=>false,()=>false,()=> 'DEV');
 for(const section of requiredTiles)assert.equal(fullAdmin.settingsAccess(section),true);
 assert.equal(fullAdmin.settingsAccess('users'),false,'even protected ROOTS users manage USERS only from YARD HUB');
 assert.equal(fullAdmin.settingsAccess('staff'),true,'legacy STAFF permission helper remains for compatibility with internal routing');
-assert.match(helpersMatch[0], /function anySettingsAccess\(\)\{return \['areas','stations','reasons','schedule','dailyTasks','staff','accessRights'\]/,
-  'STAFF workspace access keeps the Settings entry point available while USERS remain separate');
+assert.match(helpersMatch[0], /function anySettingsAccess\(\)\{return \['areas','stations','reasons','schedule','dailyTasks','accessRights'\]/,
+  'only actual DOWNTIME Settings destinations keep the Settings entry point visible; STAFF and USERS remain in YARD HUB');
+assert.match(html,/const empty=\$\('settingsHubEmpty'\);if\(empty\)empty\.hidden=\['areas','stations','reasons','schedule','dailyTasks','accessRights'\]\.some\(key=>access\[key\]\)/,
+  'STAFF-only or USERS-only privileges cannot suppress the DOWNTIME Settings empty state');
 assert.equal(fullAdmin.settingsAccess('accessRights'),false,'a role without the ADMIN/JAN identity allow-list cannot access tier rights');
 assert.equal(accessHelpers(()=>false,()=>true,()=>false).settingsAccess('accessRights'),true,'ADMIN tier or JAN root OWNER allow-list can access Access and Rights');
 const manageAccessRightsStart=html.indexOf('function canManageAccessRights(){');
