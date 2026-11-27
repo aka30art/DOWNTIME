@@ -500,9 +500,7 @@ async function ensureNavigationMenuOpen(page){
 }
 
 async function openStaffSettings(page){
- await ensureNavigationMenuOpen(page);
- await dismissPlantTransitionAlerts(page);
- await page.locator('.nav[data-view="settings"]').click();
+ await ensureMainMenu(page);
  await dismissPlantTransitionAlerts(page);
  await page.evaluate(()=>{document.querySelector('#settingsHub').hidden=true;document.querySelector('#settingsPanelStaff').hidden=false});
  await page.locator('#staffRosterList').waitFor({state:'visible'});
