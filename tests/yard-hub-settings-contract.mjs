@@ -236,3 +236,11 @@ assert.match(hubApi, /users: \(Array\.isArray\(bank\.users\) \? bank\.users : \[
   'canonical USER directory includes DEV1 and ADMIN ROOTS-classified USER/STAFF accounts');
 assert.match(hubApi, /rootsClass: rootAssignmentsByUser\.get\(String\(account\.userId \|\| \"\"\)\.toLowerCase\(\)\)\?\.status === \"ACTIVE\"/,
   'USER directory exposes ROOTS class metadata so protected rows stay protected');
+
+const hubApiRoleResolver = fs.readFileSync('supabase/functions/yard-hub-settings-api/_shared/yard-role-resolver.mjs','utf8');
+const hubApiRootsAuthority = fs.readFileSync('supabase/functions/yard-hub-settings-api/_shared/roots-authority.mjs','utf8');
+const canonicalRoleResolver = fs.readFileSync('supabase/functions/_shared/yard-role-resolver.mjs','utf8');
+const canonicalRootsAuthority = fs.readFileSync('supabase/functions/_shared/roots-authority.mjs','utf8');
+assert.equal(hubApiRoleResolver, canonicalRoleResolver, 'YARD HUB function-local role resolver must stay byte-identical to the canonical shared module');
+assert.equal(hubApiRootsAuthority, canonicalRootsAuthority, 'YARD HUB function-local ROOTS resolver must stay byte-identical to the canonical shared module');
+assert.ok(hubApi.includes('"./_shared/yard-role-resolver.mjs"') && hubApi.includes('"./_shared/roots-authority.mjs"'), 'YARD HUB API uses function-local bundle-safe module paths');
