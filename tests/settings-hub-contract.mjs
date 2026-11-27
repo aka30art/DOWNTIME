@@ -57,8 +57,8 @@ for (const id of [
 
 const helpersMatch=html.match(/function canManageSettingsSection\(section\)\{[\s\S]*?function anySettingsAccess\(\)\{[^}]*\}/);
 assert.ok(helpersMatch,'granular Settings permission helpers must be present');
-const accessHelpers=new Function('permission','canManageAccessRights','isStaffModuleAutoAccess',helpersMatch[0]+'; return {settingsAccess,canManageSettingsSection};');
-const helper=(permission)=>accessHelpers(permission,()=>false,()=>false);
+const accessHelpers=new Function('permission','canManageAccessRights','isStaffModuleAutoAccess','rootsAuthority',helpersMatch[0]+'; return {settingsAccess,canManageSettingsSection};');
+const helper=(permission)=>accessHelpers(permission,()=>false,()=>false,()=>null);
 const managerOnly=helper(name=>({canManageUsers:true,canViewUsers:false}[name]===true));
 assert.equal(managerOnly.settingsAccess('users'),true);
 assert.equal(managerOnly.settingsAccess('areas'),false);
@@ -92,18 +92,17 @@ assert.notEqual(manageAccessRightsStart,-1,'Access and Rights permission gate mu
 const manageAccessRightsEnd=html.indexOf('}',manageAccessRightsStart)+1;
 const manageAccessRightsSource=html.slice(manageAccessRightsStart,manageAccessRightsEnd);
 assert.ok(manageAccessRightsSource.endsWith('}'),'Access and Rights permission gate source must be complete');
-const accessRightsGate=new Function('centralUser','activeOperator','privilegeFor','canAccessCentralBank','permission',
+const accessRightsGate=new Function('centralUser','activeOperator','privilegeFor','canAccessCentralBank','permission','rootsAuthority',
   manageAccessRightsSource+'; return canManageAccessRights;');
-const rightsGate=(tier,delegated,root=false)=>accessRightsGate(
-  {tier},'contract-user',()=>tier,()=>root,name=>name==='canManageAccessRights'&&delegated
+const rightsGate=(tier,rootAuthority=null)=>accessRightsGate(
+  {tier},'contract-user',()=>tier,()=>false,()=>false,()=>rootAuthority
 )();
-assert.equal(rightsGate('ADMIN',true),true,'ADMIN with explicit delegation permission can manage lower-tier profiles');
-assert.equal(rightsGate('ADMIN',false),false,'ADMIN without delegation permission cannot manage tier profiles');
-for(const tier of ['MANAGER','SUPERVISOR','USER','SPECTATOR']){
-  assert.equal(rightsGate(tier,true),false,tier+' cannot inherit delegated Access and Rights management from a copied permission profile');
-}
-assert.equal(rightsGate('OWNER',false,true),true,'root OWNER retains unrestricted Access and Rights authority');
-assert.equal(rightsGate('DEVACC',false,true),true,'root DEVACC retains unrestricted Access and Rights authority');
+assert.equal(rightsGate('ADMIN','ADMIN'),false,'protected ADMIN ROOTS cannot inherit DEV-only DOWNTIME Access and Rights control');
+assert.equal(rightsGate('DEVACC','DEVACC'),false,'legacy DEVACC tier does not grant protected ROOTS authority');
+assert.equal(rightsGate('OWNER',null),false,'legacy OWNER tier alone does not grant Access and Rights control');
+assert.equal(rightsGate('OWNER','DEV'),true,'immutable DEV ROOTS authority retains Access and Rights control');
+assert.equal(rightsGate('OWNER','DEV1'),false,'DEV1 cannot change the DEV-only DOWNTIME Access and Rights control plane');
+assert.equal(rightsGate('OWNER','ADMIN'),false,'protected ADMIN cannot change the DEV-only DOWNTIME Access and Rights control plane');
 assert.ok(!html.includes('centralUsersAdminLink'),'obsolete Central Data Bank link is removed from the USERS panel');
 
 assert.match(html, /function showSettingsHub\(\)/, 'back navigation must return to the Settings hub');
