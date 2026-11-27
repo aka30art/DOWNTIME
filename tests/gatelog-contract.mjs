@@ -85,13 +85,13 @@ assert.match(api,/downtime_roots_assignments/,'GATELOG reads server-side protect
 assert.match(api,/const isProtectedRoot=\["DEV","DEV1","ADMIN"\]/,'DEV, DEV1 and protected ADMIN receive ROOTS access');
 assert.match(api,/if\(user.yardRoleId&&!isProtectedRoot\)/,'GATELOG resolves canonical YARD ROLE only within this application and keeps ROOTS authority separate');
 assert.match(api,/canYardRolePerform\(resolvedYardRole,"Traffic","EDIT"\)/,'GATELOG visit edits require the canonical Traffic EDIT or MANAGE level');
-assert.match(api,/canYardRolePerform\(resolvedYardRole,"Traffic","DELETE"\)/,'GATELOG destructive actions require the canonical Traffic MANAGE level');
-assert.match(api,/const canManageGateman=isProtectedRoot/,'ROOTS identities receive GATELOG Manage authority');
-assert.match(api,/const canExportReports=isProtectedRoot/,'ROOTS identities receive GATELOG report authority');
+assert.match(api,/canTrafficManage=!!resolvedYardRole&&canYardRolePerform\(resolvedYardRole,"Traffic","MANAGE"\)/,'GATELOG destructive actions require the canonical Traffic MANAGE level');
+assert.match(api,/const canManageGateman=isProtectedRoot\|\|\(resolvedYardRole\?canTrafficManage:/,'ROOTS identities and Traffic MANAGE roles receive GATELOG Manage authority');
+assert.match(api,/const canExportReports=isProtectedRoot\|\|\(resolvedYardRole\?canTrafficView:/,'ROOTS identities and Traffic VIEW roles receive GATELOG report authority');
 assert.match(api,/resolveYardRolePermissions/,'GATELOG validates canonical YARD ROLE permission matrices');
 assert.match(api,/yard_role_assignments/,'GATELOG verifies the active immutable USER/STAFF role assignment');
 assert.match(api,/canYardRolePerform\(resolvedYardRole,"Traffic","VIEW"\)/,'GATELOG Traffic READ access uses the canonical resolver');
-assert.match(api,/canTrafficInput=!!resolvedYardRole&&canYardRolePerform\(resolvedYardRole,"Traffic","ADD"\)/,'Traffic ENTER is independent from EDIT');
+assert.match(api,/canTrafficInput=!!resolvedYardRole&&canYardRolePerform\(resolvedYardRole,"Traffic","ENTER"\)/,'Traffic ENTER is independent from EDIT');
 assert.match(api,/canAccess=isProtectedRoot\|\|\(resolvedYardRole\?\(canTrafficView\|\|canTrafficInput\|\|canTrafficEdit\|\|canTrafficManage\)/,'any independently enabled Traffic permission grants the module entry point');
 assert.match(api,/activeVisits:canTrafficView\?visits\.map/,'Traffic operational records are withheld without VIEW');
 assert.match(api,/day-register"[\s\S]*canTrafficView/,'the day register requires VIEW even when another permission grants module access');
