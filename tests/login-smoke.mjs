@@ -539,7 +539,7 @@ try{
  await owner.page.waitForFunction(()=>document.querySelector('#yardHubSettingsBtn')?.dataset.accessChecked==='true',{timeout:5000});
  assert.equal(await owner.page.locator('#yardHub').isVisible(),true,'returning from DOWNTIME restores YARD HUB before testing Hub Settings');
  // Canonical YARD ROLE catalogue is opened through the Staff Management menu.
- await owner.page.waitForFunction(()=>typeof window.openYardHubStaffManagement==='function',{timeout:5000});
+ await owner.page.waitForFunction(()=>typeof window.openYardHubStaffManagement==='function'&&window.DOWNTIME_ROOTS_AUTHORITY==='DEV'&&document.querySelector('#launchStaffManagementBtn')?.classList.contains('yard-tile-active'),{timeout:5000});
  assert.equal(await owner.page.locator('#launchStaffManagementBtn').isVisible(),true,'DEV root sees the Staff Management entry point');
  const originalDowntimeTierPayload=JSON.stringify(owner.getBank().tiers);
  const originalLegacyHubTiers=JSON.stringify(owner.getYardHubConfig().tiers);
