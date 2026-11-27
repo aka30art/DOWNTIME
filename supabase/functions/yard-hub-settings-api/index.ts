@@ -160,8 +160,10 @@ Deno.serve(async (req: Request) => {
       .order("created_at");
     if (assignmentsError) return json({ error: "Protected ROOTS registry is unavailable." }, 503);
     const usersById = new Map((Array.isArray(bank.users) ? bank.users : []).filter((account: any) => account.userId).map((account: any) => [String(account.userId).toLowerCase(), account]));
+    const activeRootUserIds = new Set((assignments || []).filter((assignment: any) => assignment.status === "ACTIVE").map((assignment: any) => String(assignment.user_id).toLowerCase()));
     const profiles = Object.values(bank.staff?.profiles || {}) as any[];
     const eligibleUsers = (Array.isArray(bank.users) ? bank.users : []).filter((account: any) => {
+      if (activeRootUserIds.has(String(account.userId || "").toLowerCase())) return false;
       if (String(account.username || "").trim().toUpperCase() === "DEV" || account.enabled !== true ||
           account.status !== "ACTIVE" || account.provisioning || account.tier != null ||
           !account.userId || !account.staffId) return false;
@@ -250,8 +252,8 @@ Deno.serve(async (req: Request) => {
     const { data: rootsAssignmentsForDirectory, error: rootsDirectoryError } = await db.from("downtime_roots_assignments")
       .select("user_id,staff_id,roots_class,status,version");
     if (rootsDirectoryError) return json({ error: "Protected ROOTS registry is unavailable." }, 503);
-    const rootAssignmentsByUser = new Map((rootsAssignmentsForDirectory || []).filter((assignment: any) => assignment.status === "ACTIVE")
-      .map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));
+    const rootAssignmentsByUser = new Map((rootsAssignmentsForDirectory || []).map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));
+    const activeRootUserIds = new Set((rootsAssignmentsForDirectory || []).filter((assignment: any) => assignment.status === "ACTIVE").map((assignment: any) => String(assignment.user_id).toLowerCase()));
     const assignableYardRoles = (yardRoles || []).filter((role: any) => {
       try { return Object.keys(resolveYardRolePermissions(role, rolePermissions || []).departments).length > 0; }
       catch { return false; }
@@ -259,7 +261,7 @@ Deno.serve(async (req: Request) => {
     const roleByUser = new Map((roleAssignments || []).map((assignment: any) => [String(assignment.user_id).toLowerCase(), assignment]));
     return json({
       user: { ...safeUser(user), legacyTier, hubTier },
-      users: (Array.isArray(bank.users) ? bank.users : []).filter((account: any) => rootsAuthority === "DEV" || !rootAssignmentsByUser.has(String(account.userId || "").toLowerCase())).map((account: any) => {
+      users: (Array.isArray(bank.users) ? bank.users : []).filter((account: any) => rootsAuthority === "DEV" || !activeRootUserIds.has(String(account.userId || "").toLowerCase())).map((account: any) => {
         const assignment: any = roleByUser.get(String(account.userId || "").toLowerCase());
         return {
           ...safeUser(account),
@@ -271,7 +273,9 @@ Deno.serve(async (req: Request) => {
           requestedYardRoleId: account.provisioning?.requestedYardRoleId || null,
           yardRoleId: assignment?.yard_role_id || account.yardRoleId || null,
           yardRoleVersion: assignment?.version || null,
-          rootsClass: rootAssignmentsByUser.get(String(account.userId || "").toLowerCase())?.roots_class || null,
+          rootsClass: rootAssignmentsByUser.get(String(account.userId || "").toLowerCase())?.status === "ACTIVE" ? rootAssignmentsByUser.get(String(account.userId || "").toLowerCase())?.roots_class || null : null,
+          rootsVersion: rootAssignmentsByUser.get(String(account.userId || "").toLowerCase())?.version || null,
+          rootsStatus: rootAssignmentsByUser.get(String(account.userId || "").toLowerCase())?.status || null,
         };
       }).sort((a: any, b: any) => a.username.localeCompare(b.username)),
       yardRoles: assignableYardRoles,
