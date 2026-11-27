@@ -199,6 +199,602 @@ grant execute on function public.downtime_roots_assign_identity(uuid,uuid,text,u
 comment on table public.downtime_roots_bootstrap is 'Single immutable DEV USER identity. Its ID is captured once from the existing Central Bank record.';
 comment on table public.downtime_roots_assignments is 'Protected DEV1/ADMIN assignment with revocation and reclassification lifecycle; direct DML is denied.';
 comment on table public.downtime_roots_assignment_audit is 'Append-only audit of ROOTS assignment, reclassification and revocation events.';
+  if coalesce(candidate_record->>'userId','') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
+  else
+    -- Temporary transition identity: the one-time reset later replaces this old DEV ID
+    -- with a different new DEV bootstrap ID and removes the old DEV account.
+    candidate_user_id := gen_random_uuid();
+    update public.downtime_central_bank b
+       set payload=jsonb_set(
+             b.payload,
+             '{users}',
+             (
+               select jsonb_agg(
+                 case when user_record = candidate_record
+                      then jsonb_set(user_record,'{userId}',to_jsonb(candidate_user_id::text),true)
+                      else user_record end
+                 order by ord
+               )
+               from jsonb_array_elements(coalesce(b.payload->'users','[]'::jsonb))
+                    with ordinality as accounts(user_record,ord)
+             ),
+             true
+           ),
+           version=version+1,
+           updated_at=now()
+     where b.id=1
+     returning version into updated_version;
+    if not found then raise exception 'Unable to attach the temporary DEV bootstrap identity'; end if;
+    insert into public.downtime_central_audit(username,action,details)
+    values('DEV','roots-bootstrap-transition-id-assigned',
+      jsonb_build_object('temporaryUserId',candidate_user_id,'previousUserId',candidate_record->>'userId',
+        'reason','Temporary immutable identity required to authorise the one-time identity reset'));
+  end if;
+
+  insert into public.downtime_roots_bootstrap(singleton,user_id)
+  values(true,candidate_user_id)
+  on conflict(singleton) do nothing;
+
+  select user_id into existing_user_id
+    from public.downtime_roots_bootstrap where singleton = true;
+  if existing_user_id is distinct from candidate_user_id then
+    raise exception 'Existing immutable DEV bootstrap identity does not match the Central Bank DEV USER';
+  end if;
+end;
+$bootstrap$;
+
+alter table public.downtime_roots_assignments
+  add column if not exists status text not null default 'ACTIVE'
+    check (status in ('ACTIVE','REVOKED'));
+alter table public.downtime_roots_assignments
+  add column if not exists version integer not null default 1 check (version > 0);
+alter table public.downtime_roots_assignments
+  add column if not exists revoked_at timestamptz;
+alter table public.downtime_roots_assignments
+  add column if not exists updated_at timestamptz not null default now();
+
+alter table public.downtime_roots_assignment_audit
+  drop constraint if exists downtime_roots_assignment_audit_action_check;
+alter table public.downtime_roots_assignment_audit
+  add constraint downtime_roots_assignment_audit_action_check
+  check (action in ('ROOTS_DEV1_ASSIGNED','ROOTS_ADMIN_ASSIGNED','ROOTS_RECLASSIFIED','ROOTS_REVOKED'));
+
+-- Assignment rows are managed only by the version-checked SECURITY DEFINER RPC below.
+-- Audit rows remain append-only, and no application role receives direct table DML.
+drop trigger if exists downtime_roots_assignment_immutable on public.downtime_roots_assignments;
+revoke insert, update, delete on public.downtime_roots_assignments from service_role;
+
+create or replace function public.downtime_roots_manage_identity(
+  p_user_id uuid,
+  p_staff_id uuid,
+  p_roots_class text,
+  p_action text,
+  p_expected_version integer,
+  p_actor_user_id uuid,
+  p_actor_username text,
+  p_actor_display_name text
+) returns jsonb
+language plpgsql security definer set search_path = public
+as $manage$
+declare
+  v_assignment public.downtime_roots_assignments%rowtype;
+  v_previous_class text;
+  v_next_class text;
+  v_audit_action text;
+begin
+  if p_user_id is null or p_staff_id is null or p_user_id = p_staff_id
+     or p_action is null or p_action not in ('ASSIGN','RECLASSIFY','REVOKE')
+     or coalesce(trim(p_actor_username),'') = ''
+     or p_actor_user_id is null
+     or coalesce(trim(p_actor_display_name),'') = '' then
+    raise exception 'Invalid protected ROOTS lifecycle request';
+  end if;
+  if p_action in ('ASSIGN','RECLASSIFY') and (p_roots_class is null or p_roots_class not in ('DEV1','ADMIN')) then
+    raise exception 'A protected DEV1 or ADMIN classification is required';
+  end if;
+
+  select * into v_assignment
+    from public.downtime_roots_assignments
+   where user_id = p_user_id or staff_id = p_staff_id
+   for update;
+
+  if not found then
+    if p_action <> 'ASSIGN' then raise exception 'Protected ROOTS assignment does not exist'; end if;
+    insert into public.downtime_roots_assignments
+      (user_id,staff_id,roots_class,status,version,assigned_by_user_id,assigned_by_username,assigned_by_display_name)
+    values
+      (p_user_id,p_staff_id,p_roots_class,'ACTIVE',1,p_actor_user_id,trim(p_actor_username),trim(p_actor_display_name))
+    returning * into v_assignment;
+    v_previous_class := null;
+    v_next_class := p_roots_class;
+    v_audit_action := case p_roots_class when 'DEV1' then 'ROOTS_DEV1_ASSIGNED' else 'ROOTS_ADMIN_ASSIGNED' end;
+  else
+    if v_assignment.user_id <> p_user_id or v_assignment.staff_id <> p_staff_id then
+      raise exception 'USER and STAFF IDs are already linked to a different protected ROOTS identity';
+    end if;
+    v_previous_class := v_assignment.roots_class;
+
+    if p_action = 'ASSIGN' then
+      if v_assignment.status = 'ACTIVE' and v_assignment.roots_class = p_roots_class then
+        return jsonb_build_object('user_id',v_assignment.user_id,'staff_id',v_assignment.staff_id,
+          'roots_class',v_assignment.roots_class,'status',v_assignment.status,'version',v_assignment.version,'replayed',true);
+      end if;
+      if v_assignment.status = 'ACTIVE' then
+        raise exception 'An active ROOTS classification already exists; use an authorised reclassification';
+      end if;
+      if p_expected_version is null or p_expected_version <> v_assignment.version then
+        raise exception 'ROOTS_ASSIGNMENT_VERSION_CONFLICT';
+      end if;
+      update public.downtime_roots_assignments
+         set roots_class=p_roots_class,status='ACTIVE',version=version+1,revoked_at=null,
+             assigned_by_user_id=p_actor_user_id,assigned_by_username=trim(p_actor_username),
+             assigned_by_display_name=trim(p_actor_display_name),updated_at=now()
+       where id=v_assignment.id returning * into v_assignment;
+      v_next_class := p_roots_class;
+      v_audit_action := case p_roots_class when 'DEV1' then 'ROOTS_DEV1_ASSIGNED' else 'ROOTS_ADMIN_ASSIGNED' end;
+
+    elsif p_action = 'RECLASSIFY' then
+      if v_assignment.status <> 'ACTIVE' then raise exception 'Only an active ROOTS identity can be reclassified'; end if;
+      if p_expected_version is null or p_expected_version <> v_assignment.version then
+        raise exception 'ROOTS_ASSIGNMENT_VERSION_CONFLICT';
+      end if;
+      if v_assignment.roots_class = p_roots_class then
+        return jsonb_build_object('user_id',v_assignment.user_id,'staff_id',v_assignment.staff_id,
+          'roots_class',v_assignment.roots_class,'status',v_assignment.status,'version',v_assignment.version,'replayed',true);
+      end if;
+      update public.downtime_roots_assignments
+         set roots_class=p_roots_class,version=version+1,assigned_by_user_id=p_actor_user_id,
+             assigned_by_username=trim(p_actor_username),assigned_by_display_name=trim(p_actor_display_name),updated_at=now()
+       where id=v_assignment.id returning * into v_assignment;
+      v_next_class := p_roots_class;
+      v_audit_action := 'ROOTS_RECLASSIFIED';
+
+    else
+      if v_assignment.status = 'REVOKED' then
+        return jsonb_build_object('user_id',v_assignment.user_id,'staff_id',v_assignment.staff_id,
+          'roots_class',v_assignment.roots_class,'status',v_assignment.status,'version',v_assignment.version,'replayed',true);
+      end if;
+      if p_expected_version is null or p_expected_version <> v_assignment.version then
+        raise exception 'ROOTS_ASSIGNMENT_VERSION_CONFLICT';
+      end if;
+      update public.downtime_roots_assignments
+         set status='REVOKED',version=version+1,revoked_at=now(),
+             assigned_by_user_id=p_actor_user_id,assigned_by_username=trim(p_actor_username),
+             assigned_by_display_name=trim(p_actor_display_name),updated_at=now()
+       where id=v_assignment.id returning * into v_assignment;
+      v_next_class := v_assignment.roots_class;
+      v_audit_action := 'ROOTS_REVOKED';
+    end if;
+  end if;
+
+  insert into public.downtime_roots_assignment_audit
+    (assignment_id,user_id,staff_id,roots_class,actor_user_id,actor_username,actor_display_name,action)
+  values
+    (v_assignment.id,p_user_id,p_staff_id,v_next_class,p_actor_user_id,trim(p_actor_username),trim(p_actor_display_name),v_audit_action);
+
+  return jsonb_build_object('user_id',v_assignment.user_id,'staff_id',v_assignment.staff_id,
+    'roots_class',v_assignment.roots_class,'status',v_assignment.status,'version',v_assignment.version,'replayed',false,
+    'previous_roots_class',v_previous_class);
+end;
+$manage$;
+
+revoke all on function public.downtime_roots_manage_identity(uuid,uuid,text,text,integer,uuid,text,text) from public, anon, authenticated;
+grant execute on function public.downtime_roots_manage_identity(uuid,uuid,text,text,integer,uuid,text,text) to service_role;
+
+create or replace function public.downtime_roots_assign_identity(
+  p_user_id uuid,p_staff_id uuid,p_roots_class text,p_actor_user_id uuid,p_actor_username text,p_actor_display_name text
+) returns jsonb
+language sql security definer set search_path = public
+as $assign$
+  select public.downtime_roots_manage_identity(
+    p_user_id,p_staff_id,p_roots_class,'ASSIGN',null,p_actor_user_id,p_actor_username,p_actor_display_name
+  );
+$assign$;
+
+revoke all on function public.downtime_roots_assign_identity(uuid,uuid,text,uuid,text,text) from public, anon, authenticated;
+grant execute on function public.downtime_roots_assign_identity(uuid,uuid,text,uuid,text,text) to service_role;
+
+comment on table public.downtime_roots_bootstrap is 'Single immutable DEV USER identity. Its ID is captured once from the existing Central Bank record.';
+comment on table public.downtime_roots_assignments is 'Protected DEV1/ADMIN assignment with revocation and reclassification lifecycle; direct DML is denied.';
+comment on table public.downtime_roots_assignment_audit is 'Append-only audit of ROOTS assignment, reclassification and revocation events.';
+ then
+    candidate_user_id := (candidate_record->>'userId')::uuid;
+  else
+    -- Temporary transition identity: the one-time reset later replaces this old DEV ID
+    -- with a different new DEV bootstrap ID and removes the old DEV account.
+    candidate_user_id := gen_random_uuid();
+    update public.downtime_central_bank b
+       set payload=jsonb_set(
+             b.payload,
+             '{users}',
+             (
+               select jsonb_agg(
+                 case when user_record = candidate_record
+                      then jsonb_set(user_record,'{userId}',to_jsonb(candidate_user_id::text),true)
+                      else user_record end
+                 order by ord
+               )
+               from jsonb_array_elements(coalesce(b.payload->'users','[]'::jsonb))
+                    with ordinality as accounts(user_record,ord)
+             ),
+             true
+           ),
+           version=version+1,
+           updated_at=now()
+     where b.id=1
+     returning version into updated_version;
+    if not found then raise exception 'Unable to attach the temporary DEV bootstrap identity'; end if;
+    insert into public.downtime_central_audit(username,action,details)
+    values('DEV','roots-bootstrap-transition-id-assigned',
+      jsonb_build_object('temporaryUserId',candidate_user_id,'previousUserId',candidate_record->>'userId',
+        'reason','Temporary immutable identity required to authorise the one-time identity reset'));
+  end if;
+
+  insert into public.downtime_roots_bootstrap(singleton,user_id)
+  values(true,candidate_user_id)
+  on conflict(singleton) do nothing;
+
+  select user_id into existing_user_id
+    from public.downtime_roots_bootstrap where singleton = true;
+  if existing_user_id is distinct from candidate_user_id then
+    raise exception 'Existing immutable DEV bootstrap identity does not match the Central Bank DEV USER';
+  end if;
+end;
+$bootstrap$;
+
+alter table public.downtime_roots_assignments
+  add column if not exists status text not null default 'ACTIVE'
+    check (status in ('ACTIVE','REVOKED'));
+alter table public.downtime_roots_assignments
+  add column if not exists version integer not null default 1 check (version > 0);
+alter table public.downtime_roots_assignments
+  add column if not exists revoked_at timestamptz;
+alter table public.downtime_roots_assignments
+  add column if not exists updated_at timestamptz not null default now();
+
+alter table public.downtime_roots_assignment_audit
+  drop constraint if exists downtime_roots_assignment_audit_action_check;
+alter table public.downtime_roots_assignment_audit
+  add constraint downtime_roots_assignment_audit_action_check
+  check (action in ('ROOTS_DEV1_ASSIGNED','ROOTS_ADMIN_ASSIGNED','ROOTS_RECLASSIFIED','ROOTS_REVOKED'));
+
+-- Assignment rows are managed only by the version-checked SECURITY DEFINER RPC below.
+-- Audit rows remain append-only, and no application role receives direct table DML.
+drop trigger if exists downtime_roots_assignment_immutable on public.downtime_roots_assignments;
+revoke insert, update, delete on public.downtime_roots_assignments from service_role;
+
+create or replace function public.downtime_roots_manage_identity(
+  p_user_id uuid,
+  p_staff_id uuid,
+  p_roots_class text,
+  p_action text,
+  p_expected_version integer,
+  p_actor_user_id uuid,
+  p_actor_username text,
+  p_actor_display_name text
+) returns jsonb
+language plpgsql security definer set search_path = public
+as $manage$
+declare
+  v_assignment public.downtime_roots_assignments%rowtype;
+  v_previous_class text;
+  v_next_class text;
+  v_audit_action text;
+begin
+  if p_user_id is null or p_staff_id is null or p_user_id = p_staff_id
+     or p_action is null or p_action not in ('ASSIGN','RECLASSIFY','REVOKE')
+     or coalesce(trim(p_actor_username),'') = ''
+     or p_actor_user_id is null
+     or coalesce(trim(p_actor_display_name),'') = '' then
+    raise exception 'Invalid protected ROOTS lifecycle request';
+  end if;
+  if p_action in ('ASSIGN','RECLASSIFY') and (p_roots_class is null or p_roots_class not in ('DEV1','ADMIN')) then
+    raise exception 'A protected DEV1 or ADMIN classification is required';
+  end if;
+
+  select * into v_assignment
+    from public.downtime_roots_assignments
+   where user_id = p_user_id or staff_id = p_staff_id
+   for update;
+
+  if not found then
+    if p_action <> 'ASSIGN' then raise exception 'Protected ROOTS assignment does not exist'; end if;
+    insert into public.downtime_roots_assignments
+      (user_id,staff_id,roots_class,status,version,assigned_by_user_id,assigned_by_username,assigned_by_display_name)
+    values
+      (p_user_id,p_staff_id,p_roots_class,'ACTIVE',1,p_actor_user_id,trim(p_actor_username),trim(p_actor_display_name))
+    returning * into v_assignment;
+    v_previous_class := null;
+    v_next_class := p_roots_class;
+    v_audit_action := case p_roots_class when 'DEV1' then 'ROOTS_DEV1_ASSIGNED' else 'ROOTS_ADMIN_ASSIGNED' end;
+  else
+    if v_assignment.user_id <> p_user_id or v_assignment.staff_id <> p_staff_id then
+      raise exception 'USER and STAFF IDs are already linked to a different protected ROOTS identity';
+    end if;
+    v_previous_class := v_assignment.roots_class;
+
+    if p_action = 'ASSIGN' then
+      if v_assignment.status = 'ACTIVE' and v_assignment.roots_class = p_roots_class then
+        return jsonb_build_object('user_id',v_assignment.user_id,'staff_id',v_assignment.staff_id,
+          'roots_class',v_assignment.roots_class,'status',v_assignment.status,'version',v_assignment.version,'replayed',true);
+      end if;
+      if v_assignment.status = 'ACTIVE' then
+        raise exception 'An active ROOTS classification already exists; use an authorised reclassification';
+      end if;
+      if p_expected_version is null or p_expected_version <> v_assignment.version then
+        raise exception 'ROOTS_ASSIGNMENT_VERSION_CONFLICT';
+      end if;
+      update public.downtime_roots_assignments
+         set roots_class=p_roots_class,status='ACTIVE',version=version+1,revoked_at=null,
+             assigned_by_user_id=p_actor_user_id,assigned_by_username=trim(p_actor_username),
+             assigned_by_display_name=trim(p_actor_display_name),updated_at=now()
+       where id=v_assignment.id returning * into v_assignment;
+      v_next_class := p_roots_class;
+      v_audit_action := case p_roots_class when 'DEV1' then 'ROOTS_DEV1_ASSIGNED' else 'ROOTS_ADMIN_ASSIGNED' end;
+
+    elsif p_action = 'RECLASSIFY' then
+      if v_assignment.status <> 'ACTIVE' then raise exception 'Only an active ROOTS identity can be reclassified'; end if;
+      if p_expected_version is null or p_expected_version <> v_assignment.version then
+        raise exception 'ROOTS_ASSIGNMENT_VERSION_CONFLICT';
+      end if;
+      if v_assignment.roots_class = p_roots_class then
+        return jsonb_build_object('user_id',v_assignment.user_id,'staff_id',v_assignment.staff_id,
+          'roots_class',v_assignment.roots_class,'status',v_assignment.status,'version',v_assignment.version,'replayed',true);
+      end if;
+      update public.downtime_roots_assignments
+         set roots_class=p_roots_class,version=version+1,assigned_by_user_id=p_actor_user_id,
+             assigned_by_username=trim(p_actor_username),assigned_by_display_name=trim(p_actor_display_name),updated_at=now()
+       where id=v_assignment.id returning * into v_assignment;
+      v_next_class := p_roots_class;
+      v_audit_action := 'ROOTS_RECLASSIFIED';
+
+    else
+      if v_assignment.status = 'REVOKED' then
+        return jsonb_build_object('user_id',v_assignment.user_id,'staff_id',v_assignment.staff_id,
+          'roots_class',v_assignment.roots_class,'status',v_assignment.status,'version',v_assignment.version,'replayed',true);
+      end if;
+      if p_expected_version is null or p_expected_version <> v_assignment.version then
+        raise exception 'ROOTS_ASSIGNMENT_VERSION_CONFLICT';
+      end if;
+      update public.downtime_roots_assignments
+         set status='REVOKED',version=version+1,revoked_at=now(),
+             assigned_by_user_id=p_actor_user_id,assigned_by_username=trim(p_actor_username),
+             assigned_by_display_name=trim(p_actor_display_name),updated_at=now()
+       where id=v_assignment.id returning * into v_assignment;
+      v_next_class := v_assignment.roots_class;
+      v_audit_action := 'ROOTS_REVOKED';
+    end if;
+  end if;
+
+  insert into public.downtime_roots_assignment_audit
+    (assignment_id,user_id,staff_id,roots_class,actor_user_id,actor_username,actor_display_name,action)
+  values
+    (v_assignment.id,p_user_id,p_staff_id,v_next_class,p_actor_user_id,trim(p_actor_username),trim(p_actor_display_name),v_audit_action);
+
+  return jsonb_build_object('user_id',v_assignment.user_id,'staff_id',v_assignment.staff_id,
+    'roots_class',v_assignment.roots_class,'status',v_assignment.status,'version',v_assignment.version,'replayed',false,
+    'previous_roots_class',v_previous_class);
+end;
+$manage$;
+
+revoke all on function public.downtime_roots_manage_identity(uuid,uuid,text,text,integer,uuid,text,text) from public, anon, authenticated;
+grant execute on function public.downtime_roots_manage_identity(uuid,uuid,text,text,integer,uuid,text,text) to service_role;
+
+create or replace function public.downtime_roots_assign_identity(
+  p_user_id uuid,p_staff_id uuid,p_roots_class text,p_actor_user_id uuid,p_actor_username text,p_actor_display_name text
+) returns jsonb
+language sql security definer set search_path = public
+as $assign$
+  select public.downtime_roots_manage_identity(
+    p_user_id,p_staff_id,p_roots_class,'ASSIGN',null,p_actor_user_id,p_actor_username,p_actor_display_name
+  );
+$assign$;
+
+revoke all on function public.downtime_roots_assign_identity(uuid,uuid,text,uuid,text,text) from public, anon, authenticated;
+grant execute on function public.downtime_roots_assign_identity(uuid,uuid,text,uuid,text,text) to service_role;
+
+comment on table public.downtime_roots_bootstrap is 'Single immutable DEV USER identity. Its ID is captured once from the existing Central Bank record.';
+comment on table public.downtime_roots_assignments is 'Protected DEV1/ADMIN assignment with revocation and reclassification lifecycle; direct DML is denied.';
+comment on table public.downtime_roots_assignment_audit is 'Append-only audit of ROOTS assignment, reclassification and revocation events.';
+ then
+    candidate_user_id := (candidate_record->>'userId')::uuid;
+  else
+    -- Temporary transition identity: the one-time reset later replaces this old DEV ID
+    -- with a different new DEV bootstrap ID and removes the old DEV account.
+    candidate_user_id := gen_random_uuid();
+    update public.downtime_central_bank b
+       set payload=jsonb_set(
+             b.payload,
+             '{users}',
+             (
+               select jsonb_agg(
+                 case when user_record = candidate_record
+                      then jsonb_set(user_record,'{userId}',to_jsonb(candidate_user_id::text),true)
+                      else user_record end
+                 order by ord
+               )
+               from jsonb_array_elements(coalesce(b.payload->'users','[]'::jsonb))
+                    with ordinality as accounts(user_record,ord)
+             ),
+             true
+           ),
+           version=version+1,
+           updated_at=now()
+     where b.id=1
+     returning version into updated_version;
+    if not found then raise exception 'Unable to attach the temporary DEV bootstrap identity'; end if;
+    insert into public.downtime_central_audit(username,action,details)
+    values('DEV','roots-bootstrap-transition-id-assigned',
+      jsonb_build_object('temporaryUserId',candidate_user_id,'previousUserId',candidate_record->>'userId',
+        'reason','Temporary immutable identity required to authorise the one-time identity reset'));
+  end if;
+
+  insert into public.downtime_roots_bootstrap(singleton,user_id)
+  values(true,candidate_user_id)
+  on conflict(singleton) do nothing;
+
+  select user_id into existing_user_id
+    from public.downtime_roots_bootstrap where singleton = true;
+  if existing_user_id is distinct from candidate_user_id then
+    raise exception 'Existing immutable DEV bootstrap identity does not match the Central Bank DEV USER';
+  end if;
+end;
+$bootstrap$;
+
+alter table public.downtime_roots_assignments
+  add column if not exists status text not null default 'ACTIVE'
+    check (status in ('ACTIVE','REVOKED'));
+alter table public.downtime_roots_assignments
+  add column if not exists version integer not null default 1 check (version > 0);
+alter table public.downtime_roots_assignments
+  add column if not exists revoked_at timestamptz;
+alter table public.downtime_roots_assignments
+  add column if not exists updated_at timestamptz not null default now();
+
+alter table public.downtime_roots_assignment_audit
+  drop constraint if exists downtime_roots_assignment_audit_action_check;
+alter table public.downtime_roots_assignment_audit
+  add constraint downtime_roots_assignment_audit_action_check
+  check (action in ('ROOTS_DEV1_ASSIGNED','ROOTS_ADMIN_ASSIGNED','ROOTS_RECLASSIFIED','ROOTS_REVOKED'));
+
+-- Assignment rows are managed only by the version-checked SECURITY DEFINER RPC below.
+-- Audit rows remain append-only, and no application role receives direct table DML.
+drop trigger if exists downtime_roots_assignment_immutable on public.downtime_roots_assignments;
+revoke insert, update, delete on public.downtime_roots_assignments from service_role;
+
+create or replace function public.downtime_roots_manage_identity(
+  p_user_id uuid,
+  p_staff_id uuid,
+  p_roots_class text,
+  p_action text,
+  p_expected_version integer,
+  p_actor_user_id uuid,
+  p_actor_username text,
+  p_actor_display_name text
+) returns jsonb
+language plpgsql security definer set search_path = public
+as $manage$
+declare
+  v_assignment public.downtime_roots_assignments%rowtype;
+  v_previous_class text;
+  v_next_class text;
+  v_audit_action text;
+begin
+  if p_user_id is null or p_staff_id is null or p_user_id = p_staff_id
+     or p_action is null or p_action not in ('ASSIGN','RECLASSIFY','REVOKE')
+     or coalesce(trim(p_actor_username),'') = ''
+     or p_actor_user_id is null
+     or coalesce(trim(p_actor_display_name),'') = '' then
+    raise exception 'Invalid protected ROOTS lifecycle request';
+  end if;
+  if p_action in ('ASSIGN','RECLASSIFY') and (p_roots_class is null or p_roots_class not in ('DEV1','ADMIN')) then
+    raise exception 'A protected DEV1 or ADMIN classification is required';
+  end if;
+
+  select * into v_assignment
+    from public.downtime_roots_assignments
+   where user_id = p_user_id or staff_id = p_staff_id
+   for update;
+
+  if not found then
+    if p_action <> 'ASSIGN' then raise exception 'Protected ROOTS assignment does not exist'; end if;
+    insert into public.downtime_roots_assignments
+      (user_id,staff_id,roots_class,status,version,assigned_by_user_id,assigned_by_username,assigned_by_display_name)
+    values
+      (p_user_id,p_staff_id,p_roots_class,'ACTIVE',1,p_actor_user_id,trim(p_actor_username),trim(p_actor_display_name))
+    returning * into v_assignment;
+    v_previous_class := null;
+    v_next_class := p_roots_class;
+    v_audit_action := case p_roots_class when 'DEV1' then 'ROOTS_DEV1_ASSIGNED' else 'ROOTS_ADMIN_ASSIGNED' end;
+  else
+    if v_assignment.user_id <> p_user_id or v_assignment.staff_id <> p_staff_id then
+      raise exception 'USER and STAFF IDs are already linked to a different protected ROOTS identity';
+    end if;
+    v_previous_class := v_assignment.roots_class;
+
+    if p_action = 'ASSIGN' then
+      if v_assignment.status = 'ACTIVE' and v_assignment.roots_class = p_roots_class then
+        return jsonb_build_object('user_id',v_assignment.user_id,'staff_id',v_assignment.staff_id,
+          'roots_class',v_assignment.roots_class,'status',v_assignment.status,'version',v_assignment.version,'replayed',true);
+      end if;
+      if v_assignment.status = 'ACTIVE' then
+        raise exception 'An active ROOTS classification already exists; use an authorised reclassification';
+      end if;
+      if p_expected_version is null or p_expected_version <> v_assignment.version then
+        raise exception 'ROOTS_ASSIGNMENT_VERSION_CONFLICT';
+      end if;
+      update public.downtime_roots_assignments
+         set roots_class=p_roots_class,status='ACTIVE',version=version+1,revoked_at=null,
+             assigned_by_user_id=p_actor_user_id,assigned_by_username=trim(p_actor_username),
+             assigned_by_display_name=trim(p_actor_display_name),updated_at=now()
+       where id=v_assignment.id returning * into v_assignment;
+      v_next_class := p_roots_class;
+      v_audit_action := case p_roots_class when 'DEV1' then 'ROOTS_DEV1_ASSIGNED' else 'ROOTS_ADMIN_ASSIGNED' end;
+
+    elsif p_action = 'RECLASSIFY' then
+      if v_assignment.status <> 'ACTIVE' then raise exception 'Only an active ROOTS identity can be reclassified'; end if;
+      if p_expected_version is null or p_expected_version <> v_assignment.version then
+        raise exception 'ROOTS_ASSIGNMENT_VERSION_CONFLICT';
+      end if;
+      if v_assignment.roots_class = p_roots_class then
+        return jsonb_build_object('user_id',v_assignment.user_id,'staff_id',v_assignment.staff_id,
+          'roots_class',v_assignment.roots_class,'status',v_assignment.status,'version',v_assignment.version,'replayed',true);
+      end if;
+      update public.downtime_roots_assignments
+         set roots_class=p_roots_class,version=version+1,assigned_by_user_id=p_actor_user_id,
+             assigned_by_username=trim(p_actor_username),assigned_by_display_name=trim(p_actor_display_name),updated_at=now()
+       where id=v_assignment.id returning * into v_assignment;
+      v_next_class := p_roots_class;
+      v_audit_action := 'ROOTS_RECLASSIFIED';
+
+    else
+      if v_assignment.status = 'REVOKED' then
+        return jsonb_build_object('user_id',v_assignment.user_id,'staff_id',v_assignment.staff_id,
+          'roots_class',v_assignment.roots_class,'status',v_assignment.status,'version',v_assignment.version,'replayed',true);
+      end if;
+      if p_expected_version is null or p_expected_version <> v_assignment.version then
+        raise exception 'ROOTS_ASSIGNMENT_VERSION_CONFLICT';
+      end if;
+      update public.downtime_roots_assignments
+         set status='REVOKED',version=version+1,revoked_at=now(),
+             assigned_by_user_id=p_actor_user_id,assigned_by_username=trim(p_actor_username),
+             assigned_by_display_name=trim(p_actor_display_name),updated_at=now()
+       where id=v_assignment.id returning * into v_assignment;
+      v_next_class := v_assignment.roots_class;
+      v_audit_action := 'ROOTS_REVOKED';
+    end if;
+  end if;
+
+  insert into public.downtime_roots_assignment_audit
+    (assignment_id,user_id,staff_id,roots_class,actor_user_id,actor_username,actor_display_name,action)
+  values
+    (v_assignment.id,p_user_id,p_staff_id,v_next_class,p_actor_user_id,trim(p_actor_username),trim(p_actor_display_name),v_audit_action);
+
+  return jsonb_build_object('user_id',v_assignment.user_id,'staff_id',v_assignment.staff_id,
+    'roots_class',v_assignment.roots_class,'status',v_assignment.status,'version',v_assignment.version,'replayed',false,
+    'previous_roots_class',v_previous_class);
+end;
+$manage$;
+
+revoke all on function public.downtime_roots_manage_identity(uuid,uuid,text,text,integer,uuid,text,text) from public, anon, authenticated;
+grant execute on function public.downtime_roots_manage_identity(uuid,uuid,text,text,integer,uuid,text,text) to service_role;
+
+create or replace function public.downtime_roots_assign_identity(
+  p_user_id uuid,p_staff_id uuid,p_roots_class text,p_actor_user_id uuid,p_actor_username text,p_actor_display_name text
+) returns jsonb
+language sql security definer set search_path = public
+as $assign$
+  select public.downtime_roots_manage_identity(
+    p_user_id,p_staff_id,p_roots_class,'ASSIGN',null,p_actor_user_id,p_actor_username,p_actor_display_name
+  );
+$assign$;
+
+revoke all on function public.downtime_roots_assign_identity(uuid,uuid,text,uuid,text,text) from public, anon, authenticated;
+grant execute on function public.downtime_roots_assign_identity(uuid,uuid,text,uuid,text,text) to service_role;
+
+comment on table public.downtime_roots_bootstrap is 'Single immutable DEV USER identity. Its ID is captured once from the existing Central Bank record.';
+comment on table public.downtime_roots_assignments is 'Protected DEV1/ADMIN assignment with revocation and reclassification lifecycle; direct DML is denied.';
+comment on table public.downtime_roots_assignment_audit is 'Append-only audit of ROOTS assignment, reclassification and revocation events.';
  then
     candidate_user_id := (candidate_record->>'userId')::uuid;
   else
