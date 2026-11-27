@@ -30,6 +30,7 @@ assert.match(html,/id="staffManagementBackBtn" type="button" class="yard-hub-sec
 assert.match(html,/\$\('backToYardHub'\)\?\.addEventListener\('click',returnToYardHub\);\$\('staffBackToYardHub'\)\?\.addEventListener\('click',returnToYardHub\)/,'both the global navigation and STAFF page header return to YARD HUB');
 assert.match(html,/id="settingsPanelStaff"[\s\S]*?class="yard-hub-view-toolbar"[\s\S]*?<h2>STAFF<\/h2>/,'STAFF uses the shared secondary page heading and toolbar layout');
 assert.match(html,/id="staffRosterList" class="yard-hub-users-list yard-hub-staff-list"/,'STAFF directory uses the shared YARD HUB list layout');
+assert.match(html,/#settingsPanelStaff \.staff-directory-actions\{display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;width:100%\}/,'STAFF actions use the same wrapping flex toolbar system rather than a custom grid');
 assert.match(html,/function renderOperatorRosterAdmin\(\)[\s\S]*?yard-hub-user-row[\s\S]*?yard-hub-user-meta[\s\S]*?staffModalOpen\(name\)/,'STAFF roster rows share the USER directory structure while keeping the existing profile editor action');
 assert.doesNotMatch(html,/id="settingsPanelStaff"[\s\S]*?onclick="window\.returnToYardHub\(\)"/,'STAFF panel has no duplicate YARD HUB return control');
 assert.match(html,/function setStaffWorkspaceNavigation\(hidden\)\{[^}]*menu\.hidden=Boolean\(hidden\)\}/,'STAFF main-menu visibility is controlled by a dedicated navigation helper');
