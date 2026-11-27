@@ -389,7 +389,7 @@ window.supabase={createClient:()=>({
  try{await page.waitForFunction(()=>document.querySelector('#centralUsername')?.tagName==='SELECT'&&document.querySelector('#centralUsername')?.options.length>1,{timeout:8000})}catch(error){throw new Error('Central USER dropdown failed to render. Browser errors: '+errors.slice(-10).join(' | ')+'; auth message: '+await page.locator('#authMsg').textContent().catch(()=> 'missing')+'; window adapter: '+await page.evaluate(()=>String(!!window.DowntimeCentral)).catch(()=> 'unavailable')+'; original: '+error.message)}
  assert.equal(await page.locator('#centralUsername').evaluate(el=>el.tagName),'SELECT','login username is selected from a dropdown');
  assert.equal(await page.locator('#centralUsername').evaluate(el=>el.options[0]?.value),'','login dropdown requires an explicit USER selection');
- assert.ok(await page.locator('#centralUsername option').evaluateAll(options=>options.some(option=>option.value===username)),'enabled account appears in the USER selection list');
+ assert.ok(await page.locator('#centralUsername option').evaluateAll((options,expectedUsername)=>options.some(option=>option.value===expectedUsername),username),'enabled account appears in the USER selection list');
  if(!loginPresentationVerified){
   const desktopBox=await page.locator('#authGate .authbox-central').boundingBox();
   const desktopStyle=await page.locator('#authGate .authbox-central').evaluate(el=>({border:getComputedStyle(el).borderTopColor,brandVisible:!!el.querySelector('.auth-brand-wordmark')}));
