@@ -28,10 +28,10 @@
 >
 > ### Ordinary YARD ROLE authorization
 > - Replace both legacy Central DOWNTIME tier permissions and YARDHUB tier/section permissions with one canonical YARD ROLE model, authoritative across both applications after cutover.
-> - For each ordinary YARD ROLE and department, exactly one mutually exclusive level applies: **OFF** (no tile/access), **Read Only** (view only), **Input** (view, add and edit; no removal/deletion), or **Manage** (full supported department privileges, including removal/deletion).
-> - The selected level governs both department availability and server-side actions. UI hiding is not a security boundary.
+> - For each ordinary YARD ROLE and each of the five departments (SCPL, R&M, Management, SCFL and Traffic), configure four independent permissions using the **Operational Records** tile: **View**, **Enter**, **Edit** and **Manage**. Each checkbox is independently selectable; enabling one does not implicitly enable another.
+> - The four permission flags govern their corresponding department availability and server-side actions. Do not infer one permission from another. UI hiding is not a security boundary.
 > - DEV1 and protected ADMIN do not need ordinary YARD ROLE assignments to obtain their automatic Manage authority. ROOTS is a separate authorization layer and must not be represented by populating the ordinary matrix.
-> - No legacy tier or permission profile is automatically mapped to a new YARD ROLE. The unified schema, every permission consumer, migration mapping and fallback must be reviewed. Legacy stores remain compatibility-only until all consumers have migrated and cutover is approved; they must not remain competing authorities after cutover.
+> - DEV or an authorised ROOTS identity configures YARD ROLE permissions and assigns the configured YARD ROLE to a USER; the USER inherits that role's exact permissions. A USER has no separate individual permission matrix.\n- No legacy tier or permission profile is automatically mapped to a new YARD ROLE. The unified schema, every permission consumer, migration mapping and fallback must be reviewed. Legacy stores remain compatibility-only until all consumers have migrated and cutover is approved; they must not remain competing authorities after cutover.
 >
 > ### Administration location and boundaries
 > - USER management, STAFF directory/management and Access and Rights belong in YARDHUB.
