@@ -324,7 +324,7 @@ Deno.serve(async(req)=>{
    return json({contractVersion:1,centralVersion:Number(row?.version||0),preview});
  }
  if(action==="photo-evidence-context"){
-   return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username,userId:currentUser.userId||null,staffId:currentUser.staffId||null},permissions:{canViewDashboards:priv.canViewDashboards===true,canEditTracker:priv.canEditTracker===true,canEnterRecords:priv.canEnterRecords===true,canEditRecords:priv.canEditRecords===true,canDeleteRecords:priv.canDeleteRecords===true}});
+   return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username,userId:currentUser.userId||null,staffId:currentUser.staffId||null},permissions:{canEnterRecords:priv.canEnterRecords===true,canEditRecords:priv.canEditRecords===true,canDeleteRecords:priv.canDeleteRecords===true}});
  }
  if(action==="reports-context"){
    return json({user:{username:currentUser.username,displayName:currentUser.displayName||currentUser.username,userId:currentUser.userId||null,staffId:currentUser.staffId||null},permissions:{canViewReports:priv.canViewReports===true,canExportReports:priv.canExportReports===true,canDeleteRecords:priv.canDeleteRecords===true}});
