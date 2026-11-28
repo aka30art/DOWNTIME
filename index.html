@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0b1721"><title>Plant Downtime Tracker</title>
+<meta name="theme-color" content="#0b1721"><title>YARDHUB — Under Maintenance</title>
 <style>
 :root{--bg:#07131c;--panel:#101f2b;--panel2:#1a2d3b;--line:#334b5d;--text:#f3f6f8;--muted:#9aafbd;--yellow:#ffc400;--blue:#1687f8;--red:#ff725e;--shadow:0 12px 32px #0005}
 *{box-sizing:border-box}
@@ -692,8 +692,83 @@ body.section-page-open .shell{grid-template-columns:minmax(0,1fr)!important}
 body.section-page-open #returnMainMenu{display:inline-flex;align-items:center;gap:9px}
 @media(max-width:600px){body.section-page-open main{padding-top:12px}body.section-page-open #returnMainMenu{width:100%;justify-content:flex-start}}
 @media(prefers-reduced-motion:reduce){body.section-page-open *{scroll-behavior:auto!important;transition:none!important}}
-</style></head>
-<body><div id="authGate"><div class="authbox authbox-central"><div class="auth-brand" aria-label="YARD HUB — Yard Operations Core"><div class="auth-brand-wordmark"><span>YARD</span><strong>HUB<sup>®</sup></strong></div><p>YARD OPERATIONS CORE</p></div><div class="auth-divider" aria-hidden="true"><span></span><i></i><span></span></div><h2>DOWNTIME · CENTRAL LOGIN</h2><p class="muted">Select your USER and enter your PIN.</p><label for="centralUsername">USERNAME</label><select id="centralUsername" class="input" aria-label="Select central USER"><option value="">SELECT USER</option></select><label for="teamPin" class="auth-field-label">4–8 DIGIT PIN</label><input id="teamPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="4–8 digit PIN" aria-label="Central account PIN"><div class="pinpad" data-pinpad="teamPin"><div class="pinpad-grid"><button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="clear">CLEAR</button><button type="button" data-key="0">0</button><button type="button" data-key="back">⌫</button></div></div><button id="unlockBtn" class="primary">SIGN IN</button><button type="button" id="refreshAppBtn" class="quiet" style="width:100%;margin-top:8px">RESET LOGIN FORM</button><div id="authMsg" role="status" aria-live="polite"></div></div></div>
+</style><style id="yardhub-maintenance-screen-style">
+
+/* YARDHUB TEMPORARY MAINTENANCE PRESENTATION — entry-screen only */
+#yardHubMaintenanceGate{display:none}
+body.yardhub-maintenance-mode{min-height:100vh!important;overflow:hidden!important;background:#07131c!important}
+body.yardhub-maintenance-mode>:not(#yardHubMaintenanceGate){visibility:hidden!important;pointer-events:none!important}
+body.yardhub-maintenance-mode #yardHubMaintenanceGate{display:flex!important;visibility:visible!important;pointer-events:auto!important}
+#yardHubMaintenanceGate{position:fixed;inset:0;z-index:2147483647;align-items:center;justify-content:center;overflow:auto;padding:clamp(18px,4vw,38px);background:radial-gradient(ellipse at 50% -18%,#1b3547 0,#07131c 58%);color:#f3f6f8;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+#yardHubMaintenanceGate *{box-sizing:border-box}
+#yardHubMaintenanceGate .yard-maintenance-card{width:min(570px,100%);max-height:calc(100dvh - 36px);overflow:auto;padding:clamp(27px,5vw,44px);border:1px solid #344d60;border-top:4px solid #ffc400;border-radius:20px;background:linear-gradient(155deg,rgba(16,34,47,.99),rgba(7,19,28,.995) 74%);box-shadow:0 24px 80px #0009,0 0 0 1px #ffc40012;text-align:center}
+#yardHubMaintenanceGate .yard-maintenance-brand{display:flex;flex-direction:column;align-items:center;gap:5px}
+#yardHubMaintenanceGate .yard-maintenance-wordmark{display:flex;align-items:baseline;gap:3px;color:#f5f7fa;font-size:clamp(38px,7vw,58px);font-style:italic;font-weight:1000;letter-spacing:-3px;line-height:1}
+#yardHubMaintenanceGate .yard-maintenance-wordmark strong{color:#ffc400;font-weight:1000}
+#yardHubMaintenanceGate .yard-maintenance-wordmark sup{position:relative;top:-1.5em;margin-left:1px;color:#ffc400;font-size:10px;letter-spacing:0}
+#yardHubMaintenanceGate .yard-maintenance-brand p{margin:3px 0 0;color:#9aafbd;font-size:10px;font-weight:850;letter-spacing:3px}
+#yardHubMaintenanceGate .yard-maintenance-divider{display:flex;align-items:center;gap:10px;margin:22px 0 20px}
+#yardHubMaintenanceGate .yard-maintenance-divider span{height:2px;flex:1;background:linear-gradient(90deg,transparent,#526879)}
+#yardHubMaintenanceGate .yard-maintenance-divider span:last-child{transform:rotate(180deg)}
+#yardHubMaintenanceGate .yard-maintenance-divider i{width:42px;height:12px;background:#ffc400;transform:skew(-25deg)}
+#yardHubMaintenanceGate .yard-maintenance-notice{display:inline-flex;align-items:center;gap:9px;margin:0 auto 14px;padding:7px 11px;border:1px solid #705f24;border-radius:7px;background:#241f12;color:#ffd65a;font-size:10px;font-weight:950;letter-spacing:1.5px}
+#yardHubMaintenanceGate .yard-maintenance-notice svg{width:18px;height:18px;flex:0 0 18px}
+#yardHubMaintenanceGate h1{margin:0;color:#ffc400;font-size:clamp(25px,5vw,36px);font-weight:1000;letter-spacing:.7px;line-height:1.12}
+#yardHubMaintenanceGate h2{margin:12px 0 17px;color:#fff;font-size:clamp(19px,3.5vw,24px);font-weight:750;letter-spacing:-.3px}
+#yardHubMaintenanceGate .yard-maintenance-copy{max-width:455px;margin:0 auto;color:#c1ccd5;font-size:14px;line-height:1.75}
+#yardHubMaintenanceGate .yard-maintenance-copy p{margin:0 0 12px}
+#yardHubMaintenanceGate .yard-maintenance-copy p:last-child{margin-bottom:0}
+#yardHubMaintenanceGate .yard-maintenance-footer{display:flex;justify-content:space-between;gap:12px;margin-top:27px;padding-top:15px;border-top:1px solid #2d4352;color:#8295a5;font-size:9px;font-weight:900;letter-spacing:1.1px}
+@media(max-width:520px){
+ #yardHubMaintenanceGate{padding:15px}
+ #yardHubMaintenanceGate .yard-maintenance-card{padding:28px 20px 20px;border-radius:16px}
+ #yardHubMaintenanceGate .yard-maintenance-divider{margin:18px 0 17px}
+ #yardHubMaintenanceGate .yard-maintenance-copy{font-size:13px;line-height:1.65}
+ #yardHubMaintenanceGate .yard-maintenance-footer{flex-direction:column;gap:6px;align-items:center;margin-top:22px}
+}
+@media(max-height:620px){
+ #yardHubMaintenanceGate{align-items:flex-start}
+ #yardHubMaintenanceGate .yard-maintenance-card{margin:auto 0}
+}
+@media(prefers-reduced-motion:reduce){#yardHubMaintenanceGate *{scroll-behavior:auto!important;transition:none!important}}
+
+</style>
+</head>
+<body class="yardhub-maintenance-mode">
+<main id="yardHubMaintenanceGate" class="yard-maintenance-gate" aria-labelledby="yardHubMaintenanceTitle" aria-describedby="yardHubMaintenanceCopy">
+  <section class="yard-maintenance-card">
+    <header class="yard-maintenance-brand" aria-label="YARDHUB">
+      <div class="yard-maintenance-wordmark"><span>YARD</span><strong>HUB</strong><sup>®</sup></div>
+      <p>YARD OPERATIONS CORE</p>
+    </header>
+    <div class="yard-maintenance-divider" aria-hidden="true"><span></span><i></i><span></span></div>
+    <div class="yard-maintenance-notice">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <path d="M32 5 59 54H5L32 5Z" fill="#ffc400"/>
+        <path d="M32 20v16" stroke="#101820" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="32" cy="44" r="2.8" fill="#101820"/>
+      </svg>
+      <span>SYSTEM NOTICE</span>
+    </div>
+    <h1 id="yardHubMaintenanceTitle">UNDER MAINTENANCE</h1>
+    <h2>We’ll be back soon.</h2>
+    <div id="yardHubMaintenanceCopy" class="yard-maintenance-copy">
+      <p>We sincerely apologise for the inconvenience. YARDHUB is temporarily unavailable while we carry out essential maintenance and improvements.</p>
+      <p>We’re working to restore access as soon as possible. Thank you for your patience and understanding.</p>
+    </div>
+    <footer class="yard-maintenance-footer">
+      <span>YARDHUB SYSTEMS</span>
+      <span>TEMPORARILY UNAVAILABLE</span>
+    </footer>
+  </section>
+</main>
+<script>
+  // Keep local browser QA able to exercise the unchanged login and module flows.
+  if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+    document.body.classList.remove("yardhub-maintenance-mode");
+  }
+</script>
+<div id="authGate"><div class="authbox authbox-central"><div class="auth-brand" aria-label="YARD HUB — Yard Operations Core"><div class="auth-brand-wordmark"><span>YARD</span><strong>HUB<sup>®</sup></strong></div><p>YARD OPERATIONS CORE</p></div><div class="auth-divider" aria-hidden="true"><span></span><i></i><span></span></div><h2>DOWNTIME · CENTRAL LOGIN</h2><p class="muted">Select your USER and enter your PIN.</p><label for="centralUsername">USERNAME</label><select id="centralUsername" class="input" aria-label="Select central USER"><option value="">SELECT USER</option></select><label for="teamPin" class="auth-field-label">4–8 DIGIT PIN</label><input id="teamPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="4–8 digit PIN" aria-label="Central account PIN"><div class="pinpad" data-pinpad="teamPin"><div class="pinpad-grid"><button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="clear">CLEAR</button><button type="button" data-key="0">0</button><button type="button" data-key="back">⌫</button></div></div><button id="unlockBtn" class="primary">SIGN IN</button><button type="button" id="refreshAppBtn" class="quiet" style="width:100%;margin-top:8px">RESET LOGIN FORM</button><div id="authMsg" role="status" aria-live="polite"></div></div></div>
 <div id="operatorGate" style="display:none"></div>
 <div id="spectatorView" style="display:none"></div>
 
