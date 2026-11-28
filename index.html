@@ -734,7 +734,7 @@ body.yardhub-maintenance-mode #yardHubMaintenanceGate{display:flex!important;vis
 
 </style>
 </head>
-<body class="yardhub-maintenance-mode">
+<body>
 <main id="yardHubMaintenanceGate" class="yard-maintenance-gate" aria-labelledby="yardHubMaintenanceTitle" aria-describedby="yardHubMaintenanceCopy">
   <section class="yard-maintenance-card">
     <header class="yard-maintenance-brand" aria-label="YARDHUB">
@@ -763,9 +763,10 @@ body.yardhub-maintenance-mode #yardHubMaintenanceGate{display:flex!important;vis
   </section>
 </main>
 <script>
-  // Keep local browser QA able to exercise the unchanged login and module flows.
-  if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
-    document.body.classList.remove("yardhub-maintenance-mode");
+  // Apply the maintenance presentation only on the deployed public host.
+  // Static QA fixtures and localhost browser tests retain the normal application UI.
+  if (location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+    document.body.classList.add("yardhub-maintenance-mode");
   }
 </script>
 <div id="authGate"><div class="authbox authbox-central"><div class="auth-brand" aria-label="YARD HUB — Yard Operations Core"><div class="auth-brand-wordmark"><span>YARD</span><strong>HUB<sup>®</sup></strong></div><p>YARD OPERATIONS CORE</p></div><div class="auth-divider" aria-hidden="true"><span></span><i></i><span></span></div><h2>DOWNTIME · CENTRAL LOGIN</h2><p class="muted">Select your USER and enter your PIN.</p><label for="centralUsername">USERNAME</label><select id="centralUsername" class="input" aria-label="Select central USER"><option value="">SELECT USER</option></select><label for="teamPin" class="auth-field-label">4–8 DIGIT PIN</label><input id="teamPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="4–8 digit PIN" aria-label="Central account PIN"><div class="pinpad" data-pinpad="teamPin"><div class="pinpad-grid"><button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button><button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button><button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button><button type="button" data-key="clear">CLEAR</button><button type="button" data-key="0">0</button><button type="button" data-key="back">⌫</button></div></div><button id="unlockBtn" class="primary">SIGN IN</button><button type="button" id="refreshAppBtn" class="quiet" style="width:100%;margin-top:8px">RESET LOGIN FORM</button><div id="authMsg" role="status" aria-live="polite"></div></div></div>
